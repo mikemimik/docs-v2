@@ -1,0 +1,136 @@
+---
+description: Comment sélectionner différents types de connexion pour proposer plusieurs options de connexion avec Lock V11.
+title: Choisir parmi plusieurs options de connexion
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Avec Auth0, vous pouvez offrir aux utilisateurs plusieurs méthodes d’authentification. C’est important pour les applications SaaS ou multi-tenant, où de nombreuses organisations utilisent une seule application. Chaque organization peut utiliser des systèmes différents, comme LDAP, Active Directory, Google Workspace ou des répertoires de noms d’utilisateur et de mots de passe.
+
+Dans Auth0, vous pouvez associer différentes connexions (méthodes d’authentification) à des applications précises, ou directement à un tenant (comme [les connexions de domaine](/fr-CA/docs/authenticate/identity-providers/promote-connections-to-domain-level)). Lorsqu’un utilisateur ouvre une session, il faut choisir laquelle de ces connexions utiliser.
+
+<Frame>![Home Realm Discovery dans Lock](/docs/images/cdy7uua7fh8z/1wnZRx9V1cyyV1nRgsu9fD/f2569441334d3b277702db225045e102/2023-09-22_14-18-30.png)</Frame>
+
+Le fait de sélectionner le bon <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Identity+Providers">fournisseur d’identité</Tooltip> parmi plusieurs options s’appelle le « Home Realm Discovery ».
+
+Si vous utilisez au plus une connexion de base de données et zéro ou plusieurs connexions sociales, le processus de sélection est simple. L’utilisateur va soit :
+
+* Cliquer sur l’un des boutons de fournisseurs d’identité sociaux (par ex., &quot;Ouvrir une session avec Google&quot;)
+* Entrer son courriel et son mot de passe (ce qui signifie &quot;J’utiliserai la connexion de base de données&quot;).
+
+Mais si l’application ou le tenant a d’autres types de connexion activés (comme des connexions d’entreprise ou plusieurs bases de données), le processus de sélection peut être plus complexe. Comment indiquer qu’un utilisateur veut utiliser une connexion de base de données précise si plusieurs sont activées ? Et si un utilisateur veut utiliser une connexion d’entreprise pour ouvrir une session avec l’<Tooltip tip="Authentification unique (SSO) : service qui, après qu’un utilisateur a ouvert une session dans une application, ouvre automatiquement une session pour cet utilisateur dans d’autres applications." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Single+Sign-on">authentification unique</Tooltip> (SSO) ?
+
+Si vous implémentez [une interface de connexion personnalisée](/fr-CA/docs/customize/login-pages/classic-login/customize-with-lock-sdk), vous avez un contrôle total sur le flux d’authentification. Vous pouvez choisir la connexion en fonction du contexte (comme l’adresse courriel fournie) ou en la demandant à l’utilisateur, puis fournir le paramètre `connection` à l’une des [méthodes de connexion](/fr-CA/docs/libraries/auth0js) d’Auth0.js.
+
+<div id="lock-and-multiple-connections">
+  ## Lock et plusieurs connexions
+</div>
+
+Lock intègre une fonctionnalité de sélection du fournisseur d’identité. Pour les connexions sociales, il affiche les logos de toutes celles qui sont activées pour une application donnée. Il affiche aussi des champs pour le nom d’utilisateur/l’adresse courriel et le mot de passe si une connexion de base de données ou une connexion Active Directory est activée.
+
+Vous ne verrez un bouton de connexion que s’il s’agit de la seule connexion activée pour l’application (dans l’expérience [Classic Universal Login](/fr-CA/docs/authenticate/login/auth0-universal-login/universal-login-vs-classic-login/classic-experience)). Sinon, vous devrez utiliser une [UI personnalisée](/fr-CA/docs/customize/login-pages/classic-login/customize-with-lock-sdk) ou le [New Universal Login](/fr-CA/docs/authenticate/login/auth0-universal-login/universal-login-vs-classic-login/universal-experience), qui permet d’avoir un bouton pour chaque connexion sociale et chaque connexion d’entreprise activée.
+
+<div id="using-email-domains-with-enterprise-connections">
+  ## Utilisation des domaines de courriel avec les connexions d’entreprise
+</div>
+
+Une fonctionnalité supplémentaire de Lock permet d’utiliser les domaines de courriel pour acheminer les requêtes d’authentification. Les connexions d’entreprise dans Auth0 peuvent être associées à des `domains`. Par exemple, lors de la configuration d’ADFS ou d’un fournisseur d’identité <Tooltip tip="Security Assertion Markup Language (SAML): Protocole normalisé permettant à deux parties d’échanger des informations d’authentification sans mot de passe." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=SAML">SAML</Tooltip>-P :
+
+<Frame>![Configuration des fournisseurs d’identité ADFS ou SAML-P](/docs/images/cdy7uua7fh8z/6c8fqJpKCPNSqlop6ZJGYK/b20b1125302b8f5511825be1299e0f96/enterprise-connection.png)</Frame>
+
+Si des domaines sont associés à une connexion, le champ de saisie du mot de passe se désactive automatiquement lorsqu’un utilisateur entre une adresse courriel appartenant à un domaine associé.
+
+<Frame>![Écran de connexion avec domaine associé](/docs/images/cdy7uua7fh8z/6pb7kGpuHkj0rVPPaJw6Xb/373b9e7a2bf49748a1a306623c13b299/hrd-sso.png)</Frame>
+
+Dans l’exemple ci-dessus, le domaine `auth0.com` a été associé à une connexion d’entreprise.
+
+Notez que vous pouvez associer plusieurs domaines à une seule connexion.
+
+<div id="selecting-among-multiple-database-connections">
+  ## Choisir parmi plusieurs connexions de base de données
+</div>
+
+Si votre application a plusieurs connexions de base de données activées, Lock doit savoir laquelle utiliser. Vous pouvez fournir une [`option connectionResolver`](https://github.com/auth0/lock#other-options), qui accepte une fonction déterminant la connexion à utiliser selon la saisie de l’utilisateur et le contexte. Dans cet exemple, une autre connexion de base de données est utilisée si le domaine du courriel est &quot;auth0.com&quot; :
+
+```js lines
+var options = {
+  connectionResolver: function (username, context, cb) {
+    var domain = username.indexOf('@') !== -1 && username.split('@')[1];
+    if (domain && domain ==='auth0.com') {
+      // Si le nom d'utilisateur est test@auth0.com, la connexion utilisée sera la connexion `auth0-users`.
+      cb({ type: 'database', name: 'auth0-users' });
+    } else {
+      // Utiliser l'approche par défaut pour déterminer la connexion
+      cb(null);
+    }
+  }
+}
+```
+
+Vous pouvez utiliser [l’option `defaultDatabaseConnection`](/fr-CA/docs/libraries/lock/lock-configuration#defaultdatabaseconnection-string-) pour indiquer la connexion de base de données à utiliser par défaut.
+
+<div id="filtering-available-connections-programmatically">
+  ## Filtrer les connexions disponibles par programmation
+</div>
+
+L’[option `allowedConnections`](/fr-CA/docs/libraries/lock/lock-configuration#allowedconnections-array-) dans Lock vous permet d’indiquer quelles connexions disponibles doivent être offertes à l’utilisateur.
+
+Cela vous permet d’adapter l’expérience en fonction d’informations supplémentaires ou du contexte (p. ex. &quot;Cliquez ici pour vous connecter en tant qu’étudiant, ou ici pour vous connecter en tant que membre du corps professoral&quot;).
+
+export const codeExample = `var lock = new Auth0Lock(
+  '{yourClientId}',
+  '{yourDomain}',
+  {
+    allowedConnections: ['yourConnection'];
+  }
+);`;
+
+<AuthCodeBlock children={codeExample} language="js" />
+
+Notez que vous pouvez aussi fournir l’option `allowedConnections` à la méthode `lock.show()` si le fait de la fournir au moment de l’instanciation n’est pas idéal pour votre cas d’utilisation. Consultez la [documentation de l’API](/fr-CA/docs/libraries/lock/lock-api-reference) de la méthode `show` pour en savoir plus.
+
+<div id="sending-realm-information-from-the-application">
+  ## Envoi des informations de realm depuis l’application
+</div>
+
+Il arrive que l’application qui lance une authentification sache d’avance quel realm l’utilisateur doit utiliser. Par exemple, une application mutualisée peut utiliser des URL du type : `https://{customer}.yoursite.com` ou `https://www.yoursite.com/{customer}`. Lorsqu’un utilisateur arrive dans votre application par l’URL personnalisée, vous pouvez récupérer cette valeur `tenant` et la transmettre comme `login_hint` dans la requête `authorize` :
+
+`https://{yourDomain}/authorize?client_id=[...]&login_hint={customer}`
+
+`login_hint` est un indice destiné au <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=authorization+server">serveur d’autorisation</Tooltip> (Auth0) pour indiquer ce que l’utilisateur pourrait utiliser pour se connecter. Dans ce cas, selon l’URL par laquelle l’utilisateur est arrivé, nous traitons &quot;customer&quot; comme le realm.
+
+Le code par défaut de la page de connexion hébergée l’utilise pour préremplir le champ d’adresse courriel dans Lock, mais nous pouvons le modifier pour changer la connexion de base de données utilisée par défaut si un realm est fourni au lieu d’une véritable adresse courriel :
+
+```js lines expandable
+// extrait du modèle de page de connexion hébergée par défaut
+var config = JSON.parse(decodeURIComponent(escape(window.atob('@@config@@'))));
+[...]
+
+var loginHint = config.extraParams.login_hint;
+var realmHint;
+
+// si l'indice de connexion n'est pas une adresse courriel, on le traite comme un indice de realm
+if (loginHint && loginHint.indexOf('@') < 0) {
+  realmHint = loginHint;
+  loginHint = null;
+}
+
+// on associe maintenant le realm à une base de données réelle
+var defaultDatabaseConnection;
+if (realmHint === 'acme') {
+  defaultDatabaseConnection = 'acme-users';
+} else if (realmHint === 'auth0') {
+  defaultDatabaseConnection = 'auth0-DB';
+}
+    
+// lors de la configuration de Lock, on fournit les valeurs obtenues précédemment
+var lock = new Auth0Lock(config.clientID, config.auth0Domain, {
+  [...] // autres options
+  prefill: loginHint ? { email: loginHint, username: loginHint } : null,
+  defaultDatabaseConnection: defaultDatabaseConnection
+}
+```
+
+Le code ci-dessus n’est, bien sûr, qu’un exemple. Vous pourriez étendre cette logique pour exclure les connexions sociales, ou pour définir une connexion par défaut à utiliser même si une adresse courriel est fournie dans `login_hint`.
+
+Associer &quot;customer&quot; à un realm est un choix de conception arbitraire pour cet exemple. Mais, en général, il vaut mieux isoler les applications du concept de &quot;connexion&quot; propre à Auth0 et utiliser plutôt le concept plus abstrait de &quot;realm&quot;, en établissant au besoin une correspondance entre realm et connexion dans la page de connexion hébergée (où il est plus facile d’apporter des modifications si nécessaire).

@@ -1,0 +1,291 @@
+---
+title: Añade el inicio de sesión a tu aplicación de Ruby on Rails
+sidebarTitle: Ruby on Rails
+
+---
+
+import { Recipe, Content, Section, SideMenu, SideMenuSectionItem, SignUpForm } from "/snippets/recipe.jsx";
+import { LoggedInForm } from "/snippets/Login.jsx";
+import Auth0Yml from "/snippets/es/quickstart/webapp/rails/auth0.yml.mdx";
+import Auth0 from "/snippets/es/quickstart/webapp/rails/auth0.rb.mdx";
+import Auth0Controller from "/snippets/es/quickstart/webapp/rails/auth0_controller.rb.mdx";
+import Routes from "/snippets/es/quickstart/webapp/rails/routes.rb.mdx";
+import Secured from "/snippets/es/quickstart/webapp/rails/secured.rb.mdx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+export const sections = [
+      { id: "configure-auth0", title: "Configurar Auth0" },
+      { id: "add-dependencies", title: "Agregar dependencias" },
+      { id: "configure-the-sdk", title: "Configurar el SDK" },
+      { id: "configure-the-omniauth-middleware", title: "Configurar el middleware de OmniAuth" },
+      { id: "add-an-auth0-controller", title: "Agregar un controlador de Auth0" },
+      { id: "configure-routes", title: "Configurar las rutas" },
+      { id: "add-login-to-your-application", title: "Agregar inicio de sesión a tu aplicación" },
+      { id: "add-logout-to-your-application", title: "Agregar cierre de sesión a tu aplicación" },
+      { id: "show-user-profile-information", title: "Mostrar información del perfil del usuario" }
+]
+
+<Recipe isSingleColumn>
+  <Content>
+    <Section id={sections[0].id} title={sections[0].title} stepNumber="1" isSingleColumn>
+      Para usar los servicios de Auth0, necesitarás tener una aplicación configurada en el Auth0 Dashboard. La aplicación de Auth0 es
+      donde configurarás cómo quieres que funcione la autenticación para el proyecto que estás desarrollando.
+
+      ### Configurar una aplicación
+
+      Usa el selector interactivo para crear una nueva aplicación de Auth0 o seleccionar una aplicación existente que represente
+      el proyecto que quieres integrar. A cada aplicación de Auth0 se le asigna un ID de cliente único y alfanumérico
+      que el código de tu aplicación usará para llamar a las API de Auth0 a través del SDK.
+
+      Cualquier configuración que realices con esta guía de inicio rápido se actualizará automáticamente para tu aplicación en el [Dashboard](https://manage.auth0.com/#/), que es donde
+      podrás administrar tus Applications en el futuro.
+
+      Si prefieres explorar una configuración completa, puedes ver una aplicación de ejemplo.
+
+      ### Configurar URL de devolución de llamada
+
+      Una URL de devolución de llamada es una URL de tu aplicación a la que quieres que Auth0 redirija a los usuarios después de que se hayan
+      autenticado. Si no se configura, los usuarios no volverán a tu aplicación después de iniciar sesión.
+
+      <Info>
+        Si estás siguiendo nuestro proyecto de ejemplo, configura esto en
+        `http://localhost:3000/auth/auth0/callback`.
+      </Info>
+
+      ### Configurar URL de cierre de sesión
+
+      Una URL de cierre de sesión es una URL de tu aplicación a la que quieres que Auth0 redirija a los usuarios después de que hayan cerrado
+      sesión. Si no se configura, los usuarios no podrán cerrar sesión en tu aplicación y recibirán un error.
+
+      <Info>
+        Si estás siguiendo nuestro proyecto de ejemplo, configura esto en `http://localhost:3000`.
+      </Info>
+
+      ### Configurar orígenes web permitidos
+
+      Un origen web permitido es una URL a la que quieres autorizar el acceso a tu flujo de autenticación. Esta debe
+      contener la URL de tu proyecto. Si no se configura correctamente, tu proyecto no podrá actualizar silenciosamente
+      los tokens de autenticación, por lo que tus usuarios cerrarán sesión la próxima vez que visiten tu aplicación o actualicen una
+      página.
+
+      <Info>
+        Si estás siguiendo nuestro proyecto de ejemplo, configura esto en `http://localhost:3000`.
+      </Info>
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[1].id} title={sections[1].title} stepNumber="2" isSingleColumn>
+      Usa `omniauth-auth0`, una [estrategia personalizada de OmniAuth](https://github.com/intridea/omniauth#omniauth-standardized-multi-provider-authentication), para gestionar el flujo de autenticación.
+
+      Agrega las siguientes dependencias a tu `Gemfile`:
+
+      ```gem lines
+      gem 'omniauth-auth0', '~> 3.0'
+      gem 'omniauth-rails_csrf_protection', '~> 1.0' # evita solicitudes de autenticación falsificadas
+      ```
+
+      Una vez añadidas tus gems, instálalas con `bundle install`.
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[2].id} title={sections[2].title} stepNumber="3" isSingleColumn>
+      Crea un archivo de configuración `./config/auth0.yml` para especificar los valores de tu dominio de Auth0, ID de cliente y secreto del cliente, que se encuentran en tu Auth0 Dashboard, en **Settings** de la aplicación.
+
+      <AuthCodeGroup>
+        <Auth0Yml />
+
+        <Auth0 />
+
+        <Auth0Controller />
+
+        <Routes />
+
+        <Secured />
+      </AuthCodeGroup>
+    </Section>
+
+    <Section id={sections[3].id} title={sections[3].title} stepNumber="4" isSingleColumn>
+      Cree el siguiente archivo de inicialización `./config/initializers/auth0.rb` y [configure](https://github.com/auth0/omniauth-auth0/blob/master/EXAMPLES.md#send-additional-authentication-parameters) el middleware **OmniAuth** con el archivo de configuración
+      que creó en el paso anterior.
+
+      Asegúrese de que `callback_path` coincida con el valor indicado en la opción &quot;Allowed Callback URLs&quot; de su
+      aplicación de Auth0.
+
+      <AuthCodeGroup>
+        <Auth0 />
+
+        <Auth0Yml />
+
+        <Auth0Controller />
+
+        <Routes />
+
+        <Secured />
+      </AuthCodeGroup>
+    </Section>
+
+    <Section id={sections[4].id} title={sections[4].title} stepNumber="5" isSingleColumn>
+      Cree un controlador de Auth0 para gestionar la devolución de llamada de autenticación, la acción `logout` y los métodos para
+      construir la URL de cierre de sesión.
+
+      Ejecute el comando:
+      `rails generate controller auth0 callback failure logout --skip-assets --skip-helper --skip-routes --skip-template-engine`.
+
+      Dentro del método callback, asigne el hash con la información del usuario, que se devuelve como
+      `request.env['omniauth.auth']`, a la sesión activa.
+
+      Para configurar el cierre de sesión, borre todos los objetos almacenados en la sesión llamando al método `reset_session`
+      dentro de la acción `logout`. Luego, redirija al endpoint de cierre de sesión de Auth0. Para obtener más información sobre
+      `reset_session`, consulte la [documentación de Ruby on Rails ActionController](http://api.rubyonrails.org/classes/ActionController/Base.html#M000668).
+
+      <AuthCodeGroup>
+        <Auth0Controller />
+
+        <Auth0Yml />
+
+        <Auth0 />
+
+        <Routes />
+
+        <Secured />
+      </AuthCodeGroup>
+    </Section>
+
+    <Section id={sections[5].id} title={sections[5].title} stepNumber="6" isSingleColumn>
+      Agrega estas rutas a tu archivo `./config/routes.rb`.
+
+      Las rutas deben estar configuradas para que Rails sepa cómo dirigir las distintas URL de devolución de llamada de Auth0 al controlador de Auth0 que
+      creaste en el paso anterior.
+
+      <Info>
+        ##### Punto de control
+
+        Ejecuta tu aplicación para verificar que siga funcionando como se espera y que no aparezca ningún error
+        relacionado con Auth0.
+      </Info>
+
+      <AuthCodeGroup>
+        <Routes />
+
+        <Auth0Yml />
+
+        <Auth0 />
+
+        <Auth0Controller />
+
+        <Secured />
+      </AuthCodeGroup>
+    </Section>
+
+    <Section id={sections[6].id} title={sections[6].title} stepNumber="7" isSingleColumn>
+      Ahora, un usuario puede iniciar sesión en tu aplicación accediendo al endpoint `/auth/auth0`.
+
+      <Warning>
+        Para [evitar solicitudes de autenticación falsificadas](https://github.com/cookpad/omniauth-rails_csrf_protection), usa los métodos auxiliares `link_to` o
+        `button_to` con el método `:post`.
+      </Warning>
+
+      ```ruby lines
+      <!-- Coloca un botón de inicio de sesión en cualquier parte de tu aplicación -->
+      <%= button_to 'Login', '/auth/auth0', method: :post %>
+      ```
+
+      <Note>
+        ##### Checkpoint
+
+        Agrega a tu aplicación un botón que redirija al usuario al endpoint `/auth/auth0` al
+        seleccionarlo. Ten en cuenta que se redirige a Auth0 para iniciar sesión y, tras una
+        autenticación correcta, de vuelta a tu aplicación.
+      </Note>
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[7].id} title={sections[7].title} stepNumber="8" isSingleColumn>
+      Ahora que ya puedes iniciar sesión en tu aplicación Rails, necesitas una
+      forma de cerrar sesión. Para cerrar la sesión de un usuario, redirígelo a la acción `auth/logout`, que lo redirige
+      al endpoint de cierre de sesión de Auth0.
+
+      <Info>
+        Para probar esto después del paso anterior, es posible que debas borrar tu sesión y luego redirigir al usuario
+        al endpoint de cierre de sesión de Auth0.
+      </Info>
+
+      ```ruby lines
+      <!-- Coloca un botón de cierre de sesión en cualquier lugar de tu aplicación -->
+      <%= button_to 'Logout', 'auth/logout', method: :get %>
+      ```
+
+      <Note>
+        ##### Checkpoint
+
+        Agrega un botón a tu aplicación que redirija al usuario al endpoint `/auth/logout` cuando
+        lo seleccione. Verifica que se te redirija a Auth0 y luego de nuevo rápidamente a tu aplicación, y que ya no
+        tengas la sesión iniciada.
+      </Note>
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[8].id} title={sections[8].title} stepNumber="9" isSingleColumn>
+      Para mostrar el perfil del usuario, tu aplicación debe proporcionar una ruta protegida. Puedes usar un [Concern](https://guides.rubyonrails.org/getting_started.html#using-concerns) para controlar el acceso a las rutas que pueden compartirse entre varios
+      controladores. El concern debe redirigir automáticamente a Auth0 cuando el usuario no esté autenticado. De lo contrario, el
+      concern debe devolver el perfil del usuario actual.
+
+      Una vez que tengas un Concern, inclúyelo en cualquier controlador que requiera un usuario autenticado. Luego podrás acceder al
+      usuario desde la sesión `session[:userinfo]`, como en el siguiente ejemplo:
+
+      ```ruby lines
+      class DashboardController < ApplicationController
+      include Secured
+      def show
+      @user = session[:userinfo]
+
+      end
+      end
+      ```
+
+      Una vez cargado el usuario desde la sesión, úsalo para mostrar información en tu frontend:
+
+      ```html lines
+      <div>
+      <p>Normalized User Profile:<%= JSON.pretty_generate(@user[:info])%></p>
+      <p>Full User Profile:<%= JSON.pretty_generate(@user[:extra][:raw_info])%></p>
+      </div>
+      ```
+
+      <Note>
+        ##### Punto de control
+
+        Agrega el concern `Secured` a tu aplicación y luego inclúyelo en el controlador cuyo acceso requiera un
+        usuario autenticado. Verifica que un usuario autenticado tenga acceso a las acciones de ese
+        controlador y que los usuarios no autenticados sean redirigidos a Auth0 para autenticarse.
+      </Note>
+
+      <AuthCodeGroup>
+        <Secured />
+
+        <Auth0Yml />
+
+        <Auth0 />
+
+        <Auth0Controller />
+
+        <Routes />
+      </AuthCodeGroup>
+    </Section>
+
+    ## Próximos pasos
+
+    ¡Excelente trabajo! Si llegaste hasta aquí, ya deberías tener el inicio de sesión, el cierre de sesión y la información del perfil de usuario funcionando en tu aplicación.
+
+    Con esto concluye nuestro tutorial de inicio rápido, pero hay mucho más por explorar. Para saber más sobre lo que puedes hacer con Auth0, consulta:
+
+    * [Auth0 Dashboard](https://manage.auth0.com/dashboard/us/dev-gja8kxz4ndtex3rq) - Aprende a configurar y gestionar tu tenant de Auth0 y tus aplicaciones
+    * [omniauth-auth0 SDK](https://github.com/auth0/omniauth-auth0) - Explora en mayor profundidad el SDK utilizado en este tutorial
+    * [Auth0 Marketplace](https://marketplace.auth0.com/) - Descubre las integraciones que puedes habilitar para ampliar la funcionalidad de Auth0
+  </Content>
+</Recipe>

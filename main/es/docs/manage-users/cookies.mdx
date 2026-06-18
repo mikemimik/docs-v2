@@ -1,0 +1,75 @@
+---
+description: Describe qué son las cookies y cómo pueden usarse con sesiones para hacer seguimiento de la autenticación del usuario.
+sidebarTitle: Información general
+title: Cookies
+---
+
+Las cookies son cadenas de datos que un servidor web envía al navegador. Cuando el navegador envía una solicitud posterior al servidor web, también le envía esa misma cadena junto con la solicitud.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Anteriormente, en Auth0 las opciones del atributo de cookie `samesite` eran `true`, `false`, `strict` o `lax`. Si no configurabas el atributo manualmente, Auth0 usaba el valor predeterminado `false`.
+  A partir de febrero de 2020, Google Chrome v80 cambió la forma en que maneja las cookies. Por ello, Auth0 implementó los siguientes cambios en su manejo de cookies:
+
+  * Las cookies sin el atributo `samesite` se establecerán como `lax`.
+  * Las cookies con `sameSite=none` deben ser seguras; de lo contrario, no pueden guardarse en el almacén de cookies del navegador.
+
+  El objetivo de estos cambios es mejorar la seguridad y ayudar a mitigar los ataques CSRF.
+</Callout>
+
+Los sitios web suelen usar cookies para asegurarse de que se reconozca a los usuarios cuando pasan de una página a otra, de modo que no tengan que volver a iniciar sesión cada vez. También usan cookies para recordar la información que los usuarios ya han introducido. Por ejemplo, los sitios de comercio electrónico usan cookies para recordar los artículos añadidos a un carrito de compra.
+
+Los usuarios pueden elegir si aceptan cookies cambiando la configuración de su navegador.
+
+<div id="cookie-based-authentication">
+  ## Autenticación basada en cookies
+</div>
+
+Por lo general, las aplicaciones de página única (como React, Vue y AngularJS + Node), las aplicaciones móviles nativas (como iOS y Android) y las API web (escritas en Node, Ruby, ASP.NET o en una combinación de estos) son las que más se benefician de la autenticación basada en tokens. Tradicionalmente, las aplicaciones web del lado del servidor han utilizado la autenticación basada en cookies.
+
+La autenticación basada en cookies se implementa de manera diferente en cada plataforma web, pero, en última instancia, todas terminan configurando alguna cookie (vinculada a una sesión en el servidor) que representa al usuario autenticado. En cada solicitud, se envía esa cookie y la sesión se deserializa desde algún tipo de almacenamiento (en memoria si se trata de un solo servidor, o en almacenamiento persistente si es una granja de servidores). Proporcionamos SDKs para la mayoría de las plataformas, que se integran con el subsistema de autenticación correspondiente (como passport en Node, IPrincipal en .NET o Java, entre otros).
+
+Cuando creas una aplicación que requiere autenticación, puedes usar sesiones y cookies para determinar si un usuario está autenticado cada vez que se realiza una solicitud. Para ello, puedes optar por usar cookies con estado o sin estado.
+
+<div id="stateful-cookies">
+  ### Cookies con estado
+</div>
+
+Las cookies con estado contienen un puntero a un registro de base de datos que almacena la información de la sesión.
+
+**Ventajas**:
+
+* No tienen limitaciones en cuanto a la cantidad de información de sesión que se puede almacenar.
+* Permiten borrar fácilmente la sesión de un usuario: basta con eliminar el registro de la base de datos.
+
+**Desventajas**:
+
+* Requieren una base de datos para almacenar los datos de la sesión (aunque la mayoría de las aplicaciones web ya cuentan con una).
+* Aumentan la latencia porque hay que hacer llamadas a la base de datos para leer la sesión (y, a veces, escribirla) en cada solicitud HTTP que realiza un usuario.
+* Puede resultar difícil escalar cuando hay muchos usuarios y, por lo tanto, muchas lecturas y escrituras en la base de datos.
+
+<div id="stateless-cookies">
+  ### Cookies sin estado
+</div>
+
+Las cookies sin estado son autocontenidas: incluyen toda la información de sesión necesaria (para los usuarios autenticados, el ID de usuario) y se almacenan en el cliente. Para evitar manipulaciones externas, las cookies sin estado deben estar cifradas (o al menos firmadas).
+
+**Ventajas**:
+
+* Se pueden implementar fácilmente; no requieren un backend especial.
+* Reducen la latencia porque no tienes que consultar una base de datos.
+* Son fáciles de escalar.
+
+**Desventajas**:
+
+* Debes limitar la información de sesión almacenada, porque las cookies tienen un tamaño limitado (máx. 4 KB en la mayoría de los navegadores). Aunque la información de sesión puede dividirse entre varias cookies, no lo recomendamos.
+* Dificultan revocar una sesión, porque no hay ningún registro en una base de datos que puedas eliminar; tendrás que buscar otros métodos para forzar el cierre de una sesión.
+* Si utilizas varios servidores web, debes asegurarte de que todos los servidores tengan la clave para cifrar/descifrar o firmar la cookie.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Sesiones](/es/docs/manage-users/sessions)
+* [Cookies de la Authentication API](/es/docs/manage-users/cookies/authentication-api-cookies)
+* [Cambios en el atributo SameSite de las cookies](/es/docs/manage-users/cookies/samesite-cookie-attribute-changes)
+* [Secure](/es/docs/secure)

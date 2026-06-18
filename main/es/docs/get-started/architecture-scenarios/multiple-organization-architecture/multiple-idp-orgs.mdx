@@ -1,0 +1,49 @@
+---
+description: Obtenga información sobre las organizaciones con múltiples proveedores de identidad (IdP), en las que cada organización de Auth0 tiene más de una conexión de Auth0.
+title: Organizaciones con múltiples proveedores de identidad
+---
+
+En el escenario de Organizaciones con múltiples <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/es/docs/glossary?term=Identity+Provider">Proveedor de identidad</Tooltip> (IdP), cada organización que usa la función [Auth0 Organizations](/es/docs/manage-users/organizations/organizations-overview) utiliza más de una [Conexión de Auth0](/es/docs/authenticate/identity-providers). En muchos aspectos, la implementación de este escenario es idéntica a la de [Organizaciones con un solo proveedor de identidad. E](/es/docs/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations)n realidad, la función Auth0 Organizations permite combinarlas, así como pasar fácilmente de una a otra. Sin embargo, debe tener en cuenta algunos aspectos adicionales.
+
+<div id="connections">
+  ## Conexiones
+</div>
+
+Además de la información que normalmente se incluye como parte de la [Autorización](/es/docs/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/authorization), puedes agregar detalles sobre la [Conexión de Auth0](/es/docs/authenticate/identity-providers) específica a través de la cual se realizó la autenticación del primer factor del usuario. Aunque no es un requisito explícito, puedes agregar esa información a un <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=ID+Token">ID Token</Tooltip> y/o <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=Access+Token">token de acceso</Tooltip> como un claim personalizado, a fin de proporcionar a tu aplicación y/o API contexto adicional que pueda usarse para el control de acceso.
+
+Como se muestra en el siguiente ejemplo, los claims personalizados suelen agregarse mediante la extensibilidad de Rules, que puede acceder a los detalles específicos de la Conexión mediante el uso del objeto [`context`](/es/docs/customize/rules/context-object):
+
+```js lines
+context.idToken['http://travel0.net/connection'] = context.connection;     // Claim del nombre de conexión
+context.accessToken['http://travel0.net/connection'] = context.connection; // Claim del nombre de conexión
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El objeto de contexto de Rules proporciona acceso a varios aspectos de la conexión utilizada para autenticar a un usuario mediante el primer factor, incluidos el nombre de `connection`, `connectionID` y `connectionStrategy`. También aporta a la extensibilidad de Rules información adicional que puede usarse como parte de cualquier [aplicación centralizada de políticas](/es/docs/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/authorization).
+</Callout>
+
+<div id="database-connection">
+  ### Conexión de base de datos
+</div>
+
+Aunque Auth0 le permite [aprovisionar](/es/docs/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/provisioning) varias [conexiones de base de datos y de base de datos personalizada](/es/docs/authenticate/database-connections), no recomendamos asociar más de un tipo de estas conexiones a una organización de Auth0. Como las conexiones de base de datos y de base de datos personalizada actualmente no son compatibles con Home Realm Discovery, un componente clave de la [autenticación de identificador primero](/es/docs/authenticate/login/auth0-universal-login/identifier-first), la nueva experiencia de <Tooltip tip="Universal Login: Su aplicación redirige a Universal Login, alojado en el Servidor de Autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/es/docs/glossary?term=Universal+Login">Universal Login</Tooltip> no puede elegir entre ellas si hay más de una definida.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  **Mejor práctica**
+
+  Si está definiendo una conexión de base de datos personalizada para usarla con una organización de Auth0, asegúrese de que haya una, y solo una, conexión de base de datos personalizada asociada a esa organización de Auth0 en cada momento.
+</Callout>
+
+<div id="enterprise-connection">
+  ### Conexión empresarial
+</div>
+
+Si tu aplicación empresarial usa [Enterprise Federation](/es/docs/authenticate/enterprise-connections), puedes activar [Identifier First Authentication with Home Realm Discovery](/es/docs/authenticate/login/auth0-universal-login/identifier-first) en su perfil de autenticación. Una vez activada, Home Realm Discovery detecta direcciones de correo electrónico de un dominio conocido y las redirige automáticamente al inicio de sesión de Workforce correspondiente.
+
+Para más información, consulta [Identifier First Authentication](/es/docs/manage-users/organizations/login-flows-for-organizations#identifier-first-authentication) en [Login Flows for Organizations](/es/docs/manage-users/organizations/login-flows-for-organizations).
+
+<div id="social-connection">
+  ### Conexión social
+</div>
+
+Aparte de las consideraciones descritas en la sección de [Autenticación](/es/docs/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/authentication), no hay que tener en cuenta ninguna otra consideración cuando se utilizan conexiones sociales como parte de un escenario de organización con múltiples IdP.

@@ -1,0 +1,128 @@
+---
+description: Describe cómo configurar el uso compartido de recursos de origen cruzado (CORS) para una aplicación registrada en Auth0 mediante el Auth0 Dashboard.
+title: Configurar el uso compartido de recursos de origen cruzado
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+<Card title="Antes de empezar">
+  * Por motivos de seguridad, la URL de origen de tu aplicación debe figurar como URL aprobada. Si aún no la agregaste a las **Allowed Callback URLs** de tu aplicación, tendrás que añadirla a la lista de **Allowed Origins (CORS)**.
+  * Asegúrate de que **Allowed Web Origins** en la vista **Settings** de tu aplicación esté configurado con el dominio que realiza la solicitud. Las URL pueden incluir comodines para subdominios, pero no pueden incluir rutas relativas después de la URL del dominio. Para obtener más información, consulta [Placeholders for Subdomains](/es/docs/get-started/applications/wildcards-for-subdomains).
+  * Si no habilitas [Custom Domains](/es/docs/customize/custom-domains), tendrás que crear una página de verificación que use Auth0.js como alternativa de respaldo para la autenticación de origen cruzado.
+</Card>
+
+El uso compartido de recursos de origen cruzado (CORS) es un mecanismo que permite a una aplicación cargar datos (recursos) desde un dominio (origen) distinto de aquel en el que está alojada. Una política de CORS es una excepción explícita a la política del mismo origen, habitual en las aplicaciones web.
+
+Por ejemplo, si quisieras que tu aplicación (app.mydomain.com) obtuviera una fuente de Google (fonts.google.com) en segundo plano mediante Ajax, tendrías que configurar CORS.
+
+<div id="configure-cross-origin-authentication">
+  ## Configurar la autenticación de origen cruzado
+</div>
+
+1. Ve a [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y haz clic en el nombre de la aplicación para verla.
+2. En **Cross-Origin Authentication**, activa **Allow Cross-Origin Authentication**.
+3. Busca **Allowed Origins (CORS)** e introduce la URL de origen de tu aplicación. Para obtener más información sobre los orígenes, consulta [Origin en Mozilla MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin).
+4. Haz clic en **Save Changes**.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si no necesitas usar CORS para tu aplicación, asegúrate de que **Allow Cross-Origin Authentication** esté desactivado.
+</Callout>
+
+<div id="create-cross-origin-verification-page">
+  ## Crear una página de verificación de origen cruzado
+</div>
+
+Hay algunos casos en los que las cookies de terceros no estarán disponibles. Algunas versiones de navegadores no admiten cookies de terceros y, aun cuando las admiten, pueden estar deshabilitadas en la configuración del usuario.
+
+En los [navegadores compatibles](#browser-testing-support), puede usar el método `crossOriginVerification` del [SDK de Auth0.js](/es/docs/libraries/auth0js) en una página específica de su aplicación para gestionar los casos en que las cookies de terceros estén deshabilitadas.
+
+En los navegadores no compatibles, como Chrome, Opera y Safari, la autenticación de origen cruzado no funcionará cuando las cookies de terceros estén deshabilitadas, a menos que habilite [Custom Domains](/es/docs/customize/custom-domains).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  La configuración de **Safari** aparece como &quot;Prevent cross-site tracking&quot; y usa [Intelligent Tracking Prevention](https://webkit.org/blog/7675/intelligent-tracking-prevention/). Por desgracia, esto también impide que las cookies de terceros resulten útiles en escenarios de autenticación. Aquí tiene un ejemplo de cómo afecta a la [renovación de tokens en Safari](https://support.auth0.com/center/s/article/troubleshoot-auth0-token-renewal-issues-in-safari-with-itp-enabled).
+</Callout>
+
+1. Cree una página en su aplicación que instancie `WebAuth` de [Auth0.js](/es/docs/libraries/auth0js). Llame a `crossOriginVerification` de inmediato. El nombre de la página queda a su elección.
+
+export const codeExample = `   <!-- callback-cross-auth.html -->
+
+<head>
+  <script src="https://cdn.auth0.com/js/auth0/9.11/auth0.min.js"></script>
+  <script type="text/javascript">
+    var auth0Client = new auth0.WebAuth({
+      clientID: '{yourClientId}',
+      domain: '{yourDomain}'
+    });
+    auth0Client.crossOriginVerification();
+  </script>
+</head>
+`;
+
+<AuthCodeBlock children={codeExample} language="text" />
+
+Cuando las cookies de terceros no están disponibles, Auth0.js renderiza un iframe para ejecutar un flujo de verificación de origen cruzado alternativo.
+2. Ve a [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y selecciona la aplicación que quieres consultar.
+3. En **Cross-Origin Authentication**, agrega la URL de la página de devolución de llamada que creaste al campo **Cross-Origin Verification Fallback URL**.
+
+<Warning>
+  Para entornos de producción, verifica que la URL de la página no apunte a `localhost`. La página debe estar en el mismo dominio donde está alojado el formulario de inicio de sesión integrado y debe usar el esquema `https`.
+</Warning>
+
+4. Haz clic en **Save Changes**.
+
+Para obtener más detalles, consulta el [ejemplo de autenticación de origen cruzado en GitHub](https://github.com/auth0/lock/blob/master/support/callback-cross-auth.html).
+
+<div id="error-codes-and-descriptions">
+  ## Códigos de error y descripciones
+</div>
+
+<Warning>
+  Las descripciones de los errores están pensadas para que sean legibles para las personas. Pueden cambiar en cualquier momento y no deben ser analizadas por ningún código.
+</Warning>
+
+Cuando se usa Auth0.js (o Lock) para el inicio de sesión integrado, llama al endpoint `/co/authenticate`, que devuelve los siguientes errores:
+
+| Estado | Código                        | Descripción                                                                                                                                                                                            |
+| ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `400`  | `invalid_request`             | Cuerpo de la solicitud no válido. Se requieren todos y únicamente estos parámetros: client&#95;id, credential&#95;type, username, otp, realm.                                                          |
+| `400`  | `unsupported_credential_type` | Parámetro de tipo de credencial desconocido.                                                                                                                                                           |
+| `400`  | `invalid_request`             | Realm desconocido: non-existent-connection.                                                                                                                                                            |
+| `401`  | `unauthorized_client`         | No se permite el inicio de sesión desde otro origen.                                                                                                                                                   |
+| `401`  | `password_leaked`             | Este intento de inicio de sesión se ha bloqueado porque la contraseña que estás usando quedó expuesta previamente en una violación de la seguridad de los datos (no en esta aplicación).               |
+| `403`  | `access_denied`               | Correo electrónico o contraseña incorrectos.                                                                                                                                                           |
+| `403`  | `access_denied`               | Error de autenticación                                                                                                                                                                                 |
+| `403`  | `blocked_user`                | Usuario bloqueado                                                                                                                                                                                      |
+| `429`  | `too_many_attempts`           | Tu cuenta ha sido bloqueada tras varios intentos consecutivos de inicio de sesión. Te hemos enviado una notificación a través de tu método de contacto preferido con instrucciones para desbloquearla. |
+| `429`  | `too_many_attempts`           | Hemos detectado un comportamiento sospechoso en el inicio de sesión y se bloquearán los intentos posteriores. Ponte en contacto con el administrador.                                                  |
+
+Además, también puedes recibir un error `403` genérico sin una propiedad `error` ni `error_description`. El cuerpo de la respuesta simplemente incluiría algo similar a lo siguiente:
+
+`Origin https://test.app is not allowed.`
+
+<div id="browser-testing-support">
+  ## Compatibilidad de pruebas en navegadores
+</div>
+
+Los siguientes navegadores pueden usar la autenticación de origen cruzado cuando las cookies de terceros están deshabilitadas:
+
+* Microsoft Internet Explorer
+
+<Card title="Atributos de las cookies SameSite">
+  Anteriormente, las opciones del [atributo de cookie `samesite`](/es/docs/manage-users/cookies/samesite-cookie-attribute-changes) eran `true`, `false`, `strict` o `lax`. Si no configurabas el atributo manualmente, Auth0 usaba el valor predeterminado `false`.
+
+  A partir de febrero de 2020, Google Chrome v80 cambió la forma en que gestiona las cookies, y Auth0 implementó los siguientes cambios en consecuencia:
+
+  * Las cookies sin el atributo `samesite` definido se establecerán como `lax`.
+  * Las cookies con `sameSite=none` deben ser seguras; de lo contrario, no se pueden guardar en el almacén de cookies del navegador.
+
+  El objetivo de estos cambios es mejorar la seguridad y ayudar a mitigar los ataques de falsificación de solicitudes entre sitios (CSRF).
+</Card>
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Inicio de sesión integrado](/es/docs/authenticate/login/embedded-login)
+* [Autenticación de origen cruzado](/es/docs/authenticate/login/cross-origin-authentication)
+* [Configuración de la aplicación](/es/docs/get-started/applications/application-settings)
+* [Cambios en el atributo SameSite de las cookies](/es/docs/manage-users/cookies/samesite-cookie-attribute-changes)

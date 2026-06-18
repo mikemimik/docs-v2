@@ -1,0 +1,52 @@
+---
+description: Aprende a cifrar tokens de acceso con JSON Web Encryption.
+title: JSON Web Encryption
+---
+
+JSON Web Encryption (JWE) es un [estándar de la IETF](https://datatracker.ietf.org/doc/html/rfc7516) para representar contenido cifrado con JSON. En Auth0, puedes configurar las API para cifrar los datos de un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=access+token">token de acceso</Tooltip> mediante el formato JWE.
+
+Cuando se usa JWE, Auth0 genera un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=JWT">JWT</Tooltip> token de acceso que contiene un conjunto de claims firmados con JSON Web Signature (JWS). Luego, este token de acceso JWT se cifra con JWE y se serializa en formato JWE Compact. Esto permite que las soluciones mantengan la confidencialidad de los datos contenidos en los claims de los tokens de acceso y, al mismo tiempo, garanticen la protección de la integridad mediante una firma.
+
+<div id="generate-and-validate-an-access-token">
+  #### Generar y validar un token de acceso
+</div>
+
+[Configura JWE para cada API](/es/docs/get-started/apis/configure-json-web-encryption). Si has configurado el `apiIdentifier` para usar JWE, el ejemplo de código solicita un token de acceso cifrado mediante el flujo de credenciales del cliente para una aplicación de máquina a máquina (M2M). JWE está disponible para todos los tipos de concesión compatibles con Auth0.
+
+```bash lines
+curl -X POST --location "https://{domain}/oauth/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "client_id={clientId}&client_secret={clientSecret}&audience={apiIdentifier}&grant_type=client_credentials"
+```
+
+ Una respuesta satisfactoria contiene un token de acceso cifrado:
+
+```json lines
+{
+  "access_token": "eyJ…XAw",
+  "expires_in": 86400,
+  "token_type": "Bearer"
+}
+```
+
+Cuando se usa el token de acceso, el <Tooltip tip="Servidor de recursos: servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/es/docs/glossary?term=resource+server">servidor de recursos</Tooltip> debe descifrar y validar el token JWE.
+El encabezado del token JWE contiene metadatos que describen el algoritmo criptográfico ([`alg`](https://datatracker.ietf.org/doc/html/rfc7516#section-4.1.1)), el algoritmo de cifrado de contenido ([`enc`](https://datatracker.ietf.org/doc/html/rfc7516#section-4.1.2)) y, si se proporcionó al [configurar la API](/es/docs/get-started/apis/configure-json-web-encryption), el identificador de clave (`kid`) que se usó para cifrar el payload.
+
+```json lines
+{
+  …
+  "alg": "A256GCM",
+  "enc": "RSA-OAEP-256",
+  "kid": "my-kid"
+}
+```
+
+Con esta información, el servidor de recursos debería poder descifrar el token JWE. El resultado es un JWT firmado convencional, que se puede verificar con las claves del tenant de Auth0.
+
+Para aprender a configurar JWE para tu API, lee [Configurar JSON Web Encryption](/es/docs/get-started/apis/configure-json-web-encryption).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar JSON Web Encryption (JWE)](/es/docs/get-started/apis/configure-json-web-encryption)

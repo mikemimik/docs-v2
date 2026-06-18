@@ -1,0 +1,51 @@
+---
+description: Aprende a configurar Google Cloud Platform (GCP) con Load Balancing para usarlo como proxy inverso de dominios personalizados para Auth0.
+title: Configurar Google Cloud Platform con Load Balancing como proxy inverso
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los dominios personalizados de Auth0 están disponibles con cualquier [plan de suscripción](https://manage.auth0.com/#/tenant/billing/subscription) de pago. Si quieres administrar tú mismo los certificados SSL/TLS, necesitarás una suscripción **Enterprise**. Para obtener más información, consulta los [planes de precios de Auth0](https://auth0.com/pricing).
+</Callout>
+
+Puedes configurar Google Cloud Platform (GCP) con Load Balancing como proxy inverso. El siguiente diagrama describe los componentes de esta configuración.
+
+* **Google Cloud Platform Load Balancer** distribuye el tráfico entre varias instancias de aplicaciones.
+* **Internet Network Endpoint Group** es un backend que reside fuera de Google Cloud. Consulta [Internet Network endpoint group](https://cloud.google.com/load-balancing/docs/negs/internet-neg-concepts) para obtener más información.
+
+<Frame>![Diagrama de flujo de Google Cloud Platform con Load Balancing como proxy inverso](/docs/images/cdy7uua7fh8z/62abKXSoxy0b7uxBfmoWjs/4d6c05060d16d36265e5184ccb3d95b9/gcp-load-balancing-reverse-proxy-diagram.png)</Frame>
+
+1. [Configura dominios personalizados con Self-Managed Certificates](/es/docs/customize/custom-domains/self-managed-certificates) si aún no lo has hecho. Toma nota de los valores de **Origin Domain Name** y `cname-api-key` para usarlos más adelante.
+2. Verifica la propiedad del dominio agregando un registro TXT en tu servidor DNS desde [Auth0 Dashboard &gt; Configuración del tenant &gt; dominios personalizados](https://manage.auth0.com/#/tenant/custom_domains) y haz clic en **Verify**.
+3. Una vez que GCP haya verificado tu dominio, inicia sesión en la [consola de GCP](https://console.cloud.google.com).
+4. Ve a **Network Services &gt; Load Balancing**. Haz clic en **Create Load Balancer**. Para obtener más información, consulta [Google Cloud Platform Load Balancing](https://cloud.google.com/load-balancing/docs) en la documentación de Google Cloud.
+
+   1. Selecciona **HTTP(S) Load Balancing**.
+   2. Selecciona **From Internet to my VMs** porque necesitas enrutar el tráfico desde Internet hacia Auth0. Haz clic en **Continue**.
+   3. Asigna un nombre al equilibrador de carga, por ejemplo `auth0-reverse-proxy`, y haz clic en **Create**.
+5. Configura el backend.
+
+   1. Crea un grupo de endpoints de red de Internet (NEG), que es un backend que reside fuera de Google Cloud. Para obtener más información, consulta [Internet network endpoint groups overview](https://cloud.google.com/load-balancing/docs/negs/internet-neg-concepts) en la documentación de Google Cloud.
+   2. Selecciona el Internet NEG recién creado como backend en la configuración del servicio de backend y establece los valores de `cname-api-key` y `host` (nombre de dominio de origen) de tu tenant de Auth0.
+   3. Haz clic en **Done**.
+6. Configura las reglas de `host` y `path`.
+
+   1. Elige **Action** como **Route traffic to a single backend**.
+   2. En **Host rewrite**, introduce el nombre de dominio de origen de tu tenant de Auth0 que guardaste antes.
+   3. Haz clic en **Create**.
+7. Configura el frontend.
+
+   1. Crea un certificado. El método más sencillo es elegir **Google-managed certificate**, ya que Google aprovisiona automáticamente el certificado SSL por ti.
+   2. Si no eliges un certificado administrado por Google, será tu responsabilidad renovar y cargar el certificado SSL con tu autoridad de certificación antes de que caduque.
+8. Revisa y finaliza la configuración.
+   GCP tardará aproximadamente un minuto en configurar el equilibrador de carga. Algunos problemas habituales que pueden causar un error son:
+
+   * **Invalid API key**: `cname-api-key` no se configuró en Auth0 desde GCP.
+   * **403 Forbidden**: el `host` header no se envió a Auth0 desde GCP.
+9. Actualiza tus registros DNS para [conectar tu dominio a tu equilibrador de carga](https://cloud.google.com/load-balancing/docs/https/setup-global-ext-https-external-backend#update_dns).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar funcionalidades para usar dominios personalizados](/es/docs/customize/custom-domains/configure-features-to-use-custom-domains)
+* [Versiones y conjuntos de cifrado de TLS (SSL)](/es/docs/customize/custom-domains/self-managed-certificates/tls-ssl)

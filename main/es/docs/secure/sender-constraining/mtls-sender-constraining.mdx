@@ -1,0 +1,134 @@
+---
+description: Aprende a usar Sender Constraining con mTLS para los tokens en Auth0.
+title: Sender Constraining con mTLS
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para usar las funcionalidades de Highly Regulated Identity, debes tener un plan Enterprise con el complemento Highly Regulated Identity. Consulta [Auth0 Pricing](https://auth0.com/pricing/) para obtener más información.
+</Callout>
+
+[Sender constraining](/es/docs/secure/sender-constraining) es un mecanismo de seguridad de <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/es/docs/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> que vincula criptográficamente los tokens de acceso y los <Tooltip tip="Refresh Token: Token usado para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/es/docs/glossary?term=refresh+tokens">tokens de actualización</Tooltip> con la aplicación cliente que los solicitó. Esto garantiza que solo el cliente legítimo que obtuvo el <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=access+token">token de acceso</Tooltip> pueda usarlo para acceder a recursos protegidos, lo que ofrece una sólida defensa contra el robo de tokens y los ataques de repetición.
+
+Los Client Certificate-Bound Access Tokens de Mutual-TLS (mTLS), o Sender Constraining con mTLS, logran esta vinculación mediante el uso del certificado TLS del cliente. Con mTLS, el token de acceso del cliente queda vinculado a su certificado de cliente único, por lo que ninguna otra parte puede usar ese token.
+
+<div id="prerequisites">
+  ## Requisitos previos
+</div>
+
+Para implementar Sender Constraining con mTLS, debes:
+
+* Tener un plan Enterprise con el add-on Highly Regulated Identity para tu tenant de Auth0.
+* [Configurar Sender Constraining](/es/docs/secure/sender-constraining/configure-sender-constraining) para tu aplicación cliente y tu <Tooltip tip="Servidor de recursos: servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/es/docs/glossary?term=resource+server">servidor de recursos</Tooltip> en Auth0.
+* Asegúrate de que tu aplicación cliente sea un <Tooltip tip="Cliente confidencial: un cliente (aplicación) que puede mantener credenciales de forma segura mediante un servidor backend de confianza. Entre los ejemplos se incluyen una aplicación web con un backend seguro y una aplicación de máquina a máquina (M2M)." cta="Ver glosario" href="/es/docs/glossary?term=confidential+client">cliente confidencial</Tooltip>, ya que solo los clientes confidenciales admiten Sender Constraining con mTLS.
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+Esta sección explica el proceso para obtener y usar un token de acceso vinculado a mTLS.
+
+<Frame>![](/docs/images/cdy7uua7fh8z/Nrf2Jm8Gq1yuMlS35jqDR/3972d735b883ea1ce5ae0999b678db2f/Screenshot_2025-07-30_at_4.07.34_PM.png)</Frame>
+
+<div id="phase-1-request-an-mtls-bound-access-token">
+  ## Fase 1: Solicitar un token de acceso vinculado a mTLS
+</div>
+
+<div id="step-1-client-application-establishes-mtls-connection">
+  ### Paso 1: La aplicación cliente establece una conexión mTLS
+</div>
+
+* Antes de solicitar un token de acceso, tu aplicación cliente inicia un handshake de TLS con el endpoint `/token` del <Tooltip tip="Servidor de autorización: Servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funciones disponibles para un usuario." cta="Ver glosario" href="/es/docs/glossary?term=Authorization+Server">servidor de autorización</Tooltip> de Auth0.
+* Durante este handshake, la aplicación cliente presenta su certificado de cliente al servidor de autorización de Auth0 como parte del proceso de autenticación TLS mutua.
+
+<div id="step-2-client-application-requests-access-token">
+  ### Paso 2: La aplicación cliente solicita un token de acceso
+</div>
+
+* La aplicación cliente envía una solicitud de token estándar de OAuth 2.0, por ejemplo, con `grant_type=client_credentials` o `authorization_code`, al endpoint `/token` del servidor de autorización de Auth0.
+* La solicitud de token no incluye ningún encabezado DPoP especial ni <Tooltip tip="JSON Web Token (JWT): formato estándar del token de ID (y, a menudo, del token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JWTs">JWTs</Tooltip> adicionales como prueba para mTLS. La prueba de posesión se deriva directamente de la conexión mTLS.
+
+<div id="step-3-auth0-authorization-server-processes-request-and-binds-token">
+  ### Paso 3: servidor de autorización de Auth0 procesa la solicitud y vincula el token
+</div>
+
+Cuando servidor de autorización de Auth0 recibe la solicitud de token a través de una conexión mTLS y el certificado del cliente se valida correctamente:
+
+1. **Extrae el certificado:** servidor de autorización de Auth0 extrae el certificado del cliente usado en el handshake de mTLS.
+2. **Calcula la huella digital:** servidor de autorización de Auth0 calcula un hash único (huella digital) del certificado del cliente.
+3. **Vincula el token:** servidor de autorización de Auth0 vincula la huella digital de este certificado del cliente al token de acceso emitido al incluir un claim de confirmación (`cnf`) en el payload del token de acceso.
+
+   * El claim `cnf` contiene el parámetro `x5t#S256`, que es la huella digital SHA-256 del certificado del cliente codificada en Base64url.
+4. **Establece** `token_type`**:** servidor de autorización de Auth0 establece `token_type` en DPoP. Esto difiere de los tokens Bearer tradicionales e indica que el token está vinculado a una clave específica.
+5. **Emite el token:** servidor de autorización de Auth0 emite el token de acceso mTLS con restricción del remitente para su aplicación cliente.
+
+El siguiente ejemplo de código muestra un payload de ejemplo de un token de acceso vinculado a un certificado mTLS:
+
+```json lines
+{
+  "iss": "https://server.example.com",
+  "sub": "ty.webb@example.com",
+  "exp": 1493726400,
+  "nbf": 1493722800,
+  "cnf": {
+    "x5t#S256": "bwcK0esc3ACC3DB2Y5_lESsXE8o9ltc05O89jdN-dg2"
+  }
+}
+```
+
+En el ejemplo de token de acceso vinculado a un certificado mTLS, `x5t#S256` indica que el token de acceso está vinculado a un certificado de cliente mTLS con la huella digital SHA-256 `bwcK0esc3ACC3DB2Y5_lESsXE8o9ltc05O89jdN-dg2`.
+
+<div id="phase-2-call-an-api-with-an-mtls-bound-access-token">
+  ## Fase 2: Llamar a una API con un token de acceso vinculado a mTLS
+</div>
+
+<div id="step-4-client-application-calls-api">
+  ### Paso 4: La aplicación cliente llama a la API
+</div>
+
+* Cuando tu aplicación cliente necesite llamar a una API que aplica Sender Constraining con mTLS, debe establecer una nueva conexión mTLS con el servidor de recursos.
+* Durante este handshake de mTLS, la aplicación cliente vuelve a presentar el mismo certificado de cliente que se utilizó para obtener el token de acceso.
+* Luego, la aplicación cliente incluye el token de acceso vinculado a mTLS en el encabezado Authorization de la solicitud a la API mediante el esquema de autenticación DPoP:
+
+```http lines
+Authorization: DPoP {your_mtls_bound_access_token}
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Aunque la RFC 8705 permite un esquema Bearer con tokens vinculados a mTLS, Auth0 recomienda usar DPoP para aplicar tokens de acceso vinculados a mTLS. Esto le indica explícitamente al servidor de recursos que debe esperar un token vinculado criptográficamente.
+</Callout>
+
+<div id="step-5-resource-server-verifies-token-and-certificate">
+  ### Paso 5: El servidor de recursos verifica el token y el certificado
+</div>
+
+Cuando el servidor de recursos recibe la solicitud a la API a través de una conexión mTLS:
+
+1. **Obtiene el certificado del cliente:** El servidor de recursos obtiene el certificado del cliente de la conexión mTLS establecida.
+2. **Extrae el token y el claim `cnf`:** El servidor de recursos extrae el token de acceso del encabezado `Authorization` y decodifica su payload para encontrar el claim `cnf` (confirmación), específicamente el valor `x5t#S256` (la huella digital del certificado asociado).
+3. **Calcula la huella digital actual del certificado:** El servidor de recursos calcula la huella digital SHA-256 del certificado del cliente recibido en la conexión mTLS actual.
+4. **Compara las huellas digitales (verificación de Proof-of-Possession):** El servidor de recursos compara la huella digital recién calculada con la huella digital `x5t#S256` del claim `cnf` del token de acceso.
+5. **Autoriza o rechaza la solicitud:**
+
+   * Si las huellas digitales coinciden y además se cumplen otras validaciones del token, como la expiración, la audiencia y el emisor, la solicitud se autoriza.
+   * Si no se envió el certificado del cliente o su huella digital no coincide con la del claim `cnf`, el servidor de recursos rechaza la solicitud con un código de estado `HTTP 401 Unauthorized` y un código de error `invalid_token`.
+
+Para entender cómo se calcula la huella digital y el formato del claim `cnf`, consulta la RFC 8705: Mutual-TLS Client Certificate-Bound Access Tokens.
+
+<div id="important-considerations">
+  ## Consideraciones importantes
+</div>
+
+Al implementar Sender Constraining con mTLS, tenga en cuenta lo siguiente:
+
+* **Solo para clientes confidenciales:** El Sender Constraining con mTLS está diseñado y es compatible únicamente con clientes confidenciales, como los servicios de backend, que pueden gestionar de forma segura certificados de cliente y establecer conexiones mTLS. Los <Tooltip tip="Cliente público: Cliente (aplicación) que no puede almacenar credenciales de forma segura. Algunos ejemplos incluyen una aplicación nativa de escritorio o móvil y una aplicación web del lado del cliente basada en Javascript (como una aplicación de una sola página (SPA))." cta="Ver glosario" href="/es/docs/glossary?term=Public+clients">clientes públicos</Tooltip>, como las SPA y las aplicaciones móviles, deben usar DPoP.
+* **Gestión de certificados:** La seguridad de su implementación de mTLS depende en gran medida de sus prácticas de gestión de certificados, como la forma en que aprovisiona, administra y rota los certificados de cliente.
+* **Requisitos de infraestructura:** Implementar mTLS requiere una infraestructura específica, incluidos proxies, equilibradores de carga y API capaces de finalizar conexiones mTLS y pasar la información del certificado de cliente a la aplicación o al servidor de recursos.
+* **Validación en el servidor de recursos:** Cuando habilita Sender Constraining con mTLS para una API en Auth0, el servidor de recursos debe realizar la verificación de la huella digital como se describe en el [Paso 5](#step-5-resource-server-verifies-token-and-certificate).
+* **Estrategias de migración:** Si está migrando progresivamente clientes para que usen mTLS, considere exponer su API en dos dominios: uno sin mTLS para los clientes existentes y otro habilitado para mTLS para los clientes compatibles con mTLS. Como alternativa, podría implementar lógica en un único dominio para diferenciar entre solicitudes mTLS y no mTLS.
+* **Manejo de errores:** Implemente un manejo sólido de errores en el cliente y el servidor de recursos para gestionar correctamente los casos en los que falten certificados, no sean válidos o no coincidan.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar Sender Constraining](/es/docs/secure/sender-constraining/configure-sender-constraining)

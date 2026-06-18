@@ -1,0 +1,46 @@
+---
+description: カスタムデータベース接続の構成に関するベストプラクティスを紹介します。
+title: カスタムデータベース接続の構成に関するベストプラクティス
+---
+
+通常、カスタムデータベース接続は、authentication のために独自のレガシーアイデンティティストアへのアクセスを提供する場合 (**legacy authentication** と呼ばれることもあります) や、[自動移行によるユーザーのインポートを実行する場合](/ja/docs/manage-users/user-migration/configure-automatic-migration-from-your-database) (一般に **trickle** migration または **lazy** migration と呼ばれます) に使用します。また、Auth0 の multi-tenant アーキテクチャを使用するシナリオでは、Auth0 テナントへのアクセスをプロキシするためにカスタムデータベース接続を使用することもできます。詳しくは、[Multi-Tenant Applications Best Practices](/ja/docs/get-started/auth0-overview/create-tenants/multi-tenant-apps-best-practices)を参照してください。
+
+通常、カスタムデータベース接続は <Tooltip tip="Auth0 Dashboard: サービスを設定するための Auth0 の主要製品です。" cta="用語集を表示" href="/ja/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> で作成および設定します。まずデータベース接続を作成し、次に **Use my own database** をオンにして、データベースアクションスクリプトを編集できるようにします。カスタムデータベース接続は、Auth0 の <Tooltip tip="Management API: お客様が管理タスクを実行できるようにする製品です。" cta="用語集を表示" href="/ja/docs/glossary?term=Management+API">Management API</Tooltip> の [Create a connection endpoint](https://auth0.com/docs/api/management/v2#!/Connections/post_connections) と `auth0` strategy を使用して作成および設定することもできます。
+
+<Frame>![Auth0 Dashboard Authentication Database Connection Custom Database Settings Use Own Database Enabled](/docs/images/cdy7uua7fh8z/11HPAdVwJMmnWbzMVjHCJ8/f75ff47f613a41778f266643f29ab2b1/2025-02-27_17-25-36.png)</Frame>
+
+以下に示すように、カスタムデータベース接続はログインワークフローの一部として使用され、authentication またはユーザーのインポートのために、独自のレガシーアイデンティティストアからユーザーのアイデンティティ情報を取得します。
+
+<Frame>![Custom Database Connection Flow](/docs/images/cdy7uua7fh8z/1H2Ky1WyPlZ9zHZrEVlFhP/4e4856395fac6d6339c883c35d4b4ac0/custom-database-connections.png)</Frame>
+
+すべてのデータベース接続タイプに共通する構成要素に加えて、カスタムデータベース接続では、アクションスクリプト (レガシーアイデンティティストアと連携する際に使用するカスタムコード) を設定できます。設定するスクリプトは、legacy authentication 用の接続を作成するのか、自動移行用の接続を作成するのかによって異なります。
+
+アクションスクリプトは無名関数として実装することもできますが、無名関数を使うと、例外的なエラー状態の結果として生成されるコールスタックを解釈する際にデバッグが難しくなります。そこで、各アクションスクリプトには関数名を付けることをお勧めします。推奨される名前の例については、[Custom Database Action Script Execution Best Practices](/ja/docs/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution)を参照してください。
+
+legacy authentication のシナリオでは、新しいユーザーレコードは作成されません。ユーザーはレガシーアイデンティティストアに保持され、Auth0 はユーザーを authenticate する際に、そこに含まれているアイデンティティを使用します。カスタムデータベース接続は、<Tooltip tip="Universal Login: ユーザーのアイデンティティを検証するために、アプリケーションは Auth0 の認可サーバーでホストされる Universal Login にリダイレクトされます。" cta="用語集を表示" href="/ja/docs/glossary?term=Universal+Login">Universal Login</Tooltip> ワークフロー以外でも使用されます。たとえば、レガシーアイデンティティストアに存在するユーザーに対して password change 操作が行われると、接続の `changePassword` アクションスクリプトが呼び出されます。
+
+<div id="automatic-migration">
+  ## 自動移行
+</div>
+
+自動移行では、Auth0 が管理するアイデンティティストア (データベース) に Auth0 が新しいユーザーを作成します。ユーザーの認証時には、Auth0 は Auth0 管理のアイデンティティストア内のアイデンティティを使用します。これを行うには、まず Auth0 がユーザーをレガシーアイデンティティストアに対して認証する必要があり、それが成功した場合にのみ、Auth0 管理のデータベースに新しいユーザーが作成されます。Auth0 は、認証時に指定されたものと同じ ID とパスワードを使用して新しいユーザーを作成します。
+
+自動移行のシナリオでは、通常、ユーザーの作成は Login アクションスクリプトの完了後に行われます。Login スクリプト内でインライン処理としてレガシーアイデンティティストアからユーザーを削除しようとするのではなく、独立したプロセスとして行うことをお勧めします。これにより、移行中にエラーが発生した場合でも、ユーザーを誤って削除してしまうことを防げます。
+
+自動移行では、ユーザーはレガシーアイデンティティストアに残るため、必要に応じて削除またはアーカイブできます。副作用として、ユーザーが Auth0 から削除されても、レガシーデータストアには残ったままになる場合があります。この場合、削除されたユーザーがログインすると、Login または Get User スクリプトのいずれかが実行され、ユーザーが再びレガシーアイデンティティストアから移行される可能性があります。
+
+意図的に削除したユーザーが意図せず再作成されるのを防ぐため、Login または Get User スクリプトが完了する前、かつ最終的にレガシーストアから削除する前に、レガシーストア内のユーザーアイデンティティを移行済みとしてマークしておくことをお勧めします。
+
+<div id="size">
+  ## サイズ
+</div>
+
+アクションスクリプトの合計サイズは、100 KBを超えないようにすることを推奨します。サイズが大きいほど、Auth0プラットフォームで行われるパッケージ化および転送の処理に伴う遅延が大きくなり、その結果、システムのパフォーマンスに影響します。なお、100 KBの制限には、`require` 文の一部として参照される `npm` モジュールは含まれません。
+
+<div id="learn-more">
+  ## 詳しくはこちら
+</div>
+
+* [カスタムデータベース接続のセキュリティに関するベストプラクティス](/ja/docs/authenticate/database-connections/custom-db/custom-database-connections-scripts/connection-security)
+* [カスタムデータベースアクションスクリプトの実行に関するベストプラクティス](/ja/docs/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution)
+* [カスタムデータベースアクションスクリプトの環境に関するベストプラクティス](/ja/docs/authenticate/database-connections/custom-db/custom-database-connections-scripts/environment)

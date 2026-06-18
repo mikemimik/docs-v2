@@ -1,0 +1,133 @@
+---
+description: Implementación de la aplicación para el escenario de arquitectura Server + API
+title: Implementación de la aplicación (Server Apps + API)
+---
+
+En esta sección del tutorial, analizaremos en profundidad nuestra API y la Aplicación de máquina a máquina asociada. Para empezar desde el principio, lee [Server Applications with API](/es/docs/get-started/architecture-scenarios/server-application-api).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para simplificar, centraremos nuestra implementación únicamente en la autenticación y la autorización. Como verás en los ejemplos, el registro de horas de entrada estará codificado de forma estática y la API no lo persistirá. En su lugar, simplemente devolverá parte de la información.
+</Callout>
+
+<div id="define-the-api-endpoints">
+  ## Definir los endpoints de la API
+</div>
+
+Un **endpoint de API** es un URI estático que representa un recurso (colección de datos).
+
+Por ejemplo, la API de un restaurante podría tener endpoints como `/orders` y `/customers`. Una aplicación que se conecta a esta API puede realizar operaciones CRUD (crear, leer, actualizar y eliminar) llamando a un endpoint de API con el método HTTP correspondiente (`POST`, `GET`, `PUT`, `PATCH` o `DELETE`).
+
+Para la API de Timesheets de ExampleCo, deberás configurar un endpoint para crear entradas de registro de horas.
+
+| Método HTTP | Endpoint de API      | Descripción                                 |
+| ----------- | -------------------- | ------------------------------------------- |
+| `POST`      | `/timesheets/upload` | Crea una nueva entrada de registro de horas |
+
+```json lines
+{
+  'user_id': '007',
+  'date': '2017-05-10T17:40:20.095Z',
+  'project': 'StoreZero',
+  'hours': 5
+}
+```
+
+Si la API procesa la solicitud correctamente, envía una respuesta con el código de estado `HTTP 201 Created` y un cuerpo que contiene un objeto JSON con una propiedad `message` que describe la hoja de horas recién creada:
+
+```json lines
+{
+"message": "Created timesheet 14 for employee 007."
+}
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Consulta la implementación en [Node.js](/es/docs/get-started/architecture-scenarios/server-application-api/api-implementation-nodejs#1-define-the-api-endpoint).
+</Callout>
+
+<div id="secure-the-api-endpoints">
+  ### Protege los endpoints de la API
+</div>
+
+Para proteger los endpoints de tu API, debes implementar una función de middleware en tu aplicación de API para gestionar los tokens. Esta función comprueba si se incluyó un token en la solicitud a la API, valida el token y luego verifica si están presentes los scopes necesarios para realizar la acción solicitada.
+
+Si se cumplen todos los criterios, la aplicación de API responde con el mensaje mencionado anteriormente. Si hay algún problema con el <Tooltip tip="Token de acceso: credencial de autorización, en forma de cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=access+token">token de acceso</Tooltip> proporcionado (o no se proporciona), la aplicación de API envía una respuesta con el código de estado `HTTP 401 Unauthorized`.
+
+**Consulta la implementación en** [**Node.js**](/es/docs/get-started/architecture-scenarios/server-application-api/api-implementation-nodejs#2-secure-the-api-endpoint)**.**
+
+<div id="get-an-access-token">
+  #### Obtener un token de acceso
+</div>
+
+Para obtener un token de acceso sin usar la implementación de ejemplo de nuestra aplicación, llama al endpoint [Get Token](https://auth0.com/docs/api/authentication#get-token54) de la API de autenticación de Auth0 con el siguiente payload:
+
+{/* codeblockOld.header.login.logInButton codeblockOld.header.login.configureSnippet */}
+
+```json lines
+{
+  audience: "{yourApiIdentifier}",
+  grant_type: "client_credentials",
+  client_id: "${account.client_id}",
+  client_secret: "${account.client_secret}"
+}
+```
+
+<div id="check-the-application-permissions">
+  ## Verifica los permisos de la aplicación
+</div>
+
+Ahora hemos protegido el endpoint de nuestra API con un token de acceso, pero aún no nos hemos asegurado de que el proceso que llama a la API tenga permisos para publicar una nueva entrada en la hoja de horas.
+
+Como se explicó antes, cada token de acceso puede incluir una lista de los permisos que se le han concedido a la aplicación. Estos permisos se definen mediante el parámetro de solicitud `scope`. Para saber cómo configurarlo, consulta la sección [Configure the Scopes](/es/docs/get-started/architecture-scenarios/server-application-api/part-3#configure-the-scopes).
+
+Para nuestro endpoint, requeriremos el scope `batch:upload`.
+
+**Consulta la implementación en** [**Node.js**](/es/docs/get-started/architecture-scenarios/server-application-api/api-implementation-nodejs#3-check-the-client-permissions)**.**
+
+<div id="implement-the-machine-to-machine-application">
+  ### Implementar una aplicación de máquina a máquina
+</div>
+
+En esta sección, veremos cómo implementar una aplicación de máquina a máquina en nuestro caso.
+
+### Obtener un token de acceso
+
+Comenzaremos invocando el endpoint de la API de Auth0 `/oauth/token` para obtener un token de acceso.
+
+Para ello, necesitaremos los siguientes valores de configuración, que puedes encontrar en la [configuración de la aplicación](https://manage.auth0.com/#/applications):
+
+* **Domain**: dominio de Auth0 y también el identificador de tu tenant. Este valor formará parte de la URL de la API: `https://{yourTenant}/oauth/token`.
+* **<Tooltip tip="Audience: Identificador único de la audiencia para un token emitido. Denominado aud en un token, su valor contiene el ID de una aplicación (Client ID) para un ID Token o de una API (API Identifier) para un Access Token." cta="Ver glosario" href="/es/docs/glossary?term=Audience">Audience</Tooltip>**: identificador de la API.
+* **<Tooltip tip="Client ID: Valor de identificación dado a tu recurso registrado por Auth0." cta="Ver glosario" href="/es/docs/glossary?term=Client+ID">Client ID</Tooltip>**: Client ID de la aplicación de Auth0.
+* **<Tooltip tip="Client Secret: Secreto utilizado por un cliente (aplicación) para autenticarse con el servidor de autorización; solo deberían conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio como para que no pueda adivinarse." cta="Ver glosario" href="/es/docs/glossary?term=Client+Secret">Client Secret</Tooltip>**: Client Secret de la aplicación de Auth0.
+
+Nuestra implementación debe enviar una solicitud `POST` al endpoint `https://{yourDomain}/oauth/token` con un payload en el siguiente formato:
+
+{/* codeblockOld.header.login.logInButton codeblockOld.header.login.configureSnippet */}
+
+```json lines
+{
+  "audience": "{yourApiIdentifier}",
+  "grant_type": "client_credentials",
+  "client_id": "${account.client_id}",
+  "client_secret": "${account.client_secret}"
+}
+```
+
+Para obtener más información, consulta [Call Your API Using the Client Credentials Flow](/es/docs/get-started/authentication-and-authorization-flow/client-credentials-flow/call-your-api-using-the-client-credentials-flow).
+
+**Consulta la implementación en** [**Python**](/es/docs/get-started/architecture-scenarios/server-application-api/cron-implementation-python#get-an-access-token).
+
+<div id="invoke-the-api">
+  ## Invocar la API
+</div>
+
+Ahora que tenemos un token de acceso que incluye los `scopes` válidos, podemos invocar nuestra API.
+
+Para ello, vamos a:
+
+* Crear un registro de horas definido de forma estática en formato JSON.
+* Añadir el token de acceso como cabecera `Authorization` a nuestra solicitud.
+* Realizar la solicitud HTTP `POST`.
+* Procesar la respuesta y mostrarla en la terminal (opcional).
+
+**Consulta la implementación en** [**Python**](/es/docs/get-started/architecture-scenarios/server-application-api/cron-implementation-python#invoke-the-api).

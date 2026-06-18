@@ -1,0 +1,135 @@
+---
+description: Obtén información sobre el efecto de la configuración de la aplicación compatible con OIDC en el flujo de autenticación.
+title: Adopta la autenticación compatible con OIDC
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Auth0 es un [proveedor certificado de OpenID Connect (OIDC)](http://openid.net/certification/). Como parte de los esfuerzos de Auth0 por mejorar la seguridad y la interoperabilidad basada en estándares, implementamos nuevas funcionalidades exclusivamente en flujos de autenticación que cumplen estrictamente las [especificaciones de OIDC](http://openid.net/specs/openid-connect-core-1_0.html).
+
+Explicaremos las diferencias entre los flujos compatibles con OIDC y los heredados, y ofreceremos sugerencias sobre cómo adaptar sus aplicaciones existentes. Si usted es desarrollador y/o administrador de TI y gestiona integraciones de Auth0 en sus aplicaciones mediante el [framework de autorización OAuth 2.0](/es/docs/authenticate/protocols/oauth), esta información no se aplica si utiliza <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=SAML">SAML</Tooltip> o WS-Federation. Todos los flujos de autenticación se describen mediante solicitudes HTTP, en lugar de hacerlo en el contexto de una implementación concreta de un lenguaje o una biblioteca.
+
+Todas las funcionalidades nuevas se ofrecen únicamente en el flujo compatible con OIDC, y todas las versiones heredadas de los SDK de Auth0 están obsoletas, no reciben actualizaciones para nuevas funcionalidades ni para problemas de seguridad no críticos, y con el tiempo dejarán de estar disponibles. Además, toda la documentación, bibliotecas y ejemplos fuera de esta guía se aplican únicamente al flujo compatible con OIDC. Por ello, recomendamos encarecidamente adoptar el flujo compatible con OIDC, aunque no necesite aprovechar ninguna característica o funcionalidad nueva en el futuro inmediato.
+
+<div id="apply-the-oidc-conformant-pipeline">
+  ## Aplicar el flujo compatible con OIDC
+</div>
+
+Según la antigüedad de su tenant, puede tener distintas opciones para aplicar el flujo compatible con OIDC.
+
+<div id="new-tenants">
+  ### Nuevos tenants
+</div>
+
+Si crea un nuevo tenant con <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>, el flujo compatible con OIDC se usa de forma predeterminada. Esta es la configuración predeterminada del Dashboard desde principios de 2019.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Es posible que aun así haya deshabilitado manualmente la configuración OIDC Conformant; en ese caso, debe seguir nuestras instrucciones para tenants antiguos.
+</Callout>
+
+<div id="older-tenants">
+  ### Tenants antiguos
+</div>
+
+Si quieres forzar al mismo tiempo todos los cambios descritos en esta guía para una aplicación determinada, de modo que puedas encontrarte con todas las incompatibilidades durante la configuración en lugar de hacerlo en tiempo de ejecución, debes:
+
+1. Ve a [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y selecciona la aplicación que quieras.
+2. Desplázate hasta **Advanced Settings** y ve a la pestaña **OAuth**.
+3. Activa el interruptor **OIDC Conformant** y haz clic en **Save Changes**.
+
+Si quieres usar el flujo compatible con OIDC para cada solicitud de autenticación y tu aplicación necesita llamar a una API con un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=JWT">JWT</Tooltip> <Tooltip tip="JSON Web Token (JWT): formato estándar de ID Token (y a menudo de Access Token) usado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=access+token">token de acceso</Tooltip>, inicia la solicitud al endpoint [`/social`](https://auth0.com/docs/api/authentication#social) con un parámetro `audience`.
+
+Si quieres usar el flujo compatible con OIDC para cada solicitud de autenticación y tu aplicación no necesita llamar a una API, usa el siguiente parámetro `audience`:
+
+export const codeExample = `https://{yourDomain}/userinfo`;
+
+<AuthCodeBlock children={codeExample} language="http" />
+
+<div id="differences">
+  ## Diferencias
+</div>
+
+Al habilitar el flujo compatible con OIDC, se aplican los siguientes cambios al flujo heredado.
+
+<div id="apis">
+  ### APIs
+</div>
+
+Las aplicaciones y las APIs (recursos) deben definirse como entidades independientes en Auth0. Para obtener más información, consulta [Adopción conforme a OIDC: APIs](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-apis).
+
+<div id="access-tokens">
+  ### Tokens de acceso
+</div>
+
+* Las API deben protegerse con tokens de acceso en lugar de <Tooltip tip="Token de ID: credencial destinada al propio cliente, no para acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=ID+tokens">tokens de ID</Tooltip>. Para obtener más información sobre las diferencias, lee [Tokens](/es/docs/secure/tokens).
+* Se puede devolver un conjunto definido de claims estándar sobre los usuarios en los tokens de ID o en la respuesta de `/userinfo`.
+* Los claims personalizados deben seguir un formato con nombre. Para obtener más información, lee [Create Namespaced Custom Claims](/es/docs/secure/tokens/json-web-tokens/create-custom-claims).
+* Las respuestas de `/userinfo` se ajustarán a la especificación OIDC, de forma similar al contenido de los tokens de ID
+* Los scopes se pueden usar para solicitar claims estándar o permisos de API personalizados.
+
+Para obtener más información, lee [OIDC-Conformant Adoptions: Access Tokens](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-access-tokens).
+
+<div id="authorization-flows">
+  ### Flujos de autorización
+</div>
+
+* [Flujo de Código de Autorización](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-auth-code-flow): Existen diferencias estructurales en la solicitud de autenticación, la respuesta de autenticación, la solicitud de intercambio de código, la respuesta de intercambio de código, la estructura del token de ID y la estructura del token de acceso.
+* [Flujo de Credenciales de Cliente](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-client-credentials-flow): Se ha habilitado un nuevo flujo que permite a las aplicaciones autenticarse por sí mismas (en lugar de hacerlo en nombre de un usuario) para obtener acceso a una API de forma programática y segura.
+* [Flujo Implícito](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-implicit-flow): Existen diferencias estructurales en la solicitud de autenticación, la respuesta de autenticación, la estructura del token de ID y la estructura del token de acceso. En concreto:
+
+  * `response_type=token` solo devuelve un token de acceso. Para obtener un token de ID, usa `response_type=id_token` o `response_type=token id_token`.
+  * Los tokens de ID se firmarán de forma asimétrica con RS256.
+  * Se rechazarán las solicitudes de autenticación realizadas sin un parámetro nonce. Para obtener más información, consulta [Mitigar los ataques de repetición al usar el Flujo Implícito](/es/docs/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/mitigate-replay-attacks-when-using-the-implicit-flow).
+  * Ya no se devolverán tokens de actualización cuando se use el Flujo Implícito para la autenticación.
+* [Flujo de Contraseña del Propietario del Recurso](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-rop-flow): Existen diferencias estructurales en la solicitud de autenticación, la respuesta de autenticación, la estructura del token de ID y la estructura del token de acceso. En concreto:
+
+  * el endpoint heredado del [propietario del recurso](https://auth0.com/docs/api/authentication#database-ad-ldap-active-) está deshabilitado, lo que también deshabilita la autenticación sin contraseña para el inicio de sesión integrado desde ese endpoint. Para [implementar Passwordless con inicio de sesión integrado](/es/docs/authenticate/login/universal-vs-embedded-login), debes usar la Embedded Passwordless API o nuestros SDK, según el tipo de aplicación.
+  * el parámetro `device` ahora se considera no válido al solicitar un token de actualización con el scope `offline_access`.
+
+<div id="delegation">
+  ### Delegación
+</div>
+
+* **Obsoleto**: endpoint [`/delegation`](https://auth0.com/docs/api/authentication#delegation), excepto cuando se usa para obtener tokens para API de terceros.
+* Las aplicaciones compatibles con OIDC no pueden ser el origen ni el destino de las solicitudes de delegación.
+
+Para obtener más información, consulta [Adopción compatible con OIDC: Delegación](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-delegation).
+
+<div id="endpoints">
+  ### Endpoints
+</div>
+
+* **Obsoleto**: endpoint `/tokeninfo`
+* **Deshabilitado**: el endpoint [`/oauth/access_token`](https://auth0.com/docs/api/authentication#post-oauth-access_token) (se usa para la autenticación social desde aplicaciones móviles nativas).
+* **Obsoleto**: endpoint `/ssodata`
+* **Obsoleto**: endpoint [`/delegation`](https://auth0.com/docs/api/authentication#delegation), excepto cuando se usa para obtener tokens de API de terceros.
+
+<div id="refresh-tokens">
+  ### Tokens de actualización
+</div>
+
+* Los <Tooltip tip="Refresh Token: Token usado para obtener un nuevo token de acceso sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/es/docs/glossary?term=Refresh+tokens">tokens de actualización</Tooltip> ya no se devolverán al usar el flujo implícito para la autenticación.
+* Los tokens de actualización pueden usarse en aplicaciones confidenciales, pero la <Tooltip tip="Refresh Token Rotation: Estrategia de reemplazar con frecuencia los tokens de actualización para minimizar la vulnerabilidad. Con la rotación de tokens de actualización, cada vez que tu aplicación intercambia un token de actualización para obtener un nuevo token de acceso, Auth0 también devuelve un nuevo token de actualización." cta="Ver glosario" href="/es/docs/glossary?term=refresh+token+rotation">rotación de tokens de actualización</Tooltip> puede aumentar la seguridad en la mayoría de los flujos y siempre debe usarse en aplicaciones públicas cuando se utiliza el flujo de código de autorización con PKCE. Para obtener información sobre las aplicaciones confidenciales, lee [Confidential and Public Applications](/es/docs/get-started/applications/confidential-and-public-applications). Para obtener más información sobre la rotación de tokens de actualización, lee [Refresh Token Rotation](/es/docs/secure/tokens/refresh-tokens/refresh-token-rotation).
+* Para obtener tokens nuevos, debes usar el endpoint `/oauth/token`.
+* El parámetro `device` ya no es necesario al solicitar un token de actualización con el scope `offline_access` en las solicitudes de autenticación.
+
+Para obtener más información, lee [OIDC-Conformation Adoption: Refresh Tokens](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-refresh-tokens).
+
+<div id="single-sign-on-sso">
+  ### Inicio de sesión único (SSO)
+</div>
+
+* <Tooltip tip="Single Sign-On (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/es/docs/glossary?term=SSO">SSO</Tooltip> solo se puede realizar desde las páginas de inicio de sesión de Auth0, lo que significa que debes usar <Tooltip tip="Universal Login: Tu aplicación redirige a Universal Login, alojado en el Authorization Server de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/es/docs/glossary?term=Universal+Login">Universal Login</Tooltip>.
+* Para determinar si los usuarios han iniciado sesión mediante SSO, debes usar autenticación silenciosa. Para obtener más información, consulta [Configurar la autenticación silenciosa](/es/docs/authenticate/login/configure-silent-authentication).
+* **Obsoleto**: endpoint `/ssodata` y método `getSSOData()` de `Lock/auth0.js`.
+
+Para obtener más información, consulta [Adopción conforme con OIDC: inicio de sesión único](/es/docs/authenticate/login/oidc-conformant-authentication/oidc-adoption-sso).
+
+<div id="additional-features">
+  ### Funciones adicionales
+</div>
+
+* Cree aplicaciones de terceros para sus API y muestre diálogos de consentimiento para la autorización. Para obtener más información, consulte [consentimiento del usuario y aplicaciones de terceros](/es/docs/get-started/applications/third-party-applications/user-consent-and-third-party-applications).
+* Restrinja la información del perfil de usuario que se proporciona a las aplicaciones durante la autenticación. Para obtener más información, consulte [Perfiles de usuario](/es/docs/manage-users/user-accounts/user-profiles/user-profile-structure).
+* Registre aplicaciones de forma dinámica. Para obtener más información, consulte [registro dinámico de clientes](/es/docs/get-started/applications/dynamic-client-registration).
+* [Organizaciones](/es/docs/manage-users/organizations) y sus funciones relacionadas pasan a estar disponibles.

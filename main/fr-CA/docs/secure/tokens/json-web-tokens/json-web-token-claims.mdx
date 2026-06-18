@@ -1,0 +1,92 @@
+---
+description: Décrit les claims des jetons Web JSON (JWT) et la façon dont ils sont utilisés dans Auth0.
+title: Claims d’un jeton Web JSON
+---
+
+Les claims des [jetons Web JSON (JWTs)](/fr-CA/docs/secure/tokens/json-web-tokens) sont des éléments d’information associés à un subject. Par exemple, un [jeton ID](/fr-CA/docs/secure/tokens/id-tokens) (qui est toujours un <Tooltip tip="JSON Web Token (JWT) : format standard de jeton ID (et souvent d’access token) utilisé pour représenter de façon sécurisée des claims entre deux parties." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=JWT">JWT</Tooltip>) peut contenir un claim appelé `name`, qui indique que le nom de l’utilisateur en cours d’authentification est &quot;John Doe&quot;. Dans un JWT, un claim se présente sous la forme d’une paire nom/valeur, où le nom est toujours une chaîne de caractères et la valeur peut être n’importe quelle valeur JSON. En général, lorsque nous parlons d’un claim dans le contexte d’un JWT, nous faisons référence au nom (ou à la clé). Par exemple, l’objet JSON suivant contient trois claims (`sub`, `name`, `admin`) :
+
+```json lines
+{
+      "sub": "1234567890",
+      "name": "John Doe",
+      "admin": true
+    }
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Pour en savoir plus sur les claims standard d’OpenID Connect (OIDC), consultez [OpenID Connect Scopes](/fr-CA/docs/get-started/apis/scopes/openid-connect-scopes) et [les claims standard d’OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims).
+</Callout>
+
+Il existe deux types de claims JWT :
+
+* **Registered** : des claims standard enregistrés auprès de l’[Internet Assigned Numbers Authority (IANA)](https://www.iana.org/assignments/jwt/jwt.xhtml) et définis par la [spécification JWT](https://tools.ietf.org/html/rfc7519) afin d’assurer l’interopérabilité avec des applications tierces, ou externes. Les claims standard OIDC sont des claims réservés.
+* **Custom** : comprend des claims publics ou privés non enregistrés. Les claims publics résistent aux collisions, tandis que les claims privés peuvent faire l’objet de collisions.
+
+<div id="registered-claims">
+  ## Claims enregistrés
+</div>
+
+La spécification JWT définit sept claims réservés qui ne sont pas obligatoires, mais qui sont recommandés afin de permettre l’interopérabilité avec les [applications tierces](/fr-CA/docs/get-started/applications/third-party-applications/configure-third-party-applications). Les voici :
+
+* `iss` (émetteur) : Émetteur du JWT
+* `sub` (sujet) : Sujet du JWT (l’utilisateur)
+* `aud` (<Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Nommée aud dans un jeton, sa valeur contient l’ID d’une application (ID client) pour un jeton d’ID ou d’une API (identifiant d’API) pour un jeton d’accès." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=audience">audience</Tooltip>) : Destinataire auquel le JWT est destiné
+* `exp` (heure d’expiration) : Heure après laquelle le JWT expire
+* `nbf` (date de début de validité) : Heure avant laquelle le JWT ne doit pas être accepté pour traitement
+* `iat` (heure d’émission) : Heure à laquelle le JWT a été émis; peut être utilisée pour déterminer l’âge du JWT
+* `jti` (ID JWT) : Identifiant unique; peut être utilisé pour empêcher la réutilisation du JWT (permet d’utiliser un jeton une seule fois)
+
+Vous trouverez la liste complète des claims enregistrés dans le [IANA JSON Web Token Claims Registry](https://www.iana.org/assignments/jwt/jwt.xhtml#claims).
+
+<div id="custom-claims">
+  ## Claims personnalisées
+</div>
+
+Vous pouvez définir vos propres claims personnalisés, que vous contrôlez, et les ajouter à un jeton à l’aide d’Actions. Voici quelques exemples :
+
+* Ajouter l’adresse courriel d’un utilisateur à un <Tooltip tip="Access Token : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=access+token">jeton d’accès</Tooltip> et l’utiliser pour identifier l’utilisateur de façon unique.
+* Ajouter des renseignements personnalisés stockés dans un profil utilisateur Auth0 à un <Tooltip tip="ID Token : jeton destiné au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=ID+token">jeton ID</Tooltip>.
+
+Tant que l’Action est configurée, les claims personnalisés qu’elle ajoute apparaîtront dans les nouveaux jetons émis lors de l’utilisation d’un [jeton d’actualisation](/fr-CA/docs/secure/tokens/refresh-tokens).
+
+Pour obtenir un exemple montrant comment ajouter des claims personnalisés à un jeton, consultez [Exemples de cas d’utilisation : Scopes and Claims](/fr-CA/docs/get-started/apis/scopes/sample-use-cases-scopes-and-claims).
+
+<div id="public-claims">
+  ### Claims publiques
+</div>
+
+Vous pouvez créer des claims personnalisées destinées à un usage public, qui peuvent contenir des renseignements génériques comme le nom et l’adresse courriel. Si vous créez des claims publiques, vous devez soit les enregistrer, soit utiliser des noms résistants aux collisions au moyen d’un espace de noms, et prendre des précautions raisonnables pour vous assurer de contrôler l’espace de noms que vous utilisez.
+
+Dans le [registre IANA des claims JSON Web Token](https://www.iana.org/assignments/jwt/jwt.xhtml#claims), vous pouvez voir quelques exemples de claims publiques enregistrées par <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) :
+
+* `auth_time`
+* `acr`
+* `nonce`
+
+<div id="private-claims">
+  ### Claims privées
+</div>
+
+Vous pouvez créer des claims personnalisés privées pour partager des renseignements propres à votre application. Par exemple, alors qu’un claim public peut contenir des renseignements généraux comme le nom et le courriel, les claims privées contiennent des renseignements plus précis, comme l’ID de l’employé et le nom du département.
+
+<div id="auth0-restrictions">
+  ## Restrictions d’Auth0
+</div>
+
+Auth0 applique les restrictions générales suivantes aux claims personnalisées :
+
+* la charge utile des claims personnalisées est limitée à 100KB
+* un sous-ensemble des claims standard enregistrées d’OIDC, ainsi que d’autres claims utilisées à l’interne par Auth0, ne peuvent pas être personnalisées ni modifiées
+* les jetons d’accès avec une audience d’Auth0 API, à l’exception du endpoint `/userinfo`, ne peuvent pas contenir de claims personnalisées privées non associées à un espace de noms
+* seules les claims de profil utilisateur OIDC spécifiées peuvent être ajoutées aux jetons d’accès
+
+Pour en savoir plus sur les claims personnalisées, consultez [Create Custom Claims](/fr-CA/docs/secure/tokens/json-web-tokens/create-custom-claims).
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Valider des jetons Web JSON](/fr-CA/docs/secure/tokens/json-web-tokens/validate-json-web-tokens)
+* [Structure d’un jeton Web JSON](/fr-CA/docs/secure/tokens/json-web-tokens/json-web-token-structure)
+* [Jeux de clés Web JSON](/fr-CA/docs/secure/tokens/json-web-tokens/json-web-key-sets)
+* [Propriétés d’un jeu de clés Web JSON](/fr-CA/docs/secure/tokens/json-web-tokens/json-web-key-set-properties)

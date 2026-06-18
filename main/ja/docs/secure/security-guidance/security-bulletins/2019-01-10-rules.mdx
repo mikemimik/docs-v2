@@ -1,0 +1,341 @@
+---
+description: 認証フローにおいて、不適切なカスタムルールコードによって脆弱性が生じる可能性があるケース。
+title: Rules に関する Auth0 セキュリティ情報
+---
+
+**公開日**: 2019年1月10日
+
+<div id="overview">
+  ## 概要
+</div>
+
+このセキュリティ情報では、認証フローに脆弱性を生じさせるおそれがあるため、custom rule code でお客様が避けるべきいくつかのシナリオを取り上げます。各問題の説明と、可能な場合は同じルールを記述するための代替方法を以下に示します。
+
+* <Tooltip tip="多要素認証（MFA）: SMS で送信されるコードなど、ユーザー名とパスワードに加えて別の要素を使用するユーザー認証プロセス。" cta="用語集を見る" href="/ja/docs/glossary?term=multi-factor+authentication">多要素認証</Tooltip> (MFA) を適用するための条件付きロジックを含む custom rule code では、特にサイレント認証を使用する場合に、MFA を完全に回避できてしまう可能性があります。
+* 適切なロジックなしに、特定の部分文字列に基づく認可制御を実装した custom rule code は、権限昇格につながるおそれがあります。
+* Auth0 に組み込まれているデバッグ機能を使わずに、診断情報をサードパーティのサービスに送信する custom rule code は、機密情報の漏えいにつながるおそれがあります。
+* 有料サービスを起動する custom rule code では、攻撃者によって意図しない課金が発生させられる可能性があります。
+* 検証されていないメールアドレスに基づいて認可を付与する custom rule code は、攻撃者が別の接続タイプを通じてその権限を取得できてしまう可能性があります。
+* グローバル設定オブジェクトを使用せずに、API キーなどのシークレットをハードコードした custom rule code は、そうしたシークレットが漏えいするリスクを高めます。
+
+<div id="improper-mfa-rules">
+  ## MFAルールの不備
+</div>
+
+<div id="silent-authentication">
+  ### サイレント認証
+</div>
+
+シングルページアプリケーション (SPA) では、現在のセッションが<Tooltip tip="認可サーバー: ユーザーのアクセス範囲の定義に関与する集中型サーバーです。たとえば、認可サーバーは、ユーザーが利用できるデータ、タスク、機能を制御できます。" cta="用語集を見る" href="/ja/docs/glossary?term=authorization+server">認可サーバー</Tooltip>に対して有効である限り、サイレント認証によってユーザーの操作なしに新しい<Tooltip tip="アクセストークン: API へのアクセスに使用される、不透明な文字列または JWT 形式の認可資格情報です。" cta="用語集を見る" href="/ja/docs/glossary?term=access+tokens">アクセストークン</Tooltip>を発行できます。
+
+Auth0 では、次のように認可エンドポイントに追加する特別なパラメーターによって、サイレント認証を利用できます。
+`/authorize?prompt=none`
+
+ただし、サイレント認証のプロセスに MFA を組み込むと、ユーザーの操作が必要になります。
+
+MFA を回避するための回避策として、サイレント認証に基づく条件分岐を使用すべきではありません。このようなルールを使うと MFA を完全に回避できてしまうため、使用しないでください。
+
+```javascript lines
+function (user, context, callback) {
+  if (context.request.query && context.request.query.prompt === 'none') {
+  // サイレントトークンリクエストのMFAをスキップする
+  return callback(null, user, context);
+  }
+...
+}
+```
+
+<div id="silent-authentication-with-redirection-to-custom-mfa-provider">
+  ### カスタムMFAプロバイダーへのリダイレクトを伴うサイレント認証
+</div>
+
+サイレント認証に基づいてカスタム多要素認証へのリダイレクト要否を判定するルールでは、まれにMFAが回避される可能性があります。たとえば、次のようなルールは避けてください。
+
+```javascript lines
+function (user, context, callback) {
+  if (context.request.query && context.request.query.prompt === 'none') {
+  //カスタムMFAにリダイレクト
+  context.redirect = {
+    url: "https://example.com/"
+  };
+...
+}
+```
+
+<div id="improper-verification">
+  ### 不適切な検証
+</div>
+
+特定の条件下で多要素認証をスキップするためにルールを使用すると、意図した状態が本当に成立しているかを判断するチェックが不十分な場合、MFA が回避されてしまうことがあります。
+
+このような場合の根本的な問題は、MFA はルールの実行後に行われるため、ルールでは MFA が正常に実施されたかどうかを判断できない点にあります。このように設定されたルール (以下の例を参照) は、MFA が正常に実施されるという誤った前提のもと、特定の条件では MFA をスキップするために同じユーザーレコードを参照しつつ、そのユーザーレコードを早い段階で更新してしまいます。
+
+以下の例は、不適切な検証によって多要素認証が完全に回避される可能性があることを示しています。
+
+<div id="device-fingerprint">
+  #### デバイス フィンガープリント
+</div>
+
+```javascript lines
+function (user, context, callback) {
+
+  var crypto = require('crypto');
+
+  var deviceFingerPrint = getDeviceFingerPrint();
+  user.app_metadata = user.app_metadata || {};
+
+  // 不十分な検証チェック
+  if (user.app_metadata.lastLoginDeviceFingerPrint !== deviceFingerPrint) {
+    user.app_metadata.lastLoginDeviceFingerPrint = deviceFingerPrint;
+    context.multi-factor = {
+      ...
+    };
+    ...
+  }
+  function getDeviceFingerPrint() {
+    var shasum = crypto.createHash('sha1');
+    shasum.update(context.request.userAgent);
+    shasum.update(context.request.ip);
+    return shasum.digest('hex');
+  }
+}
+```
+
+<div id="country-code">
+  #### 国コード
+</div>
+
+```javascript lines
+function (user, context, callback) {
+  user.app_metadata = user.app_metadata || {};
+
+  // 不十分な検証チェック
+  if (user.app_metadata.last_location !== context.request.geoip.country_code) {
+    user.app_metadata.last_location = context.request.geoip.country_code;
+    context.multi-factor = {
+    ...
+    };
+  }
+```
+
+### 影響はありますか？
+
+前述のルールロジックのいずれかを使用している場合、最初の認証要素でのログインに成功した攻撃者に、アプリケーションのMFAを回避される可能性があります。
+
+<div id="mitigation-steps">
+  ### 緩和手順
+</div>
+
+**サイレント認証のシナリオの影響を受ける場合**は、`prompt === 'none'` に基づく条件分岐を削除してください。これにより、セッション状態を確認するため、サイレント認証を呼び出すたびに多要素認証が実行されます。
+
+**リダイレクトを伴うサイレント認証のシナリオの影響を受ける場合**は、`prompt === 'none'` に基づく条件分岐を削除し、Auth0 がサポートする多要素認証プロバイダーに切り替えてください。
+
+ユーザーに MFA を求める頻度が高くなりすぎないようにするには、`allowRememberBrowser` パラメーターを true に設定できます。これにより、エンドユーザーはチェックボックスをオンにして、多要素認証を求められるのを 30 日に 1 回だけにできます。例:
+
+```js lines
+context.multi-factor = {
+    provider: 'guardian',
+    allowRememberBrowser: true
+  };
+```
+
+エンドユーザーには、頻繁に確認を求められないようにするため、チェックボックスをオンにするよう案内するとよいでしょう。
+
+**MFA をスキップするために不適切な検証を使用するルールの影響を受ける場合**は、適切な検証を行うようにするか、MFA の例外を完全に廃止するか、上記で説明した `allowRememberBrowser` 設定オプションを使用してください。
+
+<div id="will-this-update-impact-my-users">
+  ### この更新はユーザーに影響しますか？
+</div>
+
+ルールや設定の調整内容によっては、この更新により、ユーザーに通常より頻繁にMFAを求めることがあります。
+
+<div id="improper-substring-verification">
+  ## 不適切な部分文字列の検証
+</div>
+
+メールドメインなど、特定の文字列との完全一致に基づいてアクセス制御を行うルールロジックで、完全一致ではなく部分文字列だけを確認している場合、意図したとおりに動作しない可能性があります。たとえば、次のような例です。
+
+`if( _.findIndex(connection.options.domain_aliases,function(d){ return user.email.indexOf(d) >= 0;`
+
+上記のロジックは、次のようなメールアドレスでも true を返してしまいます。
+
+* `user.domain.com@not-domain.com`
+* `"user@domain.com"@not-domain.com` (引用符を含む)
+
+### 影響はありますか？
+
+影響を受けるのは、上記のとおり、ルールで条件付きロジックを使用しているお客様のみです。
+
+<div id="mitigation-steps">
+  ### 緩和手順
+</div>
+
+次のようなロジックを使用します。
+
+`const emailSplit = user.email.split('@'); const userEmailDomain = emailSplit[emailSplit.length - 1].toLowerCase();`
+
+詳細については、[Check Domains Against Connection Aliases rule template](https://github.com/auth0/rules/blob/master/src/rules/check-domains-against-connection-aliases.js)を参照してください。または、<Tooltip tip="Auth0 Dashboard: サービスを設定するための Auth0 の主要製品。" cta="用語集を見る" href="/ja/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> の **Rules** セクションで、**Check if user email domain matches configured domain** という名前のルールテンプレートを確認してください。
+
+<div id="will-this-update-impact-my-users">
+  ### この更新はユーザーに影響しますか？
+</div>
+
+その可能性があります。部分文字列チェックに基づくロジックを含むルールへの推奨変更は、エンドユーザーに影響を与える場合があります。ただし、ルールの意図や、推奨される変更がエンドユーザーに影響しそうかどうかを最も適切に判断できるのは、ご自身です。
+
+<div id="debugging-using-external-services">
+  ## 外部サービスを使ったデバッグ
+</div>
+
+Auth0 のコンテキストオブジェクトを外部サービスに送信するルールロジックがある場合、リクエストに関連付けられた `id_token` や `access_token` などの情報を外部に公開していることになります。たとえば、次のようなケースです。
+
+```js lines
+request.post({
+    url: 'http://requestbin.fullcontact.com/YourBinUrl',
+    json: {
+      user: user,
+      context: context,
+    },
+    timeout: 15000
+  }, function(err, response, body){
+    if (err) return callback(err);
+    return callback(null, user, context);
+  });
+```
+
+### 影響を受けるのはどのケースですか？
+
+影響を受けるのは、上記のとおりのルールロジックを使用しているお客様のみです。
+
+### 緩和策
+
+ルールを修正し、context オブジェクト全体を requestbin に送信しないようにしてください。送信すると、各リクエストに関連付けられた `id_token` や `access_token` が露出するおそれがあります。代わりに、context オブジェクトから機微性の低い属性だけを選んで送信してください。
+
+詳しくは、[Requestbin rule template](https://github.com/auth0/rules/blob/master/src/rules/requestbin.js)を参照してください。あるいは、Auth0 Dashboard の **Rules** セクションで、**Dump rule variables to RequestBin** という名前のルールテンプレートを確認してください。
+
+Auth0 には、外部サービスに情報を送信せずにルールをデバッグするための組み込みメソッドも用意されています。
+
+<div id="will-this-update-impact-my-users">
+  ### この更新はユーザーに影響しますか？
+</div>
+
+いいえ。影響を受けるルールは通常、デバッグ目的で使われているため、この変更がエンドユーザーに影響することはありません。
+
+<div id="rules-using-a-paid-service">
+  ## 有料サービスを利用するルール
+</div>
+
+認証プロセスの一部として、Twillio 経由で SMS メッセージを送信するような有料サービスを含むルールロジックがある場合、コストが増加するおそれがあります。これは、有効なユーザー名とパスワードを持つ攻撃者が、ルールで定められた認証プロセス全体を完了しなくても、そのサービスの呼び出しを発生させて費用を発生させる可能性があるためです。たとえば、次のようなケースです。
+
+```javascript lines
+//TwilioでユーザーにSMSを送信する
+  function notifyUser(done) {
+    const request = require('request');
+    const twilioAccount = '{yourTwilioAccount}';
+    const twilioAuthToken = '{yourTwilioAuthToken}';
+
+    request.post({
+      url: 'https://api.twilio.com/2010-04-01/Accounts/' + twilioAccount + '/Messages.json',
+      auth: {
+        'user': twilioAccount,
+        'pass': twilioAuthToken,
+      },
+      form: {
+        body: 'You\'ve logged in from a different device or location.',
+        to: user.phone,
+        from: '+18668888888'
+      }
+    }, function (error, response, body) {
+      if (error) return done(error);
+      if (response.statusCode !== 201) return done(new Error(response.statusCode));
+      return done(null);
+    });
+  }
+```
+
+### 影響を受けますか？
+
+影響を受けるのは、上記のようなルールロジックを使用しており、かつそのルールロジックが信頼できない任意のユーザーによってトリガーされる可能性があるお客様のみです。
+
+### 軽減策
+
+このリスクを軽減するには、次の対応を1つ以上検討してください。
+
+* 不要であれば公開サインアップを無効にし、有料サービスの呼び出しを発生させうる登録ユーザー数を減らします。
+* 認証情報の盗難リスクを軽減し、乗っ取られたアカウントを使って有料サービスを呼び出すおそれのあるハッカーによるアカウント乗っ取りを防ぎます。
+* Database connections を使用している場合は、ユーザーが強力なパスワードを設定していることを確認します。
+* ユーザーが多要素認証を利用していることを確認します。
+* ルールが、許可された一部のユーザーに対してのみ、またはその他の適切な条件下でのみトリガーされるようにしてください。たとえば、有料サービスを呼び出す前に、ユーザーのメールドメイン、ロール/グループ、またはサブスクリプションレベルが特定の条件を満たしているかどうかを確認するロジックを追加するとよいでしょう。
+
+<div id="will-this-update-impact-my-users">
+  ### この更新はユーザーに影響しますか？
+</div>
+
+エンドユーザーへの影響は、この問題を軽減するために上記のどの対策を選ぶかによって異なります。
+
+<div id="authorization-based-on-unverified-email-address">
+  ## 未確認のメールアドレスに基づく認可
+</div>
+
+特定のメールアドレスやメールドメインに基づいてアクセス制御を行うルールロジックがあるにもかかわらず、そのユーザーのメールアドレスが確認済みかどうかをチェックしていない場合、攻撃者は別の接続タイプを使って追加の権限を得られる可能性があります。たとえば、次のようなケースです。
+
+```javascript lines
+var userHasAccess = allowList.some(function (email) {
+    return email === user.email;
+  });
+```
+
+上記のロジックでは、攻撃者が許可リストに含まれているメールアドレスを使って、別の接続タイプ (たとえばソーシャル) でアカウントを作成できる場合、`true` が返されます。これは、同じメールアドレスが異なる接続タイプに存在し得るためです。
+
+### 影響はありますか？
+
+影響を受けるのは、上記のようにルールで条件付きロジックを使用し、かつ複数の接続タイプを許可しているお客様のみです。
+
+### 緩和策
+
+メールアドレスに基づいて認可を行う場合は、必ずルールを次のロジックから始めてください。
+
+```javascript lines
+function (user, context, callback) {
+  // アクセスは確認済みユーザーにのみ許可されるべきです。
+  if (!user.email || !user.email_verified) {
+    return callback(new UnauthorizedError('Access denied.'));
+  }
+```
+
+検証済みのメールアドレスであっても、実行しようとしている認可の確認としては十分でない場合があります。そのようなケースについて詳しくは、Email Verified Usageをご覧ください。
+
+<div id="will-this-update-impact-my-users">
+  ### この更新はユーザーに影響しますか？
+</div>
+
+影響を受けるのは、メールアドレスの確認が済んでいない既存ユーザーのみです。
+
+<div id="plaintext-secrets-within-rule-code">
+  ## ルールコード内の平文のシークレット
+</div>
+
+API キーなどの機密情報をルールコード内に記述する場合は、代わりにそれらの値をルール設定で構成してください。たとえば、次のようなコードです。
+
+`const myApiKey = 'abcdefghijklmnopqrstuvwxyz';`
+
+このような機密情報がルールコード内に含まれていると、当社のシステム内で暗号化されないまま保持され、漏えいするおそれがあります。
+
+<div id="am-i-affected">
+  ### 影響を受けるのはどのような場合ですか？
+</div>
+
+ルールに、ルールコード自体に含まれる機密性の高い値がある場合、影響を受けます。
+
+### 軽減手順
+
+機密情報は Auth0 Dashboard のメインの **Rules** セクションにある **Settings** 領域に保存し、ルール内では次のように参照します。
+
+`const myApiKey = configuration.myApiKey;`
+
+これにより、すべての機密情報が Auth0 のシステム内で暗号化され、漏えいのリスクを低減できます。
+
+<div id="will-this-update-impact-my-users">
+  ### この更新はユーザーに影響しますか？
+</div>
+
+ユーザーへの影響はありません。

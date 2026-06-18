@@ -1,0 +1,154 @@
+---
+title: "Référence de l’API de gestion"
+description: "Documentation de l’Auth0 Management API"
+---
+
+<Badge>Version : 2.0 (actuelle)</Badge>
+
+**L’Auth0 Management API** est un ensemble de points de terminaison permettant d’effectuer des tâches administratives par programmation et doit être utilisée par des serveurs dorsaux ou des parties de confiance. De façon générale, tout ce qui peut être fait dans l’Auth0 Dashboard peut aussi être fait au moyen de cette API.
+
+Cette API est distincte de l’[Auth0 Authentication API accessible publiquement](https://auth0.com/docs/api/authentication), qui est conçue pour être utilisée par des interfaces frontales et des parties non fiables.
+
+Lorsque vous utilisez les exemples de code inclus dans cette documentation d’API, les requêtes doivent être envoyées avec un `Content-Type` de `application/json`. Tous les points de terminaison acceptent une charge utile d’une taille maximale de 1 mégaoctet.
+
+La documentation de l’Auth0 Management API suit le [schéma OpenAPI v3.1 de l’Auth0 Management API](https://auth0.com/docs/api/management/openapi.json). Veuillez noter que la prise en charge du schéma OpenAPI v3.1 est actuellement en version Beta.
+
+<div id="authentication">
+  ## Authentification
+</div>
+
+L’utilisation de l’API de gestion Auth0 requiert un jeton d’accès à l’API de gestion. Pour savoir comment demander ce jeton, consultez [Management API Access Tokens](https://auth0.com/docs/secure/tokens/access-tokens/management-api-access-tokens).
+
+L’API de gestion Auth0 utilise des JSON Web Tokens (JWT) pour authentifier les requêtes. La revendication `scopes` du jeton d’accès à l’API de gestion indique quelles méthodes de requête peuvent être exécutées lors des appels à cette API. L’exemple de jeton désérialisé présenté sur cette page accorde un accès en lecture seule aux utilisateurs et un accès en lecture/écriture aux connexions. Toute tentative d’exécuter une méthode de requête non autorisée par les scopes définis entraînera une réponse **403 Forbidden**.
+
+```bash lines
+{
+  "aud": "m8DAxghyfE0KdpzogfXgMSxrkCSdKVEF",
+  "scopes": {
+    "connections": {
+      "actions": ["read", "update"]
+    }
+  },
+  "iat": "1446056652",
+  "jti": "7e9c6a991f5a227fb7ebaa522536ae4c"
+}
+```
+
+Pour appeler l’API, envoyez le jeton d’API dans l’en-tête HTTP Authorization à l’aide du [schéma d’authentification Bearer](https://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20#section-2.1).
+
+```bash lines
+curl -H "Authorization: Bearer eyJhb..." https://@@TENANT@@/api/v2/users
+```
+
+<div id="request-correlation">
+  ## Corrélation des requêtes
+</div>
+
+Un ID de corrélation est un identifiant unique (jusqu’à 64 caractères) associé à une seule opération de Management API et permet de suivre ces opérations dans les logs du tenant. Pour en savoir plus, consultez [Logs](https://auth0.com/docs/deploy-monitor/logs).
+
+L’API accepte un ID de corrélation fourni par le client s’il est transmis dans l’en-tête HTTP `X-Correlation-ID` avec les méthodes `POST`, `PUT`, `PATCH` et `DELETE`.
+
+```bash lines
+curl -H "Authorization: Bearer eyJhb..." -H "x-correlation-id: client1_xyz" https://@@TENANT@@/api/v2/users
+```
+
+Si une valeur du header `X-Correlation-ID` de plus de 64 caractères est fournie, seuls les 64 premiers caractères seront affichés dans les logs.
+
+```bash lines
+"references": {
+  "correlation_id": "client1_xyz"
+}
+```
+
+<div id="pagination">
+  ## Pagination
+</div>
+
+La pagination est une technique utilisée par les API pour diviser de grands ensembles de données en pages plus faciles à gérer, ce qui réduit la quantité de données renvoyées dans chaque réponse. Deux principaux types de pagination sont couramment utilisés dans les API : la pagination **par décalage** et la pagination **par point de contrôle**. Chacune présente des avantages distincts et des cas d’utilisation qui varient selon la taille de l’ensemble de données et les besoins d’extraction.
+
+L’Auth0 Management API prend en charge les deux types de pagination sur de nombreux points de terminaison, comme `GET /api/v2/clients` et `GET /api/v2/logs`. Lorsque les deux options sont offertes, la pagination **par point de contrôle** est recommandée en raison de son efficacité accrue et de sa plus grande stabilité pour les grands ensembles de données.
+
+<div id="offset-based-pagination">
+  ### Pagination par décalage
+</div>
+
+La pagination par décalage est une méthode simple et largement utilisée pour paginer des ensembles de données allant jusqu’à environ 1 000 éléments. Cette approche utilise les paramètres `page` et `per_page` pour définir le point de départ et le nombre d’éléments sur chaque page.
+
+* **Paramètres :**
+  * `page` : Le numéro de page, indexé à partir de 0, à récupérer. La valeur par défaut est `0` s’il n’est pas précisé.
+  * `per_page` : Le nombre d’éléments à retourner par page. Pour les tenants du Public Cloud, [le maximum est de `50`](https://auth0.com/docs/troubleshoot/product-lifecycle/past-migrations/migrate-to-paginated-queries); pour le Private Cloud, le maximum est de `100`. S’il n’est pas précisé, la valeur par défaut correspond à la moitié du maximum.
+
+**Exemple de requête de pagination par décalage :**
+
+```bash lines
+curl -L "https://@@TENANT@@/api/v2/clients?per_page=10&page=2" \
+-H 'Authorization: Bearer {ACCESS_TOKEN}' \
+-H 'Accept: application/json'
+```
+
+Dans la pagination par offset :
+
+* Si `page * per_page` dépasse le nombre total de résultats, un tableau vide est renvoyé.
+* Chaque requête de page recalcule l’offset, ce qui peut nuire aux performances lorsque les ensembles de données sont plus volumineux. La pagination par offset convient généralement mieux aux collections qui risquent peu de dépasser 1 000 éléments.
+
+<div id="checkpoint-based-pagination">
+  ### Pagination basée sur un point de contrôle
+</div>
+
+La pagination basée sur un point de contrôle, aussi appelée pagination par curseur ou par token, est optimisée pour les grands ensembles de données. Cette méthode utilise un ID de point de contrôle `next` fourni par le serveur pour récupérer les pages suivantes dans une séquence vers l’avant uniquement. L&#39;ID de point de contrôle `next` est inclus dans la réponse lorsque d&#39;autres résultats sont disponibles.
+
+Pour poursuivre la pagination, utilisez l&#39;ID de point de contrôle `next` dans le paramètre de requête `from` de la requête suivante. Cet ID est opaque et doit être transmis tel quel.
+
+* **Paramètres :**
+  * `from` : L&#39;ID de point de contrôle `next` de la réponse précédente, utilisé pour récupérer la page de résultats suivante.
+  * `take` : Le nombre d&#39;éléments à retourner par page. Pour les tenants Public Cloud, [le maximum est de `50`](https://auth0.com/docs/troubleshoot/product-lifecycle/past-migrations/migrate-to-paginated-queries); pour Private Cloud, le maximum est de `100`. Par défaut, la valeur correspond à la moitié du maximum si elle n&#39;est pas fournie.
+
+**Exemple de requête de pagination basée sur un point de contrôle :**
+
+```bash lines
+curl -L "https://@@TENANT@@/api/v2/clients?take=10&from=Cg1HRUY3NEszUERFME40GgAiAQgCEj..." \
+-H 'Authorization: Bearer {ACCESS_TOKEN}' \
+-H 'Accept: application/json'
+```
+
+<div id="checkpoint-id-expiry">
+  #### Expiration de l’ID de point de contrôle
+</div>
+
+Lorsque vous utilisez la pagination basée sur des points de contrôle, il est important de tenir compte de la durée de validité de chaque ID de point de contrôle `next`. L’ID de point de contrôle est conçu pour être utilisé de façon séquentielle, chaque ID n’étant valide que pour une durée limitée afin d’assurer la cohérence des données.
+
+<Note>
+  <p class="uppercase font-bold">Remarque</p>
+
+  L’ID de point de contrôle `next` est valide pendant **24 heures** à compter de son émission. S’il expire, une nouvelle requête est nécessaire pour recommencer depuis le début de l’ensemble de données. Envisagez la mise en cache des résultats si un délai important risque de s’écouler entre les requêtes.
+</Note>
+
+<div id="forward-only-constraints">
+  #### Contraintes de navigation vers l’avant uniquement
+</div>
+
+La pagination basée sur un point de contrôle fonctionne uniquement vers l’avant. Évitez d’utiliser l’ID de point de contrôle pour revenir en arrière ou pour effectuer des requêtes hors séquence, car cela peut entraîner des erreurs. Utilisez toujours l’ID de point de contrôle `next` de la réponse précédente.
+
+<div id="choosing-between-offset-and-checkpoint-pagination">
+  ### Choisir entre la pagination par offset et la pagination par checkpoint
+</div>
+
+Lorsque les deux types de pagination sont pris en charge :
+
+* **Utilisez la pagination par checkpoint** pour gérer efficacement de grands ensembles de données.
+* Utilisez la pagination par offset pour les ensembles de données plus petits (généralement moins de 1 000 éléments), car elle est plus simple à implémenter, mais moins efficace pour les grandes collections.
+
+<div id="best-practices-for-handling-pagination">
+  ### Bonnes pratiques pour gérer la pagination
+</div>
+
+* **Cohérence des données :** Chaque requête paginée reflète l’état des données au moment où la requête est effectuée. Si des données sont mises à jour ou supprimées, certains éléments peuvent être omis ou apparaître en double. La pagination par point de contrôle peut aider à assurer une pagination plus fluide dans les ensembles de données dynamiques.
+* **Stockage des points de contrôle :** Pour l’extraction de grands volumes de données, envisagez d’enregistrer des points de contrôle après chaque page afin de pouvoir reprendre au dernier point de contrôle en cas d’interruption.
+
+Cette approche permet une extraction de données efficace et stable pour les grands ensembles de données, conformément aux options de pagination de l’Auth0 Management API.
+
+<div id="test-with-an-access-token">
+  ### Tester avec un jeton d’accès
+</div>
+
+Vous pouvez obtenir un jeton d’accès pour effectuer des tests. Pour en savoir plus, consultez [Get Management API Access Tokens for Testing](/fr-CA/docs/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-testing).

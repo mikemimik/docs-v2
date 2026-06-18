@@ -1,0 +1,245 @@
+---
+description: Découvrez comment configurer Client-Initiated Backchannel Authentication pour votre tenant.
+title: Configure Client-Initiated Backchannel Authentication
+validatedOn: 2026-02-20
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Pour utiliser les fonctionnalités de Client-Initiated Backchannel Authentication (CIBA), vous devez avoir un Enterprise Plan ou un module complémentaire approprié. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
+</Callout>
+
+Le [flux Client-Initiated Backchannel Authentication (CIBA)](/fr-CA/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow) est un flux d’authentification et d’autorisation découplé défini par l’OpenID Foundation. Vous pouvez utiliser le flux CIBA dans des flux de travail asynchrones où l’appareil qui lance la requête CIBA (l’appareil de consommation) est différent de celui que l’utilisateur utilise pour s’authentifier (l’appareil d’authentification).
+
+Pour configurer CIBA dans Auth0, vous devez :
+
+* [Configurer le type d’octroi CIBA pour votre application](#configure-ciba-grant-type-for-your-application)
+* [Activer les canaux de notification pour votre application](#enable-notification-channels-for-your-application)
+* [Configurer le canal de notification pour CIBA](#configure-notification-channel)
+
+<div id="prerequisites">
+  ## Prérequis
+</div>
+
+Avant de configurer CIBA pour votre application, assurez-vous de définir une [méthode d’authentification](/fr-CA/docs/secure/application-credentials#application-authentication-methods) pour votre application. Vous pouvez utiliser n’importe quelle méthode d’authentification dans le flux CIBA, y compris l’authentification mTLS, l’authentification <Tooltip tip="JSON Web Token (JWT) : format standard de jeton d’identification (ID Token) (et souvent de jeton d’accès) utilisé pour représenter des déclarations de manière sécurisée entre deux parties." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=JWT">JWT à clé privée</Tooltip> et l’authentification par <Tooltip tip="JSON Web Token (JWT) : format standard de jeton d’identification (ID Token) (et souvent de jeton d’accès) utilisé pour représenter des déclarations de manière sécurisée entre deux parties." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Client+Secret">Client Secret</Tooltip>.
+
+Pour définir la méthode d’authentification de votre application, consultez [Paramètres des identifiants](/fr-CA/docs/get-started/applications/credentials).
+
+<div id="configure-ciba-grant-type-for-your-application">
+  ## Configurer le type d’octroi CIBA pour votre application
+</div>
+
+Vous pouvez configurer le type d’octroi CIBA pour votre application dans l’[Auth0 Dashboard](https://manage.auth0.com/) ou à l’aide de la [Management API](https://auth0.com/docs/api/management/v2).
+
+Certaines restrictions s’appliquent aux types de clients pouvant utiliser le type d’octroi CIBA. Vous pouvez utiliser le type d’octroi CIBA seulement si :
+
+* Le client est un client de première partie, c.-à-d. que la propriété `is_first_party` est définie à `true`.
+* Le client est confidentiel et utilise un mécanisme d’authentification, c.-à-d. que la propriété `token_endpoint_auth_method` ne doit pas être définie à `none`.
+* Le client doit être conforme à OIDC, c.-à-d. que `oidc_conformant` doit être `true`. Il s’agit de la valeur par défaut pour tous les nouveaux clients.
+
+Une fois le type d’octroi CIBA activé, les paramètres de configuration des [canaux de notification](#enable-notification-channels-for-your-application) offerts à votre application deviendront visibles.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Pour configurer CIBA pour votre application dans l’Auth0 Dashboard :
+
+    1. Accédez à **Applications &gt; Applications** dans l’Auth0 Dashboard.
+    2. Créez une application, puis activez **Client Initiated Backchannel Authentication (CIBA)** dans l’onglet **Grant Types** :
+
+    <Frame>![](/docs/images/cdy7uua7fh8z/54TD5VRQVAOWxBdnFEpvTT/223866f22f6c3ddfa87e48221d69ba58/CIBA_grant_-_English.png)</Frame>
+
+    3. Cliquez sur **Save Changes**.
+  </Tab>
+
+  <Tab title="Management API">
+    Pour configurer CIBA pour votre application à l’aide de la Management API, utilisez le point de terminaison [Update a Client](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id) pour ajouter le type d’octroi `urn:openid:params:grant-type:ciba` à la liste des types d’octroi de l’objet client :
+
+    ```bash lines
+    curl --location --request PATCH 'https://{YOUR_DOMAIN}.auth0.com/api/v2/clients/{YOUR_CLIENT_ID}' \
+    --header 'Content-Type: application/json' \
+    --header 'Authorization: Bearer {YOUR_MANAGEMENT_API_ACCESS_TOKEN}' \
+    --data '{
+        "grant_types": [
+            "authorization_code",
+            "refresh_token",
+            "urn:openid:params:grant-type:ciba"
+        ]
+    }'
+    ```
+
+    Vous pouvez aussi utiliser le SDK Go de notre Management API. Pour en savoir plus, consultez [SDKs](/fr-CA/docs/libraries) :
+
+    ```go lines
+    myClient := &Client{
+        Name:        auth0.Stringf("CIBA-enabled-client"),
+        Description: auth0.String("This is a CIBA enabled client."),
+        GrantTypes:  &[]string{"urn:openid:params:grant-type:ciba"},
+      }
+
+      err := api.Client.Create(context.Background(), myClient)
+    ```
+  </Tab>
+</Tabs>
+
+<div id="enable-notification-channels-for-your-application">
+  ## Activez les canaux de notification pour votre application
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Pour utiliser les fonctionnalités de Client-Initiated Backchannel Authentication (CIBA), vous devez avoir un Enterprise Plan ou un module complémentaire approprié. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour plus de détails.
+</Callout>
+
+Une fois le type d’octroi CIBA activé pour votre application, vous pouvez configurer les canaux de notification activés pour le CIBA flux. Si plusieurs canaux de notification sont activés, CIBA utilise la valeur du paramètre `requested_expiry` pour déterminer quel canal de notification utiliser. Le paramètre `requested_expiry` détermine la durée maximale, en secondes, pendant laquelle la session CIBA doit rester valide :
+
+* [Notifications push sur mobile](#configure-mobile-push-notifications) : si vous définissez `requested_expiry` à une valeur de 300 secondes ou moins, CIBA utilise le canal de notification push sur mobile s’il est activé.
+* [Notifications par courriel](#configure-email-notifications) : si vous définissez `requested_expiry` à une valeur comprise entre 301 et 259200 secondes (72 heures), CIBA utilise le canal de notification par courriel s’il est activé.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Pour configurer le canal de notification de votre application dans l’Auth0 Dashboard :
+
+    * Accédez à **Applications &gt; Applications**.
+    * Dans les paramètres de votre application, accédez à la section **Client Initiated Backchannel Authentication (CIBA)** et sélectionnez le ou les canaux de notification à activer.
+
+    <Frame>![](/docs/images/ciba/enable_notification_channel_for_app.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Effectuez une requête `PATCH` vers le point de terminaison `/api/v2/clients` de votre application cliente et définissez les canaux de notification pour le CIBA flux.
+
+    L’exemple de code suivant active le canal de notification `guardian-push` pour le CIBA flux :
+
+    ```bash lines
+    curl -L --request PATCH 'https://{YOUR_DOMAIN}/api/v2/clients/{YOUR_CLIENT_ID}' \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json' \
+    -H "Authorization: Bearer {YOUR_MANAGEMENT_API_ACCESS_TOKEN}" \
+    -d '{
+        "async_approval_notification_channels":["guardian-push"]
+    }'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="configure-notification-channel">
+  ## Configurer le canal de notification
+</div>
+
+Après avoir activé un ou plusieurs canaux de notification pour votre application cliente, configurez le canal de notification pour le flux CIBA :
+
+* [Configurer les notifications push sur mobile](#configure-mobile-push-notifications)
+* [Configurer les notifications par courriel](#configure-email-notifications)
+
+<div id="configure-mobile-push-notifications">
+  ### Configurer les notifications push sur mobile
+</div>
+
+Pour envoyer des notifications push sur mobile avec le flux CIBA, vous pouvez utiliser :
+
+* L’application Auth0 Guardian
+* Une application personnalisée intégrée au SDK Auth0 Guardian
+
+Vous pouvez sélectionner l’application à utiliser lorsque vous [activez les notifications push Auth0 Guardian](/fr-CA/docs/get-started/applications/configure-client-initiated-backchannel-authentication#enable-auth0-guardian-push-notifications). Si vous souhaitez utiliser une application personnalisée, vous devez l’intégrer au [SDK Auth0 Guardian](/fr-CA/docs/secure/multi-factor-authentication/auth0-guardian#guardian-sdks). Cela permet à l’utilisateur qui autorise la demande d’approuver, dans votre application personnalisée, les demandes d’approbation par notification push lancées par le flux CIBA.
+
+Pour configurer les notifications push sur mobile, assurez-vous de :
+
+* [Activer les notifications push Auth0 Guardian](#enable-auth0-guardian-push-notifications)
+* [Inscrire l’utilisateur qui autorise la demande à la MFA au moyen des notifications push](#enroll-the-authorizing-user-in-mfa-using-push-notifications)
+
+<div id="enable-auth0-guardian-push-notifications">
+  #### Activer les notifications push d’Auth0 Guardian
+</div>
+
+Utilisez l’Auth0 Dashboard pour activer le facteur [Auth0 Guardian Push Notification](/fr-CA/docs/secure/multi-factor-authentication/auth0-guardian#enroll-in-push-notifications) pour votre tenant.
+
+Dans l’Auth0 Dashboard :
+
+* Sélectionnez **Security &gt; Multi-factor Auth.**
+
+* Activez **Push Notification using Auth0 Guardian**. Cela შეიძლება nécessiter certains paramètres de configuration <Tooltip tip="Authentification multifacteur (MFA) : processus d’authentification de l’utilisateur qui utilise un facteur en plus du nom d’utilisateur et du mot de passe, comme un code envoyé par SMS." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=MFA">MFA</Tooltip>. Pour en savoir plus, consultez [Configure Push Notifications for MFA](/fr-CA/docs/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-push-notifications-for-mfa).
+
+<Frame>![](/docs/images/cdy7uua7fh8z/7JKyznvsjTupJpTU7NwdSA/54b04e5b734226e1ee73c4165048b4f6/image2.png)</Frame>
+
+* Pour **Push Notification App**, sélectionnez l’application de votre choix.
+
+<Frame>![](/docs/images/ciba/push_notification_app.png)</Frame>
+
+* Cliquez sur **Save**.
+
+<div id="enroll-the-authorizing-user-in-mfa-using-push-notifications">
+  #### Inscrire l’utilisateur autorisant à l’AMF à l’aide des notifications push
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si l’utilisateur n’est pas inscrit pour utiliser les notifications push d’AMF, Auth0 utilise plutôt les notifications par courriel, si elles sont configurées, au lieu de rejeter la demande CIBA.
+</Callout>
+
+Pour l’application Auth0 Guardian comme pour une application personnalisée, vous devez [inscrire l’utilisateur autorisant à l’AMF à l’aide des notifications push](/fr-CA/docs/secure/multi-factor-authentication/auth0-guardian#enroll-in-push-notifications).
+
+Pour vérifier dans le <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> si l’utilisateur est inscrit, accédez à **User Management &gt; Users** et cliquez sur l’utilisateur :
+
+<Frame>![](/docs/images/cdy7uua7fh8z/21qtk4F1cOQHMpbXxXYu75/51ba9c5fd1457ffee3f73893acf3c97f/Screenshot_2025-01-13_at_4.13.44_PM.png)</Frame>
+
+Si vous avez défini <Tooltip tip="Authentification multifacteur (AMF) : processus d’authentification de l’utilisateur qui utilise un facteur en plus du nom d’utilisateur et du mot de passe, comme un code envoyé par SMS." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Multi-factor+Authentication">Authentification multifacteur</Tooltip> comme toujours requise pour votre tenant, les utilisateurs seront invités à s’inscrire à l’AMF lors de leur prochaine connexion. Vous pouvez aussi utiliser les [Actions](https://auth0.com/blog/using-actions-to-customize-your-mfa-factors/) pour inviter les utilisateurs à s’inscrire à l’AMF.
+
+<div id="configure-email-notifications">
+  ### Configurer les notifications par courriel
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Pour utiliser les notifications par courriel avec le flux CIBA, vous devez avoir le module complémentaire Auth0 for AI Agents avec un forfait payant. Pour en savoir plus, consultez [Auth0 Pricing](https://auth0.com/pricing).
+</Callout>
+
+Vous pouvez envoyer des notifications par courriel avec le flux CIBA. Pour configurer les notifications par courriel avec CIBA, assurez-vous de :
+
+* [Configurer votre fournisseur de courriel](#configure-your-email-provider)
+* [Configurer votre modèle de courriel](#configure-your-email-template) pour utiliser le modèle **Asynchronous Approval**
+* [Vous assurer que l’utilisateur qui autorise possède une adresse courriel vérifiée](#ensure-the-authorizing-user-has-a-verified-email-address)
+
+<div id="configure-your-email-provider">
+  #### Configurez votre fournisseur de courriel
+</div>
+
+Bien que vous puissiez utiliser le fournisseur de courriel intégré d’Auth0 pour tester l’envoi de courriels dans vos environnements de développement et de test, vous devez configurer votre propre fournisseur de courriel pour utiliser les notifications par courriel avec CIBA dans un environnement de production.
+
+Pour savoir comment configurer votre propre fournisseur de courriel, consultez [Personnaliser les courriels](/fr-CA/docs/customize/email).
+
+<div id="configure-your-email-template">
+  #### Configurez votre modèle de courriel
+</div>
+
+Pour configurer le modèle de courriel **Asynchronous Approval** :
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    1. Accédez à **Branding &gt; Email Templates**.
+    2. Pour **Template**, sélectionnez **Asynchronous Approval** dans le menu déroulant.
+    3. Remplissez le reste des paramètres du modèle en suivant les instructions de la page [Configurer les champs du modèle](/fr-CA/docs/customize/email/email-templates#configure-template-fields).
+  </Tab>
+
+  <Tab title="Management API">
+    Envoyez une requête `PATCH` au point de terminaison `/email-templates/async_approval` et suivez les instructions de la page [Configurer les champs du modèle](/fr-CA/docs/customize/email/email-templates#configure-template-fields) pour remplir le reste des paramètres du modèle. Pour en savoir plus, consultez la [documentation de l’API pour mettre à jour un modèle de courriel](https://auth0.com/docs/api/management/v2/email-templates/patch-email-templates-by-template-name).
+
+    ```bash lines
+    curl -L "https://{YOUR_DOMAIN}.auth0.com/api/v2/email-templates" \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json' \
+    -H "Authorization: Bearer {YOUR_MANAGEMENT_API_ACCESS_TOKEN}" \
+    -d '{"template":"async_approval","body":"{{application.name}} says click on {{url}}, binding message: {{binding_message}}","subject":"Action Required","syntax":"liquid","enabled":true,"from":""}'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="ensure-the-authorizing-user-has-a-verified-email-address">
+  #### Assurez-vous que l&#39;utilisateur qui autorise a une adresse courriel vérifiée
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si l&#39;utilisateur n&#39;a pas d&#39;adresse courriel vérifiée, Auth0 rejette la demande par courriel CIBA.
+</Callout>
+
+Pour envoyer une notification par courriel avec CIBA, l&#39;utilisateur qui autorise doit avoir une adresse courriel vérifiée associée à son compte.
+
+Pour vérifier que l&#39;utilisateur a une adresse courriel vérifiée dans l&#39;Auth0 Dashboard :
+
+1. Accédez à **User Management &gt; Users** et cliquez sur l&#39;utilisateur.
+2. Sous **Email**, l&#39;utilisateur devrait avoir une adresse courriel vérifiée indiquée.

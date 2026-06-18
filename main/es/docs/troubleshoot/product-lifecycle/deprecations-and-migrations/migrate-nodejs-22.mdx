@@ -1,0 +1,81 @@
+---
+description: Describe los elementos de Auth0 Actions afectados por Node.js 18
+title: Migración de Node 18 a Node 22
+---
+
+A partir del 15 de enero de 2025, el runtime de extensibilidad de Node 22 está disponible de forma general (GA) en toda nuestra gama de funciones de extensibilidad. Esto incluye Actions, Rules, Hooks, scripts de base de datos y conexiones sociales personalizadas. Te recomendamos encarecidamente que actualices a Node 22 lo antes posible para seguir las mejores prácticas de seguridad del código.
+
+<Warning>
+  El código de nivel de módulo de tus Actions ahora se invoca una vez por cada instancia de tu Action y puede reutilizarse según sea necesario en múltiples ejecuciones.
+</Warning>
+
+<div id="general-considerations">
+  ### Consideraciones generales
+</div>
+
+* Para consultar los módulos disponibles en el nuevo runtime, puedes consultar [Can I require: Auth0 Extensibility](https://auth0-extensions.github.io/canirequire/).
+* La directiva `use npm` ya no está disponible en Node 22.
+* Se ha deshabilitado el acceso de escritura al sistema de archivos.
+
+<div id="marketplace-integrations">
+  ### Integraciones del Marketplace
+</div>
+
+<div id="social-connections-integrations">
+  #### Integraciones de conexiones sociales
+</div>
+
+Usa la [Management API](https://auth0.com/docs/api/management/v2) para identificar la lista completa de conexiones sociales afectadas por un cambio en la versión del runtime de Node. En particular, todas las conexiones sociales potencialmente afectadas, ya sea porque se crearon explícitamente como una conexión social personalizada o porque se agregaron inicialmente a través del Marketplace, tienen el atributo `strategy` con un valor de `oauth1` o `oauth2`.
+
+Luego, puedes paginar entre todas las conexiones sociales personalizadas existentes en un tenant determinado mediante el endpoint [GET all connections](https://auth0.com/docs/api/management/v2#!/Connections/get_connections). Por ejemplo, las siguientes opciones de consulta devuelven los nombres y los identificadores de hasta 100 conexiones sociales personalizadas:
+
+```http wrap lines
+/api/v2/connections?strategy=oauth1&strategy=oauth2&include_totals=true&fields=name&per_page=100
+```
+
+<Note>
+  El <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> no permite actualizar los scripts de las conexiones sociales personalizadas añadidas a través de Marketplace. Si necesitas modificar un script para que sea compatible con Node 22, debes usar la <Tooltip tip="Management API: un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip>.
+</Note>
+
+<div id="migration-tasks">
+  ## Tareas de migración
+</div>
+
+<div id="create-new-custom-actions">
+  ### Crear nuevas Actions personalizadas
+</div>
+
+Para crear una nueva Action personalizada con Node 22 desde el Auth0 Dashboard:
+
+1. Ve a [Auth0 Dashboard &gt; Actions &gt; Biblioteca](https://manage.auth0.com/#/dashboard/actions/library).
+2. Selecciona **Crear Action &gt; Crear desde cero**.
+3. En el campo **runtime***, selecciona **Node 22 (recomendado)**.
+4. Escribe tus Actions personalizadas en Node 22, pruébalas e impleméntalas cuando estén listas.
+
+<div id="upgrade-existing-custom-actions">
+  ### Actualizar las Actions personalizadas existentes
+</div>
+
+Puedes actualizar individualmente las Actions personalizadas existentes basadas en Node 12, 16 o 18 a Node 22 y [revertir a la versión anterior](/es/docs/customize/actions/manage-versions#revert-actions) usando el runtime anterior. Para actualizar las Actions a Node 22, crea e implementa una nueva versión de la implementación existente con los cambios necesarios y configúrala para usar Node 22 como runtime.
+
+<div id="choose-node-22-for-other-extensibility-products">
+  ### Elige Node 22 para otros productos de extensibilidad
+</div>
+
+El runtime que se utiliza para las demás ofertas de extensibilidad (que no son Actions) se define de forma global en la configuración avanzada del tenant. Cambiar esta configuración afecta al mismo tiempo a la siguiente funcionalidad:
+
+* Rules
+* Hooks
+* scripts de base de datos personalizados
+* scripts personalizados de conexión social
+
+Para cambiar la configuración del runtime de extensibilidad del tenant en el Auth0 Dashboard:
+
+1. Ve a **Dashboard &gt; Settings &gt; Advanced**.
+2. Desplázate hasta la sección **Extensibility**.
+3. En **Runtime**, selecciona **Node 22**.
+4. En **Legacy Extensibility**, selecciona la versión de Runtime, si corresponde.
+
+Dado que esta es una configuración global que afecta simultáneamente a varias funciones de extensibilidad, te recomendamos realizar este paso primero en tu tenant de desarrollo, completar las pruebas de todas las funciones de extensibilidad correspondientes y pasar a tu tenant de producción solo cuando no detectes problemas en desarrollo.
+
+En el caso específico de los script de Custom DB, puedes [seguir los pasos que se explican en esta página](/es/docs/authenticate/database-connections/custom-db/custom-database-connections-scripts/environment) para verificar individualmente un script con una versión específica del runtime antes de proceder a cambiar la versión global del runtime.

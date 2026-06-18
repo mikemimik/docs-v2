@@ -1,0 +1,122 @@
+---
+description: アプリケーションのM2Mアクセスを監査する方法について説明します。
+title: M2Mアクセスの監査
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+export const codeExample1 = `curl -X GET --location "https://{yourDomain}/api/v2/organizations/{ORG_id}/client-grants/" \
+  --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN'`;
+export const codeExample2 = `curl -X GET --location "https://{yourDomain}/api/v2/clients?q=client_grant.organization_id%3Aorganization_id" \
+  --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN'`;
+export const codeExample3 = `curl -X GET --location "https://{yourDomain}/api/v2/client-grants?allow_any_organization=true" \
+  --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN'`;
+export const codeExample4 = `curl -X GET --location "https://{yourDomain}/api/v2/clients?q=client_grant.allow_any_organization%3Atrue" \
+  --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN'`;
+
+Organizations への Machine-to-Machine Access は、クライアントグラントを organization に直接関連付けるか、クライアントグラントの設定で任意の organization へのアクセスを許可することで付与できます。どちらの場合も、<Tooltip tip="Auth0 Dashboard: サービスを設定するための Auth0 の主要製品。" cta="用語集を表示" href="/ja/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> または <Tooltip tip="Auth0 Dashboard: サービスを設定するための Auth0 の主要製品。" cta="用語集を表示" href="/ja/docs/glossary?term=Management+API">Management API</Tooltip> で確認できます。ここでは、アプリケーションについて organization に関連付けられたクライアントグラントの一覧を表示または取得できます。Organizations への M2M アクセスの権限の仕組みについて詳しくは、[M2M アクセス用にアプリケーションを設定する](/ja/docs/manage-users/organizations/organizations-for-m2m-applications/configure-your-application-for-m2m-access) と [M2M アクセスを承認する](/ja/docs/manage-users/organizations/organizations-for-m2m-applications/authorize-m2m-access) をお読みください。
+
+<div id="access-granted-via-direct-association">
+  ## 直接関連付けで付与されたアクセス
+</div>
+
+[Auth0 Dashboard](https://manage.auth0.com/) と [Management API](https://auth0.com/docs/api/management/v2) を使用すると、organization に直接関連付けられたクライアントグラントの M2M アクセスを監査できます。
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Auth0 Dashboard で、特定の organization に対して認可されているアプリケーションのクライアントグラントを表示するには、次の手順に従います。
+
+    1. **Organizations** に移動し、確認する organization を選択します。
+    2. **Machine-to-Machine Access** タブを選択します。直接関連付けによってこの organization で API にアクセスできる、すべてのアプリケーションの一覧がページ分割されて表示されます。
+    3. アプリケーションを選択し、そのアプリケーションに対して認可されている API の一覧を確認します。
+
+    <Frame>![](/docs/images/cdy7uua7fh8z/5FVJzuu5yq8IHwpQKdYYU6/3468ee757c1e65fb51883213e7e7b476/image2.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    organization に関連付けられたクライアントグラントは、[Organization Client Grants](https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants) API エンドポイントを使用して取得できます。
+
+    <AuthCodeBlock children={codeExample1} language="bash" />
+
+    また、organization に対して少なくとも 1 つの API にアクセスできるアプリケーションの情報を取得する場合は、[Get Clients API endpoint](https://auth0.com/docs/api/management/v2/clients/get-clients) の `q` クエリパラメータで、検索ターム `client_grant.organization_id:{organization_id}` を使用できます。[User Search Query Syntax](/ja/docs/manage-users/user-search/user-search-query-syntax) に似た Lucene 構文を使用してください。
+
+    <AuthCodeBlock children={codeExample2} language="bash" />
+  </Tab>
+</Tabs>
+
+<div id="access-granted-to-any-organization">
+  ## 任意のorganizationに付与されたアクセス
+</div>
+
+[Auth0 Dashboard](https://manage.auth0.com/) と [Management API](https://auth0.com/docs/api/management/v2) を使用して、任意のorganizationへのアクセスが付与されているアプリケーションの M2M アクセスを監査できます。
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    1. **Organizations** に移動します。
+    2. **Machine to Machine Access** タブを選択します。あるorganizationの API のうち少なくとも 1 つにアクセスできる、すべてのアプリケーションの一覧がページ分けされて表示されます。
+    3. アプリケーションを選択して、そのアプリケーションで認可されている API の一覧を確認します。
+
+    <Frame>![](/docs/images/cdy7uua7fh8z/4H3VjVTz0ZGDvV5za9y33m/d0d193df808d7308469ce66d4357b5e7/image1.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    `allow_any_organization` パラメータを持つクライアントグラントは、[Get Client Grants](https://auth0.com/docs/api/management/v2/client-grants/get-client-grants) API エンドポイントから取得できます。
+
+    <AuthCodeBlock children={codeExample3} language="bash" />
+
+    また、任意のorganizationの API のうち少なくとも 1 つにアクセスできるアプリケーションの情報を取得するには、[Get Client Grants](https://auth0.com/docs/api/management/v2/client-grants/get-client-grants) API エンドポイントの `q` クエリパラメータで、検索ターム `client_grant.allow_any_organization:true` を使用できます。[User Search Query Syntax](/ja/docs/manage-users/user-search/user-search-query-syntax) に似た Lucene 構文を使用してください。
+
+    <AuthCodeBlock children={codeExample4} language="bash" />
+  </Tab>
+</Tabs>
+
+<div id="search-applications-based-on-organization-access">
+  ## organization へのアクセスに基づいてアプリケーションを検索
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  検索結果は結果整合性です。
+</Callout>
+
+次の表は、`/clients` エンドポイントの `q` パラメータでアプリケーションを検索する際にサポート対象となる検索タームを示しています:
+
+| **フィールド**                                        | **説明**                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| `client_grant.organization_id:{organization_id}` | ある organization の API に少なくとも 1 つアクセスできるアプリケーションを検索するために使用します。  |
+| `client_grant.allow_any_organization:true`       | 任意の organization の API に少なくとも 1 つアクセスできるアプリケーションを検索するために使用します。 |
+
+<div id="tenant-logs">
+  ## テナントログ
+</div>
+
+Machine-to-Machine Access for Organizations は、テナントログにも記録されます。対応する `seccft` テナントログで、リクエストに関連付けられた `organization` を確認できます。
+
+以下のコードサンプルは、`organization` 情報を含む `seccft` テナントログの例です。
+
+```json lines
+{
+  "date": "2024-10-24T19:06:17.460Z",
+  "type": "seccft",
+  "description": "Client Credentials for Access Token",
+  "connection_id": "",
+  "client_id": "qoQKtXuhdSibs1jUeXk3mmCwXoAafGnO",
+  "client_name": "jwt.io (Test Application)",
+  "ip": "130.41.219.72",
+  "user_agent": "Other 0.0.0 / Other 0.0.0",
+  "hostname": "david-test.test-aws-abundant-lobster-6004.auth0c.com",
+  "user_id": "",
+  "user_name": "",
+  "organization_id": "org_mPdwToiiHHOtz0SH",
+  "organization_name": "cc_test",
+  "audience": "https://jwt.io.com",
+  "scope": "read:data",
+  "$event_schema": {
+    "version": "1.0.0"
+  },
+  "log_id": "90020241024190617517817000000000000001223372036854775862",
+  "tenant_name": "david-test",
+  "_id": "90020241024190617517817000000000000001223372036854775862",
+  "isMobile": false,
+  "id": "90020241024190617517817000000000000001223372036854775862"
+}
+```

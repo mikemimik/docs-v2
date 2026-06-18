@@ -1,0 +1,82 @@
+---
+description: Découvrez le fonctionnement du Client-Initiated Backchannel Authentication Flow.
+sidebarTitle: Aperçu
+title: Client-Initiated Backchannel Authentication Flow
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Pour utiliser les fonctionnalités de Client-Initiated Backchannel Authentication (CIBA), vous devez avoir un Enterprise Plan ou un module complémentaire approprié. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
+</Callout>
+
+Le Client-Initiated Backchannel Authentication (CIBA) Flow est une norme de la fondation <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OpenID</Tooltip> qui permet une authentification et une autorisation découplées au moyen de requêtes sécurisées sur le backchannel. Le flux CIBA est conçu pour les cas d’utilisation où l’appareil qui lance une requête (l’appareil de consommation) est différent de celui que l’utilisateur emploie pour s’authentifier (l’appareil d’authentification).
+
+Dans un flux CIBA, il y a deux acteurs :
+
+* Utilisateur initiateur : l’entité qui lance l’authentification ou l’autorisation sur l’appareil de consommation. Il peut s’agir d’une application serveur, d’un utilisateur humain, comme un agent du service à la clientèle dans une application de service à la clientèle, ou d’un agent d’IA qui exécute une tâche au nom de l’utilisateur final.
+* Utilisateur autorisant : l’utilisateur final qui reçoit la requête d’authentification ou d’autorisation sur l’appareil d’authentification et donne son consentement.
+
+En dissociant l’authentification et l’autorisation de l’appareil de consommation, l’application cliente peut appeler directement le fournisseur OpenID au moyen d’une requête sur le backchannel. Cela renforce la sécurité, puisque vous pouvez utiliser des méthodes d’authentification du client plus sûres, comme [mTLS](/fr-CA/docs/get-started/authentication-and-authorization-flow/authenticate-with-mtls) et [Private Key JWT](/fr-CA/docs/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt), avec le flux CIBA.
+
+<div id="use-cases">
+  ## Cas d’utilisation
+</div>
+
+Voici quelques cas d’utilisation courants du flux CIBA :
+
+* Un agent d’IA utilise des approbations avec intervention humaine pour demander à l’utilisateur l’autorisation nécessaire pour effectuer une action qu’il a lui-même demandée.
+* Un utilisateur a appelé un centre d’appels, et l’agent qui traite l’appel souhaite accéder aux renseignements personnels de l’appelant sur son ordinateur. L’appelant peut y consentir, par exemple, en approuvant une notification push sur son téléphone.
+* Un utilisateur souhaite accéder à un appareil offrant des capacités de saisie limitées, comme un vélo en libre-service ou une borne dans un commerce de détail.
+* Un utilisateur lance une transaction sensible sur un appareil relativement peu sécurisé et souhaite l’autoriser sur un appareil plus sécurisé. Par exemple, il pourrait autoriser un paiement ou une modification de ses renseignements personnels à la suite d’une notification push sur son téléphone mobile personnel.
+
+<div id="notification-channels">
+  ## Canaux de notification
+</div>
+
+Auth0 prend en charge les canaux de notification suivants avec CIBA :
+
+* [Notifications poussées mobiles Auth0 Guardian](/fr-CA/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/mobile-push-notifications-with-ciba) : offertes avec tous les [plans Enterprise](https://auth0.com/pricing). L’utilisateur reçoit une notification poussée sur son appareil mobile enregistré pour s’authentifier ou confirmer les détails de la transaction. L’authentification et l’autorisation se font sur l’appareil d’authentification qui reçoit la notification poussée. Vous pouvez activer les notifications poussées mobiles avec CIBA au moyen de :
+  * l’application Auth0 Guardian
+  * une application personnalisée intégrée au SDK Auth0 Guardian
+* [Notifications par courriel](/fr-CA/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba) : offertes comme module complémentaire pour les [plans payants](https://auth0.com/pricing). L’utilisateur reçoit un courriel à son adresse courriel vérifiée. Le courriel contient un lien, et l’authentification et l’autorisation se font dans le navigateur.
+
+Par défaut, Auth0 utilise et recommande les notifications poussées Guardian pour les flux CIBA. Les notifications poussées Guardian sont plus sécuritaires que d’autres canaux, comme le courriel, qui peut être vulnérable aux attaques d’hameçonnage. Vous devez activer explicitement les notifications par courriel pour les flux CIBA.
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Le diagramme suivant décrit le flux CIBA de bout en bout :
+
+<Frame>![](/docs/images/ciba/ciba_end_to_end_diagram.png)</Frame>
+
+1. L’application cliente ou l’appareil de consommation demande l’authentification ou l’autorisation de l’utilisateur.
+2. Le backend de l’application cliente envoie une requête `POST` au endpoint `/bc-authorize`.
+3. Auth0 reçoit la requête `POST` et envoie une notification à l’appareil d’authentification.
+4. L’appareil d’authentification récupère les détails d’autorisation auprès d’Auth0 et les présente à l’utilisateur final.
+5. L’utilisateur final examine la requête, y compris tous les détails d’autorisation contextuels qui s’y rattachent.
+6. L’utilisateur final fournit sa réponse sur l’appareil d’authentification, qui la transmet ensuite à Auth0.
+7. Le backend de l’application cliente interroge le endpoint `/token` à intervalles réguliers et reçoit les jetons appropriés une fois le flux CIBA terminé.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Comme le flux CIBA sert à l’authentification et à l’autorisation asynchrones ponctuelles des utilisateurs, CIBA ne crée ni ne stocke de grant contenant le consentement de l’utilisateur permettant à une application d’accéder aux ressources d’une API. Si l’utilisateur s’authentifie plus tard au moyen d’un flux d’authentification différent, et que ce flux demande les mêmes scopes que ceux auxquels il avait déjà consenti avec CIBA, Auth0 n’aura aucune trace de ce consentement. Il devra donc consentir de nouveau.
+</Callout>
+
+<div id="entity-limits">
+  ## Limites d’entité
+</div>
+
+Le flux CIBA est soumis aux limites suivantes :
+
+* Jusqu’à 500 requêtes CIBA peuvent être créées par minute et par tenant.
+* Jusqu’à 5 000 requêtes CIBA en attente par tenant à un moment donné. Une requête CIBA en attente est une requête qui a été lancée, mais qui n’a pas encore reçu de réponse de l’utilisateur. Si une requête CIBA expire sans recevoir de réponse, elle peut continuer à être comptabilisée dans la limite de 5 000 pendant un maximum de 24 heures.
+
+<div id="get-started">
+  ## Pour commencer
+</div>
+
+| Lire...                                                                                                                                                                              | Pour en savoir plus...                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| [Configure Client-Initiated Backchannel Authentication](/fr-CA/docs/get-started/applications/configure-client-initiated-backchannel-authentication)                                        | Comment configurer le type d’octroi CIBA et le canal de notification pour votre application.     |
+| [Notifications poussées mobiles avec CIBA](/fr-CA/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/mobile-push-notifications-with-ciba) | Comment authentifier les utilisateurs à l’aide du flux CIBA avec des notifications poussées mobiles. |
+| [Notifications par courriel avec CIBA](/fr-CA/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba)       | Comment authentifier les utilisateurs à l’aide du flux CIBA avec des notifications par courriel. |
+| [Autorisation utilisateur avec CIBA](/fr-CA/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/user-authorization-with-ciba)          | Comment autoriser les utilisateurs à l’aide du flux CIBA avec Rich Authorization Requests (RAR). |

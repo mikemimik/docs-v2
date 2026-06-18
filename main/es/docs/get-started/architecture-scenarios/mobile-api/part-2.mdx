@@ -1,0 +1,143 @@
+---
+description: Configuración de Auth0 para el escenario de arquitectura de aplicaciones móviles + API
+title: Configuración de Auth0 (Aplicaciones móviles + API)
+---
+
+En esta sección revisaremos todas las configuraciones que debemos aplicar en el [Auth0 Dashboard](https://manage.auth0.com/#).
+
+<div id="create-the-api">
+  ## Crear la API
+</div>
+
+Haz clic en la [opción del menú APIs](https://manage.auth0.com/#/apis) de la izquierda y luego en el botón Create API.
+
+Se te pedirá que proporciones los siguientes datos para tu API:
+
+* **Name**: un nombre descriptivo para la API. No afecta a ninguna funcionalidad.
+* **Identifier**: un identificador único para la API. Recomendamos usar una URL, pero ten en cuenta que no tiene por qué ser una URL pública; Auth0 no llamará a tu API en ningún caso. Este valor no se puede modificar después.
+* **<Tooltip tip="Algoritmo de firma: algoritmo utilizado para firmar digitalmente los tokens y garantizar que no hayan sido manipulados." cta="Ver glosario" href="/es/docs/glossary?term=Signing+Algorithm">Algoritmo de firma</Tooltip>**: el algoritmo con el que se firmarán los tokens. Los valores disponibles son `HS256` y `RS256`. Al seleccionar RS256, el token se firmará con la clave privada del tenant. Para obtener más información sobre los algoritmos de firma, consulta [Algoritmos de firma](/es/docs/get-started/applications/signing-algorithms).
+
+<Frame>![Dashboard - Applications - APIs - Create API - Popup](/docs/images/cdy7uua7fh8z/4kIH4BQc4vDel2zhJ6lwCE/094cff6e8e1788c39796eb28ab1925ca/2024-06-27_14-50-24.png)</Frame>
+
+Completa la información requerida y haz clic en el botón **Create**.
+
+<div id="signing-algorithms">
+  #### Algoritmos de firma
+</div>
+
+Cuando creas una API, tienes que seleccionar el algoritmo con el que se firmarán tus tokens. La firma se utiliza para verificar que el remitente del <Tooltip tip="JSON Web Token (JWT): formato estándar de ID Token (y, a menudo, de Access Token) que se utiliza para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JWT">JWT</Tooltip> es quien dice ser y para garantizar que el mensaje no haya sido modificado durante el trayecto.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  La firma forma parte de un JWT. Si no estás familiarizado con la estructura de los JWT, consulta [Estructura de JSON Web Token](/es/docs/secure/tokens/json-web-tokens/json-web-token-structure).
+</Callout>
+
+Para crear la parte de la firma, tienes que tomar el encabezado codificado, el payload codificado, un secreto y el algoritmo especificado en el encabezado, y firmarlo. Ese algoritmo, que forma parte del encabezado del JWT, es el que seleccionas para tu API: `HS256` o `RS256`.
+
+* **RS256** es un [algoritmo asimétrico](https://en.wikipedia.org/wiki/Public-key_cryptography), lo que significa que hay dos claves: una pública y una privada (secreta). Auth0 tiene la clave secreta, que se utiliza para generar la firma, y el consumidor del JWT tiene la clave pública, que se utiliza para validar la firma.
+* **HS256** es un [algoritmo simétrico](https://en.wikipedia.org/wiki/Symmetric-key_algorithm), lo que significa que solo hay una clave secreta, compartida entre las dos partes. La misma clave se utiliza tanto para generar la firma como para validarla. Se debe tener especial cuidado para que la clave permanezca confidencial.
+
+La práctica más segura, y nuestra recomendación, es usar **RS256**. Algunas de las razones son:
+
+* Con RS256, tienes la certeza de que solo el titular de la clave privada (Auth0) puede firmar tokens, mientras que cualquiera puede comprobar si el token es válido con la clave pública.
+* Con HS256, si la clave privada se ve comprometida, tendrías que volver a desplegar la API con el nuevo secreto. Con RS256 puedes solicitar un token que sea válido para múltiples audiencias.
+* Con RS256 puedes implementar la rotación de claves sin tener que volver a desplegar la API con el nuevo secreto.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para obtener una explicación más detallada de los algoritmos de firma de JWT, consulta: [Descripción general de los algoritmos de firma de JSON Web Token (JWT)](https://auth0.com/blog/json-web-token-signing-algorithms-overview/).
+</Callout>
+
+<div id="configure-the-permissions">
+  ### Configurar los permisos
+</div>
+
+Una vez creada la aplicación, tendrás que configurar los permisos que las aplicaciones pueden solicitar durante la autorización.
+
+En la configuración de tu API, ve a la pestaña **Permissions**. En esta sección puedes agregar los cuatro `scopes` que se mencionaron antes: `read:timesheets`, `create:timesheets`, `delete:timesheets`, `approve:timesheets`.
+
+<Frame>![Dashboard - Applications - APIs - Permissions](/docs/images/cdy7uua7fh8z/xxMOKezob6gNHJ0CcKhcg/ccbb9bbab29576a96ed8425329ecffb4/dashboard-apis-edit_view-permissions.png)</Frame>
+
+<div id="create-the-application">
+  ## Crear la aplicación
+</div>
+
+Hay cuatro tipos de aplicaciones en Auth0: **Native App** (utilizada por aplicaciones móviles o de escritorio), **Single-Page Web App**, **Regular Web App** y **Machine to Machine App** (utilizada por CLIs, daemons o servicios que se ejecutan en tu backend). En este caso, queremos crear una nueva aplicación para nuestra app móvil, así que usaremos **Native App** como tipo de aplicación.
+
+Para crear una nueva aplicación, ve al [Dashboard](https://manage.auth0.com/#) y haz clic en la opción del menú [Applications](https://manage.auth0.com/#/applications) de la izquierda. Haz clic en el botón **+ Create Application**.
+
+Asigna un nombre a tu aplicación (usaremos `Timesheets Mobile`) y selecciona `Native App` como tipo.
+
+Haz clic en **Create**.
+
+<div id="configure-the-authorization-extension">
+  ## Configura la Authorization Extension
+</div>
+
+Deberás asegurarte de que la Authorization Extension esté instalada en tu tenant. Puedes consultar la [documentación de Authorization Extension](/es/docs/customize/extensions/authorization-extension) para obtener más información sobre cómo hacerlo.
+
+<div id="define-permissions">
+  ### Definir permisos
+</div>
+
+Deberá definir permisos que se correspondan con los scopes que ya definió. En Authorization Extension, haga clic en la pestaña Permissions y, a continuación, en el botón **Create Permission**. En el cuadro de diálogo, introduzca los detalles de cada permiso. Asegúrese de que el nombre del permiso sea exactamente el mismo que el del scope correspondiente:
+
+A continuación, cree los permisos para todos los scopes restantes:
+
+<div id="define-roles">
+  ### Definir roles
+</div>
+
+Ve a la pestaña Roles y crea dos roles. Haz clic en el botón **Create Role** y selecciona la aplicación **Timesheets SPA**. Asigna al rol el nombre y la descripción Employee, y selecciona los permisos `delete:timesheets`, `create:timesheets` y `read:timesheets`. Haz clic en **Save**.
+
+A continuación, sigue el mismo proceso para crear un rol de **Manager** y asegúrate de seleccionar todos los permisos:
+
+<Frame>![Dashboard - Extensions - Authorization Extension - Crear rol de Manager](/docs/images/cdy7uua7fh8z/3ver0yyJpTLypmcIDzwSNt/d880e8ae74e6e973c7ce1c8b0f7e7c87/create-manager-role.png)</Frame>
+
+<div id="assign-users-to-roles">
+  ### Asignar usuarios a roles
+</div>
+
+Deberás asignar a todos los usuarios el rol de Manager o de User. Puedes hacerlo yendo a la pestaña Users de la Authorization Extension y seleccionando un usuario. En la pantalla de información del usuario, ve a la pestaña Roles. Puedes agregarle un rol al usuario haciendo clic en el botón **Add Role to User** y seleccionando el rol correspondiente.
+
+<div id="configuring-the-authorization-extension">
+  ### Configuración de Authorization Extension
+</div>
+
+También deberás asegurarte de que la Rule de Authorization Extension esté publicada. Puedes hacerlo haciendo clic en tu avatar de usuario en la esquina superior derecha de Authorization Extension y seleccionando la opción **Configuration**:
+
+Asegúrate de tener habilitado **Permissions** y, a continuación, haz clic en el botón **Publish Rule**.
+
+<div id="create-a-rule-to-validate-token-scopes">
+  ### Crear una Rule para validar los scopes del token
+</div>
+
+El paso final de este proceso es crear una Rule que valide que los scopes incluidos en un <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=Access+Token">Access Token</Tooltip> sean válidos en función de los permisos asignados al usuario. Cualquier scope que no sea válido para un usuario debe eliminarse del Access Token.
+
+En tu <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>, ve a la pestaña Rules. Deberías ver la Rule creada por la Authorization Extension.
+
+Haz clic en el botón **Create Rule** y selecciona la plantilla **Empty Rule**. Puedes darle un nombre a la Rule, como **Access Token Scopes**, y luego especificar el siguiente código para la Rule:
+
+```javascript lines
+function (user, context, callback) {
+  if (context.clientName !== 'Timesheets SPA') {
+    return callback(null, user, context);
+  }
+
+  var permissions = user.permissions || [];
+  var requestedScopes = context.request.body.scope || context.request.query.scope;
+  var filteredScopes = requestedScopes.split(' ').filter( function(x) {
+    return x.indexOf(':') < 0;
+  });
+  Array.prototype.push.apply(filteredScopes, permissions);
+  context.accessToken.scope = filteredScopes.join(' ');
+
+  callback(null, user, context);
+}
+```
+
+El código anterior garantizará que todos los tokens de acceso solo contengan los scopes con el formato correcto (por ejemplo, `action:area` o `delete:timesheets`) que sean válidos según los permisos de un usuario. Cuando hayas terminado, puedes hacer clic en el botón **Save**.
+
+Las Rules se ejecutan en el orden en que se muestran en la página Rules, así que asegúrate de que la nueva Rule que creaste esté ubicada debajo de la Rule de Authorization Extension para que se ejecute después de la Rule de Authorization Extension.
+
+TUTORIAL ANTERIOR [1. Descripción general de la solución](/es/docs/get-started/architecture-scenarios/mobile-api/part-1)
+
+SIGUIENTE TUTORIAL [3. Implementación de API + móvil](/es/docs/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs)

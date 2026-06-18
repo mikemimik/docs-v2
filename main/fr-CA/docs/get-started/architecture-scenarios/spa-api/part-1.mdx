@@ -1,0 +1,83 @@
+---
+description: Aperçu de la solution pour le scénario d’architecture SPA + API
+title: Aperçu de la solution (SPAs + API)
+---
+
+Afin de s’assurer que seuls les utilisateurs et les applications autorisés peuvent accéder à la Timesheets API, ExampleCo a décidé de recourir au [framework d’autorisation OAuth 2.0](https://tools.ietf.org/html/rfc6749). Ce framework offre à l’entreprise la souplesse recherchée, puisque les différents types d’octroi lui permettent d’autoriser facilement les divers types d’applications qui doivent communiquer avec la Timesheets API.
+
+<div id="api-authentication-and-authorization">
+  ## Authentification et autorisation des API
+</div>
+
+Une API permet d’exposer les fonctionnalités de votre application à d’autres applications. Une application peut envoyer une requête à un point de terminaison d’API et recevoir des informations en réponse.
+
+Un point de terminaison d’API peut être sécurisé ou non. Dans notre cas, puisque les timesheets contiennent des renseignements sensibles qui ont une incidence sur les évaluations et les paiements, il est important de veiller à ce que seuls les utilisateurs et les applications autorisés puissent appeler les points de terminaison de notre API. Lorsqu’une application cliente veut accéder à des points de terminaison protégés d’une API, elle doit présenter un <Tooltip tip="Access Token : Jeton d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Access+Token">Access Token</Tooltip> comme preuve qu’elle possède les permissions requises pour appeler ce point de terminaison.
+
+Un Access Token s’obtient en authentifiant l’utilisateur auprès d’un <Tooltip tip="Authorization Server : Serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Authorization+Server">Authorization Server</Tooltip>, puis l’utilisateur peut à son tour autoriser l’application à accéder à l’API en son nom.
+
+<Card title="Qu’est-ce qu’un Access Token ?">
+  Un Access Token (aussi appelé `access_token`) est une chaîne opaque représentant une autorisation accordée à l’application. Il peut s’agir d’un identifiant servant à récupérer l’information d’autorisation, ou encore contenir lui-même l’information d’autorisation (par exemple, l’identité de l’utilisateur, les permissions, etc.) d’une manière vérifiable.
+
+  Il est très courant que les Access Tokens soient implémentés sous forme de [JSON Web Tokens](/fr-CA/docs/secure/tokens/json-web-tokens).
+
+  Pour en savoir plus sur les Auth0 Access Tokens, consultez [Access Token](/fr-CA/docs/secure/tokens/access-tokens).
+</Card>
+
+Une API peut appliquer un contrôle précis sur les personnes qui peuvent accéder aux divers points de terminaison qu’elle expose. Ces permissions sont exprimées sous forme de scopes.
+
+Lorsqu’un utilisateur autorise une application cliente, l’application peut aussi indiquer quelles permissions elle requiert. L’utilisateur peut alors examiner et accorder ces permissions. Celles-ci sont ensuite incluses dans l’Access Token dans le claim `scope`.
+
+Par la suite, lorsque le client transmet l’Access Token en faisant des requêtes à l’API, l’API peut inspecter le claim `scope` pour s’assurer que les permissions requises ont bien été accordées avant d’autoriser l’appel au point de terminaison d’API en question.
+
+<Card title="Que sont les Scopes ?">
+  Chaque Access Token peut inclure une liste des permissions qui ont été accordées au client. Lorsqu’un client s’authentifie auprès d’Auth0, il précise la liste des scopes (ou permissions) qu’il demande. Si ces scopes sont autorisés, alors l’Access Token contiendra une liste des scopes autorisés.
+
+  Par exemple, l’API de timesheet peut accepter quatre niveaux d’autorisation différents : lire des timesheets (scope `read:timesheets`), créer des timesheets (scope `create:timesheets`), supprimer des timesheets (scope `delete:timesheets`) et approuver des timesheets (scope `approve:timesheets`).
+
+  Lorsqu’un client demande à l’API de créer une nouvelle timesheet entry, l’Access Token doit contenir le scope `create:timesheets`. De la même manière, pour supprimer des timesheets existantes, l’Access Token doit contenir le scope `delete:timesheets`.
+
+  Pour en savoir plus sur les scopes, consultez [Scopes](/fr-CA/docs/get-started/apis/scopes).
+</Card>
+
+En utilisant le framework d’autorisation <Tooltip tip="OAuth 2.0 : Framework d’autorisation qui définit les protocoles et workflows d’autorisation." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip>, vous pouvez accorder à vos propres applications ou à des applications tierces un accès limité à vos API au nom de l’application elle-même. Avec Auth0, vous pouvez facilement prendre en charge différents flux dans vos propres API sans avoir à vous soucier de la spécification OAuth 2.0/<Tooltip tip="OpenID : Norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC), ni des nombreux autres aspects techniques de l’autorisation des API.
+
+<Card title="Rôles OAuth">
+  Dans tout flux OAuth 2.0, nous pouvons identifier les rôles suivants :
+
+  * **Resource Owner** : l’entité qui peut accorder l’accès à une ressource protégée. Il s’agit généralement de l’utilisateur final.
+  * **Resource Server** : le serveur qui héberge les ressources protégées. C’est l’API à laquelle vous souhaitez accéder.
+  * **Client** : une application qui demande l’accès à une ressource protégée au nom du Resource Owner.
+  * **Authorization Server** : le serveur qui authentifie le Resource Owner et émet des Access Tokens après avoir obtenu l’autorisation appropriée. Dans ce cas, il s’agit de l’Authentication API d’Auth0.
+
+  Les [types de grants (ou flux)](/fr-CA/docs/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use) déterminent la façon dont ces participants interagissent pour accorder aux applications un accès limité aux API que vous créez. L’application obtient ainsi un access token qui peut être utilisé pour appeler l’API au nom de l’utilisateur.
+</Card>
+
+<div id="implicit-grant">
+  ## Octroi implicite
+</div>
+
+OAuth 2.0 offre plusieurs **types d’octroi** pour différents cas d’utilisation. Dans ce cas précis, nous voulons accéder à l’API à partir d’une [application côté client](/fr-CA/docs/quickstart/spa).
+
+La SPA utilisera le [Flux implicite (octroi implicite)](/fr-CA/docs/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post) pour ce faire.
+
+L’octroi implicite (défini dans la [RFC 6749, section 4.1](https://tools.ietf.org/html/rfc6749#section-4.2)) est semblable à l’octroi utilisé dans le [Flux de code d’autorisation](/fr-CA/docs/get-started/authentication-and-authorization-flow/authorization-code-flow), mais la principale différence est que l’application reçoit un Access Token directement, sans avoir besoin d’un `authorization_code`. Cela s’explique par le fait que l’application, généralement une application JavaScript exécutée dans un navigateur, est considérée comme moins fiable qu’une application web exécutée sur le serveur et qu’on ne peut donc pas lui confier le `client_secret` (qui est requis dans l’octroi par code d’autorisation).
+
+Une fois l’utilisateur authentifié, l’application reçoit le <Tooltip tip="ID Token : informations d’identification destinées au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=ID+Token">ID Token</Tooltip> et l’Access Token dans le fragment de hachage de l’URI. L’application peut maintenant utiliser l’ID Token pour obtenir des renseignements sur l’utilisateur, et l’Access Token pour appeler l’API au nom de l’utilisateur.
+
+1. L’application lance le flux et redirige le navigateur vers Auth0 (plus précisément vers le [point de terminaison /authorize](https://auth0.com/docs/api/authentication#implicit-grant)), afin que l’utilisateur puisse s’authentifier.
+2. Auth0 authentifie l’utilisateur. La première fois que l’utilisateur passe par ce flux, si l’application est une application tierce, une page de consentement s’affichera, indiquant les permissions qui seront accordées au client (par exemple, publier des messages, lister des contacts, etc.).
+3. Auth0 redirige l’utilisateur vers l’application avec un Access Token (et éventuellement un ID Token) dans le fragment de hachage de l’URI. L’application peut maintenant extraire les jetons du fragment de hachage.
+4. L’application peut utiliser l’Access Token pour appeler l’API au nom de l’utilisateur.
+
+<div id="authorization-extension">
+  ## Authorization Extension
+</div>
+
+L’[Auth0 Authorization Extension](/fr-CA/docs/customize/extensions/authorization-extension) vous permet de configurer des Roles, des Groups et des Permissions, puis de les attribuer à des Users.
+
+* Les Permissions correspondent aux actions qu’une personne peut effectuer. Pour répondre aux besoins d’affaires d’ExampleCo, nous configurerons quatre Permissions : lire, créer, supprimer et approuver des feuilles de temps.
+* Les Roles sont des ensembles de Permissions. L’application de feuilles de temps d’ExampleCo sera utilisée par deux types d’utilisateurs (employés et gestionnaires), chacun ayant des permissions différentes; nous configurerons donc deux Roles : employee et manager.
+
+Comme cela répond à notre cas d’utilisation, nous ne créerons aucun Group.
+
+L’Authorization Extension créera une [Rule](/fr-CA/docs/customize/rules) qui lira les Roles, les Groups et les Permissions attribués à un utilisateur et ajoutera cette information au [profil utilisateur](/fr-CA/docs/customize/rules#rule-syntax) pendant le flux d’authentification. Nous pouvons utiliser cette information pour nous assurer que l’Access Token émis à un utilisateur ne contient que les scopes autorisés. Nous pourrons ensuite personnaliser notre application, par exemple en désactivant la fonctionnalité Approve Timesheets si l’utilisateur n’a pas la permission requise.

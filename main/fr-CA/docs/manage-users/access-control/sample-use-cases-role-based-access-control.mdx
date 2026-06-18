@@ -1,0 +1,39 @@
+---
+description: Découvrez comment mettre en œuvre l’autorisation basée sur les rôles (RBAC) dans différents scénarios et comment utiliser les rules avec le RBAC.
+title: 'Exemples de cas d’utilisation : contrôle d’accès basé sur les rôles'
+---
+
+Examinons un exemple pour voir pourquoi vous pourriez avoir besoin du [contrôle d’accès basé sur les rôles (RBAC)](/fr-CA/docs/manage-users/access-control/rbac) et comment vous pourriez l’utiliser dans votre <Tooltip tip="Flux d’autorisation : grant d’autorisation (ou workflow) spécifié dans le framework OAuth 2.0." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=authorization+flow">flux d’autorisation</Tooltip>.
+
+Supposons que vous soyez une entreprise qui fournit un logiciel-service (SaaS) interentreprises à des organismes sans but lucratif. Votre produit permet à ces organismes de créer, de gérer et de commercialiser des produits auprès de donateurs potentiels. Votre application contient plusieurs modules, dont deux sont :
+
+* un module de point de vente (POS) pour boutique-cadeaux qui permet aux organismes sans but lucratif de créer efficacement des boutiques éphémères de t-shirts et d’en gérer les ventes.
+* un module de marketing qui permet aux organismes sans but lucratif de créer et de distribuer des infolettres à leurs donateurs.
+
+Vous souhaitez utiliser Auth0 pour contrôler l’accès de vos clients sans but lucratif aux différentes parties de votre application. Sans RBAC, tous les employés et bénévoles de ces organismes auront accès à toutes les fonctionnalités de votre application, ce qui n’est pas idéal, surtout si l’un d’eux est un refuge pour animaux qui compte des bénévoles ayant seulement une connaissance du secteur où ils interviennent.
+
+Vous mettez donc en œuvre le RBAC en [créant certaines permissions](/fr-CA/docs/get-started/apis/add-api-permissions) dont les utilisateurs de votre module POS de boutique-cadeaux auraient besoin :
+
+* `read:catalog-item`
+* `read:customer-profile`
+* `create:invoice`
+
+Et pour en faciliter la gestion, vous [créez un rôle](/fr-CA/docs/manage-users/access-control/configure-core-rbac/roles/create-roles) appelé `Gift Shop Manager` et [ajoutez ces permissions à ce rôle](/fr-CA/docs/manage-users/access-control/configure-core-rbac/roles/add-permissions-to-roles).
+
+De la même façon, vous créez des permissions pour les utilisateurs de votre module de marketing, notamment :
+
+* `create:newsletter`
+* `edit:newsletter`
+* `delete:newsletter`
+* `send:newsletter`
+* `edit:distribution-list`
+
+Et vous créez un rôle appelé `Newsletter Admin` et vous y ajoutez ces permissions.
+
+Ainsi, lorsque votre refuge pour animaux fait appel à sa bénévole, Astrid, pour gérer sa boutique éphémère de t-shirts, Astrid peut se voir [attribuer le rôle](/fr-CA/docs/manage-users/access-control/configure-core-rbac/rbac-users/assign-roles-to-users) `Gift Shop Manager`. Lorsque vous attribuez ce rôle à Astrid, toutes les permissions associées à ce rôle lui sont accordées. Comme Astrid n’y connaît rien en publication d’infolettres (et n’est pas très à l’aise avec le courriel), vous ne lui avez jamais attribué le rôle `Newsletter Admin`; elle n’a donc jamais accès au module de marketing.
+
+D’un point de vue plus technique, lorsqu’Astrid se connecte à votre produit, Auth0 l’authentifie et l’autorise, puis inclut les permissions dans le <Tooltip tip="Access Token : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Access+Token">Access Token</Tooltip> renvoyé. Ensuite, votre produit examine le token pour déterminer quel module afficher à Astrid.
+
+En utilisant le RBAC d’Auth0, vous évitez de concevoir et de maintenir des systèmes d’autorisation distincts; vous utilisez plutôt le token que vous recevez déjà pendant l’autorisation. Et quand Astrid déménage ou décide qu’elle en a assez de gérer la boutique-cadeaux et qu’elle préfère coordonner le programme de familles d’accueil, vous pouvez facilement [lui retirer le rôle Gift Shop Manager](/fr-CA/docs/manage-users/access-control/configure-core-rbac/rbac-users/remove-roles-from-users) et lui attribuer un nouveau rôle.
+
+Et si la gestion des rôles et des permissions pour tous vos clients devient trop lourde, vous pouvez aussi utiliser l’Auth0 API pour créer un module dans votre produit qui permet aux clients de gérer leur propre RBAC, réduisant ainsi la responsabilité et les coûts de personnel.

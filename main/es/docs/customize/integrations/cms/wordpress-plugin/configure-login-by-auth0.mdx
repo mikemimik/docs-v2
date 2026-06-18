@@ -1,0 +1,192 @@
+---
+description: Cómo configurar WordPress como una aplicación con Auth0
+title: Configurar Login by Auth0
+---
+
+Login by Auth0 se puede configurar con el Setup Wizard del plugin o manualmente para tener un mayor control sobre el proceso. Para obtener más información, consulta [Instalar Login by Auth0](/es/docs/customize/integrations/cms/wordpress-plugin/install-login-by-auth0). Las instrucciones a continuación también pueden usarse si el Setup Wizard no se completó o para solucionar problemas de inicio de sesión.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Deberás haber iniciado sesión en tu cuenta de Auth0 antes de comenzar con los pasos a continuación. Si todavía no tienes una, [crea una](https://auth0.com/signup).
+</Callout>
+
+<div id="auth0-configuration">
+  ## Configuración de Auth0
+</div>
+
+Tu tenant de Auth0 debe estar configurado para aceptar solicitudes de inicio de sesión desde tu sitio de WordPress y obtener identidades de usuario de al menos una conexión, ya sea una base de datos de Auth0, una conexión social o un directorio empresarial. Para obtener más información sobre los tenants, lee [Crear tenants](/es/docs/get-started/auth0-overview/create-tenants). Para obtener más información sobre las conexiones, lee [Proveedores de identidad](/es/docs/authenticate/identity-providers).
+
+<div id="application-setup">
+  ### Configuración de la aplicación
+</div>
+
+1. Cree una aplicación para su sitio de WordPress:
+
+* **Si está solucionando problemas con el Setup Wizard**, vaya a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y busque una aplicación con un nombre similar al de su sitio de WordPress. Si no encuentra ninguna, significa que el wizard no creó ninguna aplicación. Reinicie el Setup Wizard en WordPress o siga el paso que aparece justo debajo para crear una aplicación manualmente.
+* **Si la está configurando manualmente**, vaya a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y seleccione **Create**. Introduzca un nombre para la aplicación, seleccione **Regular Web Applications** y seleccione **Create**.
+
+1. Seleccione la vista **Settings** de la aplicación. Verá su Domain, ID de cliente y secreto de cliente, que se usan en **wp-admin &gt; Auth0 &gt; Settings** para conectarse a Auth0.
+2. **Application Type** debe estar establecido en **Regular Web Application** y **Token Endpoint Authentication Method** debe estar establecido en **Post**
+3. Desplácese hacia abajo hasta **Allowed Callback URLs** y proporcione la URL del sitio de WordPress con `?auth0=1` al final:
+
+<Warning>
+  La URL de devolución de llamada aquí **no debe** almacenarse en caché, o podría aparecer un error de &quot;Invalid state&quot; durante el login. Para obtener más información, consulte [Troubleshoot WordPress Plugin Invalid State Errors](/es/docs/customize/integrations/cms/wordpress-plugin/troubleshoot-wordpress-plugin-invalid-state-errors).
+</Warning>
+
+1. Introduzca la **WordPress Address (URL)** de su sitio de WordPress (donde el sitio se muestra públicamente) y, si es distinta, la **Site Address (URL)** (desde donde se sirve wp-admin) en el campo **Allowed Web Origins**. Ambos valores se encuentran en la pantalla de configuración general de su sitio de WordPress.
+2. Introduzca la URL de login de su sitio de WordPress en el campo **Allowed Logout URLs**
+3. Deje en blanco el campo **Allowed Origins (CORS)** (usará los valores de **Allowed Callback URLs** indicados arriba)
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Asegúrese de que el protocolo de su sitio coincida (http o https) y use la URL de inicio como base, que encontrará en **wp-admin &gt; Settings &gt; General &gt; WordPress Address (URL)**, para todos los campos de URL anteriores.
+</Callout>
+
+1. Desplácese hacia abajo y seleccione **Show Advanced Settings**, luego seleccione la vista **OAuth** y asegúrese de que **JsonWebToken Signature Algorithm** esté configurado como RS256. Si necesita cambiarlo más adelante, debe hacerlo aquí y también en wp-admin (consulte Settings &gt; Basic más abajo).
+2. Active **OIDC Conformant**.
+3. Haga clic en la pestaña **Grant Types** y seleccione al menos **Authorization Code** y **Client Credentials**.
+4. Haga clic en **Save Changes**.
+
+<div id="authorize-the-application-for-the-management-api">
+  ### Autoriza la aplicación para la Management API
+</div>
+
+Para que tu sitio de WordPress pueda realizar ciertas acciones en nombre de tu tenant de Auth0, tendrás que autorizar a la aplicación creada anteriormente para acceder a la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip>. Esto no es obligatorio, pero te permitirá recuperar todos los datos del usuario al iniciar sesión (incluidos `user_metadata` y `app_metadata`), cambiar el correo electrónico y la contraseña de los usuarios, y reenviar la verificación por correo electrónico cuando se requieran direcciones verificadas.
+
+1. Asegúrate de que tu aplicación permita la Concesión de credenciales de cliente (paso 10 de la sección anterior).
+2. Ve a [Auth0 Dashboard &gt; Aplicaciones &gt; APIs](https://manage.auth0.com/#/apis).
+3. Selecciona **Auth0 Management API** y luego la vista **Aplicaciones de máquina a máquina**.
+4. Busca la aplicación de WordPress y selecciona **Unauthorized** para conceder acceso.
+5. En el panel que aparece, selecciona solo los scopes `read:users` y `update:users`, y luego selecciona **Update** (puedes buscar con el campo **Filter scopes**).
+
+<div id="database-connection-setup">
+  ### Configuración de la conexión de base de datos
+</div>
+
+Database Connections permite iniciar sesión con nombre de usuario y contraseña con registros de usuario almacenados en Auth0. Este tipo de conexión no es obligatorio y puede omitirse si solo usas <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/es/docs/glossary?term=passwordless">passwordless</Tooltip>, inicios de sesión sociales o empresariales.
+
+1. Si utilizaste el asistente durante la configuración, ve a [Auth0 Dashboard &gt; Authentication &gt; Database](https://manage.auth0.com/#/connections/database) y busca una conexión con un nombre similar al de la aplicación configurada arriba. De lo contrario, puedes crear una conexión nueva, usar una conexión existente o usar la conexión predeterminada **Username-Password-Authentication**. Selecciona el nombre de una conexión existente para ver la configuración o selecciona **Create DB Connection** y sigue los pasos.
+2. Selecciona la vista **Applications** y activa la aplicación creada arriba.
+
+<div id="social-connection-setup">
+  ### Configuración de la conexión social
+</div>
+
+Para obtener información sobre cómo activar y configurar este método de inicio de sesión, consulta [Proveedores de identidad social](/es/docs/authenticate/identity-providers/social-identity-providers).
+
+<div id="enterprise-connection-setup">
+  ### Configuración de la conexión empresarial
+</div>
+
+Para saber cómo activar y configurar este método de inicio de sesión, consulta [Proveedores de identidad empresariales](/es/docs/authenticate/identity-providers/enterprise-identity-providers).
+
+<div id="wordpress-configuration">
+  ## Configuración de WordPress
+</div>
+
+1. Ve a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y selecciona la aplicación creada anteriormente.
+2. En una nueva pestaña o ventana, inicia sesión en `wp-admin` de tu sitio de WordPress y ve a **wp-admin &gt; Auth0 &gt; Settings**.
+3. Copia **Domain**, **ID de cliente** y **secreto de cliente** de la página de tu aplicación de Auth0 a la configuración de WordPress con los botones **Copy to Clipboard** que aparecen junto a cada campo.
+4. Desplázate hacia abajo y selecciona **Save Changes**.
+
+<div id="php-constant-setting-storage">
+  ## almacenamiento de la configuración mediante constantes de PHP
+</div>
+
+La configuración del plugin puede guardarse en la base de datos (predeterminado) o establecerse mediante una constante de PHP con un nombre específico. Esto permite almacenar de forma más segura datos sensibles como el <Tooltip tip="secreto de cliente: Secret usado por un cliente (aplicación) para autenticarse con el servidor de autorización; solo el cliente y el servidor de autorización deberían conocerlo y debe ser lo suficientemente aleatorio para que no pueda adivinarse." cta="Ver glosario" href="/es/docs/glossary?term=client+secret">secreto de cliente</Tooltip>, el token de API y el token de migración (siempre que el archivo en el que se definan también se almacene de forma segura; para obtener más información, lee [Hardening WordPress on wordpress.org](https://developer.wordpress.org/advanced-administration/security/hardening/)).
+
+La constante **debe** definirse antes de que se cargue el plugin; de lo contrario, no se usará. Esto debería hacerse en tu archivo `wp-config.php` o en un plugin de uso obligatorio. Para obtener más información, lee [Must Use Plugins on wordpress.org](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/). Si la constante se define en el `functions.php` de tu tema o en un plugin que se carga después de Auth0, el valor se ignorará.
+
+Las constantes de PHP se definen así:
+
+El nombre predeterminado de la constante debe ser `AUTH0_ENV_`, seguido del nombre de la opción que se quiere reemplazar, en mayúsculas (el prefijo puede modificarse con el filtro `auth0_settings_constant_prefix`; para obtener más información, lee [Extend Login by Auth0 WordPress Plugin](/es/docs/customize/integrations/cms/wordpress-plugin/extend-login-by-auth0)). Todas las opciones del plugin se pueden reemplazar, y sus claves se encuentran en el método `WP_Auth0_Options::defaults()`.
+
+**Nota:** El valor `migration_token` lo genera el plugin cuando la migración de usuario está activada. Si ya hay un valor en el panel de administración, asegúrate de establecer la constante con ese mismo valor. Si ese valor necesita cambiar, también debe cambiarse en los scripts personalizados de la conexión de base de datos que se esté usando en el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+dashboard">Auth0 Dashboard</Tooltip>.
+
+El campo de configuración cambiará su visualización en función de este nuevo valor y mostrará, como referencia, la constante que se está usando. Este valor se utilizará automáticamente en todo el plugin.
+
+**Importante:** Al guardar la página de configuración después de establecer un valor de constante, se validarán los valores establecidos mediante constantes (pero no se cambiarán) y se eliminarán del arreglo de opciones que se guarda en la base de datos. Si solo estás probando esta funcionalidad, no guardes la configuración en la página de administración de WordPress hasta que estés listo para eliminar ese valor.
+
+Todos los sitios de una red multisitio de WordPress usarán el mismo valor de constante, por lo que esta es una forma sencilla de configurar una red con una sola aplicación y una conexión de base de datos.
+
+<div id="plugin-settings">
+  ## Ajustes del plugin
+</div>
+
+<div id="basic">
+  ### Básico
+</div>
+
+* **Dominio:** El dominio copiado de la configuración de la aplicación en tu Dashboard. El nombre de la opción es `domain`.
+* **<Tooltip tip="Custom Domain: Dominio de terceros con un nombre especializado o personalizado." cta="Ver glosario" href="/es/docs/glossary?term=Custom+Domain">Custom Domain</Tooltip>:** El Custom Domain de tu tenant, si hay uno configurado. Para obtener más información, consulta [Custom Domains](/es/docs/customize/custom-domains). El nombre de la opción es `custom_domain`.
+* **<Tooltip tip="ID de cliente: Valor de identificación asignado por Auth0 a tu recurso registrado." cta="Ver glosario" href="/es/docs/glossary?term=Client+ID">ID de cliente</Tooltip>:** El ID de cliente copiado de la configuración de la aplicación en tu Dashboard. El nombre de la opción es `client_id`.
+* **Secreto de cliente:** El secreto de cliente copiado de la configuración de la aplicación en tu Dashboard. El nombre de la opción es `client_secret`.
+* **<Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de access token) que se usa para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JWT">JWT</Tooltip> Algoritmo de firma** El algoritmo que se usa para firmar tokens desde Advanced Application Settings, pestaña <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de autorización." cta="Ver glosario" href="/es/docs/glossary?term=OAuth">OAuth</Tooltip>; el valor predeterminado es RS256. El nombre de la opción es `client_signing_algorithm`.
+* **Tiempo de caché de JWKS (en minutos):** Cuánto tiempo debe almacenarse la información de JWKS al usar el algoritmo de firma JWT RS256. El nombre de la opción es `cache_expiration`.
+* **Formulario de login original en wp-login.php:** Ofrece formas de acceder a la página de inicio de sesión nativa de WordPress o bloquearla. El nombre de la opción es `wordpress_login_enabled`. El nombre de la opción del código de la página de login es `wle_code`.
+
+  * **Nunca** no permitirá que se muestre el formulario de login nativo de WordPress.
+  * **Mediante un enlace debajo del formulario de Auth0** mostrará un enlace al formulario de login nativo de WordPress justo debajo del formulario embebido de Auth0 en `wp-login.php`. También se puede acceder directamente a la página de login añadiendo `?wle` a la URL de login.
+  * **Cuando el parámetro de consulta &quot;wle&quot; esté presente** permitirá acceder directamente a la página de login añadiendo `?wle` a la URL de login. Esto omitirá la redirección de Universal Login Page.
+  * **Cuando el parámetro de consulta &quot;wle&quot; contenga un código específico** permitirá acceder directamente a la página de login añadiendo `?wle=` más un código a la URL de login. El código se genera automáticamente y se mostrará debajo de los controles de esta configuración. Esto omitirá la redirección de Universal Login Page.
+* **Permitir registros:** El registro de usuarios solo estará disponible si la opción Anyone can register de WordPress está habilitada. Puedes encontrar esta configuración en **Settings &gt; General &gt; Membership**.
+
+<div id="features">
+  ### Características
+</div>
+
+* **<Tooltip tip="Universal Login: Tu aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/es/docs/glossary?term=Universal+Login">Página de Universal Login</Tooltip>:** Redirige la página `wp-login.php` a la página de Universal Login para la autenticación con <Tooltip tip="Single Sign-On (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/es/docs/glossary?term=Single+Sign-on">inicio de sesión único</Tooltip> (SSO) usando todas las conexiones activas de esta aplicación. El nombre de la opción es `auto_login`.
+* **Método de inicio de sesión automático:** Una única conexión activa que se usará para la autenticación cuando la **página de Universal Login** esté activada. Deja este campo en blanco para mostrar todas las conexiones activas en la página de Universal Login. El nombre de la opción es `auto_login_method`.
+* **Cierre de sesión de Auth0:** Activa esta opción para cerrar sesión en Auth0 al cerrar sesión en WordPress. El nombre de la opción es `singlelogout`.
+* **Sobrescribir los avatares de WordPress:** Obliga a WordPress a usar los avatares de Auth0. El nombre de la opción es `override_wp_avatars`.
+
+<div id="embedded">
+  ### Integrado
+</div>
+
+Las opciones de aquí no afectan a la página de Universal Login (para conocer las opciones de personalización, lee [Auth0 Universal Login](/es/docs/authenticate/login/auth0-universal-login)).
+
+* **Inicio de sesión passwordless:** Activa esta opción para habilitar el inicio de sesión passwordless en todos los formularios de inicio de sesión integrados de Auth0. Las conexiones passwordless se administran en el Auth0 Dashboard y al menos una debe estar activa y habilitada en esta aplicación para que esto funcione. El nombre de la opción es `passwordless_enabled`.
+* **URL del icono:** Establece el icono encima del formulario de inicio de sesión integrado de Auth0. El nombre de la opción es `icon_url`.
+* **Título del formulario:** Establece el título del formulario de inicio de sesión integrado de Auth0. El nombre de la opción es `form_title`.
+* **Habilitar integración con Gravatar:** Cuando el usuario introduce su correo electrónico, su foto de Gravatar asociada se muestra en el formulario de inicio de sesión integrado de Auth0. El nombre de la opción es `gravatar`.
+* **Estilo del nombre de inicio de sesión:** Al seleccionar **Email**, los usuarios deberán introducir su dirección de correo electrónico para iniciar sesión. Establece esta opción en **Username** si no quieres obligar a que el nombre de usuario sea una dirección de correo electrónico válida. El nombre de la opción es `username_style`. El nombre de la opción es `client_secret_b64_encoded`.
+* **Color primario:** Para obtener más información sobre esta configuración, lee [Lock Configuration Options](/es/docs/libraries/lock/lock-configuration). El nombre de la opción es `primary_color`.
+* **Configuración adicional:** Un objeto JSON válido que incluye opciones para llamar a Lock. Esta opción prevalece sobre todas las demás opciones configuradas anteriormente. Para ver una lista de las opciones disponibles, consulta las opciones configurables por el usuario de Lock (p. ej.: `{"disableResetAction": true }`). El nombre de la opción es `extra_conf`.
+* **Usar una URL JS personalizada de Lock:** Cuando está desactivado, WordPress usará automáticamente la versión más reciente probada de Lock (formulario de inicio de sesión integrado de Auth0). Cuando está activado, los administradores pueden proporcionar una URL personalizada de Lock para usarla. El nombre de la opción es `custom_cdn_url`.
+* **URL JS personalizada de Lock:** Una URL válida que apunta a una versión de Lock. Este campo se ocultará automáticamente cuando **Usar una URL JS personalizada de Lock** esté desactivado. El nombre de la opción es `cdn_url`.
+* **Conexiones que se mostrarán:** Enumera aquí cada uno de los <Tooltip tip="Proveedor de identidad (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/es/docs/glossary?term=identity+providers">proveedores de identidad</Tooltip> con los que quieres permitir que los usuarios inicien sesión. Si se deja en blanco, se permitirán todos los proveedores habilitados. (Para obtener más información, lee [Lock UI Customization](/es/docs/libraries/lock/lock-ui-customization).) El nombre de la opción es `lock_connections`.
+
+  <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+    Si has habilitado el inicio de sesión passwordless, debes enumerar aquí todos los proveedores de identidad social permitidos. Para obtener más información, lee [.social(options, callback) en nuestro repositorio de GitHub](https://github.com/auth0/lock-passwordless#socialoptions-callback).
+  </Callout>
+
+<div id="advanced">
+  ### Advanced
+</div>
+
+* **Requerir correo electrónico verificado:** Si se establece, exige que el usuario tenga un correo electrónico verificado para iniciar sesión. Esto puede hacer que algunas conexiones no funcionen correctamente si no proporcionan una dirección de correo electrónico o un indicador `email_verified` en los datos del perfil del usuario. El nombre de la opción es `requires_verified_email`.
+* **Omitir estrategias:** Si Requerir correo electrónico verificado está activado, se mostrará esta configuración. Este campo acepta nombres de estrategia para omitir el requisito de correo electrónico verificado durante el inicio de sesión y la asociación de cuentas. Esto **solo** debe usarse para estrategias que no proporcionen un indicador `email_verified`.
+* **Recordar la sesión del usuario:** De forma predeterminada, las sesiones de usuario duran dos días. Habilita esta configuración para mantener activas las sesiones de usuario durante 14 días. El nombre de la opción es `remember_users_session`.
+
+  * Esta configuración debe ser menor o igual que la configuración de [Inactivity Timeout](/es/docs/manage-users/sessions/session-lifetime-limits)docs/manage-users/sessions/session-lifetime-limits de tu tenant para garantizar que la sesión del usuario se mantenga correctamente.
+* **URL de redirección de inicio de sesión:** Si se establece, redirige a los usuarios a la URL especificada después de iniciar sesión. Esto no afecta al inicio de sesión mediante el shortcode `[auth0]`. El nombre de la opción es `default_login_redirection`. Para cambiar la redirección del shortcode, agrega un atributo `redirect_to`, así:
+
+  `[auth0 redirect_to="http://yourdomain.com/redirect-here"]`
+* **Forzar devolución de llamada HTTPS:** Habilita esta opción si tu sitio permite HTTPS, pero no lo exige. Esto forzará las devoluciones de llamada de Auth0 a HTTPS en caso de que la URL de inicio no esté configurada con HTTPS. El nombre de la opción es `force_https_callback`.
+* **Aprovisionamiento automático:** Si no se permiten nuevos registros, ¿deben almacenarse en la base de datos de WordPress los nuevos usuarios de Auth0? Esto creará usuarios de WordPress que no existen cuando inicien sesión a través de Auth0 (por ejemplo, si un usuario se crea en el Auth0 Dashboard). El nombre de la opción es `auto_provisioning`.
+
+  <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+    Si se permiten registros en WordPress, se crearán nuevos usuarios independientemente de esta configuración.
+  </Callout>
+* **Migración de usuarios:** Al habilitar esta opción, se expondrán los servicios web de migración de Auth0. Sin embargo, la conexión deberá configurarse manualmente en el [Auth0 Dashboard](https://manage.auth0.com/#). Para obtener más información sobre el proceso de migración, consulta [User Migration in Login by Auth0 WordPress Plugin](/es/docs/customize/integrations/cms/wordpress-plugin/user-migration-in-login-by-auth0). El botón **Generate New Migration Token** puede usarse para reemplazar el token guardado por uno nuevo. Asegúrate de tener abierta la página de configuración de tu conexión de base de datos en la pestaña **Custom Database** para poder reemplazar el token existente por el nuevo en ambos scripts. El nombre de la opción es `migration_ws`. El nombre de la opción del token de migración es `migration_token`.
+* **Lista de permitidos de IP de migración:** Solo se permitirá el acceso al servicio web de migración a las solicitudes procedentes de las IP incluidas en la lista. El nombre de la opción es `migration_ips_filter`.
+* **IP de proxy válida:** Indica la dirección IP de tu proxy o equilibrador de carga para habilitar las comprobaciones de IP en los inicios de sesión y los servicios web de migración. El nombre de la opción es `valid_proxy_ip`.
+* **Dominio del servidor de Auth0:** El dominio de Auth0, que el asistente de configuración utiliza para obtener la información de tu cuenta. El nombre de la opción es `auth0_server_domain`.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Integración con WordPress](/es/docs/customize/integrations/cms/wordpress-plugin/integrate-with-wordpress)
+* [Instalar Login by Auth0](/es/docs/customize/integrations/cms/wordpress-plugin/install-login-by-auth0)
+* [Solucionar problemas del plugin Login by Auth0 para WordPress](/es/docs/customize/integrations/cms/wordpress-plugin/troubleshoot-login-by-auth0)
+* [Ampliar el plugin Login by Auth0 para WordPress](/es/docs/customize/integrations/cms/wordpress-plugin/extend-login-by-auth0)

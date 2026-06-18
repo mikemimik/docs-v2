@@ -1,0 +1,818 @@
+---
+description: Aprende a exportar listas de usuarios y metadatos de usuario.
+title: Exportación masiva de usuarios
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Puedes usar el endpoint `POST /api/v2/jobs/users-exports` para crear una tarea que exporte todos los usuarios asociados a una [conexión](/es/docs/authenticate/identity-providers) o todos los usuarios del tenant.
+
+Para ver una lista de los campos del perfil de usuario que se pueden exportar, consulta [User Profile Structure](/es/docs/manage-users/user-accounts/user-profiles/user-profile-structure).
+
+Cuando crees la tarea, tendrás que proporcionar:
+
+* El [ID de la conexión](/es/docs/authenticate/identity-providers/locate-the-connection-id) desde la que quieres exportar usuarios (opcional)
+* El formato del archivo de exportación (CSV o compatible con JSON)
+* El número máximo de registros de usuario que se exportarán (opcional; si se omite, se exportarán todos los registros)
+* Los campos relacionados con el usuario (como el user ID o el nombre) que quieres incluir en la exportación
+
+También necesitarás un [token de acceso de la Management API](https://auth0.com/docs/api/management/v2/tokens).
+
+<div id="create-a-request-body">
+  ## Crea el cuerpo de la solicitud
+</div>
+
+Opcionalmente, encuentra el `connection_id` y el nombre de dominio de tu tenant de Auth0 en el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Crea un nuevo archivo de texto con el cuerpo de la solicitud que aparece a continuación:
+
+```json lines
+{
+   "connection_id":"connection_id",
+   "format":"csv",
+   "limit":20,
+   "fields":[
+      {
+         "name":"user_id"
+      },
+      {
+         "name":"email"
+      },
+      {
+         "name":"user_metadata.country"
+      }
+   ]
+}
+```
+
+Actualiza el `connection_id` con el ID de tu conexión de base de datos o elimínalo para exportar todos los usuarios del tenant.
+
+<div id="request-example">
+  ## Ejemplo de solicitud
+</div>
+
+Scopes necesarios: `read:users`
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/api/v2/jobs/users-exports' \
+    --header 'authorization: Bearer {yourMgmtAPIAccessToken}' \
+    --header 'content-type: application/json' \
+    --data '{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, { "name": "identities[0].connection", "export_as": "provider" }]}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/jobs/users-exports");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("authorization", "Bearer {yourMgmtAPIAccessToken}");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, { "name": "identities[0].connection", "export_as": "provider" }]}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/jobs/users-exports"
+
+  	payload := strings.NewReader("{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, { "name": "identities[0].connection", "export_as": "provider" }]}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("authorization", "Bearer {yourMgmtAPIAccessToken}")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/api/v2/jobs/users-exports")
+    .header("authorization", "Bearer {yourMgmtAPIAccessToken}")
+    .header("content-type", "application/json")
+    .body("{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, { "name": "identities[0].connection", "export_as": "provider" }]}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/api/v2/jobs/users-exports',
+    headers: {
+      authorization: 'Bearer {yourMgmtAPIAccessToken}',
+      'content-type': 'application/json'
+    },
+    data: {
+      connection_id: '{yourConnectionId}',
+      format: 'csv',
+      limit: 5,
+      fields: [{name: 'email'}, {name: 'identities[0].connection', export_as: 'provider'}]
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/jobs/users-exports",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, { "name": "identities[0].connection", "export_as": "provider" }]}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer {yourMgmtAPIAccessToken}",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, { "name": "identities[0].connection", "export_as": "provider" }]}"
+
+  headers = {
+      'authorization': "Bearer {yourMgmtAPIAccessToken}",
+      'content-type': "application/json"
+      }
+
+  conn.request("POST", "/{yourDomain}/api/v2/jobs/users-exports", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/jobs/users-exports")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["authorization"] = 'Bearer {yourMgmtAPIAccessToken}'
+  request["content-type"] = 'application/json'
+  request.body = "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, { "name": "identities[0].connection", "export_as": "provider" }]}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+La respuesta debería ser algo así:
+
+```json lines
+{
+  "type": "users_export",
+  "status": "pending",
+  "connection_id": "con_0000000000000001",
+  "format": "csv",
+  "limit": 5,
+  "fields": [
+    {
+      "name": "user_id"
+    },
+    {
+      "name": "name"
+    },
+    {
+      "name": "email"
+    },
+    {
+      "name": "identities[0].connection",
+      "export_as": "provider"
+    }
+  ],
+  "connection": "Username-Password-Authentication",
+  "created_at": "2017-11-02T23:34:03.803Z",
+  "id": "job_coRQCC3MHztpuTlo"
+}
+```
+
+<div id="include-user-metadata-in-exported-csv">
+  ## Incluir metadatos de usuario en el CSV exportado
+</div>
+
+Si exportas datos de usuario en formato CSV y quieres incluir información de metadatos, especifica cada campo de metadatos que quieras exportar. Puedes exportar hasta 30 campos.
+
+<Warning>
+  No puedes exportar todo `app_metadata` ni `user_metadata` en CSV. Debes especificar explícitamente los campos de los objetos de metadatos.
+
+  Para exportar `app_metadata` o `user_metadata` como objetos individuales, usa el formato compatible con JSON e incluye el campo que quieras en el parámetro `fields` del cuerpo de la solicitud. Por ejemplo:
+
+  `{"name":"app_metadata"}`
+
+  Como solo puedes exportar hasta 30 campos, se recomienda usar el formato JSON si los datos de usuario tienen muchos campos.
+</Warning>
+
+Por ejemplo, para metadatos estructurados así:
+
+```json lines
+{
+  "consent": {
+      "given": true,
+      "date": "01/23/2019",
+      "text_details": "{yourURL}"
+  }
+}
+```
+
+La solicitud de exportación (para los tres campos) tendría este aspecto:
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/api/v2/jobs/users-exports' \
+    --header 'authorization: Bearer {yourMgmtAPIAccessToken}' \
+    --header 'content-type: application/json' \
+    --data '{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent.given"}, {"name": "user_metadata.consent.date"}, {"name": "user_metadata.consent.text_details"}]}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/jobs/users-exports");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("authorization", "Bearer {yourMgmtAPIAccessToken}");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent.given"}, {"name": "user_metadata.consent.date"}, {"name": "user_metadata.consent.text_details"}]}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/jobs/users-exports"
+
+  	payload := strings.NewReader("{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent.given"}, {"name": "user_metadata.consent.date"}, {"name": "user_metadata.consent.text_details"}]}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("authorization", "Bearer {yourMgmtAPIAccessToken}")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/api/v2/jobs/users-exports")
+    .header("authorization", "Bearer {yourMgmtAPIAccessToken}")
+    .header("content-type", "application/json")
+    .body("{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent.given"}, {"name": "user_metadata.consent.date"}, {"name": "user_metadata.consent.text_details"}]}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/api/v2/jobs/users-exports',
+    headers: {
+      authorization: 'Bearer {yourMgmtAPIAccessToken}',
+      'content-type': 'application/json'
+    },
+    data: {
+      connection_id: '{yourConnectionId}',
+      format: 'csv',
+      limit: 5,
+      fields: [
+        {name: 'email'},
+        {name: 'user_metadata.consent.given'},
+        {name: 'user_metadata.consent.date'},
+        {name: 'user_metadata.consent.text_details'}
+      ]
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/jobs/users-exports",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent.given"}, {"name": "user_metadata.consent.date"}, {"name": "user_metadata.consent.text_details"}]}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer {yourMgmtAPIAccessToken}",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent.given"}, {"name": "user_metadata.consent.date"}, {"name": "user_metadata.consent.text_details"}]}"
+
+  headers = {
+      'authorization': "Bearer {yourMgmtAPIAccessToken}",
+      'content-type': "application/json"
+      }
+
+  conn.request("POST", "/{yourDomain}/api/v2/jobs/users-exports", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/jobs/users-exports")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["authorization"] = 'Bearer {yourMgmtAPIAccessToken}'
+  request["content-type"] = 'application/json'
+  request.body = "{"connection_id": "{yourConnectionId}", "format": "csv", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent.given"}, {"name": "user_metadata.consent.date"}, {"name": "user_metadata.consent.text_details"}]}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  En los archivos CSV de exportación de usuarios, escapamos los tipos de datos String de conformidad con los estándares de OWASP para mitigar la inyección de CSV:
+
+  * A los caracteres de comillas dobles se les antepone un carácter de comillas dobles.
+  * A cada String se le antepone un carácter de comilla simple.
+  * Cada String se encierra entre comillas dobles.
+
+  Esto no se aplica a las fechas generadas por Auth0 en formato ISO 8601.
+</Callout>
+
+<div id="json-compatible-format">
+  ### Formato compatible con JSON
+</div>
+
+Si exporta los datos en formato compatible con JSON, solo necesita proporcionar la propiedad raíz; no hace falta nombrar cada propiedad interna por separado, ya que se incluirán automáticamente.
+
+Los archivos de exportación de Auth0 usan el formato [NDJSON](https://github.com/ndjson/ndjson-spec) debido a su gran tamaño, mientras que la funcionalidad de importación espera un archivo JSON.
+
+Antes de poder importar usuarios con una exportación generada por Auth0, deberá convertir el archivo de NDJSON a JSON usando la biblioteca que prefiera (como [jq](https://stedolan.github.io/jq/)).
+
+En este caso, para el mismo ejemplo que usamos antes, la solicitud tendría este aspecto:
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/api/v2/jobs/users-exports' \
+    --header 'authorization: Bearer {yourMgmtAPIAccessToken}' \
+    --header 'content-type: application/json' \
+    --data '{"connection_id": "{yourConnectionId}", "format": "json", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent"}]}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/jobs/users-exports");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("authorization", "Bearer {yourMgmtAPIAccessToken}");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"connection_id": "{yourConnectionId}", "format": "json", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent"}]}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/jobs/users-exports"
+
+  	payload := strings.NewReader("{"connection_id": "{yourConnectionId}", "format": "json", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent"}]}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("authorization", "Bearer {yourMgmtAPIAccessToken}")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/api/v2/jobs/users-exports")
+    .header("authorization", "Bearer {yourMgmtAPIAccessToken}")
+    .header("content-type", "application/json")
+    .body("{"connection_id": "{yourConnectionId}", "format": "json", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent"}]}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/api/v2/jobs/users-exports',
+    headers: {
+      authorization: 'Bearer {yourMgmtAPIAccessToken}',
+      'content-type': 'application/json'
+    },
+    data: {
+      connection_id: '{yourConnectionId}',
+      format: 'json',
+      limit: 5,
+      fields: [{name: 'email'}, {name: 'user_metadata.consent'}]
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/jobs/users-exports",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{"connection_id": "{yourConnectionId}", "format": "json", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent"}]}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer {yourMgmtAPIAccessToken}",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"connection_id": "{yourConnectionId}", "format": "json", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent"}]}"
+
+  headers = {
+      'authorization': "Bearer {yourMgmtAPIAccessToken}",
+      'content-type': "application/json"
+      }
+
+  conn.request("POST", "/{yourDomain}/api/v2/jobs/users-exports", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/jobs/users-exports")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["authorization"] = 'Bearer {yourMgmtAPIAccessToken}'
+  request["content-type"] = 'application/json'
+  request.body = "{"connection_id": "{yourConnectionId}", "format": "json", "limit": 5, "fields": [{"name": "email"}, {"name": "user_metadata.consent"}]}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+<div id="check-export-status">
+  ## Consultar el estado de la exportación
+</div>
+
+Una vez que hayas creado la tarea para exportar tus usuarios, puedes consultar su estado mediante el [endpoint Get a Job](https://auth0.com/docs/api/management/v2#!/Jobs/get_jobs_by_id).
+
+Proporciona el ID de la tarea (que recibiste en la respuesta al crearla). Si estás usando la solicitud de ejemplo a continuación, reemplaza el marcador `{yourJobId}` por el valor del ID.
+
+Scopes requeridos: `create:users`, `read:users`, `create:passwords_checking_job`
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request GET \
+    --url 'https://{yourDomain}/api/v2/jobs/%7ByourJobId%7D' \
+    --header 'authorization: Bearer {yourMgmtAPIAccessToken}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/jobs/%7ByourJobId%7D");
+  var request = new RestRequest(Method.GET);
+  request.AddHeader("authorization", "Bearer {yourMgmtAPIAccessToken}");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/jobs/%7ByourJobId%7D"
+
+  	req, _ := http.NewRequest("GET", url, nil)
+
+  	req.Header.Add("authorization", "Bearer {yourMgmtAPIAccessToken}")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.get("https://{yourDomain}/api/v2/jobs/%7ByourJobId%7D")
+    .header("authorization", "Bearer {yourMgmtAPIAccessToken}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'GET',
+    url: 'https://{yourDomain}/api/v2/jobs/%7ByourJobId%7D',
+    headers: {authorization: 'Bearer {yourMgmtAPIAccessToken}'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/jobs/%7ByourJobId%7D",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "GET",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer {yourMgmtAPIAccessToken}"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer {yourMgmtAPIAccessToken}" }
+
+  conn.request("GET", "/{yourDomain}/api/v2/jobs/%7ByourJobId%7D", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/jobs/%7ByourJobId%7D")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Get.new(url)
+  request["authorization"] = 'Bearer {yourMgmtAPIAccessToken}'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Deberías obtener una respuesta como la siguiente:
+
+```json lines expandable
+{
+  "type": "users_export",
+  "status": "completed",
+  "connection_id": "con_lCvO...a",
+  "format": "csv",
+  "limit": 5,
+  "fields": [
+    {
+      "name": "user_id"
+    },
+    {
+      "name": "name"
+    },
+    {
+      "name": "email"
+    },
+    {
+      "name": "identities[0].connection",
+      "export_as": "provider"
+    }
+  ],
+  "location": "pus3-auth0-export-users-us-east-2.s3.us-east-2.amazonaws.com/job_coRQCC3MHztpuTlo/auth0docs2.csv.gz?Expires=1509725589&Key-Pair-Id=APKAJPL62IJALBDMSSCA&Signature=l2JaFXP~BATnfagb64PK-qbX9QaZREDYNW0q5QeHuV-MaDpZjpABDXfHHLh2SsCMQz~UO-QsCSfI81l0lvCKzZPZL6cZHK7f~ixlZOK~MHKJuvMqsUZMbNluNAwhFmgb2fZ86yrB1c-l2--H3lMELAk7hKUwwSrNBlsfbMgQ-i41nMNnsYdy3AVlNVQkwZyx~w-IEHfJDHsqyjia-jfDbIOLQvr8~D9PwZ-xOzROxDwgxrt3undtz80bkgP5hRKOAbHC7Y-iKWa2bzNZYHqzowTrlh7Ta60cblJR46NfF9cNqn9jqRGVv-lsvUD9FxnImCCk~DL6npJnzNLjHvn4-CaWq6KdQnwWgCnZ3LZkxXDVWLLIQQaoc6i~xbuGnnbtKRePFSnpqbt2mAUYasdxTOWuUVK8wHhtfZmRYtCpwZcElXFO9Qs~PTroYZEiS~UHH5byMLt2x4ChkHnTG7pIhLAHN~bCOLk8BN2lOkDBUASEVtuJ-1i6cKCDqI2Ro9YaKZcCYzeQvKwziX6cgnMchmaZW77~RMOGloi2EffYE31OJHKiSVRK7RGTykaYN5S2Sg7W0ZOlLPKBtCGRvGb8rJ6n3oPUiOC3lSp7v0~dkx1rm-jO8mKWZwVtC0~4DVaXsn8KXNbj0LB4mjKaDHwXs16uH1-aCfFnMK7sZC2VyCU_",
+  "connection": "Username-Password-Authentication",
+  "created_at": "2017-11-02T23:34:03.803Z",
+  "id": "job_coRQCC3MHztpuTlo"
+}
+```
+
+<div id="find-export-data">
+  ## Buscar los datos exportados
+</div>
+
+Puedes acceder a tus archivos de exportación usando la URL proporcionada como valor del parámetro **location**. El nombre de tu tenant también es el nombre de tu archivo. Por ejemplo, si el nombre de tu tenant es `auth0docs`, entonces tu archivo será `auth0docs.csv` o `auth0docs.json`. Cuando accedas a la URL, la descarga del archivo comenzará automáticamente.
+
+El enlace de descarga es válido durante 60 segundos. Si ese plazo vence, tendrás 24 horas para volver a solicitarlo antes de que caduque la tarea.
+
+<div id="job-cleanup">
+  ## Eliminación de tareas
+</div>
+
+Todos los datos relacionados con las tareas se eliminan automáticamente después de 24 horas y ya no se puede acceder a ellos. Por lo tanto, **recomendamos encarecidamente que almacene los resultados de las tareas con el mecanismo de almacenamiento que prefiera**.
+
+<div id="filter-example">
+  ## Ejemplo de filtro
+</div>
+
+Es posible que quiera filtrar el archivo `.csv` exportado para obtener un subconjunto específico de sus datos, como la fecha en que los usuarios iniciaron sesión por última vez en su aplicación.
+
+1. Haga una llamada `POST` al endpoint [Create export user&#39;s job](https://auth0.com/docs/api/management/v2/jobs/post-users-exports) de Management API para exportar usuarios a un archivo `.csv`:
+
+   1. Cree una nueva tarea:
+
+      ```bash lines
+      curl -L 'https://{account.namespace}/api/v2/jobs/users-exports' \
+      -H 'Content-Type: application/json' \
+      -H 'Accept: application/json' \
+      -H 'Authorization: Bearer MGMT_API_TOKEN' \
+      -d '{"format":"csv"}'
+      ```
+
+   2. Verifique el estado:
+
+      ```bash lines
+      curl -L 'https://{account.namespace}/api/v2/jobs/JOB_ID' \
+      -H 'Accept: application/json' \
+      -H 'Authorization: Bearer MGMT_API_TOKEN'
+      ```
+
+2. Vaya al archivo en la carpeta de descargas de su equipo local.
+
+3. Use una herramienta de línea de comandos para añadir un filtro. En este ejemplo, usamos [Miller](https://miller.readthedocs.io/en/latest/installing-miller/):
+
+   ```bash wrap lines
+   mlr --csv filter '$last_login >= "2024-01-01T00:00:00Z"' file.csv > filtered.csv
+   ```

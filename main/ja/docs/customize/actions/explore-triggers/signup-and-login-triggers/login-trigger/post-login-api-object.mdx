@@ -1,0 +1,1103 @@
+---
+#
+# このファイルは自動生成されています。
+# 手動で編集しないでください。
+#
+description: post-login Action トリガーのAPI オブジェクトについて説明します。
+title: 'Actions Triggers: post-login - API オブジェクト'
+validatedOn: 2026-06-03
+---
+
+post-login Actions トリガーのAPI オブジェクトには、次のものが含まれます。
+
+<div id="apiaccess">
+  ## `api.access`
+</div>
+
+ログインを試みているユーザーのアクセス権を変更します。たとえば、ログイン試行を拒否できます。
+
+<div id="apiaccessdenyreason">
+  ### `api.access.deny(reason)`
+</div>
+
+現在のログイン試行を拒否としてマークします。これにより、エンドユーザーは
+ログインフローを完了できなくなります。これは、この Action によって要求された、ユーザーに関連する他の副作用 (メタデータ
+の変更など) を *キャンセルしません*。この action の完了後、ログインフローはただちに停止し、
+それ以降の Actions は実行されません。
+
+<ResponseField name="reason" type="string">
+  ログインを拒否する理由を人間が読んで理解できる形で説明したものです。これは
+  エンドユーザー向けのインターフェースに直接表示される場合があります。
+</ResponseField>
+
+<div id="apiaccesstoken">
+  ## `api.accessToken`
+</div>
+
+発行されるアクセストークンに変更を加えるようリクエストします。
+
+<div id="apiaccesstokensetcustomclaimkey-value">
+  ### `api.accessToken.setCustomClaim(key, value)`
+</div>
+
+ログインフローの完了時に発行されるアクセストークンに、カスタムクレームを設定します。
+
+<ResponseField name="key" type="string">
+  クレームの名前 (完全修飾URLを指定する必要がある場合があります) 。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  クレームの値。
+</ResponseField>
+
+<div id="apiaccesstokenaddscopescope">
+  ### `api.accessToken.addScope(scope)`
+</div>
+
+ログインフローの完了時に発行されるアクセストークンに、スコープを追加します。
+
+<ResponseField name="scope" type="string">
+  追加するスコープです。
+</ResponseField>
+
+<div id="apiaccesstokenremovescopescope">
+  ### `api.accessToken.removeScope(scope)`
+</div>
+
+ログインフローの完了時に発行されるアクセストークンから、スコープを削除します。
+
+<ResponseField name="scope" type="string">
+  削除するスコープ。
+</ResponseField>
+
+<div id="apiauthentication">
+  ## `api.authentication`
+</div>
+
+現在のユーザーのセッションの認証状態の変更をリクエストします。
+
+<div id="apiauthenticationchallengewithfactor-options">
+  ### `api.authentication.challengeWith(factor, options)`
+</div>
+
+指定した認証要素と、任意の追加の認証要素を使用して、多要素認証のチャレンジを要求します。
+
+多要素認証のチャレンジが要求されると、そのチャレンジがユーザーによって
+完了されるまで、後続の Actions は実行されません。ユーザーは、次のいずれかの場合にチャレンジを完了したと見なされます。
+
+1. デフォルトの認証要素に対するチャレンジを正常に完了した場合。
+2. `additionalFactors` で指定された任意の追加の認証要素に対するチャレンジを正常に完了した場合。
+
+要求された認証要素のいずれかが現在のトランザクションですでに正常にチャレンジ済みである場合、
+その認証要素は無視されます。
+
+要求された認証要素がテナントで有効になっていない場合は無視されます。ユーザーが
+まだ登録していない認証要素が要求された場合も無視されます。要求された認証要素のいずれも有効化または登録されていない場合、認証
+トランザクションは失敗します (つまり、ログインは完了しません) 。
+
+<Note>
+  このメソッドを使用すると、ユーザーがまだチャレンジの要件を満たしていない場合、
+  認証要素のチャレンジ画面が表示されます。`additionalFactors` が指定されている場合、ユーザーは
+  必要に応じて別の認証要素を選択できます。
+</Note>
+
+<ResponseField name="factor" type="factorselector">
+  最初のチャレンジに使用する認証要素の種類とそのオプションを記述するオブジェクトです。
+
+  <Expandable title="認証要素のプロパティ" defaultOpen>
+    <ResponseField name="type" type="string">
+      `push-notification`、`phone`、`email`、`otp`、`webauthn-roaming`、`webauthn-platform`、`recovery-code` などの認証要素の種類です。
+
+      使用可能な値: `otp`、`email`、`webauthn-platform`、`webauthn-roaming`、`recovery-code`
+    </ResponseField>
+
+    <ResponseField name="options" type="dictionary" post={["optional"]}>
+      指定した種類の認証要素を設定するための追加オプションです。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="options" type="challengewithoptions" post={["optional"]}>
+  `additionalFactors` をプロパティとして指定することもできる追加オプションです。認証要素固有のオプション (たとえば `push-notification` の `otpFallback`) は `factor.options` に指定します。
+
+  <Expandable title="オプションのプロパティ" defaultOpen>
+    <ResponseField name="additionalFactors" type="array of objects" post={["optional"]} />
+  </Expandable>
+</ResponseField>
+
+```js Challenge with a specific factor
+api.authentication.challengeWith({
+  type: 'phone',
+  options: { preferredMethod: 'both' }
+});
+```
+
+```js Challenge with additional factors
+api.authentication.challengeWith({
+  type: 'otp'
+}, {
+  additionalFactors: [{
+    type: 'push-notification'
+  }, {
+    type: 'phone'
+  }]
+});
+```
+
+```js Challenge with push notification and disable OTP fallback
+api.authentication.challengeWith({
+  type: 'push-notification',
+  options: { otpFallback: false }
+});
+```
+
+<div id="apiauthenticationchallengewithanyfactors">
+  ### `api.authentication.challengeWithAny(factors)`
+</div>
+
+指定された認証要素のいずれかを使って多要素認証のチャレンジを要求します (最初に認証要素の選択画面が表示されます) 。
+
+多要素認証のチャレンジが要求されると、そのチャレンジがユーザーによって完了されるまで、以降の Actions は実行されません。ユーザーは、次のいずれかの状況に該当すると、チャレンジを満たしたことになります。
+
+1. いずれかの認証要素のチャレンジを正常に完了した場合。
+
+要求された認証要素のいずれかが現在のトランザクションですでに正常に完了している場合、その認証要素は無視されます。
+
+要求された認証要素がテナントで有効になっていない場合、その認証要素は無視されます。ユーザーがまだ登録していない認証要素が要求された場合も、その認証要素は無視されます。要求された認証要素のいずれも有効化されていない、または登録されていない場合、認証トランザクションは失敗します (つまり、ログインは完了しません) 。
+
+<Note>
+  このメソッドを使用すると、ユーザーがまだチャレンジの要件を満たしていない場合、認証要素の選択画面が表示されます。優先する認証要素がある場合は、`api.authentication.challengeWith()` メソッドの使用を推奨します。渡される認証要素が 1 つだけの場合、または有効な認証要素が 1 つしかない場合は、認証要素の選択画面は表示されません。
+</Note>
+
+<ResponseField name="factors" type="array of objects">
+  認証要素の配列。
+</ResponseField>
+
+<div id="apiauthenticationenrollwithfactor-options">
+  ### `api.authentication.enrollWith(factor, options)`
+</div>
+
+指定した認証要素と、必要に応じて追加の認証要素を使って、多要素認証の登録をリクエストします。
+
+多要素認証の登録がリクエストされると、その登録がユーザーによって
+完了されるまで、後続の Actions は実行されません。
+
+リクエストされた認証要素のいずれかが、現在のトランザクションですでに登録済みであるか、チャレンジに正常に成功している場合は、
+無視されます。
+
+テナントで有効になっていない認証要素がリクエストされた場合は、無視されます。
+ユーザーがすでに登録している認証要素がリクエストされた場合も、無視されます。
+リクエストされた認証要素のいずれも有効になっておらず、かつ未登録である場合、認証
+トランザクションは失敗します (つまり、ログインは完了しません) 。
+
+<ResponseField name="factor" type="enrollmentfactorselector">
+  最初の登録プロンプトで使用する認証要素の種類と、その options を示すオブジェクトです。
+
+  <Expandable title="認証要素のプロパティ" defaultOpen>
+    <ResponseField name="type" type="string">
+      `push-notification`、`phone`、`otp`、`webauthn-roaming`、`webauthn-platform`、`recovery-code` などの認証要素の種類です。
+
+      使用できる値:
+
+      * `otp`
+      * `webauthn-platform`
+      * `webauthn-roaming`
+      * `recovery-code`
+      * `push`
+      * `push-notification`
+    </ResponseField>
+
+    <ResponseField name="options" type="dictionary" post={["optional"]}>
+      指定した種類の認証要素を設定するための追加 options です。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="options" type="enrollwithoptions" post={["optional"]}>
+  `additionalFactors` をプロパティとして指定することもできる追加 options です。
+
+  <Expandable title="options のプロパティ" defaultOpen>
+    <ResponseField name="additionalFactors" type="array of objects" post={["optional"]} />
+  </Expandable>
+</ResponseField>
+
+```js Enroll with additional factors
+api.authentication.enrollWith({
+  type: 'otp'
+}, {
+  additionalFactors: [{
+    type: 'push-notification'
+  }, {
+    type: 'phone'
+  }]
+});
+```
+
+<div id="apiauthenticationenrollwithanyfactors">
+  ### `api.authentication.enrollWithAny(factors)`
+</div>
+
+指定された認証要素のいずれかを使用して、多要素認証の登録を要求します (最初に認証要素の選択画面が表示されます) 。
+
+多要素認証の登録が要求されると、ユーザーが登録を完了するまで、後続のActionsは実行されません。
+
+要求された認証要素のいずれかが現在のトランザクションですでに正常に登録されている場合、その認証要素は無視されます。
+
+テナントで有効になっていない認証要素が要求された場合、その認証要素は無視されます。
+ユーザーがすでに登録している認証要素が要求された場合、その認証要素は無視されます。
+要求された認証要素のうち、有効で、かつ未登録のものが1つもない場合、認証
+トランザクションは失敗します (つまり、ログインは完了しません) 。
+
+<Note>
+  優先する認証要素がある場合は、`api.authentication.enrollWith()` メソッド
+  の使用を推奨します。渡された認証要素が1つだけの場合、または有効な認証要素が1つだけの場合は、認証要素の選択画面は表示されません。
+</Note>
+
+<ResponseField name="factors" type="array of objects">
+  追加の認証要素の配列。
+</ResponseField>
+
+<div id="apiauthenticationrecordmethodprovider_url">
+  ### `api.authentication.recordMethod(provider_url)`
+</div>
+
+現在のセッションで、カスタム認証方法が完了したことを示します。この認証方法は、以後のログイン時に `event.authentication.methods` 配列で利用できるようになります。
+
+**重要**: この API は、`PostLogin` Actions の `onContinuePostLogin` 関数内でのみ利用できます。つまり、`api.redirect.sendUserTo()` でユーザーをリダイレクトした後に、カスタム認証方法の完了を記録するために使用できます。
+
+<ResponseField name="provider_url" type="string">
+  完了した認証方法を一意に表す `http:` または `https:` の URL。
+</ResponseField>
+
+<div id="apiauthenticationsetprimaryuserprimary_user_id">
+  ### `api.authentication.setPrimaryUser(primary_user_id)`
+</div>
+
+ログイントランザクションのプライマリユーザーを変更します。
+
+ユーザーのリンクが必要なシナリオでは、ログインの開始に使用されたユーザーのアイデンティティが、もはや独立したユーザーとして存在しないことがあります。そのアイデンティティは、既存ユーザーのセカンダリ アイデンティティになっている可能性があります。このような場合は、`setPrimaryUser()` 関数を使用して、ログインの主体を変更すべきことを示せます。
+
+**IMPORTANT**: 安全でない方法でアカウントをリンクすると、悪意のある第三者が正当なユーザーアカウントにアクセスできるようになる可能性があります。
+
+**IMPORTANT**: ログインの認証に使用されるアイデンティティは、`primary_user_id` で参照されるユーザーのセカンダリ アイデンティティの 1 つでなければなりません。そうでない場合、ログインは失敗し、トークンは発行されません。
+
+<ResponseField name="primary_user_id" type="string">
+  トークンの発行先となるユーザーのユーザーID (`sub` claim) 。
+</ResponseField>
+
+<div id="apiidtoken">
+  ## `api.idToken`
+</div>
+
+発行される ID トークンへの変更をリクエストします。
+
+<div id="apiidtokensetcustomclaimkey-value">
+  ### `api.idToken.setCustomClaim(key, value)`
+</div>
+
+ログインフローの完了時に発行される ID トークンに、カスタムクレームを設定します。
+
+<ResponseField name="key" type="string">
+  クレーム名 (完全修飾 URL の指定が必要になる場合があります) 。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  クレームの値。
+</ResponseField>
+
+<div id="apimultifactor">
+  ## `api.multifactor`
+</div>
+
+ログイン試行に対して、多要素認証を必須に設定するか、その要件を解除します。
+
+<div id="apimultifactorenableprovider-options">
+  ### `api.multifactor.enable(provider, options)`
+</div>
+
+このログインフローで多要素認証を有効にします。有効にすると、ユーザーは
+設定された多要素認証のチャレンジを完了する必要があります。実際の多要素認証チャレンジは、
+ログインフローの最後に実行されます。
+
+<ResponseField name="provider" type="string">
+  使用する多要素認証プロバイダーの名前、または設定済みの
+  いずれかのプロバイダーを使用するための値 `"any"` です。
+
+  使用可能な値: `duo`, `none`, `guardian`, `google-authenticator`, `any`
+</ResponseField>
+
+<ResponseField name="options" type="object" post={["optional"]}>
+  多要素認証チャレンジを有効にするための追加オプションです。
+
+  <Expandable title="options のプロパティ" defaultOpen>
+    <ResponseField name="allowRememberBrowser" type="boolean" post={["optional"]}>
+      provider が `google-authenticator` または `duo` に設定されている場合、ユーザーに MFA が求められるのは
+      30 日に 1 回だけです。provider が `guardian` に設定されている場合、MFA のプロンプトには
+      登録するかどうかをユーザーが選択できるチェックボックスが表示されます。デフォルトは `false` です。詳しくは、
+      [Customize Multi-Factor Authentication Pages](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa) を参照してください。
+    </ResponseField>
+
+    <ResponseField name="providerOptions" type="object" post={["optional"]}>
+      チャレンジを設定するための追加オプションです。`duo` プロバイダーでのみ使用できます。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiredirect">
+  ## `api.redirect`
+</div>
+
+外部リダイレクトを設定して実行します。
+
+<div id="apiredirectencodetokenoptions">
+  ### `api.redirect.encodeToken(options)`
+</div>
+
+`sendUserTo` を介してクエリ文字列パラメーターのリダイレクト先として使用できるセッショントークンを作成します。このトークンには、リダイレクト先のエンドポイントに対して真正性を証明できる必要があるデータが含まれます。リダイレクト先のエンドポイントでは、共有シークレットを使って JWT の署名を検証することで、データの真正性と完全性を確認できます。
+
+共有シークレットは Action の **secret** として保存し、
+`event.secrets['<secret_name>']` で読み取れるようにする必要があります。
+
+<ResponseField name="options" type="tokencreationoptions">
+  機密データを生成される URL のクエリパラメータにどのようにエンコードするかを設定します。
+
+  <Expandable title="options のプロパティ" defaultOpen>
+    <ResponseField name="expiresInSeconds" type="number" post={["optional"]}>
+      この token が期限切れになるまでの秒数
+    </ResponseField>
+
+    <ResponseField name="payload" type="dictionary">
+      リダイレクト先に渡すことを目的としたデータで、その真正性と完全性を証明できる必要があります。
+    </ResponseField>
+
+    <ResponseField name="secret" type="string">
+      リダイレクト先と共有する JWT の署名に使用する secret です。secret の値は **secret** として保存し、
+      `event.secrets['<secret_name>']` を使って取得する必要があります。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiredirectsendusertourl-options">
+  ### `api.redirect.sendUserTo(url, options)`
+</div>
+
+このアクションの完了直後に、login パイプラインで対象の `url` へのブラウザーリダイレクトがトリガーされるようにします。`createUrl` ヘルパーメソッドは、データの真正性と完全性を対象のエンドポイントで検証できるよう、そのデータを対象の `url` のクエリパラメータとしてエンコードする処理を簡単にするために提供されています。
+
+<ResponseField name="url" type="string" />
+
+<ResponseField name="options" type="sendusertooptions" post={["optional"]}>
+  <Expandable title="options プロパティ" defaultOpen>
+    <ResponseField name="query" type="dictionary" post={["optional"]}>
+      リダイレクト URL に追加する追加のクエリ文字列パラメーターを表すオブジェクト。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiredirectvalidatetokenoptions">
+  ### `api.redirect.validateToken(options)`
+</div>
+
+`/continue` エンドポイントに渡された JWT トークンにエンコードされたデータを取得し、
+そのデータの真正性と完全性を検証します。
+
+<ResponseField name="options" type="validatesessiontokenoptions">
+  リダイレクト後に `/continue` エンドポイントに渡された JWT トークンにエンコードされたデータを取得するための Options。
+
+  <Expandable title="options のプロパティ" defaultOpen>
+    <ResponseField name="secret" type="string" />
+
+    <ResponseField name="tokenParameterName" type="string" post={["optional"]}>
+      `/continue` エンドポイントに送信されたクエリ パラメータまたは Body パラメータの名前。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiuser">
+  ## `api.user`
+</div>
+
+ログイン中のユーザーのメタデータを変更します。
+
+<div id="apiusersetappmetadatakey-value">
+  ### `api.user.setAppMetadata(key, value)`
+</div>
+
+ログイン中のユーザーに、アプリケーション固有のメタデータを設定します。
+
+注: このメソッドはコールバックでは使用しないでください。このメソッドを呼び出しても、メタデータはすぐには更新されません。
+同じフロー内の複数の Actions にわたってこのメソッドを複数回呼び出すことができ、エンジンが変更を集約して、
+フローの完了前にメタデータをまとめて更新します。この関数は、オブジェクト形式のメタデータでのみ
+機能します。
+
+<ResponseField name="key" type="string">
+  設定するメタデータのプロパティです。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  メタデータのプロパティの値です。この値を `null` に設定すると、
+  メタデータのプロパティを削除できます。
+</ResponseField>
+
+<div id="apiusersetusermetadatakey-value">
+  ### `api.user.setUserMetadata(key, value)`
+</div>
+
+ログイン中のユーザーの一般的なメタデータを設定します。
+
+注: このメソッドはコールバックでは使用しないでください。このメソッドを呼び出しても、メタデータはすぐには更新されません。
+同じフロー内の複数の Actions にわたってこのメソッドを何度でも呼び出すことができ、エンジンが変更を集約して、
+フローが完了する前にメタデータをまとめて更新します。この関数は、オブジェクト形式のメタデータでのみ
+機能します。
+
+<ResponseField name="key" type="string">
+  設定するメタデータのプロパティ。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  メタデータのプロパティの値です。メタデータのプロパティを削除するには、
+  これを `null` に設定できます。
+</ResponseField>
+
+<div id="apicache">
+  ## `api.cache`
+</div>
+
+キャッシュを変更します。
+
+<div id="apicachedeletekey">
+  ### `api.cache.delete(key)`
+</div>
+
+指定されたキーにキャッシュのレコードが存在する場合は、そのレコードを削除します。
+
+<ResponseField name="key" type="string">
+  削除するキャッシュレコードのキー。
+</ResponseField>
+
+<div id="apicachegetkey">
+  ### `api.cache.get(key)`
+</div>
+
+指定されたキーにあるキャッシュ値のレコードを、存在する場合に取得します。
+レコードが見つかった場合、キャッシュ値は返されるオブジェクトの
+`value` プロパティに格納されています。
+
+<ResponseField name="key" type="string">
+  キャッシュに保存されているレコードのキー。
+</ResponseField>
+
+<div id="apicachesetkey-value-options">
+  ### `api.cache.set(key, value, options)`
+</div>
+
+指定したキーで、キャッシュに文字列値を保存または更新します。
+
+このキャッシュに保存された値は、設定されたトリガーのスコープ内でのみ有効です。これらの値には、[Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations) が適用されます。
+
+この方法で保存された値の有効期間は、指定した `ttl` または `expires_at` の値が上限となります。有効期間を指定しない場合は、デフォルトで 15 分が使用されます。有効期間は、[Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations) に記載された最大時間を超えることはできません。
+
+**重要**: このキャッシュは、短期間のみ保持される一時的なデータ向けに設計されています。指定した有効期間内であっても、後続のトランザクションでは利用できない場合があります。
+
+<ResponseField name="key" type="string">
+  保存するレコードのキー。
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  保存するレコードの値。
+</ResponseField>
+
+<ResponseField name="options" type="cachesetoptions" post={["optional"]}>
+  キャッシュの動作を調整するためのオプション。
+
+  <Expandable title="options プロパティ" defaultOpen>
+    <ResponseField name="expires_at" type="number" post={["optional"]}>
+      Unix エポックからの経過時間をミリ秒で表した絶対的な有効期限です。
+      キャッシュされたレコードはこれより前に削除される場合がありますが、
+      指定した `expires_at` を超えて保持されることはありません。
+
+      *注*: `ttl` にも値が
+      指定されている場合、この値は指定しないでください。両方のオプションが指定された場合は、
+      2 つのうち早い方の有効期限が使用されます。
+    </ResponseField>
+
+    <ResponseField name="ttl" type="number" post={["optional"]}>
+      このキャッシュエントリの有効期間をミリ秒で指定する値です。
+      キャッシュ値はこれより前に削除される場合がありますが、
+      指定した `ttl` を超えて保持されることはありません。
+
+      *注*: `expires_at` にも値が
+      指定されている場合、この値は指定しないでください。両方のオプションが指定された場合は、
+      2 つのうち早い方の有効期限が使用されます。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apisamlresponse">
+  ## `api.samlResponse`
+</div>
+
+カスタムのSAML設定と属性を設定します。
+
+<div id="apisamlresponsesetattributeattribute-value">
+  ### `api.samlResponse.setAttribute(attribute, value)`
+</div>
+
+認証されたユーザーに発行されるSAMLアサーションに属性を設定します。
+
+<ResponseField name="attribute" type="string">
+  設定するSAML属性です。
+</ResponseField>
+
+<ResponseField name="value" type="samlattributevalue">
+  SAMLクレームの値です。この値を `null` または
+  `undefined` に設定すると、アサーションからそのクレームを削除します。
+</ResponseField>
+
+<div id="apisamlresponsesetaudienceaudience">
+  ### `api.samlResponse.setAudience(audience)`
+</div>
+
+SAMLアサーションのaudience。
+デフォルトはSAMLRequestの発行者です。
+
+<ResponseField name="audience" type="string" />
+
+<div id="apisamlresponsesetrecipientrecipient">
+  ### `api.samlResponse.setRecipient(recipient)`
+</div>
+
+SAMLアサーションの受信先 (SubjectConfirmationData) 。
+デフォルトでは、SAMLRequest が送信された場合はその AssertionConsumerUrl、SAMLRequest が送信されなかった場合は コールバック URL になります。
+
+<ResponseField name="recipient" type="string" />
+
+<div id="apisamlresponsesetcreateupnclaimcreateupnclaim">
+  ### `api.samlResponse.setCreateUpnClaim(createUpnClaim)`
+</div>
+
+UPN クレームを作成するかどうかを指定します。既定値は true です。
+
+<ResponseField name="createUpnClaim" type="boolean" />
+
+<div id="apisamlresponsesetpassthroughclaimswithnomappingpassthroughclaimswithnomapping">
+  ### `api.samlResponse.setPassthroughClaimsWithNoMapping(passthroughClaimsWithNoMapping)`
+</div>
+
+true の場合 (デフォルト) 、共通プロファイルにマッピングされていない各クレームは、そのまま出力アサーションに含まれます。
+false の場合、それらのクレームはマッピングされません。
+
+<ResponseField name="passthroughClaimsWithNoMapping" type="boolean" />
+
+<div id="apisamlresponsesetmapunknownclaimsasismapunknownclaimsasis">
+  ### `api.samlResponse.setMapUnknownClaimsAsIs(mapUnknownClaimsAsIs)`
+</div>
+
+passthroughClaimsWithNoMapping が true で、これが false (デフォルト) の場合、共通プロファイルにマッピングされていない各クレームに、Auth0 は `http://schema.auth0.com` というプレフィックスを追加します。
+true の場合、クレームはそのまま渡されます。
+
+<ResponseField name="mapUnknownClaimsAsIs" type="boolean" />
+
+<div id="apisamlresponsesetmapidentitiesmapidentities">
+  ### `api.samlResponse.setMapIdentities(mapIdentities)`
+</div>
+
+true (既定値) の場合、利用可能であれば、プロバイダー (Google、ADFS、AD など) や アクセストークン などの追加情報が token に追加されます。
+
+<ResponseField name="mapIdentities" type="boolean" />
+
+<div id="apisamlresponsesetsignaturealgorithmsignaturealgorithm">
+  ### `api.samlResponse.setSignatureAlgorithm(signatureAlgorithm)`
+</div>
+
+SAMLアサーションまたはレスポンスの署名に使用するアルゴリズムです。
+デフォルトは rsa-sha256 です。
+
+<ResponseField name="signatureAlgorithm" type="string">
+  使用可能な値: `rsa-sha256`
+</ResponseField>
+
+<div id="apisamlresponsesetdigestalgorithmdigestalgorithm">
+  ### `api.samlResponse.setDigestAlgorithm(digestAlgorithm)`
+</div>
+
+SAMLアサーションまたはレスポンスのダイジェスト計算に使用するダイジェストアルゴリズムです。
+デフォルトは sha256 です。
+
+<ResponseField name="digestAlgorithm" type="string">
+  指定可能な値: `sha256`
+</ResponseField>
+
+<div id="apisamlresponsesetdestinationdestination">
+  ### `api.samlResponse.setDestination(destination)`
+</div>
+
+SAML レスポンスの送信先です。指定しない場合は、`SAMLRequest` があるときはその AssertionConsumerUrl、`SAMLRequest` がないときはコールバック URL になります。
+
+<ResponseField name="destination" type="string" />
+
+<div id="apisamlresponsesetlifetimeinsecondslifetimeinseconds">
+  ### `api.samlResponse.setLifetimeInSeconds(lifetimeInSeconds)`
+</div>
+
+トークンの有効期間。
+デフォルトは3600秒 (1時間) です。
+
+<ResponseField name="lifetimeInSeconds" type="number" />
+
+<div id="apisamlresponsesetsignresponsesignresponse">
+  ### `api.samlResponse.setSignResponse(signResponse)`
+</div>
+
+SAML Response に署名するかどうかを指定します。
+デフォルトでは SAMLアサーション には署名されますが、SAML Response には署名されません。
+true の場合、SAMLアサーション ではなく SAML Response に署名されます。
+デフォルトは false です。
+
+<ResponseField name="signResponse" type="boolean" />
+
+<div id="apisamlresponsesetnameidentifierformatnameidentifierformat">
+  ### `api.samlResponse.setNameIdentifierFormat(nameIdentifierFormat)`
+</div>
+
+デフォルト値は urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified です。
+
+<ResponseField name="nameIdentifierFormat" type="string" />
+
+<div id="apisamlresponsesetnameidentifierprobesnameidentifierprobes">
+  ### `api.samlResponse.setNameIdentifierProbes(nameIdentifierProbes)`
+</div>
+
+Auth0 は、この配列内の各属性を順に試します。
+いずれかに値があれば、その値を Subject/NameID として使用します。
+
+順序は次のとおりです。
+
+* http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier (`user_id` からマッピング) ,
+  * http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress (`email` からマッピング) ,
+  * http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name (`name` からマッピング) .
+
+<ResponseField name="nameIdentifierProbes" type="文字列の配列" />
+
+<div id="apisamlresponsesetauthncontextclassrefauthncontextclassref">
+  ### `api.samlResponse.setAuthnContextClassRef(authnContextClassRef)`
+</div>
+
+既定値は `urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified` です。
+
+<ResponseField name="authnContextClassRef" type="string" />
+
+<div id="apisamlresponsesetsigningcertsigningcert">
+  ### `api.samlResponse.setSigningCert(signingCert)`
+</div>
+
+SAML リクエストの検証に使用する公開鍵証明書を、任意で指定します。
+設定すると、SAML リクエストには署名が必須になります。
+値の例: &quot;-----BEGIN CERTIFICATE-----\nMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END CERTIFICATE-----\n&quot;
+
+<ResponseField name="signingCert" type="string" />
+
+<div id="apisamlresponsesetincludeattributenameformatincludeattributenameformat">
+  ### `api.samlResponse.setIncludeAttributeNameFormat(includeAttributeNameFormat)`
+</div>
+
+true に設定すると、属性名に基づいて NameFormat を推測します。NameFormat の値は、urn:oasis:names:tc:SAML:2.0:attrname-format:uri、urn:oasis:names:tc:SAML:2.0:attrname-format:basic、urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified です。
+false に設定すると、SAMLアサーションに属性の NameFormat は設定されません。
+デフォルトは true です。
+
+<ResponseField name="includeAttributeNameFormat" type="boolean" />
+
+<div id="apisamlresponsesettypedattributestypedattributes">
+  ### `api.samlResponse.setTypedAttributes(typedAttributes)`
+</div>
+
+true に設定すると、要素の xs:type が推定されます。型は xs:string、xs:boolean、xs:double、xs:anyType です。
+false に設定すると、すべての xs:type が xs:anyType になります。
+デフォルトは true です。
+
+<ResponseField name="typedAttributes" type="boolean" />
+
+<div id="apisamlresponsesetencryptioncertencryptioncert">
+  ### `api.samlResponse.setEncryptionCert(encryptionCert)`
+</div>
+
+必要に応じて、SAMLアサーションの暗号化に使用する証明書を指定します。
+証明書はサービスプロバイダーから取得してください。
+証明書と公開鍵の両方を指定する必要があります。
+値の例は `"-----BEGIN CERTIFICATE-----\nMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END CERTIFICATE-----\n"` です。
+
+<ResponseField name="encryptionCert" type="string" />
+
+<div id="apisamlresponsesetencryptionpublickeyencryptionpublickey">
+  ### `api.samlResponse.setEncryptionPublicKey(encryptionPublicKey)`
+</div>
+
+必要に応じて、SAMLアサーションの暗号化に使用する公開鍵を指定できます。
+公開鍵はサービスプロバイダーから取得してください。
+公開鍵と証明書は両方とも指定する必要があります。
+値の例: &quot;-----BEGIN PUBLIC KEY-----\nnMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END PUBLIC KEY-----\n&quot;
+
+<ResponseField name="encryptionPublicKey" type="string" />
+
+<div id="apisamlresponsesetcertcert">
+  ### `api.samlResponse.setCert(cert)`
+</div>
+
+デフォルトでは、Auth0 はテナントに割り当てられた秘密キーと公開鍵のペアを使用して、SAMLレスポンスまたはSAMLアサーションに署名します。
+ごく限られた特殊なケースでは、独自の証明書と秘密キーを指定したい場合もあります。
+
+証明書と秘密キーは、両方とも指定する必要があります。
+値の例は、&quot;-----BEGIN CERTIFICATE-----\nMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END CERTIFICATE-----\n&quot; です。
+
+<ResponseField name="cert" type="string" />
+
+<div id="apisamlresponsesetkeykey">
+  ### `api.samlResponse.setKey(key)`
+</div>
+
+デフォルトでは、Auth0 はテナントに割り当てられた秘密キーと公開鍵のペアを使用して、SAMLレスポンスまたはSAMLアサーションに署名します。
+ごく限られたケースでは、独自の証明書と秘密キーを指定したい場合もあります。
+
+この秘密キーは機密情報のため、**Actions の Add Secret 機能を使用することを推奨します**。
+詳細についてはこちらを参照してください: https://auth0.com/docs/customize/actions/write-your-first-action#add-a-secret
+
+証明書と秘密キーの両方を指定する必要があります。
+値の例: &quot;-----BEGIN PRIVATE KEY-----\nnMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END PRIVATE KEY-----\n&quot;
+
+<ResponseField name="key" type="string" />
+
+<div id="apisamlresponsesetrelaystaterelaystate">
+  ### `api.samlResponse.setRelayState(relayState)`
+</div>
+
+必要に応じて、サービスプロバイダー に戻る際に使用する RelayState を指定します
+
+<ResponseField name="relayState" type="string" />
+
+<div id="apisamlresponsesetissuerissuer">
+  ### `api.samlResponse.setIssuer(issuer)`
+</div>
+
+任意で、SAMLアサーションの発行者を指定します。
+デフォルトは `urn:auth0:TENANT` です
+
+<ResponseField name="issuer" type="string" />
+
+<div id="apisamlresponsesetencryptionalgorithmencryptionalgorithm">
+  ### `api.samlResponse.setEncryptionAlgorithm(encryptionAlgorithm)`
+</div>
+
+SAMLアサーションの暗号化アルゴリズムを設定します。
+デフォルトは aes256-cbc です。
+
+<ResponseField name="encryptionAlgorithm" type="string">
+  * 使用するアルゴリズム (aes256-gcm を推奨) 
+
+  許可される値: `aes256-gcm`
+</ResponseField>
+
+```js Set the encryption algorithm to aes256-gcm (recommended)
+api.samlResponse.setEncryptionAlgorithm('aes256-gcm');
+```
+
+<div id="apivalidation">
+  ## `api.validation`
+</div>
+
+バリデーションエラーをスローして、ユーザーのログインを防ぎます。
+
+<div id="apivalidationerrorerrorcode-errormessage">
+  ### `api.validation.error(errorCode, errorMessage)`
+</div>
+
+バリデーションエラーが発生した場合に、エラーをスローします。
+
+<ResponseField name="errorCode" type="string">
+  バリデーションエラー用のカスタムエラーコード。
+</ResponseField>
+
+<ResponseField name="errorMessage" type="string">
+  バリデーションエラー用のカスタムメッセージ。
+</ResponseField>
+
+<div id="apirules">
+  ## `api.rules`
+</div>
+
+現在のトランザクションでルールが実行されたかどうかを判別します。
+
+<div id="apiruleswasexecutedruleid">
+  ### `api.rules.wasExecuted(ruleId)`
+</div>
+
+特定の ID を持つ Rule が、現在のトランザクションで実行済みかどうかを確認します。
+
+<ResponseField name="ruleId" type="string">
+  Rule の ID。
+</ResponseField>
+
+<div id="apiprompt">
+  ## `api.prompt`
+</div>
+
+カスタムプロンプトをレンダリングします。
+
+<div id="apipromptrenderpromptid-promptoptions">
+  ### `api.prompt.render(promptId, promptOptions)`
+</div>
+
+カスタムプロンプトをレンダリングします。
+
+<ResponseField name="promptId" type="string">
+  プロンプトの ID です。
+</ResponseField>
+
+<ResponseField name="promptOptions" type="promptoptions" post={["optional"]}>
+  レンダリング オプションです。
+
+  <Expandable title="promptOptions のプロパティ" defaultOpen>
+    <ResponseField name="fields" type="dictionary" post={["optional"]}>
+      フィールドの値を設定するためのキーと値のペアです (クライアント側) 。
+    </ResponseField>
+
+    <ResponseField name="vars" type="dictionary" post={["optional"]}>
+      変数を注入するためのキーと値のペアです (サーバー側) 。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apirefreshtoken">
+  ## `api.refreshToken`
+</div>
+
+現在のユーザーのリフレッシュトークンの変更をリクエストします。
+
+<div id="apirefreshtokenrevokereason">
+  ### `api.refreshToken.revoke(reason)`
+</div>
+
+[Enterprise のお客様] 現在のユーザーのリフレッシュトークンを取り消し、現在のリフレッシュトークン交換の試行を拒否済みとしてマークします。これにより、
+エンドユーザーはリフレッシュトークン交換フローを完了できなくなり、現在使用中のリフレッシュトークンも取り消されます。
+リフレッシュトークン交換フローはこの Action の完了直後に停止し、以降の Actions は実行されません。
+
+このメソッドは、`event.transaction.protocol === "oauth2-refresh-token"` の場合に、リフレッシュトークン交換フロー中でのみ使用できます。
+
+<ResponseField name="reason" type="string">
+  リフレッシュトークン交換を拒否する理由を、人が読んで理解しやすい形で説明するものです。これは
+  エンドユーザー向けのインターフェイスに直接表示される場合があります。
+</ResponseField>
+
+<div id="apirefreshtokensetexpiresatabsolute">
+  ### `api.refreshToken.setExpiresAt(absolute)`
+</div>
+
+[Enterprise のお客様] 現在のリフレッシュトークンに、新しい絶対有効期限を設定します。
+有効期限は、設定で指定されたリフレッシュトークンの最大有効期間を超えて設定することはできません。
+複数回呼び出された場合は、最も早い有効期限が適用されます。
+
+<ResponseField name="absolute" type="number">
+  必須。新しい絶対有効期限を、Unix エポックからのミリ秒数で指定します。この時刻を過ぎると、リフレッシュトークンは無効と見なされます。
+</ResponseField>
+
+<div id="apirefreshtokensetidleexpiresatinactivity">
+  ### `api.refreshToken.setIdleExpiresAt(inactivity)`
+</div>
+
+[Enterprise のお客様] 現在のリフレッシュトークンに新しいアイドル有効期限を設定します。
+この有効期限は、設定で指定されたリフレッシュトークンの絶対有効期間の最大値を超えて設定することはできません。
+複数回呼び出された場合は、最も早い有効期限が適用されます。
+
+<ResponseField name="inactivity" type="number">
+  必須。新しいアイドル時の非アクティブ時間を、unix epoch からの経過ミリ秒で指定します。この期間中に使用されなかった場合、
+  リフレッシュトークンは無効と見なされます。
+</ResponseField>
+
+<div id="apirefreshtokensetmetadatakey-value">
+  ### `api.refreshToken.setMetadata(key, value)`
+</div>
+
+現在のリフレッシュトークンのメタデータオブジェクトに、キーと値のペアを設定します。
+
+<ResponseField name="key" type="string">
+  必須です。メタデータオブジェクトに設定するキーです。
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  必須です。メタデータオブジェクトでそのキーに設定する値です。null を指定すると、指定したメタデータキーは削除されます。
+</ResponseField>
+
+<div id="apirefreshtokendeletemetadatakey">
+  ### `api.refreshToken.deleteMetadata(key)`
+</div>
+
+現在のリフレッシュトークンのメタデータオブジェクトから、指定したキーを削除します。
+
+<ResponseField name="key" type="string">
+  必須です。メタデータオブジェクトから削除するキーを指定します。
+</ResponseField>
+
+<div id="apirefreshtokenevictmetadata">
+  ### `api.refreshToken.evictMetadata()`
+</div>
+
+現在のリフレッシュトークンのメタデータオブジェクト内のすべてのキーを削除します。
+
+<div id="apisession">
+  ## `api.session`
+</div>
+
+現在のユーザーのセッションの変更をリクエストします。
+
+<div id="apisessionrevokereason-options">
+  ### `api.session.revoke(reason, options)`
+</div>
+
+[Enterprise のお客様] 現在のユーザーセッションを取り消し、現在のログイン試行を拒否としてマークします。これにより、
+エンドユーザーはログインフローを完了できなくなり、セッションも取り消されます。ログインフローはこの Action の完了直後に
+停止し、それ以降の Actions は実行されません。
+
+<ResponseField name="reason" type="string">
+  ログインを拒否する理由を、人が理解しやすい形で説明します。これは
+  エンドユーザー向けのインターフェースに直接表示される場合があります。
+</ResponseField>
+
+<ResponseField name="options" type="sessionrevocationoptions" post={["optional"]}>
+  <Expandable title="options のプロパティ" defaultOpen>
+    <ResponseField name="preserveRefreshTokens" type="boolean" post={["optional"]}>
+      デフォルトは false です。true の場合、システムはセッションを終了し、リフレッシュトークンは保持します。アプリケーションは、リフレッシュトークンの有効期間中、引き続きアクセストークンを取得できます。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```js Revoke the session while preserving refresh tokens
+api.session.revoke('reason', { preserveRefreshTokens: true });
+```
+
+<div id="apisessionsetexpiresatabsolute">
+  ### `api.session.setExpiresAt(absolute)`
+</div>
+
+[Enterprise のお客様] 現在のセッションに新しい絶対有効期限を設定します。
+有効期限は、テナント設定で設定された最大セッション有効期間を超えて設定することはできません。
+複数回呼び出した場合は、最も早い有効期限が使用されます。
+
+<ResponseField name="absolute" type="number">
+  必須。新しい絶対有効期限を、unix epoch からの経過ミリ秒数で指定します。これを過ぎると、セッションは無効と見なされます。
+</ResponseField>
+
+<div id="apisessionsetidleexpiresatinactivity">
+  ### `api.session.setIdleExpiresAt(inactivity)`
+</div>
+
+[Enterprise のお客様] 現在のセッション に新しいアイドル有効期限を設定します。
+この有効期限は、Tenant Settings で設定されたセッション の絶対的な最大有効期間を超えて設定することはできません。
+複数回呼び出された場合は、最も早い有効期限が使用されます。
+
+<ResponseField name="inactivity" type="number">
+  必須。新しいアイドル有効期限を、unix epoch からの経過ミリ秒数で指定します。この期間中にユーザー操作がない場合、セッション は無効と見なされます。
+</ResponseField>
+
+<div id="apisessionsetcookiemodemode">
+  ### `api.session.setCookieMode(mode)`
+</div>
+
+[Enterprise のお客様] [早期アクセス] 現在のセッションの Cookie モードを設定します。指定できる値は、&#39;persistent&#39; または &#39;non-persistent&#39; (一時的) のいずれかです。
+これにより、ブラウザーでセッション Cookie がどのように扱われるかが決まります。
+
+* &#39;persistent&#39;: Cookie は、有効期限が切れるかユーザーが削除するまで保存されます。
+* &#39;non-persistent&#39; (一時的) : Cookie は、ブラウザーを閉じると削除されます。
+
+setCookieMode が複数回呼び出された場合は、最後の呼び出しだけが有効になります。&#39;non-persistent&#39; が設定されている場合、Cookie はブラウザーを閉じると削除されますが、セッション自体は、絶対有効期限またはアイドル有効期限に達するまで、あるいは利用可能な API を通じてセッションが取り消されるまで有効なままです。Cookie モードの詳細については、ドキュメントを参照してください。
+
+<ResponseField name="mode" type="string">
+  必須。現在のセッションの Cookie モードです。
+  &#39;persistent&#39; または &#39;non-persistent&#39; (一時的) のいずれかを指定できます。
+
+  許可される値: `persistent`, `non-persistent`
+</ResponseField>
+
+<div id="apisessionsetmetadatakey-value">
+  ### `api.session.setMetadata(key, value)`
+</div>
+
+[Enterprise のお客様] [早期アクセス] 現在のセッションのメタデータオブジェクトにキーと値のペアを設定します。
+
+<ResponseField name="key" type="string">
+  必須。メタデータオブジェクトに設定するキーです。
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  必須。メタデータオブジェクトでキーに設定する値です。`null` を指定すると、指定したメタデータキーは削除されます。
+</ResponseField>
+
+<div id="apisessiondeletemetadatakey">
+  ### `api.session.deleteMetadata(key)`
+</div>
+
+[Enterprise のお客様] [早期アクセス] 現在のセッションのメタデータオブジェクト内のキーを削除します。
+
+<ResponseField name="key" type="string">
+  必須です。メタデータオブジェクトから削除するキーです。
+</ResponseField>
+
+<div id="apisessionevictmetadata">
+  ### `api.session.evictMetadata()`
+</div>
+
+[Enterprise のお客様] [早期アクセス] 現在のセッションのメタデータオブジェクトから、すべてのキーを削除します。
+
+<div id="apitransaction">
+  ## `api.transaction`
+</div>
+
+トランザクションを変更します。
+
+<div id="apitransactionsetmetadatakey-value">
+  ### `api.transaction.setMetadata(key, value)`
+</div>
+
+指定したキーの値をトランザクションメタデータに保存または更新します。
+
+このメソッドで変更したメタデータは、
+`event.transaction.metadata` オブジェクトにリアルタイムで反映されます。
+
+<ResponseField name="key" type="string">
+  設定するプロパティのキーです。
+</ResponseField>
+
+<ResponseField name="value" type="txmetadatavalue">
+  プロパティの値です。`null` を設定すると、
+  メタデータプロパティを削除できます。
+</ResponseField>
+
+<div id="apigroups">
+  ## `api.groups`
+</div>
+
+ユーザーが所属するグループのメンバーシップ情報を取得します。
+
+<div id="apigroupsgetusergroupsparams">
+  ### `api.groups.getUserGroups(params)`
+</div>
+
+ユーザーが所属するグループの一覧をページネーション形式で取得します。
+
+<ResponseField name="params" type="getusergroupsparams" post={["optional"]}>
+  * ページネーション用オプションを含むオブジェクト。
+
+  <Expandable title="params のプロパティ" defaultOpen>
+    <ResponseField name="take" type="number" post={["optional"]} />
+
+    <ResponseField name="from" type="string" post={["optional"]} />
+  </Expandable>
+</ResponseField>
+
+<div id="apigroupshasgroupmembershipgroups">
+  ### `api.groups.hasGroupMembership(groups)`
+</div>
+
+ユーザーが指定されたグループのいずれかに所属しているかどうかを確認し、
+所属している場合は一致したグループの詳細を返します。
+
+<ResponseField name="groups" type="array of strings">
+  * メンバーシップの確認対象となるグループ識別子 (IDs または名前) の配列。
+</ResponseField>

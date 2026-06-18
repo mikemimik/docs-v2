@@ -1,0 +1,146 @@
+---
+description: Describe los marcadores de posición para subdominios, incluidos los comodines y los marcadores de posición de organización, en la configuración de la aplicación.
+title: Marcadores de posición de URL para subdominios
+---
+
+Puedes usar varios marcadores de posición como entradas de texto dinámicas en tus URL.
+
+<div id="how-url-evaluation-works">
+  ## Cómo funciona la evaluación de URL
+</div>
+
+Una URL que contiene un marcador `{organization_name}` solo se evaluará cuando se cumplan todas las condiciones siguientes:
+
+* La aplicación tiene `organization_usage` configurado como `allow` o `require`
+* Se realizó una transacción en el contexto de una organización (por ejemplo, al iniciar una transacción de autorización con el parámetro de organización: `/authorize?organization=org_bVss9Do3994SIbiH&…`)
+
+Las URL con el marcador `{organization_name}` se evaluarán además de las URL de coincidencia exacta (`https://app.exampleco.com`) y las URL con comodines (`https://*.exampleco.com`). No debe asumir ningún orden específico en la evaluación de las URL.
+
+Evite registrar URL con marcadores de comodín y de Organization en el mismo campo de configuración de una aplicación, ya que esto puede provocar comportamientos no deseados y dificultar la resolución de problemas. Por ejemplo, considere una aplicación con dos **URL de devolución de llamada permitidas**: `https://*.exampleco.com` y `https://{organization_name}.exampleco.com`. Un `redirect_uri` con el valor `https://company-a.exampleco.com` se consideraría válido incluso si no hubiera ninguna Organizations con el nombre `company-a` registrada en su tenant; esto se debe a la evaluación del marcador de comodín.
+
+<div id="wildcard-url-placeholders">
+  ## Marcadores de posición con comodines en las URL
+</div>
+
+Los marcadores de posición con comodines en subdominios **no deben** usarse en aplicaciones en producción. Auth0 recomienda usar URL con el marcador de posición `{organization_name}` cuando corresponda.
+
+<Warning>
+  Los marcadores de posición con comodines en las URL no son compatibles con las [aplicaciones de terceros](/es/docs/get-started/applications/third-party-applications) que tienen controles de seguridad reforzados. Las URL de devolución de llamada, los orígenes permitidos y los orígenes web deben usar URL exactas.
+</Warning>
+
+Administra esta configuración en [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications), en los siguientes campos:
+
+* **Allowed Callback URLs**: Lista de URL a las que Auth0 puede redirigir a los usuarios después de autenticarse.
+* **Allowed Logout URLs**: Lista de URL a las que puedes redirigir a los usuarios después de cerrar sesión en Auth0.
+* **Allows Web Origins**: Lista de URL desde las que puede originarse una solicitud de autorización que use [Cross-Origin Authentication](/es/docs/authenticate/login/cross-origin-authentication), [Device Flow](/es/docs/get-started/authentication-and-authorization-flow/device-authorization-flow) y [web&#95;message as the response mode](/es/docs/authenticate/protocols/oauth).
+* **Allowed Origins (CORS)**: Lista de URL a las que se les permitirá hacer solicitudes desde JavaScript a Auth0 API (normalmente se usa con CORS).
+
+Evita usar marcadores de posición con comodines para subdominios en las devoluciones de llamada y los orígenes permitidos de aplicaciones en producción, ya que esto puede hacer que tu aplicación sea vulnerable a ataques.
+
+Puedes usar el símbolo de asterisco (`*`) como comodín para subdominios, pero debe usarse de acuerdo con las siguientes reglas para que funcione correctamente:
+
+* El protocolo de la URL **debe** ser `http` o `https`. Los protocolos como `com.example.app` y `service:jmx:rmi` no funcionarán.
+* El comodín **debe** estar en un subdominio dentro del componente de nombre de host. `https://*.com` no funcionará.
+* El comodín **debe** estar en el subdominio más alejado del dominio raíz. `https://sub.*.example.com` no funcionará.
+* La URL **no debe** contener más de un comodín. `https://*.*.example.com` no funcionará.
+* Un comodín **puede** llevar como prefijo y/o sufijo otros caracteres válidos del nombre de host. `https://prefix-*-suffix.example.com` funcionará.
+* Una URL con un comodín válido **no** coincidirá con una URL que tenga más de un nivel de subdominio en lugar del comodín. `https://*.example.com` no funcionará con `https://sub1.sub2.example.com`.
+
+<div id="organization-url-placeholders">
+  ## Marcadores de posición de la URL de la organización
+</div>
+
+<div id="organization-name-placeholder">
+  ### Marcador de posición del nombre de la organización
+</div>
+
+Puede usar `{organization_name}` como marcador de posición para especificar dinámicamente el nombre de una Organization registrada en una URL (`https://{organization_name}.exampleco.com`). Las URL con el marcador de posición `{organization_name}` solo deben usarse en dominios que controle por completo. Por ejemplo, si controla el dominio `exampleco.com`, el marcador de posición con el nombre de su Organization es `https://{organization_name}.exampleco.com`.
+
+Administre esta configuración en [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) en los siguientes campos:
+
+* **Allowed Callback URLs**: Lista de URL a las que Auth0 puede redirigir a los usuarios después de autenticarse.
+* **Allowed Origins (CORS)**: Lista de URL autorizadas para realizar solicitudes desde Javascript a Auth0 API (normalmente se usa con CORS).
+
+Se aplican las siguientes restricciones al usar el marcador de posición `{organization_name}`:
+
+* El protocolo de la URL debe ser `http:` o `https:`. `com.example.app://{organization_name}.exampleco.com` no funcionará.
+* El marcador de posición debe estar ubicado en un subdominio dentro del componente de nombre de host. `https://{organization_name}` y `https://exampleco.com/{organization_name}` no funcionarán.
+* El marcador de posición debe estar ubicado en el subdominio más alejado del dominio raíz. `https://sub.{organization_name}.exampleco.com` no funcionará.
+* La URL no debe contener más de un marcador de posición. `https://{organization_name}.{organization_name}.exampleco.com` no funcionará.
+* Un marcador de posición no debe tener prefijos ni sufijos con otros caracteres válidos del nombre de host. `https://prefix-{organization_name}-suffix.exampleco.com` no funcionará.
+* Un marcador de posición **no debe** usarse junto con un comodín en la URL. `https://{organization_name}.*.exampleco.com` no funcionará.
+
+<div id="organization-metadata-placeholder">
+  ### Marcador de posición para metadatos de organización
+</div>
+
+Puedes usar `{organization.metadata.KEY}` como marcador de posición para especificar dinámicamente una URL en función de los metadatos asociados con la organización en la solicitud actual. Esto resulta útil cuando distintas Organizations requieren diferentes URI de inicio de sesión, por ejemplo, cuando cada organización se asigna a un dominio personalizado independiente.
+
+La `KEY` debe comenzar con `public_` o `PUBLIC_` (por ejemplo, `{organization.metadata.public_login_host}`). Las claves sin este prefijo se ignoran en runtime por motivos de seguridad.
+
+Auth0 admite este marcador de posición para la URI de inicio de sesión de la aplicación (initiate&#95;login&#95;uri). Para obtener más información, consulta [URI de inicio de sesión dinámicas con marcadores de posición de metadatos](/es/docs/authenticate/login/auth0-universal-login/configure-default-login-routes).
+
+Las mismas [reglas de validación](#validation-rules) que se aplican a los marcadores de posición de dominios personalizados también se aplican a los marcadores de posición para metadatos de organización (protocolo, ubicación, anidamiento, sin comodines, tipo de datos).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los marcadores de posición para metadatos de organización requieren que la solicitud esté en el contexto de una organización. Si no hay ninguna organización presente, el marcador de posición no se puede resolver y Auth0 usa el `default_redirection_uri` a nivel de tenant.
+</Callout>
+
+<div id="custom-domain-url-placeholders">
+  ## Marcadores de posición de URL de dominios personalizados
+</div>
+
+Puedes usar `{custom_domain.metadata.KEY}` como marcador de posición para especificar dinámicamente una URL en función de los metadatos asociados al dominio personalizado utilizado en la solicitud. Esto te permite admitir múltiples dominios personalizados con distintas URL de aplicación dentro del mismo tenant.
+
+Para obtener una descripción completa de esta función, consulta [múltiples dominios personalizados](/es/docs/customize/custom-domains/multiple-custom-domains)
+
+<div id="validation-rules">
+  ### Reglas de validación
+</div>
+
+<Warning>
+  Los valores de metadata usados como marcadores de posición de URL pueden quedar expuestos a los usuarios finales durante los flujos de autenticación. No uses metadata sensible en los marcadores de posición. Todas las claves de metadata usadas en los marcadores de posición deben comenzar con `public_` para dejar esto explícito.
+</Warning>
+
+Las siguientes restricciones se aplican al usar marcadores de posición de Custom Domain:
+
+* **Prefijo público obligatorio**: La clave de metadata usada en el marcador de posición debe comenzar con `public_` o `PUBLIC_` (por ejemplo, `{custom_domain.metadata.public_callback_subdomain}`). Las claves sin este prefijo se ignoran en el runtime por motivos de seguridad.
+  * **Protocolo**: El protocolo de la URL debe ser `http` o `https`.
+  * **Ubicación**: El marcador de posición debe estar en el componente de dominio o subdominio. No puede usarse en la ruta de la URL.
+    * Válido: `https://{custom_domain.metadata.public_app_url}.example.com/login`
+    * No válido: `https://example.com/{custom_domain.metadata.public_path}`
+  * **Anidación**: No puedes acceder a propiedades de metadata anidadas. Solo se admiten claves de nivel superior.
+  * **Sin comodines**: No se debe usar un marcador de posición de dominio personalizado junto con un comodín (`*`) en la misma URL.
+  * **Tipo de datos**: El valor de la metadata del dominio personalizado debe ser un String. Si la clave no existe o el valor no es un String, la URL se ignora durante la validación.
+
+<div id="supported-fields">
+  ### Campos admitidos
+</div>
+
+Estos marcadores de posición se pueden configurar para las siguientes URL de la aplicación:
+
+* Allowed Callback URLs
+  * Allowed Logout URLs
+  * Allowed Web Origins
+  * Allowed Origins (CORS)
+  * Application Login URI (`initiate_login_uri`). Para obtener más información, consulta [URI de inicio de sesión dinámicas con marcadores de posición de metadata](/es/docs/authenticate/login/auth0-universal-login/configure-default-login-routes#dynamic-login-uris-with-metadata-placeholders).
+
+Para obtener más información, consulta [Application Settings](https://auth0.com/docs/get-started/applications/application-settings#application-uris).
+
+<Note>
+  Los marcadores de posición de dominio personalizado no se admiten para aplicaciones de terceros.
+</Note>
+
+<div id="using-with-organization-placeholders">
+  ### Uso con marcadores de posición de organización
+</div>
+
+Puedes combinar el marcador de posición de Custom Domain con el marcador de posición `{organization_name}`, siempre que tu flujo lo admita. Ambos marcadores de posición se evalúan y se sustituyen en runtime.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Aplicaciones confidenciales y públicas](/es/docs/get-started/applications/confidential-and-public-applications)
+* [Aplicaciones propias y de terceros](/es/docs/get-started/applications/first-party-and-third-party-applications)
+* [Habilitar aplicaciones de terceros](/es/docs/get-started/applications/third-party-applications/configure-third-party-applications)

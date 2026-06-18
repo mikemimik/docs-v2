@@ -1,0 +1,390 @@
+---
+description: Usa My Organization API para permitir que los administradores de organizaciones de Auth0 gestionen sus propios proveedores de identidad y dominios verificados desde tu aplicación.
+sidebarTitle: My Organization API
+title: My Organization API y componente de interfaz de usuario integrable
+validatedOn: 2026-04-14
+---
+
+<Warning>
+  My Organization API y los componente de interfaz de usuario integrable están disponibles actualmente en acceso anticipado para todos los clientes. Al usar esta funcionalidad, aceptas los términos aplicables de la prueba gratuita del [Master Subscription Agreement de Okta](https://www.okta.com/legal/). Para obtener más información sobre el ciclo de lanzamiento de productos de Auth0, consulta [Etapas de lanzamiento de productos](/es/docs/troubleshoot/product-lifecycle/product-release-stages).
+
+  Los clientes son responsables de garantizar que el uso de My Organization API y de los componente de interfaz de usuario integrable cumpla con sus políticas de seguridad y con la legislación aplicable, incluidos los permisos concedidos a sus usuarios finales.
+</Warning>
+
+My Organization API de Auth0 proporciona una interfaz segura con alcance de organización que permite a tus clientes empresariales gestionar sus propias organizaciones dentro de tu tenant de Auth0. Esta API sirve como base técnica para la Administración delegada integrada y las integraciones API-first.
+
+<div id="core-capabilities">
+  ## Capacidades principales
+</div>
+
+Actualmente, la API admite la gestión de lo siguiente:
+
+* detalles de [Auth0 Organization](/es/docs/manage-users/organizations) (nombre, marca y nombre para mostrar)
+* configuración, propiedad y relaciones específicas de la organización
+* [Proveedores de identidad (IdPs)](/es/docs/authenticate/identity-providers) y aprovisionamiento de [SCIM](/es/docs/authenticate/protocols/scim)
+* configuración de dominios y de Home Realm Discovery (HRD)
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  My Organization API te permite un control técnico profundo sobre tu integración. Para lograr la implementación más rápida, te recomendamos encarecidamente comenzar con los componentes de componente de interfaz de usuario integrable, los SDKs y las aplicaciones de ejemplo. Los componentes de componente de interfaz de usuario integrable y las aplicaciones de ejemplo reducen significativamente el tiempo y el esfuerzo necesarios para ofrecer una experiencia de autoservicio a tus clientes y usuarios finales.
+</Callout>
+
+<div id="set-up-my-organization-api">
+  ## Configurar My Organization API
+</div>
+
+<div id="activate-the-my-organization-api-in-auth0-dashboard">
+  ### Activa My Organization API en Auth0 Dashboard
+</div>
+
+1. Ve a **[Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis)**.
+2. Busca el banner de My Organization API.
+3. Selecciona **Activar**.
+   <Frame>![Auth0 Dashboard>Authentication>APIs](/docs/images/cdy7uua7fh8z/my-org-api-activate.png)</Frame>
+4. La API aparece en tu lista de APIs de Applications como My Organization API.
+
+Una vez que actives My Organization API:
+
+* Auth0 deshabilita la API para todas las aplicaciones cliente de forma predeterminada.
+* Debes conceder acceso a las aplicaciones y los roles mediante [autorizaciones de cliente](/es/docs/get-started/applications/application-access-to-apis-client-grants) o políticas de [RBAC](/es/docs/manage-users/access-control/configure-core-rbac/enable-role-based-access-control-for-apis).
+* Tus clientes empresariales pueden obtener los detalles de la organización o configurar IdPs en nombre de sus propias organizaciones.
+
+<div id="default-settings">
+  #### Configuración predeterminada
+</div>
+
+**Dominio de Auth0 frente a dominio personalizado**
+
+My Organization API admite el uso de tu dominio canónico de Auth0 o de tu dominio personalizado, pero debes usar el mismo en todo el proceso, que incluye lo siguiente:
+
+* Solicitar un token de acceso
+* Establecer la audiencia o el valor `aud`
+* Llamar al endpoint de My Organization API
+
+Para obtener más información sobre el uso de dominios personalizados en Auth0, consulta [Custom Domains](/es/docs/customize/custom-domains).
+
+**Políticas de acceso**
+
+De forma predeterminada, My Organization API se activa con las siguientes políticas de acceso de aplicaciones a la API:
+
+* `require_client_grant` para flujos de usuario
+* `deny-all` para flujos de máquina a máquina
+
+Para que una aplicación acceda a My Organization API en nombre del usuario, crea una autorización de cliente para esa aplicación a fin de definir los scopes máximos que puede solicitar. Como alternativa, puedes permitir que cualquier aplicación de tu tenant solicite cualquier scope cambiando los flujos de acceso de usuario a `allow_all`.
+
+<Warning>
+  Auth0 no recomienda usar `allow_all` para los flujos de acceso de usuario porque My Organization API expone información y operaciones sensibles. Debes seguir el principio de privilegio mínimo para asegurarte de que las aplicaciones solo obtengan acceso a lo que realmente necesitan, y así minimizar los posibles riesgos de seguridad.
+</Warning>
+
+Los permisos finales concedidos a la aplicación vendrán determinados por la intersección entre los scopes permitidos por la política de acceso de aplicaciones a la API, los permisos de control de acceso basado en roles (RBAC) asignados al usuario final y cualquier consentimiento otorgado por el usuario (si corresponde).
+
+Para obtener más información sobre cómo administrar las políticas de acceso de aplicaciones a la API y las autorizaciones de cliente asociadas, consulta [Application Access to APIs: Client Grants](/es/docs/get-started/applications/application-access-to-apis-client-grants).
+
+**Duración de los tokens**
+
+My Organization API emite tokens de acceso con una duración fija de 600 segundos (10 minutos). Esta breve duración es una medida de seguridad deliberada diseñada para proteger tu tenant y sus recursos.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  My Organization API seguirá siendo siempre de activación opcional por motivos de seguridad. Deshabilitar la API elimina el acceso de todas las aplicaciones conectadas hasta que vuelva a habilitarse.
+</Callout>
+
+### Configurar los atributos de la aplicación cliente
+
+[Crea una aplicación](/es/docs/get-started/auth0-overview/create-applications) en Auth0 para usarla con My Organization API. Una vez creada, ve a **[Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis)** y autoriza My Organization API, incluidos los scopes que quieres que use la aplicación.
+
+Tu aplicación debe proporcionar el objeto `my_organization_configuration`; de lo contrario, My Organization API devolverá un error y rechazará la solicitud. Puedes usar las siguientes propiedades con el objeto `my_organization_configuration`:
+
+| **Propiedad**                  | **Descripción**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `connection_profile_id`        | **ID del perfil de conexión.** ID del [perfil de conexión](/es/docs/authenticate/enterprise-connections/connection-profile) usado con la aplicación al usar My Organization API. Si no se proporciona, las funciones de My Organization API que requieren un perfil de conexión no funcionarán. Este ID debe hacer referencia a un perfil de conexión válido en el mismo tenant.                                                                                                                                                                                                                                                                                 |
+| `user_attribute_profile_id`    | **ID del perfil de atributos de usuario**. ID del [perfil de atributos de usuario](/es/docs/authenticate/enterprise-connections/user-attribute-profile) usado con la aplicación al usar My Organization API. Si no se proporciona, las funciones de My Organization API que requieren un perfil de atributos de usuario no funcionarán. Este ID debe hacer referencia a un perfil de atributos de usuario válido en el mismo tenant.                                                                                                                                                                                                                                                             |
+| `allowed_strategies`           | **Arreglo de strings.** Cada string es único y hace referencia a una strategy compatible. Las strategies compatibles —los valores de la enum— son las siguientes: `pingfederate`, `ad`, `adfs`, `waad`, `google-apps`, `okta`, `oidc` y `samlp`.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `connection_deletion_behavior` | **Enum (allow, allow&#95;if&#95;empty).** Describe cómo se comporta My Organization API cuando un usuario final intenta eliminar una conexión a través de My Organization API desde esta aplicación. Los valores y la descripción de la enum son los siguientes: <p /> 1. `allow`: Si el usuario tiene el scope correcto, puede eliminar la conexión, lo que hace que se eliminen todos los usuarios que provienen de esa conexión. <p /> 2. `allow_if_empty`: Si el usuario tiene el scope correcto, solo puede eliminar la conexión si no hay usuarios en ella. Si hay usuarios, My Organization API devolverá un error y no continuará con la eliminación. |
+
+<div id="configure-client-application-attributes">
+  #### Configurar los atributos de la aplicación cliente
+</div>
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Para configurar los atributos obligatorios de My Organization API:
+
+    1. Ve a **[Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis)** y selecciona My Organization API.
+    2. Selecciona la pestaña **Application Access**.
+    3. Elige la aplicación que quieres configurar y selecciona **Edit**.
+    4. Configura los siguientes **Settings**:<br />
+       A. **Opcional**. Configura el perfil de conexión. <br />
+
+       1. Selecciona un perfil de conexión existente o crea uno nuevo. Para crear un perfil de conexión nuevo: <br />
+          a. Agrega un nombre.<br />
+          b. Revisa los mapeos para asegurarte de que los atributos de la conexión reflejen la configuración deseada para las conexiones nuevas. <br />
+
+       B. **Opcional**. Configura el perfil de atributos de usuario. <br />
+
+       1. Agrega un nombre. <br />
+       2. Revisa los mapeos para asegurarte de que los atributos del perfil se asignen a los atributos de Auth0 que prefieras. <br />
+
+       C. Configura los proveedores de identidad admitidos. <br />
+
+       1. Habilita uno o más proveedores de identidad. Los administradores del cliente pueden seleccionar su opción preferida de la lista de proveedores habilitados. <br />
+
+       D. Configura el comportamiento de eliminación de la conexión como Allow o Allow if Empty. <br />
+
+       1. **Allow**: si el usuario tiene el scope correcto, puede eliminar la conexión, lo que hará que se eliminen todos los Users que provengan de esa conexión. <br />
+       2. Allow if Empty: si el usuario tiene el scope correcto, solo puede eliminar la conexión si no hay Users en ella. Si hay usuarios, My Organization API devolverá un error y no continuará con la eliminación. <br />
+
+       E. Configura la autorización de acceso de usuario como Unauthorized, Authorized o All. <br />
+
+       1. **Unauthorized**. No se permite ningún permiso. <br />
+       2. **Authorized**. Selecciona los permisos deseados. <br />
+       3. **All**. Incluye todos los permisos actuales y futuros. <br />
+
+       F. Configura la autorización de acceso de las credenciales del cliente como Unauthorized, Authorized o All. <br />
+
+       1. **Unauthorized**. No se permite ningún permiso. <br />
+       2. **Authorized**. Selecciona los permisos deseados. <br />
+       3. **All**. Incluye todos los permisos actuales y futuros. <br />
+    5. Selecciona **Save**.
+  </Tab>
+
+  <Tab title="Management API">
+    Para configurar mediante programación los atributos de la aplicación cliente, en lugar de usar Auth0 Dashboard, utiliza los endpoints disponibles de la Management API. Para usar la Management API, debes obtener un [token de acceso de la Management API](/es/docs/secure/tokens/access-tokens/management-api-access-tokens).
+
+    * [`GET` `/api/v2/clients`](https://auth0.com/docs/api/management/v2/clients/get-clients)
+    * [`POST` `/api/v2/clients`](https://auth0.com/docs/api/management/v2/clients/post-clients)
+    * [`GET` `/api/v2/clients/{id}`](https://auth0.com/docs/api/management/v2/clients/get-clients-by-id)
+    * [`PATCH` `/api/v2/clients/{id}`](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id)
+  </Tab>
+</Tabs>
+
+<div id="generate-an-access-token">
+  ## Generar un token de acceso
+</div>
+
+Solo se puede llamar a My Organization API con un token de acceso vinculado al usuario, obtenido mediante uno de los [flujos de OAuth 2.0](https://auth0.com/docs/get-started/authentication-and-authorization-flow).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si vas a permitir que My Organization API realice operaciones sensibles, te recomendamos encarecidamente que uses la [autenticación escalonada](/es/docs/secure/multi-factor-authentication/step-up-authentication) para aplicar políticas de seguridad adicionales mediante autenticación multifactor (MFA).
+</Callout>
+
+<div id="example-with-authorization-code-flow">
+  ### Ejemplo con el flujo de código de autorización
+</div>
+
+Utiliza [flujo de código de autorización](/es/docs/get-started/authentication-and-authorization-flow/authorization-code-flow) para aplicaciones web confidenciales con un <Tooltip tip="Secreto de cliente: secreto que usa un cliente (aplicación) para autenticarse con el servidor de autorización; solo deben conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio para que no se pueda adivinar." cta="Ver glosario" href="/es/docs/glossary?term=Client+Secret">secreto de cliente</Tooltip>.
+
+```bash
+curl --request POST \
+--url 'https://YOUR_DOMAIN/oauth/token' \
+--header 'content-type: application/x-www-form-urlencoded' \
+--data 'grant_type=authorization_code' \
+--data 'client_id=YOUR_CLIENT_ID' \
+--data 'client_secret=YOUR_CLIENT_SECRET' \
+--data 'code=AUTH_CODE' \
+--data 'redirect_uri=https://yourapp/callback' \
+--data 'audience=https://YOUR_DOMAIN/my-org/'
+```
+
+**Respuesta de ejemplo**
+
+```json
+{
+  "access_token": "eyJz93a...k4laUWw",
+  "token_type": "Bearer",
+  "expires_in": 600,
+  "scope": "read:my_org:details update:my_org:identity_providers"
+}
+```
+
+<div id="example-with-authorization-code-flow-with-pkce">
+  ### Ejemplo con flujo de código de autorización con PKCE
+</div>
+
+Usa el [flujo de código de autorización con Proof Key for Code Exchange (PKCE)](/es/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) para aplicaciones públicas sin secreto de cliente, aplicaciones de página única, aplicaciones móviles o nativas y herramientas de CLI.
+
+```bash
+curl --request POST \
+--url 'https://YOUR_DOMAIN/oauth/token' \
+--header 'content-type: application/x-www-form-urlencoded' \
+--data 'grant_type=authorization_code' \
+--data 'client_id=YOUR_CLIENT_ID' \
+--data 'code=AUTH_CODE' \
+--data 'code_verifier=CODE_VERIFIER' \
+--data 'redirect_uri=https://yourapp/callback' \
+--data 'audience=https://YOUR_DOMAIN/my-org/'
+```
+
+<div id="audience">
+  ### Audiencia
+</div>
+
+La audiencia y la URL base de My Organization API son `https://{yourDomain}/my-org/`. Los tokens deben incluir la audiencia `https://YOUR_DOMAIN/my-org/`. Los tokens de otras API (como `/me` o `/api/v2/`) no funcionarán.
+
+<div id="scopes">
+  ### Scopes
+</div>
+
+| **Scope**                                       | **Descripción**                                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `read:my_org:configuration`                     | Leer la configuración de la organización de un cliente                                       |
+| `read:my_org:details`                           | Leer los detalles de la organización de un cliente                                           |
+| `update:my_org:details`                         | Actualizar los detalles de la organización de un cliente                                     |
+| `create:my_org:identity_providers`              | Crear un proveedor de identidad para la organización                                         |
+| `read:my_org:identity_providers`                | Leer los proveedores de identidad de la organización                                         |
+| `update:my_org:identity_providers`              | Actualizar los proveedores de identidad de la organización                                   |
+| `delete:my_org:identity_providers`              | Eliminar los proveedores de identidad de la organización                                     |
+| `update:my_org:identity_providers_detach`       | Desvincular el proveedor de identidad de la organización                                     |
+| `create:my_org:identity_providers_domains`      | Asociar el dominio de la organización con el proveedor de identidad                          |
+| `delete:my_org:identity_providers_domains`      | Eliminar el dominio de la organización del proveedor de identidad                            |
+| `read:my_org:identity_providers_scim_tokens`    | Enumerar los tokens SCIM de aprovisionamiento de este proveedor de identidad                 |
+| `create:my_org:identity_providers_scim_tokens`  | Crear un token SCIM de aprovisionamiento para este proveedor de identidad                    |
+| `delete:my_org:identity_providers_scim_tokens`  | Eliminar la configuración de un token SCIM de aprovisionamiento de un proveedor de identidad |
+| `create:my_org:identity_providers_provisioning` | Crear la configuración de aprovisionamiento para el proveedor de identidad                   |
+| `read:my_org:identity_providers_provisioning`   | Leer la configuración de aprovisionamiento del proveedor de identidad                        |
+| `update:my_org:identity_providers_provisioning` | Actualizar la configuración de aprovisionamiento del proveedor de identidad                  |
+| `delete:my_org:identity_providers_provisioning` | Eliminar la configuración de aprovisionamiento del proveedor de identidad                    |
+| `read:my_org:domains`                           | Leer los dominios de la organización                                                         |
+| `delete:my_org:domains`                         | Eliminar el dominio de la organización                                                       |
+| `create:my_org:domains`                         | Crear un dominio para la organización                                                        |
+| `update:my_org:domains`                         | Actualizar el dominio de la organización                                                     |
+
+<div id="endpoint-reference">
+  ## Referencia de endpoints
+</div>
+
+My Organization API incluye endpoints para la configuración, los detalles de la organización, los proveedores de identidad, los dominios, las configuraciones de aprovisionamiento y los tokens de SCIM. Para consultar una guía de referencia completa sobre los endpoints, incluidos los esquemas, los códigos de error, etc., consulta nuestro [API Explorer](https://auth0.com/docs/api/myorganization).
+
+<div id="sdk-reference">
+  ## Referencia del SDK
+</div>
+
+La API está disponible como SDK para TypeScript, Java, .NET, Go y Python. Para obtener más información sobre cada implementación del SDK y ver ejemplos de cómo usarlo, consulta nuestra [documentación del SDK](/es/docs/libraries).
+
+<div id="user-profiles">
+  ## Perfiles de usuario
+</div>
+
+My Organization API utiliza [Perfiles de conexión](/es/docs/authenticate/enterprise-connections/connection-profile) y [Perfiles de atributos de usuario](/es/docs/authenticate/enterprise-connections/user-attribute-profile) para definir la estructura, las restricciones y las reglas de las configuraciones creadas por clientes externos.
+
+<div id="connection-profile-cp">
+  ### Perfil de conexión (CP)
+</div>
+
+El Perfil de conexión permite a los desarrolladores de Auth0 especificar cómo se deben configurar los ajustes privados de una conexión de Auth0 cuando la crean terceros. Para obtener más información sobre cómo funciona el Perfil de conexión, sus mapeos de atributos y sobrescrituras, ver ejemplos y aprender a configurar uno, consulta [Connection Profiles](/es/docs/authenticate/enterprise-connections/connection-profile).
+
+<div id="user-attribute-profile-uap">
+  ### perfil de atributos de usuario (UAP)
+</div>
+
+El perfil de atributos de usuario (UAP) ofrece una forma coherente de definir, gestionar y mapear atributos de usuario en distintos protocolos, como SCIM, SAML y OIDC. Para obtener más información sobre cómo funciona el UAP, sus mapeos de atributos y sobrescrituras, ver ejemplos y aprender a configurar uno, consulta [User Attribute Profiles](/es/docs/authenticate/enterprise-connections/user-attribute-profile).
+
+<div id="rate-limits">
+  ## Límites de frecuencia
+</div>
+
+Los límites de frecuencia se aplican en función de tu nivel de servicio:
+
+| **Plan**                        | **Lectura (RPS)** | **Escritura (RPS)** |
+| ------------------------------- | ----------------- | ------------------- |
+| **Free**                        | 4                 | 2                   |
+| **Público de autoservicio**     | 8                 | 4                   |
+| **Público empresarial**         | 40                | 20                  |
+| **Privado básico**              | 40                | 20                  |
+| **Privado de alto rendimiento** | 160               | 80                  |
+
+<div id="per-organization-rate-limits">
+  ### Límites de frecuencia por organización
+</div>
+
+Además de los límites de frecuencia del plan de servicio, My Organization API también aplica límites de frecuencia por organización. Estos límites están diseñados para garantizar una asignación justa de los recursos y evitar que una sola organización afecte al rendimiento general de tu tenant. Al aplicar estos límites, mitigamos el efecto de “vecino ruidoso”, para asegurar que un aumento repentino de la actividad de una organización no consuma recursos compartidos ni afecte a otra dentro del mismo entorno. A cada organización se le asigna una cantidad específica de solicitudes por segundo (RPS), tanto para operaciones de lectura como de escritura.
+
+| **Nivel**               | **Lectura por organización (RPS)** | **Escritura por organización (RPS)** |
+| ----------------------- | ---------------------------------- | ------------------------------------ |
+| **Free**                | 4                                  | 2                                    |
+| **Public Self-Service** | 4                                  | 2                                    |
+| **Public Enterprise**   | 8                                  | 4                                    |
+| **Private Basic**       | 8                                  | 4                                    |
+| **Private Performance** | 16                                 | 8                                    |
+
+<div id="cross-origin-requests">
+  ## Solicitudes de origen cruzado
+</div>
+
+Si tienes previsto llamar a My Organization API directamente desde una aplicación basada en navegador (como una Single Page Application) que se ejecuta en un dominio distinto al de tu tenant de Auth0, te encontrarás con las políticas de seguridad del navegador conocidas como [Cross-Origin Resource Sharing (CORS)](/es/docs/get-started/applications/set-up-cors). De forma predeterminada, los navegadores bloquean estas solicitudes de origen cruzado.
+
+Para permitir que tu aplicación pueda hacer solicitudes a la API correctamente, debes añadir el dominio de tu aplicación (su “origen”) a la configuración de tu cliente:
+
+1. Ve a [**Auth0 Dashboard &gt; Applications**](https://manage.auth0.com/#/applications). Selecciona la aplicación para verla.
+2. En Cross-Origin Authentication, activa la opción Allow Cross-Origin Authentication.
+3. Busca Allowed Origins (CORS) e introduce la URL de origen de tu aplicación.
+4. Selecciona **Save**.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si no necesitas usar CORS en tu aplicación, asegúrate de que Allow Cross-Origin Authentication esté desactivado. Añadir la URL de tu aplicación a esta lista le indica a Auth0 que confíe en las solicitudes procedentes de ese origen, lo que permite que tu aplicación del lado del cliente acceda a la API.
+</Callout>
+
+<div id="log-events">
+  ## Eventos de log
+</div>
+
+Para facilitar una auditoría detallada y el monitoreo, My Organization API genera un conjunto específico de eventos de log exclusivos de esta API. Aunque tu tenant seguirá [emitiendo logs estándar del sistema](/es/docs/deploy-monitor/logs/log-event-type-codes), la siguiente tabla muestra la lista completa de tipos de eventos que activa específicamente la actividad de My Organization API.
+
+Estos códigos de evento te permiten rastrear la actividad en todos los recursos administrados por la API, en concreto: configuración, detalles de la organización, IdPs y dominios. Si quieres obtener más información sobre los esquemas de los eventos de log, puedes consultar nuestro [repositorio de GitHub](https://github.com/auth0/auth0-log-schemas).
+
+| **Código de evento**                        | **Evento**                                                      | **Descripción del evento**                                                                           |
+| ------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `my_organization_api_config_failed`         | Error en la configuración de My Organization API                | Llamada fallida a la API al recurso de configuración del servicio My Organization API                |
+| `my_organization_api_org_details_succeeded` | Detalles de la organización de My Organization API correctos    | Llamada correcta a la API al recurso de detalles de la organización del servicio My Organization API |
+| `my_organization_api_org_details_failed`    | Error en los detalles de la organización de My Organization API | Llamada fallida a la API al recurso de detalles de la organización del servicio My Organization API  |
+| `my_organization_api_idp_succeeded`         | Proveedor de identidad de My Organization API correcto          | Llamada correcta a la API al recurso de proveedor de identidad del servicio My Organization API      |
+| `my_organization_api_idp_failed`            | Error en el proveedor de identidad de My Organization API       | Llamada fallida a la API al recurso de proveedor de identidad del servicio My Organization API       |
+| `my_organization_api_domain_succeeded`      | Dominio de My Organization API correcto                         | Llamada correcta a la API al recurso de dominio del servicio My Organization API                     |
+| `my_organization_api_domain_failed`         | Error en el dominio de My Organization API                      | Llamada fallida a la API al recurso de dominio del servicio My Organization API                      |
+
+<div id="organization-connection-ownership">
+  ## Titularidad de la conexión de la organización
+</div>
+
+La API introduce un modelo de titularidad para distinguir entre las conexiones administradas por el Admin del tenant y las autoadministradas por la organización. Esto se controla mediante la propiedad `organization_access_level`.
+
+**Propiedad clave**: `organization_access_level`
+
+| **Valor enum** | **Descripción**                                                                                                                                                                                                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `none`         | Asociación asignada por el administrador del tenant. Esta conexión no se puede ver ni editar mediante la My Organization API.                                                                                                                                                                              |
+| `readonly`     | Asociación asignada por el administrador del tenant. Se puede ver, pero no editar mediante la My Organization API.                                                                                                                                                                                         |
+| `limited`      | Asociación asignada por el administrador del tenant. Se permiten modificaciones y acceso a información limitados mediante la My Organization API, concretamente en los atributos `show_as_button` e `is_enabled`.                                                                                          |
+| `full`         | Asociación asignada por el administrador del tenant. Los usuarios de la My Organization API podrán modificar los atributos de la conexión específicos de la organización sin restricciones adicionales, concretamente los atributos `show_as_button`, `is_enabled`, `options`, `display_name` y `domains`. |
+
+**Endpoints de Management API para conexiones**:
+
+* `GET` [`/api/v2/organizations/{id}/connections`](https://auth0.com/docs/api/management/v2/organizations/get-organization-connection)
+* `POST` [`/api/v2/organizations/{id}/connections`](https://auth0.com/docs/api/management/v2/organizations/post-organization-connection)
+* `PATCH` [`/api/v2/organizations/{id}/connections/{id}`](https://auth0.com/docs/api/management/v2/organizations/patch-organization-connection)
+* `DELETE` [`/api/v2/organizations/{id}/connections/{id}`](https://auth0.com/docs/api/management/v2/organizations/delete-organization-connection)
+
+Cuando llames a los endpoints de `/connections`, usa los mismos scopes que usarías para los endpoints de `/enabled_connections`:
+
+* `create:organization_connections`
+* `read:organization_connections`
+* `delete:organization_connections`
+* `update:organization_connections`
+
+Revisa los atributos adicionales del esquema:
+
+| **Propiedad**                  | **Descripción**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `is_enabled`                   | **Boolean**. Habilita o deshabilita una conexión para una organización. Al deshabilitar la conexión, será posible conservar los valores del objeto de la conexión mientras la conexión siga deshabilitada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `organization_access_level`    | **Enum (null, none, readonly, limited, full)**. Determina el tipo de acceso que tendrá un usuario al usar la My Organization API: 1. `null` 2. `none` - Asociación asignada por el administrador del tenant. Esta conexión no se puede ver ni editar mediante la My Organization API. 3. `readonly` - Asociación asignada por el administrador del tenant. Esta conexión se puede ver, pero no editar mediante la My Organization API. 4. `limited` - Asociación asignada por el administrador del tenant. Se permiten información y modificaciones limitadas mediante la My Organization API. 5. `full` - Asociación asignada por el administrador del tenant. Los usuarios de la My Organization API podrán modificar la conexión sin restricciones adicionales al usar la My Organization API. Nota: Independientemente de `organization_access_level`, las modificaciones realizadas mediante la My Organization API siempre están sujetas a las restricciones aplicadas por el perfil de la conexión. |
+| `organization_connection_name` | **String**. Almacena el nombre proporcionado al crear la conexión. La My Organization API calcula este campo al evaluar `connection_name_prefix_template` del perfil de la conexión. Este campo solo es visible y modificable mediante la Management API.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+Notas:
+
+* Estos endpoints aceptan un query parameter opcional `is_enabled=true/false` y, si está presente, solo muestran las conexiones que tienen el valor `is_enabled` especificado.
+* `organization_access_level` solo se puede cambiar mediante la Management API.
+* Si el atributo `name` no está establecido, debe completarse mediante la Management API antes de cambiar `organization_access_level` de `none` a cualquier otro valor.
+
+<div id="auth0-universal-components">
+  ## Auth0 Universal Components
+</div>
+
+Recomendamos encarecidamente empezar con nuestros componentes de interfaz de usuario integrables, [Auth0 Universal Components](/es/docs/get-started/universal-components/universal-components-overview), en lugar de optar por una integración API-first. Estos recursos pueden reducir significativamente el tiempo de desarrollo y ofrecer rápidamente una experiencia de autoservicio a tus clientes.

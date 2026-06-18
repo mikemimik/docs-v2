@@ -1,0 +1,704 @@
+---
+description: Décrit la migration des claims Legacy avec espace de noms vers des claims personnalisés.
+title: Migrer vers les claims personnalisés
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+À compter du 28 juillet 2022, Auth0 permettra d’ajouter des claims personnalisées privées sans espace de noms aux jetons d’accès et aux <Tooltip tip="ID Token : information d’identification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=ID+tokens">jetons ID</Tooltip>. Ces mêmes claims seront également ajoutées à la réponse du [point de terminaison `/userinfo`](https://auth0.com/docs/api/authentication#get-user-info). Pour en savoir plus sur les types de claims <Tooltip tip="ID Token : information d’identification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=JWT">JWT</Tooltip>, consultez [les claims JSON Web Token](/fr-CA/docs/secure/tokens/json-web-tokens/json-web-token-claims).
+
+<Warning>
+  Même si Auth0 permet l’utilisation de claims personnalisées privées sans espace de noms, Auth0 recommande fortement d’utiliser des claims personnalisées publiques avec espace de noms chaque fois que possible. Les claims personnalisées publiques avec espace de noms constituent la meilleure façon d’éviter tout conflit avec de futures claims ajoutées à la norme.
+</Warning>
+
+<div id="example">
+  #### Exemple
+</div>
+
+Auparavant, Auth0 n’autorisait que les claims avec espace de noms dans les <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=access+tokens">jetons d’accès</Tooltip> et les jetons d’identité. Avec la migration vers les claims personnalisées, il est possible d’utiliser des claims sans espace de noms dans les jetons d’accès, les jetons d’identité et le endpoint `/userinfo` de l’Authentication API d’Auth0.
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // revendications personnalisées publiques avec espace de noms 
+  api.accessToken.setCustomClaim('https://myDomain.com/myClaim', 'this is a public, namespaced claim');
+  api.idToken.setCustomClaim('https://myDomain.com/myClaim', 'this is a public, namespaced claim');
+
+  // revendications personnalisées sans espace de noms
+  api.accessToken.setCustomClaim('myClaim', 'this is a private, non namespaced claim');
+  api.idToken.setCustomClaim('myClaim', 'this is a private, non namespaced claim');
+};
+```
+
+<div id="affected-flows">
+  ## Flux concernés
+</div>
+
+Tous les flux <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) pris en charge par Auth0 sont concernés par cette migration. Pour consulter la liste des flux, lisez [Flux d’authentification et d’autorisation](/fr-CA/docs/get-started/authentication-and-authorization-flow).
+
+Les fonctionnalités suivantes sont également concernées :
+
+* [Native Social Login](/fr-CA/docs/get-started/authentication-and-authorization-flow)
+* [Jetons d’actualisation](/fr-CA/docs/secure/tokens/refresh-tokens)
+
+Les fonctionnalités suivantes sont concernées uniquement lorsqu’elles sont utilisées avec [Auth0 Rules](/fr-CA/docs/customize/rules) et le mappage d’attributs :
+
+* [Web Services Federation Protocol (WS-Fed)](/fr-CA/docs/authenticate/protocols/ws-fed-protocol)
+* [SAML2 Web app add-on](/fr-CA/docs/authenticate/protocols/saml/saml-sso-integrations/enable-saml2-web-app-addon)
+
+<div id="restrictions">
+  ## Restrictions
+</div>
+
+<div id="maximum-token-size">
+  ### Taille maximale du jeton
+</div>
+
+Auth0 limite la charge utile des revendications personnalisées à un maximum de 100 KB. Il est important de vous assurer que cette charge utile ne dépasse pas cette limite, sinon la transaction d’authentification échouera et générera une erreur. Nous vous recommandons de passer en revue votre utilisation du code d’extensibilité (c.-à-d. [Rules](/fr-CA/docs/customize/rules), [Hooks](/fr-CA/docs/customize/hooks) ou [Actions](/fr-CA/docs/customize/actions)). Portez une attention particulière aux charges utiles de grande taille provenant d’API externes.
+
+Pour éviter les erreurs, Auth0 recommande d’utiliser la plus petite charge utile de jeton nécessaire au fonctionnement de votre application. Vous devrez peut-être retirer les propriétés non essentielles avant de définir la valeur de la revendication personnalisée.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Cette restriction s’applique à la taille totale de la charge utile de toutes vos revendications personnalisées. Cela comprend les noms des revendications personnalisées ainsi que les valeurs associées, qu’elles soient publiques avec espace de noms ou privées sans espace de noms.
+</Callout>
+
+La limite de 100 KB s’applique séparément aux jetons d’accès et aux jetons d’identité. Par exemple, un jeton d’accès de 100 KB et un jeton d’identité de 100 KB peuvent être renvoyés dans la même transaction.
+
+<div id="examples">
+  #### Exemples
+</div>
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // récupération d'un payload supérieur à 100 Ko
+  const aHeavyPayload = getHeavyPayload();
+
+  // ceci fera échouer l'authentification
+  api.idToken.setCustomClaim('myclaim', aHeavyPayload);
+
+};
+```
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // récupération d'un payload de 50 Ko
+  const a50KBPayload = getHeavyPayload();
+
+  // récupération d'un autre payload de 50 Ko
+  const another50KBPayload = getHeavyPayload();
+
+  // ceci fera échouer l'authentification
+  api.idToken.setCustomClaim('myclaim', a50KBPayload);
+  api.idToken.setCustomClaim('https://myDomain.com/myClaim', another50KBPayload);
+
+};
+```
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // récupération d'un payload de 50 Ko
+  const a50KBPayload = getHeavyPayload();
+
+  // récupération d'un autre payload de 50 Ko
+  const another50KBPayload = getHeavyPayload();
+
+  // ceci réussira
+  api.accessToken.setCustomClaim('myclaim', a50KBPayload);
+  api.idToken.setCustomClaim('https://myDomain.com/myClaim', another50KBPayload);
+
+};
+```
+
+<div id="restricted-claims">
+  ### Claims restreints
+</div>
+
+Auth0 limite la personnalisation des claims utilisés dans les normes OIDC ou OAuth2, ainsi que des claims réservés à un usage interne. Toute tentative de modifier l’un de ces claims sera ignorée. La transaction n’échouera pas, mais le claim ne sera pas ajouté aux jetons. Auth0 recommande d’utiliser un claim public avec espace de noms.
+
+* `acr`
+* `act`
+* `active`
+* `amr`
+* `at_hash`
+* `ath`
+* `attest`
+* `aud`
+* `auth_time`
+* `authorization_details`
+* `azp`
+* `c_hash`
+* `client_id`
+* `cnf`
+* `cty`
+* `dest`
+* `entitlements`
+* `events`
+* `exp`
+* `groups`
+* `gty`
+* `htm`
+* `htu`
+* `iat`
+* `internalService`
+* `iss`
+* `jcard`
+* `jku`
+* `jti`
+* `jwe`
+* `jwk`
+* `kid`
+* `may_act`
+* `mky`
+* `nbf`
+* `nonce`
+* `object_id`
+* `org_id`
+* `org_name`
+* `orig`
+* `origid`
+* `permissions`
+* `roles`
+* `rph`
+* `s_hash`
+* `sid`
+* `sip_callid`
+* `sip_cseq_num`
+* `sip_date`
+* `sip_from_tag`
+* `sip_via_branch`
+* `sub`
+* `sub_jwk`
+* `toe`
+* `txn`
+* `typ`
+* `uuid`
+* `vot`
+* `vtm`
+* `x5t#S256`
+
+<div id="example">
+  #### Exemple
+</div>
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // ceci sera ignoré
+  api.accessToken.setCustomClaim('roles', 'this is a role, but Auth0 will ignore it');
+
+  // ceci réussira et apparaîtra dans le token
+  api.idToken.setCustomClaim('https://myDomain.com/roles', 'this is a role');
+
+};
+```
+
+<div id="restricted-token-audience">
+  ### Audience de jeton restreinte
+</div>
+
+Auth0 limitera la création de revendications personnalisées privées, sans espace de noms, sur les jetons d’accès dont l’<Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Nommée aud dans un jeton, sa valeur contient l’ID d’une application (Client ID) pour un jeton ID ou d’une API (API Identifier) pour un jeton d’accès." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=audience">audience</Tooltip> est une Auth0 API. Toute tentative de définir une revendication personnalisée privée, sans espace de noms, sur un jeton d’accès dont l’audience est une Auth0 API sera ignorée. La transaction n’échouera pas, mais la revendication ne sera pas ajoutée à votre jeton. Auth0 recommande de ne pas définir de revendications personnalisées sur les jetons destinés à être consommés par les API d’Auth0.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  * Les jetons ID ne sont pas concernés par cette restriction.
+  * Les revendications personnalisées publiques avec espace de noms ne sont pas concernées par cette restriction.
+</Callout>
+
+Les audiences suivantes limiteront la création de revendications personnalisées privées, sans espace de noms :
+
+* `https://YOUR_TENANT.auth0.com/api` ou `https://YOUR_TENANT.auth0app.com/api`
+* `https://YOUR_TENANT.auth0.com/api/v2` ou `https://YOUR_TENANT.auth0app.com/api/v2`
+* `https://YOUR_TENANT.auth0.com/mfa` ou `https://YOUR_TENANT.auth0app.com/mfa`
+
+L’exception à cette restriction est l’audience Auth0 `/userinfo`. Les revendications personnalisées privées, sans espace de noms, sont autorisées pour les audiences suivantes :
+
+* `https://YOUR_TENANT.auth0.com/userinfo`
+* `https://YOUR_TENANT.auth0app.com/userinfo`
+
+<div id="examples">
+  #### Exemples
+</div>
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // ceux-ci seront ignorés si l'audience est une audience Auth0
+  api.accessToken.setCustomClaim('myATclaim', 'this is a claim');
+  api.accessToken.setCustomClaim('https://myDomain.com/myATclaim', 'this is a claim');
+
+  // ceux-ci réussiront, ils ne sont pas touchés par la restriction d'audience
+  api.idToken.setCustomClaim('myIdTclaim', 'this is a claim');
+  api.idToken.setCustomClaim('https://myDomain.com/myIdTclaim', 'this is a claim');
+
+};
+```
+
+L’exemple ci-dessous illustre la réponse renvoyée avec des claims personnalisés si l’audience n’est pas une API Auth0 :
+
+```text lines
+-- Un flux Resource Owner Password 
+POST https://{yourTenant}.auth0.com/oauth/token
+
+grant_type:password
+username:***
+password:***
+client_id:***
+client_secret:***
+audience:https://{yourApi}.com -- Notez l'audience, il s'agit d'une API personnalisée
+scope:openid profile
+```
+
+export const codeExample = `// Le jeton d’accès renvoyé par Auth0
+{
+  "iss": "https://{yourTenant}.auth0.com/",
+  "sub": ***,
+  "aud": [
+    "https://{yourApi}.com",
+    "https://{yourTenant}.auth0.com/userinfo"
+  ],
+  "iat": 1655283444,
+  "exp": 1655369844,
+  "azp": ***,
+  "scope": "openid profile",
+  "gty": "password",
+
+  // Les claims personnalisés ont été ajoutés, car l’audience ne correspond pas à une audience Auth0
+  "myATclaim": "il s’agit d’un claim",
+  "https://{yourDomain}.com/{myATclaim}": "il s’agit d’un claim"
+}`;
+
+<AuthCodeBlock children={codeExample} language="json" />
+
+L’exemple ci-dessous montre la réponse renvoyée lorsque des claims personnalisés ne sont pas ajoutés avec une audience Auth0 API :
+
+```text lines
+-- Un flow Resource Owner Password 
+POST https://{yourTenant}.auth0.com/oauth/token
+
+grant_type:password
+username:***
+password:***
+client_id:***
+client_secret:***
+audience:https://{yourTenant}.auth0.com/api/v2/ -- Il s'agit d'une audience Auth0 
+scope:openid profile
+```
+
+```json lines
+// Le jeton d'accès retourné par Auth0
+{
+  "iss": "https://{yourTenant}.auth0.com/",
+  "sub": ***,
+  "aud": [
+    "https://{yourTenant}.auth0.com/api/v2/",
+    "https://{yourTenant}.auth0.com/userinfo"
+  ],
+  "iat": 1655283444,
+  "exp": 1655369844,
+  "azp": ***,
+  "scope": "openid profile",
+  "gty": "password",
+
+  // Les revendications personnalisées avec espace de noms public ont été ajoutées, car elles ne sont pas visées par cette restriction
+  // Cependant, la revendication personnalisée privée sans espace de noms {myATclaim} a été ignorée
+  "https://mydomain.com/{myATclaim}": "this is a claim"
+}
+```
+
+<div id="restriction-on-auth0-and-webtask-namespaces">
+  ## Restriction concernant les espaces de noms Auth0 et Webtask
+</div>
+
+Auth0 limitera la création de custom claims avec espace de noms qui utilisent un domaine Auth0 comme identificateur d’espace de noms. Les domaines Auth0 sont :
+
+* auth0.com
+* webtask.io
+* webtask.run
+
+Toute tentative de définir un custom claim avec espace de noms dans un token en utilisant l’un des domaines ci-dessus comme identificateur sera ignorée. La transaction n’échouera pas, mais le claim ne sera pas ajouté à votre token.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Avant cette migration, le fait de définir un custom claim avec espace de noms à l’aide d’un identificateur de domaine Auth0 faisait en sorte que le claim apparaissait dans la réponse `/userinfo`. Ce comportement disparaît après la migration, et ces custom claims sont complètement ignorés.
+</Callout>
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // aucun de ces éléments ne sera ajouté aux jetons ni à la réponse /userinfo
+  api.idToken.setCustomClaim('https://example.auth0.com', 'this is a claim');
+  api.idToken.setCustomClaim('https://example.webtask.io', 'this is a claim');
+  api.idToken.setCustomClaim('https://example.webtask.run', 'this is a claim');
+
+};
+```
+
+<div id="oidc-user-profile-claims">
+  ### Claims OIDC du profil utilisateur
+</div>
+
+Auth0 permettra désormais d’ajouter des claims OIDC du profil utilisateur aux jetons d’accès.
+
+Avant cette migration, les tentatives d’ajout de claims OIDC du profil utilisateur au jeton d’accès étaient ignorées sans message. Avec ce comportement mis à jour, les jetons d’accès contiendront ces claims OIDC du profil utilisateur.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si vous ajoutez des claims OIDC du profil utilisateur aux jetons d’accès, les mêmes restrictions de `scope` s’appliquent que pour les jetons ID. Par exemple, pour ajouter le claim `email` aux jetons d’accès, le flow doit être déclenché avec un `scope` contenant `email`.
+</Callout>
+
+Vous pouvez ajouter les claims OIDC du profil utilisateur suivants aux jetons d’accès :
+
+* `address`
+* `birthdate`
+* `email`
+* `email_verified`
+* `family_name`
+* `gender`
+* `given_name`
+* `locale`
+* `middle_name`
+* `name`
+* `nickname`
+* `phone_number`
+* `phone_number_verified`
+* `picture`
+* `preferred_username`
+* `profile`
+* `updated_at`
+* `website`
+* `zoneinfo`
+
+<div id="example">
+  #### Exemple
+</div>
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // ceci était ignoré jusqu'à présent. À partir de cette migration, le claim sera ajouté aux jetons d'accès 
+  // si le scope contient 'email'
+  api.accessToken.setCustomClaim('email', 'myemail@domin.com');
+
+  // ceci était ignoré jusqu'à présent. À partir de cette migration, le claim sera ajouté aux jetons d'accès 
+  // si le scope contient 'profile'
+  api.accessToken.setCustomClaim('family_name', 'A family name');
+
+};
+```
+
+<div id="saml2-add-on-and-web-service-federation-protocol-ws-fed-attribute-mapping-with-auth0-rules">
+  ### Mappage d’attributs du module complémentaire SAML2 et du protocole Web Service Federation (WS-Fed) avec Auth0 Rules
+</div>
+
+Comme lorsque vous utilisez Auth0 Rules pour modifier l’objet utilisateur, les claims de prémigration `app_metadata` ou `user_metadata` fusionnent aussi leur contenu lorsque le claim est défini sur l’objet `context.idToken` et qu’il y a conflit de noms. Pour en savoir plus sur les propriétés de l’objet, consultez [Propriétés de l’objet utilisateur dans Rules](/fr-CA/docs/customize/rules/user-object-in-rules).
+
+Toutefois, avec les claims personnalisés, Auth0 accorde la priorité au claim défini sur l’objet `context.idToken`.
+
+Ce changement a une incidence sur les Auth0 Rules qui définissent `app_metadata` et `user_metadata` à l’aide de `context.id_token` (en leur attribuant des objets) et qui, en même temps, utilisent ces champs dans le mappage d’attributs pour le module complémentaire <Tooltip tip="Security Assertion Markup Language (SAML): Protocole normalisé permettant à deux parties d’échanger des renseignements d’authentification sans mot de passe." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=SAML">SAML</Tooltip> ou le protocole <Tooltip tip="Web Service Federation (WS-Fed): Protocole de gestion des identités d’utilisateur entre domaines." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Web+Service+Federation">Web Service Federation</Tooltip> (WS-Fed).
+
+Exemple 1 : Auth0 ignore le mappage d’attributs lorsque `context.idToken.app_metadata` est défini comme un objet vide.
+
+```javascript lines
+// une règle Auth0
+function (user, context, callback) {
+
+  user.app_metadata.a_claim = 'This is a claim';
+  user.app_metadata.another_claim = 'This is a another claim';
+
+  context.samlConfiguration = context.samlConfiguration || {};
+
+  context.samlConfiguration.mappings = {
+    "a_claim": "app_metadata.a_claim",
+    "another_claim": "app_metadata.another_claim"
+  };
+
+  context.idToken.app_metadata = {};
+
+  return callback(null, user, context);
+}
+```
+
+Réponse SAML avant cette migration :
+
+```xml lines
+<samlp:Response>
+    (...)
+    <saml:Assertion>
+        (...)
+        <saml:AttributeStatement xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <saml:Attribute Name="a_claim" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+                <saml:AttributeValue xsi:type="xs:string">
+                    This is a claim
+                </saml:AttributeValue>
+            </saml:Attribute>
+            <saml:Attribute Name="another_claim" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+                <saml:AttributeValue xsi:type="xs:string">
+                    This is a another claim
+                </saml:AttributeValue>
+            </saml:Attribute>
+        </saml:AttributeStatement>
+    </saml:Assertion>
+</samlp:Response>
+```
+
+Réponse SAML avec le comportement mis à jour :
+
+```xml lines
+<samlp:Response>
+    (...)
+    <saml:Assertion>
+        (...)
+        <saml:AttributeStatement xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    </saml:Assertion>
+</samlp:Response>
+```
+
+Exemple 2 : La version de `app_metadata` dans `context.id_token` a priorité.
+
+```javascript lines
+// une règle Auth0
+function (user, context, callback) {
+
+  user.app_metadata.a_claim = 'This is a claim';
+  user.app_metadata.another_claim = 'This is a another claim';
+
+  context.samlConfiguration = context.samlConfiguration || {};
+
+  context.samlConfiguration.mappings = {
+    "a_claim": "app_metadata.a_claim",
+    "another_claim": "app_metadata.another_claim",
+    "claim_set_via_id_token": "app_metadata.claim_set_via_id_token"
+  };
+
+  context.idToken.app_metadata = {
+  	claim_set_via_id_token: "This is a claim which was set via context.idToken"
+  };
+
+  return callback(null, user, context);
+}
+```
+
+SAML Response avant cette migration :
+
+```xml lines
+<samlp:Response>
+    (...)
+    <saml:Assertion>
+        (...)
+        <saml:AttributeStatement xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <saml:Attribute Name="a_claim">
+                <saml:AttributeValue xsi:type="xs:anyType">
+                    This is a claim
+                </saml:AttributeValue>
+            </saml:Attribute>
+            <saml:Attribute Name="another_claim">
+                <saml:AttributeValue xsi:type="xs:anyType">
+                    This is a another claim
+                </saml:AttributeValue>
+            </saml:Attribute>
+            <saml:Attribute Name="claim_set_via_id_token">
+                <saml:AttributeValue xsi:type="xs:anyType">
+                    This is a claim which was set via context.idToken
+                </saml:AttributeValue>
+            </saml:Attribute>
+        </saml:AttributeStatement>
+    </saml:Assertion>
+</samlp:Response>
+```
+
+Réponse SAML avec le comportement mis à jour :
+
+```xml lines
+<samlp:Response>
+    (...)
+    <saml:Assertion>
+        (...)
+        <saml:AttributeStatement xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <saml:Attribute Name="claim_set_via_id_token" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+                <saml:AttributeValue xsi:type="xs:string">
+                    This is a claim which was set via context.idToken
+                </saml:AttributeValue>
+            </saml:Attribute>
+        </saml:AttributeStatement>
+    </saml:Assertion>
+</samlp:Response>
+```
+
+<div id="add-private-non-namespace-claims-to-tokens">
+  ### Ajouter des claims privés sans espace de noms aux jetons
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Le comportement des claims personnalisés ne changera pas pour les membres du programme bêta des claims personnalisés. Cette fonctionnalité est déjà activée.
+</Callout>
+
+Vous pouvez maintenant ajouter des claims personnalisés privés sans espace de noms au payload des jetons d’accès et d’ID.
+
+<div id="example">
+  #### Exemple
+</div>
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // précédemment ignoré
+  // À partir de cette migration, la revendication sera ajoutée aux jetons d'accès
+  api.accessToken.setCustomClaim('myATclaim', 'this is a claim');
+
+  // précédemment ignoré
+  // À partir de cette migration, la revendication sera ajoutée aux jetons d'ID
+  api.idToken.setCustomClaim('myIdTclaim', 'this is a claim');
+
+};
+```
+
+<div id="private-non-namespace-claims-to-userinfo">
+  ### Revendications privées sans espace de noms dans /userinfo
+</div>
+
+Auth0 renvoie maintenant des revendications personnalisées privées sans espace de noms dans la réponse /userinfo lorsqu’elles sont définies dans des jetons d’identité.
+
+<div id="example">
+  #### Exemple
+</div>
+
+```javascript lines
+// une action Auth0 
+exports.onExecutePostLogin = async (event, api) => {
+
+  // ceci était ignoré jusqu'à présent. 
+  // À partir de cette migration, cette revendication sera retournée dans /userinfo
+  api.idToken.setCustomClaim('myIdTclaim', 'this is a claim');
+
+};
+```
+
+```text lines
+-- un appel à /userinfo 
+GET https://{yourTenant}.auth0.com/userinfo
+Authorization: Bearer {yourAccessToken}
+```
+
+```json lines
+// la réponse de /userinfo
+{
+    "sub": ***,
+    (...)
+    "myIdTclaim": "this is a claim"
+}
+```
+
+<div id="actions">
+  ## Actions
+</div>
+
+<div id="review-tenant-logs">
+  ### Vérifier les journaux du tenant
+</div>
+
+Vérifiez d’abord les journaux de votre tenant pour repérer les avis de dépréciation et déterminer si votre tenant est touché par la migration.
+
+1. Dans Auth0, accédez à [Dashboard &gt; Monitoring &gt; Logs](https://manage.auth0.com/#/logs).
+2. Recherchez dans les journaux `type: depnote AND description: *Custom*claims*`.
+
+### Exemple
+
+Vous trouverez ci-dessous un exemple de journal de dépréciation généré chaque fois que le code d’extensibilité est déclenché.
+
+```json lines expandable
+{
+  "date": "2022-06-28T08:12:52.084Z",
+  "type": "depnote",
+  "description": "Custom claims must be namespaced: This feature is being deprecated. Please see details.feature of this log for more information.",
+  "connection_id": "",
+  "client_id": ****,
+  "client_name": ****,
+  "details": {
+    "feature": {
+      "grant": "password",
+      "access_token_claims_to_be_allowed": [
+        "myclaim"
+      ],
+      "access_token_claims_to_be_disallowed": [
+        "gty"
+      ],
+      "id_token_claims_to_be_allowed": [
+        "myclaim"
+      ],
+      "id_token_claims_to_be_disallowed": [
+        "gty"
+      ],
+      "id": "legacy_custom_claims",
+      "name": "Custom claims must be namespaced when they are added through rules / actions / hooks."
+    }
+  },
+  "log_id": ****,
+  "_id": ****,
+  "isMobile": false,
+  "user_agent": "Other 0.0.0 / Other 0.0.0",
+  "id": ****
+}
+```
+
+<div id="fix-auth0-rules-for-saml2-add-on-and-web-service-federation-protocol-ws-fed">
+  ### Corriger les Auth0 Rules pour le SAML2 add-on et le Web Service Federation Protocol (Ws-Fed)
+</div>
+
+Si vous définissez des claims `app_metadata` ou `user_metadata` sur l’objet `context.idToken` à l’aide du SAML2 add-on ou du Web Service Federation Protocol (Ws-Fed) avec Auth0 Rules, en combinaison avec le mappage d’attributs, vous devrez mettre à jour votre configuration pour tenir compte de la façon dont Auth0 évalue les noms de claims en conflit entre ces objets. Plusieurs correctifs sont possibles :
+
+* Assurez-vous que le code de votre Auth0 Rule donne toujours priorité au contenu des objets définis sur `context.id_token` :
+
+  ```javascript lines
+  // my_claim sera ignoré, cette ligne de code n'est plus pertinente,
+  // préférez définir my_claim sur `context.idToken`
+  user.app_metadata.my_claim = 'a value'; 
+
+  // cette version de app_metadata aura priorité sur toute autre modification 
+  context.idToken.app_metadata = {
+    another_claim: 'another value'
+  };
+
+  // Seul `another_claim` apparaîtra dans les réponses SAML/WsFed
+  ```
+
+* Si vous utilisez le mappage d’attributs du SAML2 add-on ou du Web Service Federation Protocol (Ws-Fed), évitez de définir des claims `app_metadata` ou `user_metadata` sur l’objet `context.idToken`. Remplacez ces claims par des claims avec espace de noms lorsque c’est possible :
+
+  ```js lines
+  context.idToken['https://mydomain.com/app_metadata'] = {
+    my_claim: 'my claim'
+  };
+  ```
+
+* Utilisez une condition sur le protocole actuel ou sur le client actuel pour exclure les instructions qui définissent `app_metadata` ou `user_metadata` lorsque le protocole est `samlp` ou `wsfed`.
+
+  ```js lines
+  if (!['samlp', 'wsfed'].includes(context.protocol)) {
+      context.idToken.app_metadata = {
+        claim_set_via_id_token: "This is a claim which was set via context.idToken"
+      };
+  }
+  ```
+
+<div id="disable-legacy-behavior">
+  ### Désactiver le comportement Legacy
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Avant de désactiver le comportement Legacy, nous vous recommandons de passer en revue la liste des modifications et de vérifier que vos applications et intégrations sont compatibles.
+</Callout>
+
+<Warning>
+  Si votre tenant n’a pas l’option de bascule, cela signifie qu’il n’est pas touché et qu’aucune autre intervention n’est nécessaire.
+</Warning>
+
+1. Accédez à [Auth0 Dashboard &gt; Tenant Settings &gt; Advanced](https://manage.auth0.com/dashboard/#/tenant/advanced) et recherchez **Migrations**.
+2. Utilisez la bascule pour désactiver **Custom claims must be namespaced**.

@@ -1,0 +1,338 @@
+---
+description: Auth0 Android v1 アプリを SDK バージョン 2 に移行する方法を学びます
+title: Auth0 Android v2 移行ガイド
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Auth0 Android SDKのバージョン2には、Auth0をAndroidアプリケーションに連携するためのさまざまな改善が含まれています。**このアップグレードには互換性のない変更が含まれています。** v2への移行時に必要となる変更を把握するために、このガイドを確認してください。
+
+<div id="requirements-changes">
+  ## 要件の変更
+</div>
+
+v2 では、Android API レベル 21 以降と Java 8 以上が必要です。
+
+Android および Kotlin プラグインでそれぞれ Java 8 バイトコードをターゲットにするため、`build.gradle` には次の設定が必要です。
+
+```kotlin lines
+android {
+  compileOptions {
+      sourceCompatibility JavaVersion.VERSION_1_8
+      targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  kotlinOptions {
+      jvmTarget = '1.8'
+  }
+}
+```
+
+<div id="open-id-connect-only">
+  ## OpenID Connect のみ
+</div>
+
+v2 では、OIDC準拠のアプリケーションのみがサポートされています。ユーザーの認証にこの SDK を使用する場合は、現行の Auth0 認証パイプラインとエンドポイントのみが使用されます。`Auth0` クラスから `setOIDCConformant(boolean value)` メソッドは削除されました。
+
+詳しくは、[OpenID Connect Protocol](/ja/docs/authenticate/protocols/openid-connect-protocol) をご覧ください。
+
+<div id="authorization-code-with-pkce">
+  ## PKCE を使用した認可コード
+</div>
+
+v2 でサポートされるのは、[PKCE (Proof Key for Code Exchange) を使用した認可コード](/ja/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) フローのみです。`WebAuthProvider.Builder` の `withResponseType(@ResponseType int type)` メソッドは削除されました。
+
+<div id="removal-of-webview-support">
+  ## WebViewサポートの廃止
+</div>
+
+非推奨となっていた、`WebView`コンポーネントを使用した認証機能を削除しました。セキュリティとユーザーの信頼を高めるため、代わりに常に外部ブラウザーアプリケーションが使用されます。
+
+<div id="removal-of-legacy-authentication-api-support">
+  ## レガシー認証APIサポートの廃止
+</div>
+
+レガシーに分類される[認証API](https://auth0.com/docs/api/authentication)の呼び出しに特化したメソッドとクラスを削除しました。完全な一覧については、以下の**削除されたクラスとインターフェース**のセクションを参照してください。
+
+<div id="request-interfaces-changes">
+  ## リクエストインターフェースの変更
+</div>
+
+`com.auth0.android.request`パッケージでは、HTTPリクエストを構築・実行するための最上位インターフェースを定義しています。これまで、すべてのリクエストタイプにカスタムヘッダーやリクエストパラメーターを追加できないことが、よくある課題でした。そこで、任意のリクエストに追加のヘッダーやリクエストパラメーターを設定してカスタマイズできるよう、リクエストインターフェースをリファクタリングしました。なお、これらのパラメータは`String`型である必要があります。
+
+最上位の`Request`インターフェースでは、次のメソッドが定義されるようになりました。
+
+* `public fun addParameters(parameters: Map<String, String>): Request<T, U>`
+* `public fun addParameter(name: String, value: String): Request<T, U>`
+* `public fun addHeader(name: String, value: String): Request<T, U>`
+
+次のインターフェースは削除されました。
+
+* `ParameterizableRequest`
+* `AuthRequest`
+
+これに伴い、`AuthenticationAPIClient`でも多くのメソッドの戻り値の型が変更されています。以下はその例です。
+
+* `ParameterizableRequest`、`TokenRequest`、または`DatabaseConnectionRequest`を返していたメソッドは、現在は`Request`を返します
+
+* `AuthRequest`を返していたメソッドは、現在は`AuthenticationRequest`を返します
+
+これらのメソッドの戻り値の型を直接使用している場合は、上記の説明に合わせてコード側で想定する型を変更する必要があります。`start`または`execute`を連結してリクエストを実行しているだけであれば、変更は不要です。
+
+`AuthenticationRequest`インターフェースからは、`setAccessToken("{ACCESS-TOKEN}")`メソッドも削除されました。このメソッドは、2017年6月に無効化された[/oauth/access&#95;token](https://auth0.com/docs/api/authentication#social-with-provider-s-access-token) Authentication APIのレガシーエンドポイントに送信するリクエストにトークンを設定するためのものでした。この名前のパラメータを送信する必要がある場合は、`addParameter("access_token", "{ACCESS-TOKEN}")`を使用してください。
+
+`ParameterizableRequest`または`AuthRequest`を実装していたクラスは、これらの変更に対応するよう更新されています。
+
+完全な一覧については、以下の**削除されたクラスとインターフェース**セクションを参照してください。
+
+<div id="networking-client-customization">
+  ## ネットワーキングクライアントのカスタマイズ
+</div>
+
+v2 では、このライブラリによる HTTP リクエストの送信方法をより柔軟にカスタマイズできるようになりました。新しいインターフェース `NetworkingClient` は、HTTP リクエストを実行するための契約を定義します。`Auth0` クラスには、`NetworkingClient` のインスタンスを設定できます。これにより、ネットワーキングクライアントを完全に制御する独自の実装を提供できます。さらに、このライブラリが提供するデフォルトのネットワーキングクライアントは、一般的なカスタマイズポイントを簡単に設定できるよう、いくつかのサンプルとなるカスタマイズポイントをサポートしています。
+
+<div id="timeout-configuration">
+  ### タイムアウト設定
+</div>
+
+export const codeExample1 = `// 変更前
+val account = Auth0("{yourClientId}", "{yourDomain}")
+
+account.connectTimeoutInSeconds = 30
+account.readTimeoutInSeconds = 30
+
+val authAPI = AuthenticationAPIClient(account)
+
+// 変更後
+val netClient = DefaultClient(
+    connectTimeout = 30,
+    readTimeout = 30
+)
+
+val account = Auth0("{yourClientId}", "{yourDomain}")
+account.networkingClient = netClient`;
+
+<AuthCodeBlock children={codeExample1} language="kotlin" />
+
+<div id="logging-configuration">
+  ### ログ設定
+</div>
+
+export const codeExample2 = `// 変更前
+val account = Auth0("{yourClientId}", "{yourDomain}")
+account.isLoggingEnabled = true
+
+val authAPI = AuthenticationAPIClent(account)
+
+// 変更後
+val netClient = DefaultClient(
+    enableLogging = true
+)
+
+val account = Auth0("{yourClientId}", "{yourDomain}")
+account.networkingClient = netClient`;
+
+<AuthCodeBlock children={codeExample2} language="kotlin" />
+
+<div id="detailed-change-listing">
+  ## 変更内容の詳細一覧
+</div>
+
+<div id="files-that-changed-their-package">
+  ### パッケージが変更されたファイル
+</div>
+
+* `com.auth0.android.authentication.request.ProfileRequest` クラスは `com.auth0.android.request.ProfileRequest` に移動しました。
+* `com.auth0.android.authentication.request.SignUpRequest` クラスは `com.auth0.android.request.SignUpRequest` に移動しました。
+
+<div id="internal-package">
+  ### 内部パッケージ
+</div>
+
+このlibraryの以前のバージョンでは、`com.auth0.android.request.internal`パッケージ内のいくつかのクラスが公開されていました。これらはもともとlibraryの公開APIの一部として意図されたものではなく、Javaのドキュメントでも直接使用しないよう注意されていました。コードベースがKotlinに移行したため、現在は`internal`修飾子を活用し、必要に応じて使用しています。これらのクラスはJavaプロジェクトでは`public`クラスとして見える場合がありますが、使用しないでください。これらは現在もこのlibraryの公開APIの一部ではありません。
+
+これらのクラスについてはサポートを提供しません。必要に応じて、予告なく変更します。
+
+<div id="classes-and-interfaces-removed">
+  ### 削除されたクラスとインターフェース
+</div>
+
+* `com.auth0.android.util.Base64` クラスは削除されました。代わりに `android.util.Base64` を使用してください。
+* `com.auth0.android.request.ParameterizableRequest` インターフェースは削除されました。リクエストヘッダーとパラメータを追加する機能は、`com.auth0.android.request.Request` インターフェースに移されました。
+* `com.auth0.android.request.AuthRequest` インターフェースは削除されました。代わりに `com.auth0.android.request.AuthenticationRequest` インターフェースを使用してください。
+* `com.auth0.android.provider.WebAuthActivity` クラスは削除されました。認証には常に外部ブラウザーアプリケーションが使用されます。
+* `com.auth0.android.result.Delegation` クラスは削除されました。これは Authentication API のレガシーエンドポイントへのリクエストの結果として使用されていましたが、このエンドポイントは 2017 年 6 月に無効化されました。
+* `com.auth0.android.authentication.request.DelegationRequest` クラスは削除されました。これは Authentication API のレガシーエンドポイントへのリクエストを表すために使用されていましたが、このエンドポイントは 2017 年 6 月に無効化されました。
+* `com.auth0.android.util.Telemetry` クラスは `com.auth0.android.util.Auth0UserAgent` に名前が変更されました。
+* `com.auth0.android.request.AuthorizableRequest` クラスは削除されました。同じことは `addHeader("Authorization", "Bearer {TOKEN_VALUE}")` を使って実現できます。
+* `com.auth0.android.authentication.request.TokenRequest` クラスは削除されました。Code Verifier とリクエストヘッダーおよびパラメータを設定する機能は、`com.auth0.android.request.Request` インターフェースに移されました。
+* `com.auth0.android.authentication.request.DatabaseConnectionRequest` クラスは削除されました。リクエストヘッダーやパラメータを設定する機能は、`com.auth0.android.request.Request` インターフェースに移されました。
+* `com.auth0.android.provider.VoidCallback` クラスは削除されました。引数を取らないコールバックを使用する機能は、`Callback<Void, AuthenticationException>` に置き換えられました。
+* `com.auth0.android.request.ErrorBuilder` インターフェースは削除されました。
+* `com.auth0.android.RequestBodyBuildException` クラスは削除されました。
+* `com.auth0.android.util.CheckHelper` クラスは削除されました。
+* `com.auth0.android.util.JsonRequired` インターフェースは削除されました。
+* `com.auth0.android.util.JsonRequiredTypeAdapterFactory` クラスは削除されました。
+
+<div id="constants-removed">
+  ### 削除された定数
+</div>
+
+* `ParameterBuilder.GRANT_TYPE_JWT` は削除されました。
+* `ParameterBuilder.ID_TOKEN_KEY` は削除されました。
+* `ParameterBuilder.DEVICE_KEY` は削除されました。
+* `ParameterBuilder.ACCESS_TOKEN_KEY` は削除されました。
+* `ResponseType.CODE`、`ResponseType.ID_TOKEN`、`ResponseType.ACCESS_TOKEN` は削除されました。
+
+<div id="classes-and-interfaces-changed">
+  ### 変更されたクラスとインターフェース
+</div>
+
+* `SignupRequest` は、削除された `AuthRequest` ではなく、`AuthenticationRequest` を実装するようになりました
+* `AuthorizableRequest` は、削除された `ParameterizableRequest` ではなく、`Request` を継承するようになりました
+* `BaseCallback` は非推奨になりました。代わりに `Callback` を使用してください。
+
+<div id="constructors-changed">
+  ### コンストラクタの変更
+</div>
+
+* `Context` から `AuthenticationAPIClient` を生成することはできなくなりました。代わりに `AuthenticationAPIClient(auth0: Auth0)` を使用してください。`Auth0` のインスタンスは `Context` を使って作成できます。
+* `Context` から `UsersAPIClient` を生成することはできなくなりました。代わりに `UsersAPIClient(auth0: Auth0, token: String)` を使用してください。`Auth0` のインスタンスは `Context` を使って作成できます。
+* `SignupRequest` では、2 番目のパラメータに `AuthenticationRequest` が必須になりました。
+* `ProfileRequest` では、`AuthenticationRequest` と `Request<UserProfile, AuthenticationException>` が必須になりました。
+* `"expires in"` の値を指定して `Credentials` を生成することはできなくなりました。代わりに、有効期限の日付または `"expires at"` を指定してください。通常、`Credentials` を自分で生成することはありません。
+
+<div id="methods-removed-or-changed">
+  ### 削除または変更されたメソッド
+</div>
+
+<div id="auth0-methods-removed">
+  #### 削除された Auth0 メソッド
+</div>
+
+* `setOIDCConformant(boolean enabled)` と `isOIDCConformant()` は削除されました。SDK は現在、OIDC準拠のアプリケーションのみをサポートしています。
+* `doNotSendTelemetry()` は削除されました。代替手段はありません。
+* `setWriteTimeoutInSeconds(seconds)` と `getWriteTimeoutInSeconds(seconds)` は削除されました。代替手段はありません。
+* `setReadTimeoutInSeconds(seconds)` と `getReadTimeoutInSeconds(seconds)` は削除されました。読み取りタイムアウトは `DefaultClient` クラスで直接カスタマイズできます。`DefaultClient(readTimeout = 123)` を使用してください。
+* `setConnectTimeoutInSeconds(seconds)` と `getConnectTimeoutInSeconds(seconds)` は削除されました。接続タイムアウトは `DefaultClient` クラスで直接カスタマイズできます。`DefaultClient(connectTimeout = 123)` を使用してください。
+* `setLoggingEnabled(boolean enabled)` と `isLoggingEnabled()` は削除されました。ネットワークトラフィックのロガーは `DefaultClient` クラスで直接有効にできます。`DefaultClient(enableLogging = true)` を使用してください。これはデバッグ目的でのみ使用し、本番環境では決して有効にしないでください。
+* `setTLS12Enforced()` と `isTLS12Enforced()` は削除されました。SDK は現在、デフォルトで最新の TLS をサポートしています。
+
+<div id="authenticationapiclient-methods-removed-or-changed">
+  #### AuthenticationAPIClient で削除または変更されたメソッド
+</div>
+
+* `setUserAgent(String)` は削除されました。送信するヘッダーは、各 `Request` インスタンスに対して `addHeader("{NAME}", "{VALUE}")` メソッドで直接設定するか、`DefaultClient(defaultHeaders = mapOf())` コンストラクターパラメータを使用して ネットワーキングクライアント インスタンス全体に対して設定できます。
+
+レガシー に分類される [Authentication APIs](https://auth0.com/docs/api/authentication) の呼び出し専用のメソッドとクラスは、v2 で削除されました。削除されたメソッドは次のとおりです。
+
+* `delegation()`, `delegationWithIdToken("{ID-TOKEN}")`, `delegationWithRefreshToken("{REFRESH-TOKEN}")`, および `delegationWithIdToken("{ID-TOKEN}", "{API-TYPE}}")`。レガシー Authentication API endpoint のサポートは削除されました。
+* `loginWithOAuthAccessToken("{TOKEN}", {CONNECTION})`。一部のソーシャルプロバイダーでは、代わりに `loginWithNativeSocialToken("{TOKEN}", "{TOKEN-TYPE}")` を使用できます。
+* `tokenInfo("{ID-TOKEN}")`。代わりに `userInfo("{ACCESS-TOKEN}")` を使用してください。
+
+`ParameterizableRequest` を返していたメソッドは、現在は `Request` を返します。
+
+* `userInfo("{ACCESS-TOKEN}")`
+* `revokeToken("{REFRESH-TOKEN}")`
+* `renewAuth("{REFRESH-TOKEN}")`
+* `passwordlessWithEmail("{EMAIL}", PasswordlessType, "{CONNECTION}")`
+* `passwordlessWithSMS("{PHONE-NUNBER}", PasswordlessType, "{CONNECTION}")`
+* `fetchJsonWebKeys()`
+
+`AuthRequest` を返していたメソッドは、現在は `AuthenticationRequest` を返します。
+
+* `login("{USERNAME-OR-EMAIL}", "{PASSWORD}", "{REALM-OR-CONNECTION}")`
+* `login("{USERNAME-OR-EMAIL}", "{PASSWORD}")`
+* `loginWithOTP("{MFA-TOKEN}", "{OTP}")`
+* `loginWithNativeSocialToken("{TOKEN}", "{TOKEN-TYPE}")`
+* `loginWithPhoneNumber("{PHONE-NUMBER}", "{VERIFICATION-CODE}", "{REALM-OR-CONNECTION}")`
+* `loginWithEmail("{EMAIL}", "{VERIFICATION-CODE}", "{REALM-OR-CONNECTION}")`
+
+`DatabaseConnectionRequest` を返していたメソッドは、現在は `Request` を返します。
+
+* `createUser("{EMAIL}", "{PASSWORD}", "{USERNAME}", "{CONNECTION}")`
+* `resetPassword("{EMAIL}","{CONNECTION}")`
+
+`TokenRequest` を返していたメソッドは、現在は `Request` を返します。
+
+* `token("{AUTHORIZATION-CODE}", "{CODE-VERIFIER}", "{REDIRECT-URI}")`
+
+<div id="authenticationrequest-methods-removed">
+  #### AuthenticationRequest で削除されたメソッド
+</div>
+
+* `addAuthenticationParameters(parameters)` は削除されました。代わりに `addParameters(parameters)` を使用してください。
+* `setDevice("{DEVICE}").` は削除されました。代わりに `addParameter("device", "{VALUE}")` を使用してください。
+
+<div id="webauthproviderbuilder-methods-removed">
+  #### WebAuthProvider.Builder メソッドの削除
+</div>
+
+* `useCodeGrant(boolean useCodeGrant)`。代替手段はありません。v2 でサポートされるのは Code + PKCE フローのみです。
+* `useBrowser(boolean useBrowser)`。代替手段はありません。この library では WebView authentication はサポートされなくなりました。
+* `useFullscreen(boolean useFullscreen)`。代替手段はありません。この library では WebView authentication はサポートされなくなりました。
+* `withResponseType(@ResponseType int type)`。代替手段はありません。v2 でサポートされるのは Code + PKCE フローのみです。
+* `start(activity: Activity, callback: AuthCallback, requestCode: Int)` は削除されました。代わりに `start(activity: Activity, callback: Callback<Credentials, AuthenticationException>)` を使用してください。
+
+<div id="webauthproviderlogoutbuilder-methods-removed">
+  #### WebAuthProvider.LogoutBuilder のメソッドを削除
+</div>
+
+* `start(context: Context, callback: VoidCallback)`。代わりに `start(context: Context, callback: Callback<Void, AuthenticationException>)` を使用してください。
+
+<div id="webauthprovider-methods-removed">
+  #### WebAuthProvider で削除されたメソッド
+</div>
+
+* `init(account: Auth0)` は削除されました。代わりに `login(account: Auth0)` を使用してください。
+* `init(context: Context)` は削除されました。代わりに `login(account: Auth0)` を使用してください。
+* `resume(requestCode: Int, resultCode: Int, intent: Intent)` は削除されました。代わりに `resume(intent: Intent)` を使用してください。
+* `init(account: Auth0)` は削除されました。代わりに `login(account: Auth0)` を使用してください。
+
+<div id="parameterbuilder-methods-removed">
+  #### ParameterBuilder メソッドを削除
+</div>
+
+* `setDevice("{DEVICE}")` は削除されました。代わりに `set("device", "{VALUE}")` を使用してください。
+
+<div id="usersapiclient-methods-changed">
+  #### UsersAPIClient のメソッドが変更されました
+</div>
+
+* `setUserAgent(String)` は削除されました。送信するヘッダーは、各 `Request` インスタンスで `addHeader("{NAME}", "{VALUE}")` メソッドを使って直接設定するか、`DefaultClient(defaultHeaders = mapOf())` コンストラクタパラメータを使用してネットワーキングクライアントのインスタンス全体に設定できます。
+
+`ParameterizableRequest` を返していたメソッドは、現在は `Request` を返します。
+
+* `link("{PRIMARY-USER-ID}", "{SECONDARY-TOKEN}")`
+* `unlink("{PRIMARY-USER-ID}", "{SECONDARY-USER-ID}", "{SECONDARY-PROVIDER}")`
+* `updateMetadata("{USER-ID}", userMetadata)`
+* `getProfile("{USER-ID}")`
+
+<div id="requestfactory-methods-removed-or-changed">
+  #### RequestFactory メソッドの削除または変更
+</div>
+
+`RequestFactory` クラスには、JSONのリクエストボディやレスポンスのシリアライズ／デシリアライズを含め、HTTPリクエストを簡単に行うためのメソッドが含まれています。`com.auth0.android.request.internal` パッケージの一部であるため、公開利用を想定したものではありませんが、公開型であることから、変更点の概要を以下に示します。
+
+* すべてのリクエストメソッドは、特定の HTTP リクエストライブラリ (たとえば `OkHttp`) に依存しないようリファクタリングされました
+* すべてのリクエストメソッドは `Request` を返すようになりました。
+* すべてのリクエストメソッドは小文字になりました (たとえば、`POST()` -&gt; `post()`) 。
+* `authenticationPOST` メソッドは代替手段なしで削除されました。これは、すべての `Request` インスタンスで必要に応じて任意のヘッダーを設定できるためです。
+
+<div id="profilerequest-methods-changed">
+  #### ProfileRequest メソッドが変更されました
+</div>
+
+* `addParameters` メソッドでは、値として String から Object への Map ではなく、String から String への Map が必要になりました (`addParameters(mapOf("key" to "val"))`)
+
+<div id="signuprequest-methods-changed">
+  #### SignUpRequest のメソッドが変更されました
+</div>
+
+パラメータを設定するメソッドでは、値として `String` から `Object` への `Map` ではなく、`String` から `String` への `Map` を渡す必要があります。
+
+* `addAuthenticationParameters(mapOf("key" to "val"))`
+* `addSignupParameters(mapOf("key" to "val"))`
+* `addParameters(mapOf("key" to "val"))`
+
+さらに、 `setDevice("device")` は削除されました。代わりに `addParameter("device", "{VALUE}")` を使用してください。

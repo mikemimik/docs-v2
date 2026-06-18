@@ -1,0 +1,132 @@
+---
+description: Aperçu de la configuration de Sender Constraining pour votre tenant Auth0.
+title: Configurer Sender Constraining
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Le Sender Constraining des jetons au moyen de Demonstrating Proof-of-Possession (DPoP) est actuellement en accès anticipé. Pour demander l’accès à cette fonctionnalité, communiquez avec votre représentant Auth0.
+</Callout>
+
+[Sender Constraining](/fr-CA/docs/secure/sender-constraining) est un mécanisme de sécurité <Tooltip tip="" cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> et OpenID Connect <Tooltip tip="" cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OIDC</Tooltip> qui lie de façon cryptographique les jetons d’accès et les <Tooltip tip="" cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=refresh+tokens">jetons d’actualisation</Tooltip> à l’application cliente précise qui les a obtenus, ce qui empêche le vol et l’utilisation abusive de jetons.
+
+Auth0 prend en charge mTLS sender constraining et Demonstrating Proof-of-Possession (DPoP). Si vous activez Sender Constraining pour une application cliente, vous devez aussi l’appliquer au <Tooltip tip="" cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=resource+server">serveur de ressources</Tooltip> auquel vous faites des appels d’API.
+
+Pour configurer Sender Constraining dans Auth0, vous devez :
+
+* [Configurer Sender Constraining pour une application cliente](#configure-sender-constraining-for-a-client-application).
+* [Configurer Sender Constraining pour un serveur de ressources](#configure-sender-constraining-for-a-resource-server).
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+<Tooltip tip="" cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Access+tokens">Les jetons d’accès</Tooltip> sont soumis au sender constraining dans Auth0 selon la façon dont vous configurez le sender constraining pour votre application client et votre serveur de ressources :
+
+1. **Audience demandée :** Dans une requête de jeton, le fait que l’audience demandée soit uniquement `/userinfo`, qu’elle soit destinée uniquement au endpoint [`/userinfo`](https://auth0.com/docs/api/authentication/user-profile/get-user-info), ou qu’il s’agisse d’une API personnalisée pouvant inclure `/userinfo` lorsque vous demandez aussi le scope openid, a une incidence sur le fait que les jetons d’accès soient ou non soumis au sender constraining.
+2. **Application client :** Le fait d’avoir défini le sender constraining sur `required` pour l’application client.
+3. **Serveur de ressources :** Le fait de configurer le sender constraining pour le serveur de ressources :
+
+   1. `none` : Vous n’avez pas configuré le sender constraining pour le serveur de ressources.
+   2. `allowed` : Vous avez configuré le sender constraining pour le serveur de ressources en définissant une méthode de sender constraining.
+   3. `required` : Vous avez configuré le sender constraining comme obligatoire pour le serveur de ressources, ce qui signifie que les jetons d’accès doivent être liés à une application. Nécessite une méthode de sender constraining.
+
+* **Preuve de possession :** Le fait que l’application client ait envoyé une assertion de preuve de possession dans la requête de jeton :
+
+  * mTLS sender constraining : La preuve de possession est démontrée par la présentation réussie par le client d’une clé privée précise (associée à un certificat client) pendant le handshake TLS.
+  * DPoP : La preuve de possession est établie lorsque le client crée un DPoP Proof JWT en le signant cryptographiquement avec sa clé privée et en incluant le DPoP Proof JWT `DPoP` dans l’en-tête HTTP DPoP de chaque requête où le jeton d’accès associé est utilisé.
+
+Le tableau suivant décrit comment les jetons d’accès sont émis et s’ils sont soumis au sender constraining selon divers paramètres de requête du client et les configurations du serveur de ressources Auth0 :
+
+| Type d’audience demandée                        | Le client exige une PdP ? | preuve de possession (PdP) envoyée par le client ? | Politique du serveur de ressources Auth0 : None | Politique du serveur de ressources Auth0 : Allowed (Not Required) | Politique du serveur de ressources Auth0 : Required |
+| ----------------------------------------------- | ------------------------- | ------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------- |
+| Userinfo seulement                              | Non                       | Non                                               | Émis, sans sender constraining                  | S.O.                                                              | S.O.                                                |
+| Userinfo seulement                              | Non                       | Oui                                               | Émis, avec sender constraining                  | S.O.                                                              | S.O.                                                |
+| Userinfo seulement                              | Oui                       | Non                                               | Non émis                                        | S.O.                                                              | S.O.                                                |
+| Userinfo seulement                              | Oui                       | Oui                                               | Émis, avec sender constraining                  | S.O.                                                              | S.O.                                                |
+| Audience personnalisée (peut contenir Userinfo) | Non                       | Non                                               | Émis, sans sender constraining                  | Émis, sans sender constraining                                    | Non émis                                            |
+| Audience personnalisée (peut contenir Userinfo) | Non                       | Oui                                               | Émis, sans sender constraining                  | Émis, avec sender constraining                                    | Émis, avec sender constraining                      |
+| Audience personnalisée (peut contenir Userinfo) | Oui                       | Non                                               | Non émis                                        | Non émis                                                          | Non émis                                            |
+| Audience personnalisée (peut contenir Userinfo) | Oui                       | Oui                                               | Non émis                                        | Émis, avec sender constraining                                    | Émis, avec sender constraining                      |
+
+<div id="configure-sender-constraining-for-a-client-application">
+  ## Configurer sender constraining pour une application cliente
+</div>
+
+Lorsque sender constraining est exigé pour une application cliente, les jetons d’accès sont associés à cette application. Auth0 vérifie les requêtes pour s’assurer que seule l’application qui a demandé le jeton peut l’utiliser pour accéder à la ressource associée.
+
+Une fois une application cliente configurée pour exiger sender constraining, vous pouvez définir la méthode de sender constraining, soit mTLS ou DPoP, lors de la configuration de votre serveur de ressources.
+
+Vous pouvez configurer sender constraining pour une application cliente à l’aide du <Tooltip tip="" cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> ou de la <Tooltip tip="" cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Management+API">Management API</Tooltip>.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    1. Accédez à [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications). Sélectionnez l’application que vous souhaitez configurer.
+    2. Sous **Settings**, faites défiler jusqu’à **Token Sender-Constraining**.
+    3. Activez la bascule pour **Require Sender Constraining**. Désactivez-la pour supprimer l’exigence de Sender Constraining pour l’application.
+
+    <Frame>![](/docs/images/cdy7uua7fh8z/3BoGW9NEYKPBkfk2tPBL7l/0f884ac3f64f17b23fd6a0e9436bb472/Screenshot_2024-07-23_at_1.30.19_PM.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Pour configurer Sender Constraining pour un client, utilisez la [Management API](https://auth0.com/docs/api/management/v2).
+
+    Pour exiger Sender Constraining pour un client, envoyez une requête PATCH pour [mettre à jour les paramètres du client](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id). Définissez le paramètre `require_proof_of_possession` à `true`.
+
+    ```json lines
+    "require_proof_of_possession": true
+    ```
+
+    Pour supprimer l’exigence de Sender Constraining, définissez le paramètre `require_proof_of_possession` à `false`.
+
+    ```json lines
+    "require_proof_of_possession": false
+    ```
+  </Tab>
+</Tabs>
+
+<div id="configure-sender-constraining-for-a-resource-server">
+  ## Configurer Sender Constraining pour un serveur de ressources
+</div>
+
+Les jetons d’accès émis par Auth0 peuvent être liés à l’expéditeur (c.-à-d. l’application cliente) qui doit accéder à des API sur un serveur de ressources.
+
+Vous pouvez configurer Sender Constraining pour un serveur de ressources à l’aide de l’Auth0 Dashboard ou de la Management API.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Pour activer Token Binding ou Sender Constraining, configurez les **API Settings** de votre API.
+
+    1. Accédez à [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis).
+    2. Sélectionnez l’API que vous souhaitez configurer.
+    3. Sous l’onglet **Settings**, repérez la section **Token Sender-Constraining**.
+    4. Configurez les éléments suivants :
+
+       1. Sender Constraining Method :
+
+          1. **None:** N’activez aucune méthode de Sender Constraining pour votre serveur de ressources.
+          2. **mTLS**: Activez mTLS comme méthode de Sender Constraining pour votre serveur de ressources.
+          3. **DPoP:** Activez DPoP comme méthode de Sender Constraining pour votre serveur de ressources.
+
+    B. Activez la bascule **Require Token Sender Constraining**. Tous les jetons d’accès émis à une application pour cette API seront liés à cette application.
+
+    <Frame>![Auth0 Dashboard > APIs > Settings > Token binding](/docs/images/cdy7uua7fh8z/3Dv98iZosdpJMcZXfXyurn/823fa368ab874218fbb737aacac9b262/Screenshot_2025-07-28_at_3.59.01_PM.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Pour activer Sender Constraining avec la Management API, envoyez une requête PATCH pour [mettre à jour le serveur de ressources](https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id). Définissez les paramètres de l’objet `proof_of_possession` comme suit :
+
+    | Paramètre   | Description                                                                                                                                                                                                                           |
+    | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `mechanism` | Définit la méthode de sender constraining : `none`, `mtls` ou `dpop`.                                                                                                                                                                 |
+    | `required`  | Lorsque ce paramètre est défini sur `true`, tous les jetons d’accès émis à une application pour cette API seront liés à cette application. Lorsqu’il est défini sur `false`, Sender Constraining n’est pas requis pour l’application. |
+
+    L’exemple de code suivant montre un corps de requête qui configure un serveur de ressources pour mTLS Sender Constraining :
+
+    ```json lines
+    "proof_of_possession": {
+        "mechanism": "mtls",
+        "required": true
+      }
+    ```
+  </Tab>
+</Tabs>

@@ -1,0 +1,173 @@
+---
+description: Aprende a crear nombres que eviten colisiones para claims personalizados.
+title: Crear claims personalizados
+---
+
+Para leer claims personalizados en los tokens de acceso y <Tooltip tip="Token de ID: credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=ID+tokens">tokens de ID</Tooltip>, debes usar <Tooltip tip="Token de ID: credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=JSON+Web+Tokens">JSON Web Tokens</Tooltip> (JWT) y pasar una <Tooltip tip="JSON Web Token (JWT): formato estándar de token de ID (y, a menudo, de token de acceso) que se usa para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=audience">audiencia</Tooltip> (`aud`) en un flujo de inicio de sesión de OIDC. Para obtener más información, consulta [Tokens de acceso](/es/docs/secure/tokens/access-tokens).
+
+Al configurar claims personalizados en JWT, debes evitar colisiones. Para evitar que tus claims personalizados colisionen con claims reservados o con claims de otros recursos, asígnales un nombre que evite colisiones. Auth0 recomienda usar un formato con espacio de nombres.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Auth0 permite claims con y sin espacio de nombres, pero se aplican ciertas restricciones (consulta [Restricciones generales](/es/docs/secure/tokens/json-web-tokens/create-custom-claims#general-restrictions)). Para evitar colisiones de nombres, recomendamos usar claims con espacio de nombres. Si se produce una colisión, la transacción no fallará, pero tu claim personalizado no se añadirá a tus tokens.
+</Callout>
+
+<div id="general-restrictions">
+  ## Restricciones generales
+</div>
+
+Auth0 aplica las siguientes restricciones a los claims personalizados:
+
+* El payload de los claims personalizados tiene un límite máximo de 100 KB
+* Los [claims estándar de OPENID](https://openid.net/specs/openid-connect-core-1_0.html#IDToken) y los claims que Auth0 utiliza internamente no se pueden personalizar ni modificar
+* <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=Access+tokens">Tokens de acceso</Tooltip> con una audience de API de Auth0, excluido el endpoint `/userinfo`, no pueden tener claims personalizados privados sin espacio de nombres
+* Solo se pueden agregar a los tokens de acceso los claims especificados del perfil de usuario de OIDC
+
+Los siguientes claims están sujetos a las restricciones de Auth0:
+
+* `acr`
+* `act`
+* `active`
+* `amr`
+* `at_hash`
+* `ath`
+* `attest`
+* `aud`
+* `auth_time`
+* `authorization_details`
+* `azp`
+* `c_hash`
+* `client_id`
+* `cnf`
+* `cty`
+* `dest`
+* `entitlements`
+* `events`
+* `exp`
+* `groups`
+* `gty`
+* `htm`
+* `htu`
+* `iat`
+* `internalService`
+* `iss`
+* `jcard`
+* `jku`
+* `jti`
+* `jwe`
+* `jwk`
+* `kid`
+* `may_act`
+* `mky`
+* `nbf`
+* `nonce`
+* `object_id`
+* `org_id`
+* `org_name`
+* `orig`
+* `origid`
+* `permissions`
+* `roles`
+* `rph`
+* `s_hash`
+* `sid`
+* `sip_callid`
+* `sip_cseq_num`
+* `sip_date`
+* `sip_from_tag`
+* `sip_via_branch`
+* `sub`
+* `sub_jwk`
+* `toe`
+* `txn`
+* `typ`
+* `uuid`
+* `vot`
+* `vtm`
+* `x5t#S256`
+
+<div id="non-restricted-claims">
+  ### Claims sin restricciones
+</div>
+
+Puedes crear claims con información confidencial del usuario para enriquecer el perfil de usuario y mejorar la experiencia del usuario. Tu aplicación consume estos claims desde los token de ID. Para obtener más información sobre cómo usar claims sin restricciones, consulta [ID Tokens](/es/docs/secure/tokens/id-tokens) y ten en cuenta [Token Best Practices](/es/docs/secure/tokens/token-best-practices) si los usas.
+
+Los siguientes claims solo están sujetos a restricciones generales:
+
+* `address`
+* `birthdate`
+* `email`
+* `email_verified`
+* `family_name`
+* `gender`
+* `given_name`
+* `locale`
+* `middle_name`
+* `name`
+* `nickname`
+* `phone_number`
+* `phone_number_verified`
+* `picture`
+* `preferred_username`
+* `profile`
+* `updated_at`
+* `website`
+* `zoneinfo`
+
+<div id="namespaced-guidelines">
+  ## Directrices para espacios de nombres
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El URN de Auth0 `urn:auth0` no puede usarse como identificador de espacio de nombres.
+</Callout>
+
+Usa las siguientes directrices para los identificadores de espacio de nombres:
+
+* Usa cualquier URL HTTP o HTTPS que no sea de Auth0 como identificador de espacio de nombres. Los dominios de Auth0 no pueden usarse como identificadores de espacio de nombres e incluyen:
+  * auth0.com
+  * webtask.io
+  * webtask.run
+* Usa como identificador de espacio de nombres una URL que controles; así evitarás el riesgo de que otra persona use el mismo espacio de nombres. La URL del espacio de nombres no tiene que apuntar a un recurso real. Solo se usa como identificador; no se utilizará.
+* Empieza la URL con `http://` o `https://`.
+* Como alternativa, también puedes usar identificadores de espacio de nombres basados en URN si usas una API personalizada. En ese caso, el URN de Auth0 `urn:auth0` está reservado y no puede usarse como identificador de espacio de nombres.
+* Crea varios espacios de nombres según sea necesario.
+
+Una vez que hayas elegido tu espacio de nombres, añádele el claim para crear un claim con espacio de nombres, que puede añadirse a un token. Por ejemplo:
+
+`http://www.example.com/favorite_color`
+
+<div id="non-namespaced-guidelines">
+  ## Directrices para claims personalizados sin espacio de nombres
+</div>
+
+Usa las siguientes directrices para los claims personalizados sin espacio de nombres:
+
+* A menos que sea absolutamente necesario para tu aplicación, usa claims personalizados públicos y con espacio de nombres que sean resistentes a colisiones.
+* Crea claims con nombres significativos y resistentes a colisiones. Por ejemplo, usa `employee_id` en lugar de `e_id`.
+* Mantén los nombres y los valores de los claims lo más ligeros posible y pasa solo los datos estrictamente necesarios para tu aplicación.
+* Evita asignar payloads pesados a los claims personalizados.
+
+Para ver más ejemplos de claims personalizados agregados a un token, consulta [Sample Use Cases: Scopes and Claims](/es/docs/get-started/apis/scopes/sample-use-cases-scopes-and-claims).
+
+<div id="create-custom-claims">
+  ## Crear claims personalizados
+</div>
+
+Usa Auth0 Actions para crear claims personalizados. El objeto `api` te permite usar el método `setCustomClaim` en los tokens de acceso o de ID.
+
+<div id="example">
+  ### Ejemplo
+</div>
+
+```js lines
+exports.onExecuteCredentialsExchange = async (event, api) => {
+  api.accessToken.setCustomClaim('myClaim', 'this is a private, non namespaced claim');
+};
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Claims de JSON Web Token](/es/docs/secure/tokens/json-web-tokens/json-web-token-claims)
+* [Scopes de OpenID Connect](/es/docs/get-started/apis/scopes/openid-connect-scopes)

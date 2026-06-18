@@ -1,0 +1,82 @@
+---
+description: Décrit comment utiliser plusieurs tenants Auth0 pour gérer différents environnements.
+title: Configurer plusieurs environnements
+---
+
+Les environnements de développement, de staging et de production sont faciles à configurer dans Auth0. Créez simplement un nouveau tenant pour chaque environnement afin de garantir leur isolement. Vous pouvez facilement passer d’un tenant à l’autre à l’aide du sélecteur de tenants dans le menu en haut à gauche du Dashboard. Vous pouvez aussi configurer des administrateurs différents pour chacun d’eux.
+
+Les [limites de débit](/fr-CA/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy) de production s’appliquent uniquement aux tenants étiquetés `Production`. Assurez-vous que l’étiquette d’environnement de votre tenant est définie sur `Production` avant la mise en ligne, et notez les différences entre les limites de débit selon les tenants, les environnements et les grilles tarifaires.
+
+Vous pouvez nommer vos environnements comme bon vous semble. Pour les environnements de production, nous recommandons fortement d’utiliser des [domaines personnalisés](/fr-CA/docs/customize/custom-domains).
+
+Si vous avez un abonnement Enterprise, vous pouvez créer des tenants enfants en [liant plusieurs tenants à un seul abonnement](/fr-CA/docs/get-started/auth0-overview/create-tenants/child-tenants) ; chaque tenant enfant a alors accès aux fonctionnalités payantes ou améliorées associées à l’abonnement. Vous pouvez faire en sorte que vos environnements de développement, de staging ou de test aient accès aux mêmes fonctionnalités que votre environnement de production en les liant tous au même abonnement Enterprise.
+
+<div id="tag-the-environment">
+  ## Attribuer une étiquette à l’environnement
+</div>
+
+Pour chaque nouveau tenant créé, vous devez préciser son environnement. Vous pouvez attribuer des étiquettes d’environnement à vos tenants afin de distinguer les environnements de développement, de staging et de production.
+
+Si votre tenant est utilisé à plusieurs fins, choisissez le niveau d’environnement le plus élevé. Par exemple, un tenant utilisé à la fois pour le développement et la production doit être défini sur **Production**.
+
+1. Pour attribuer une étiquette d’environnement à un tenant, accédez à [Dashboard &gt; Settings &gt; General](https://manage.auth0.com/#/tenant/general).
+
+   <Frame>![Onglet General des Settings du tenant dans le Dashboard](/docs/images/cdy7uua7fh8z/4okToiwlkNQBxwr8QGE3Rs/7e96db0efab4082ebb9f78cb43ee302c/Basic_Settings_-_EN.png)</Frame>
+2. Sous **Assign Environment Tag**, indiquez que l’environnement de votre tenant est **Development**, **Staging** ou **Production**.
+
+   <Frame>![undefined](/docs/images/cdy7uua7fh8z/27OH1jFXce97CSjk7TPeD7/deafc344f675fb11ff5d3d589ffadee9/2025-02-26_14-27-31.png)</Frame>
+3. Après avoir sélectionné l’environnement, cliquez sur **Save**.
+
+<div id="migration">
+  ## Migration
+</div>
+
+Grâce à la [Management API v2](https://auth0.com/docs/api/management/v2), vous pouvez automatiser la migration de ressources statiques ([rules](/fr-CA/docs/customize/rules), [connections](/fr-CA/docs/authenticate/identity-providers) de base de données, etc.) d’un tenant à l’autre.
+
+Pour simplifier la gestion de la configuration, enregistrez vos valeurs de configuration dans le [Dashboard](https://manage.auth0.com/#/rules), au lieu de les coder en dur dans vos scripts **rules** ou **db connections**.
+
+Par exemple, supposons que vous vouliez définir une URL pour les logs. Une façon de faire consiste à la coder en dur dans la rule :
+
+```javascript lines
+function(user, context, callback){
+      var log_url = 'https://someurl/log';
+      ...
+    }
+```
+
+Ce code, toutefois, n’est pas portable, puisque cette URL changera probablement entre le développement et la production.
+
+La façon recommandée de travailler avec du code que vous devez utiliser ou déplacer du développement à la production consiste à passer par la section [Rules](https://manage.auth0.com/#/rules). Si vous n’avez pas encore créé de rule, vous devrez le faire. (Sinon, passez à l’étape 4.)
+
+1. Cliquez sur **Create Your First Rule**.
+2. Choisissez le modèle **empty rule**.
+3. Entrez un nom pour votre nouvelle rule, puis cliquez sur **Save**.
+4. Allez à [Dashboard &gt; Rules](https://manage.auth0.com/#/rules), puis faites défiler jusqu’au bas de la page pour définir vos valeurs de configuration (nous utiliserons `log_url` comme nom de key et `https://someurl/log` comme valeur), puis cliquez sur **Create**.
+5. Vous pouvez maintenant écrire votre rule. Modifiez la rule que vous avez créée, saisissez le code suivant dans la zone de code, puis cliquez sur **Save**.
+
+   ```javascript lines
+   function(user, context, callback){
+         var log_url = configuration.log_url;
+         ...
+       }
+   ```
+
+Ce code est portable et, lorsque vous passerez à la production, vous n’aurez qu’à modifier ce paramètre plutôt que de chercher dans vos scripts.
+
+<div id="adldap-connectors">
+  ## Connecteurs AD/LDAP
+</div>
+
+Si vous utilisez plusieurs tenants Auth0 avec AD/LDAP, vous devrez créer une connexion AD/LDAP et configurer un connecteur AD/LDAP pour chaque tenant. Cela s’explique par le fait que chaque connecteur AD/LDAP est associé à une connexion précise dans un tenant Auth0.
+
+Plusieurs connecteurs AD/LDAP peuvent pointer vers le même répertoire AD ou LDAP, mais chaque connecteur AD/LDAP ne peut être utilisé que par une seule connexion au sein d’un seul tenant Auth0.
+
+Si vous avez plusieurs répertoires AD/LDAP auprès desquels les utilisateurs s’authentifieront (par exemple, pour prendre en charge différents services ou clients, chacun ayant son propre répertoire), vous pouvez configurer plusieurs connecteurs AD/LDAP dans chaque tenant Auth0.
+
+<div id="learn-more">
+  ## Pour en savoir plus
+</div>
+
+* [Créer plusieurs tenants](/fr-CA/docs/get-started/auth0-overview/create-tenants/create-multiple-tenants)
+* [Supprimer ou réinitialiser des tenants](/fr-CA/docs/troubleshoot/customer-support/manage-subscriptions/delete-or-reset-tenant)
+* [Associer plusieurs tenants à un seul abonnement](/fr-CA/docs/get-started/auth0-overview/create-tenants/child-tenants)

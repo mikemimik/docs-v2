@@ -1,0 +1,94 @@
+---
+description: Cross App Access (XAA) を活用して、ユーザーに代わって API を呼び出す方法を紹介します。
+sidebarTitle: 概要
+title: Cross App Access (XAA)
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<ReleaseStageNotice feature="Cross App Access (XAA)" stage="beta" contact="Auth0 Support" terms="true" />
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  このガイドは、Okta をエンタープライズ IdP として使用し、テストに利用できる Okta テナントへの管理者アクセス権を持っていることを前提としています。まだ用意していない場合は、[Okta テナントを作成して設定する](/ja/docs/secure/call-apis-on-users-behalf/xaa/set-up-xaa-test-environment#create-and-configure-your-okta-tenant)をご覧ください。
+</Callout>
+
+企業でサードパーティのアプリケーションや AI エージェントを接続すると、主に 2 つの問題が生じます。IT 部門がデータ共有を十分に把握しにくいことと、ユーザーが繰り返し同意フローへの対応を求められることです。
+
+Cross App Access (XAA) は、AI エージェントのような SaaS アプリケーションがユーザーに代わってどのように接続するかについて、IT 管理者がアクセス制御を一元的に定義できるようにすることで、こうした課題に対処します。管理者は、Okta Admin Console のような一元的なダッシュボードでこれらの接続を管理できるため、エンドユーザーにとって煩わしい OAuth の同意プロンプトをなくせます。その結果、組織のセキュリティ、ガバナンス、ユーザーエクスペリエンスが向上します。
+
+XAA は、[Identity Assertion Authorization Grant](https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/) を実装しています。これは策定中の OAuth 拡張で、AI エージェントまたはアプリケーション (Requesting App) がエンタープライズ IdP を通じて安全なトークンを取得できるようにするものです。このトークンにより、Requesting App はエンドユーザーに代わって別のアプリケーション (Resource App) の API を呼び出せます。詳しくは、[仕組み](#how-it-works)をご覧ください。
+
+<div id="key-benefits">
+  ## 主な利点
+</div>
+
+XAA は、エンタープライズエコシステムにおけるあらゆる役割に、重要なメリットをもたらします。
+
+* Enterprise IT 管理者向け: アプリケーションによるエンタープライズデータやユーザーデータへのアクセスを、一元的に制御・可視化し、ポリシーを適用できます。
+* SaaS プロバイダーと開発者向け: エコシステムの成長を促進する、エンタープライズ AI 向けの標準化された安全な連携。
+* エンドユーザー向け: アプリケーション間の接続をシームレスかつスムーズにし、複雑な OAuth の同意フローを不要にします。
+
+<div id="use-cases">
+  ## ユースケース
+</div>
+
+XAAの一般的なユースケースは次のとおりです。
+
+* AIエージェントをエンタープライズ アプリケーションに接続する: 従業員はAIエージェントを使ってカレンダーアプリの内容を読み取り、エンタープライズ メッセージング アプリに自分の空き状況の更新を投稿できます。従業員にリダイレクト フローや同意プロンプトを求める代わりに、AIエージェントはXAAを使用してエンタープライズ IdPからアクセストークンを取得し、エンタープライズのアクセスポリシーで承認されていれば、カレンダーアプリとメッセージング アプリの両方のAPIを安全に呼び出します。
+* SaaSアプリケーションを接続する: 前の例では、エンタープライズのカレンダーアプリとメッセージング アプリはどちらもXAAをサポートしています。従業員は、ユーザーのリダイレクトや同意なしで、エンタープライズのアクセスポリシーに従いながら、メッセージング アプリをカレンダーアプリのAPIにシームレスに接続できます。
+
+<div id="how-it-works">
+  ## 仕組み
+</div>
+
+XAA フローには、次のアクターが関与します。
+
+* Requesting App: リソースにアクセスする必要があるアプリケーションまたは AI エージェント。
+* Resource App: 保護されたリソースを所有し、API 経由で公開するアプリケーション
+* Enterprise IdP: 従業員を認証する Okta などの IdP。
+
+エンドユーザーが Enterprise IdP で認証されると、Requesting App は Enterprise IdP に対し、ユーザーに代わって Resource App へのアクセスをリクエストします。次に、Enterprise IdP はこのクロスアプリ接続が許可されているかどうかを確認するためにアクセス ポリシーを適用し、ID-JAG と呼ばれるアサーションを生成します。Requesting App はその後、API を利用するためのアクセストークンを取得するために、そのアサーションを Resource App に提示します。 
+
+次の図では、Acme はエンタープライズ顧客であり、その従業員は Okta などの Enterprise IdP で認証して、Requesting App (Agent0) および Resource App (Todo0) にアクセスします。
+
+<Frame>![](/docs/images/xaa/xaa_high_level_diagram.png)</Frame>
+
+* Resource App (Todo0) の認可サーバーは、OIDC を通じて Enterprise IdP とフェデレーションされているため、その IdP で認証されたエンドユーザー向けのアクセストークンを生成できます。
+* Requesting App (Agent0) は、Resource App の認可サーバーに対して、有効な client&#95;id と、Resource App の認可サーバーからアクセストークンをリクエストするための資格情報を持つ OAuth 2.0 クライアントとして登録されています。
+* Acme の IT 管理者は、Agent0 と Todo0 の間の XAA アクセス制御を定義しています。
+
+<div id="end-to-end-xaa-flow">
+  ## エンドツーエンドの XAA フロー
+</div>
+
+Acme の例で考えると、エンドツーエンドの XAA フローは次の手順で進みます。
+
+1. Acme の従業員は、エンタープライズ IdP を使った SSO で Requesting App (Agent0) にログインします。Requesting App は、Acme の従業員の身元を確認するために ID トークンを取得します。
+2. Requesting App は、ID トークンを cross-domain Identity Assertion JWT Authorization Grant (ID-JAG とも呼ばれます) に交換するため、IdP にトークン交換リクエストを送信します。IdP はこのリクエストを検証し、Acme の IT 管理者が定義した XAA ポリシーを確認します。
+3. XAA ポリシーで許可されている場合、IdP は ID-JAG を Requesting App に返します。
+4. Requesting App は、ID-JAG を使って Resource App (Todo0) の認可サーバーにトークンリクエストを送信します。
+5. Resource App の認可サーバーは、IdP との OpenID Connect フローでも使用している公開キーを使って ID-JAG を検証します。有効であれば、認可サーバーはアクセストークンを返します。
+6. Requesting App は、アクセストークンを使用して Resource App の API にリクエストを送信します。
+
+XAA フローを活用することで、Acme の IT 管理者が定義したポリシーによって Agent0 から Todo0 へのアクセスが制御され、end-user をリダイレクトしたり操作を求めたりする必要はありません。
+
+<div id="beta-limitations">
+  ## Beta の制限事項
+</div>
+
+XAA Beta には、次の制限事項があります。
+
+* Requesting App は、confidential client かつ Auth0 テナント内のファーストパーティアプリである必要があります。SPA や Native Apps などのパブリッククライアントはサポート対象外です。
+* Delegated Administration はサポートされていません。エンタープライズ顧客が Auth0 テナント上で SSO 接続を直接設定することはできません。[セルフサービス SSO](/ja/docs/authenticate/enterprise-connections/self-service-enterprise-configuration) のサポートは、今後のリリースで予定されています。
+* XAA 対応の接続は、上流 IdP の発行者ごとに 1 つしか設定できません。同じ Okta テナントを複数の XAA 対応エンタープライズ接続で使用することもできません。
+* 組織のサポートは限定的です。
+  * 1 つの接続は 1 つの組織に対して 1:1 で割り当てられます。XAA アクセスでは、複数の Organizations を同じ接続にマッピングすることはできません。
+  * Requesting App が Organizations の使用を必須とするように設定されている場合、ユーザーは事前に対象の organization のメンバーである必要があります。
+* ID-JAG request で `resource` パラメーターが指定されていない場合、対象の API は `tenant.default_audience` によって決まります。
+* 動的なユーザー作成には対応していません。ユーザーは事前に、設定された Okta 接続を使用して Resource App にログインしている必要があります。そうでない場合、ID-JAG アサーションを access token に交換するための request は、`User not found error` で失敗します。
+
+<div id="rate-limits">
+  ## レート制限
+</div>
+
+XAA Beta では、お使いの Auth0 テナントの `/token` エンドポイントにおける ID-JAG の交換は、5 RPS に制限されます。

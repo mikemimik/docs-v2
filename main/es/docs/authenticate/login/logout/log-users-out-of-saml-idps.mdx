@@ -1,0 +1,84 @@
+---
+description: Describe cómo cerrar la sesión de los usuarios de un proveedor de identidad SAML externo.
+title: Cerrar la sesión de los usuarios de proveedores de identidad SAML
+---
+
+El cierre de sesión único (SLO) es una función que permite a un usuario finalizar varias sesiones de autenticación con una sola acción de cierre de sesión.
+
+Auth0 admite SLO cuando [conectas tu aplicación a un proveedor de identidad SAML (IdP)](/es/docs/authenticate/identity-providers/enterprise-identity-providers/saml) y ofrece compatibilidad limitada con SLO cuando [configuras Auth0 como un IdP SAML](/es/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider).
+
+<div id="configure-slo-when-application-is-connected-to-a-saml-idp">
+  ## Configura el SLO cuando la aplicación está conectada a un IdP de SAML
+</div>
+
+Si quieres que Auth0 [cierre la sesión del usuario en su proveedor de identidad](/es/docs/authenticate/login/logout/log-users-out-of-idps), incluye el parámetro `federated` cuando llames al [endpoint de cierre de sesión de Auth0 Authentication API](https://auth0.com/docs/api/authentication#logout).
+
+Es posible que tengas que configurar ajustes adicionales para la conexión de <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=SAML">SAML</Tooltip> a fin de asegurarte de que Auth0 envíe la solicitud de cierre de sesión al endpoint de cierre de sesión del <Tooltip tip="Identity Provider (IdP): Servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/es/docs/glossary?term=IdP">IdP</Tooltip> de SAML:
+
+1. Ve a [Auth0 Dashboard &gt; Authentication &gt; Enterprise &gt; SAML](https://manage.auth0.com/#/connections/enterprise/samlp) y selecciona tu conexión.
+2. Activa **Enable Sign Out**.
+3. Introduce la URL de cierre de sesión de SAML proporcionada por el IdP de SAML en el campo **Sign Out URL**. Si dejas este campo en blanco, Auth0 usará de forma predeterminada la URL del campo **Sign In URL**.
+4. Confirma que el valor del campo **Protocol Binding** coincida con el enlace de protocolo que espera el IdP de SAML.
+
+<div id="configure-slo-when-auth0-is-the-saml-idp">
+  ## Configura SLO cuando Auth0 es el IdP de SAML
+</div>
+
+Cuando Auth0 es el IdP de SAML, hay dos escenarios de cierre de sesión que debes tener en cuenta:
+
+* Iniciado por la aplicación
+* Iniciado por el IdP
+
+En ambos casos, debes [configurar el complemento SAML2 Web App](/es/docs/authenticate/protocols/saml/saml-sso-integrations/enable-saml2-web-app-addon) para indicar adónde enviar las respuestas de cierre de sesión:
+
+1. Ve a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y selecciona tu aplicación.
+2. Ve a la pestaña **Addons** y selecciona **SAML2 Web App**.
+3. Ve a la pestaña **Settings**.
+4. Busca el cuadro **Settings** y agrega (o actualiza) el objeto `logout` con las siguientes propiedades:
+
+   * `callback`: Introduce la URL de SLO de la aplicación.
+   * `slo_enabled`: Introduce `true` si quieres habilitar el SLO iniciado por el IdP, en el que Auth0 envía una solicitud de cierre de sesión SAML a la aplicación cuando el usuario cierra sesión en el IdP de SAML de Auth0. De lo contrario, introduce `false`.
+
+     ```bash cURL lines
+     {
+       "logout": {
+         "callback": "https://myapp.exampleco.com/saml/logout",
+         "slo_enabled": true
+       }
+     }
+     ```
+
+De forma predeterminada, Auth0 envía respuestas de cierre de sesión SAML con el binding de protocolo `HTTP-POST`. Si tu aplicación espera el binding de protocolo `HTTP-Redirect`, agrega (o actualiza) la propiedad `binding` de la siguiente manera:
+
+```json JSON lines
+{
+  "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+}
+```
+
+<div id="application-initiated-logout">
+  ### Cierre de sesión iniciado por la aplicación
+</div>
+
+Cuando el usuario inicia el cierre de sesión desde una aplicación, esta debe enviar una solicitud al endpoint de SAML Logout de la Authentication API [SAML Logout endpoint](https://auth0.com/docs/api/authentication#saml-logout) para activar el SLO.
+
+Si tu aplicación no admite SLO, pero sí una URL de redirección a la que enviar al usuario después del cierre de sesión, configura la URL de redirección para que apunte al endpoint de OIDC Logout de la Authentication API [OIDC Logout endpoint](https://auth0.com/docs/api/authentication#oidc-logout) (o al endpoint de Auth0 Logout de la Authentication API [Auth0 Logout endpoint](https://auth0.com/docs/api/authentication#auth0-logout) si usas el cierre de sesión heredado). Auth0 no notificará a los demás participantes de la sesión que se inició un cierre de sesión, pero eliminará la [sesión de Auth0](/es/docs/manage-users/sessions/session-layers) del usuario.
+
+<div id="idp-initiated-logout">
+  ### cierre de sesión iniciado por el IdP
+</div>
+
+Cuando un usuario inicia el cierre de sesión en un IdP de SAML de Auth0, Auth0 envía una respuesta de cierre de sesión SAML a la URL de la propiedad `logout.callback` dentro de Settings del complemento SAML2 Web App. Solo se puede especificar una única URL para esta propiedad.
+
+Debido a esta restricción, Auth0 no admite de forma nativa el caso en que un usuario deba cerrar sesión en varias applications conectadas a su IdP de SAML de Auth0.
+
+Puede lograr una funcionalidad similar al SLO configurando sus applications para que comprueben periódicamente el estado de la sesión de Auth0 del usuario y finalicen la sesión de la aplicación en consecuencia. Para obtener más información, consulte [Session Lifetime Limits](/es/docs/manage-users/sessions/session-lifetime-limits).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Cerrar la sesión de los usuarios en las aplicaciones](/es/docs/authenticate/login/logout/log-users-out-of-applications)
+* [Cerrar la sesión de los usuarios en Auth0 con el endpoint de OIDC](/es/docs/authenticate/login/logout/log-users-out-of-auth0)
+* [Cerrar la sesión de los usuarios en los proveedores de identidad](/es/docs/authenticate/login/logout/log-users-out-of-idps)
+* [Redirigir a los usuarios con un cierre de sesión alternativo](/es/docs/authenticate/login/logout/redirect-users-after-logout)

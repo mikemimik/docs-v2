@@ -1,0 +1,73 @@
+```kt MainActivity.kt lines highlight={40-52}
+import com.auth0.android.Auth0
+import com.auth0.android.provider.WebAuthProvider
+
+class MainActivity : AppCompatActivity() {
+
+  private lateinit var account: Auth0
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+
+    // Configurez l’objet account avec les détails de l’application Auth0
+    account = Auth0(
+      getString(R.string.com_auth0_client_id),
+      getString(R.string.com_auth0_domain),
+    )
+  }
+
+  private fun loginWithBrowser() {
+    // Configurez le WebAuthProvider à l’aide du schéma personnalisé et de la portée.
+
+    WebAuthProvider.login(account)
+      .withScheme("demo")
+      .withScope("openid profile email")
+      // Lancez l’authentication en transmettant le callback qui recevra les résultats
+      .start(this, object : Callback<Credentials, AuthenticationException> {
+        // Appelé en cas d’échec de l’authentication
+        override fun onFailure(exception: AuthenticationException) {
+          // Un problème est survenu !
+        }
+
+        // Appelé lorsque l’authentication se termine avec succès
+        override fun onSuccess(credentials: Credentials) {
+          // Récupérez le jeton d’accès à partir de l’objet credentials.
+          // Il peut servir à appeler des API
+          val accessToken = credentials.accessToken
+        }
+      })
+  }
+
+  private fun logout() {
+    WebAuthProvider.logout(account)
+      .withScheme("demo")
+      .start(this, object : Callback<Void?, AuthenticationException> {
+        override fun onSuccess(payload: Void?) {
+          // L’utilisateur a été déconnecté !
+        }
+
+        override fun onFailure(error: AuthenticationException) {
+          // Un problème est survenu !
+        }
+      })
+  }
+
+  private fun showUserProfile(accessToken: String) {
+    var client = AuthenticationAPIClient(account)
+
+    // Avec le jeton d’accès, appelez `userInfo` pour récupérer le profil depuis Auth0.
+    client.userInfo(accessToken)
+      .start(object : Callback<UserProfile, AuthenticationException> {
+        override fun onFailure(exception: AuthenticationException) {
+          // Un problème est survenu !
+        }
+
+        override fun onSuccess(profile: UserProfile) {
+          // Nous avons récupéré le profil de l’utilisateur !
+          val email = profile.email
+          val name = profile.name
+        }
+      })
+  }
+}
+```

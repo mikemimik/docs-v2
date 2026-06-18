@@ -1,0 +1,70 @@
+---
+description: Funcionalidad de aprovisionamiento de usuarios y consideraciones para su implementación de IAM B2C.
+title: Aprovisionamiento (B2C)
+validatedOn: 2026-02-17
+---
+
+Es importante definir desde el principio cómo se registrarán los usuarios, ya que las decisiones que tome aquí influirán en muchas de las que deberá tomar más adelante. Hemos visto que existen varios patrones habituales sobre cómo se incorporan los usuarios a su sistema, así como algunos aspectos que conviene tener en cuenta al diseñar también el flujo de trabajo.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Aunque Auth0 admite numerosos flujos de trabajo, los flujos web que utilizan Auth0 [Universal Login](/es/docs/authenticate/login/auth0-universal-login) para el registro se consideran una práctica recomendada tanto del sector como de Auth0, ya que ofrecen una funcionalidad óptima y la mejor seguridad.
+</Callout>
+
+Auth0 admite el registro de usuarios a través de varios [proveedores de identidad](/es/docs/authenticate/identity-providers). Durante el registro, Auth0 aprovisiona el perfil del usuario para que contenga la información de su cuenta. Hay varios aspectos que debe tener en cuenta al evaluar la funcionalidad y el flujo de trabajo:
+
+* ¿Debería usar Auth0 como almacén de identidades?
+* ¿Puede usar su propio almacén de identidades heredado con Auth0?
+* ¿Cómo migra las identidades de los usuarios desde su almacén de identidades a Auth0?
+* ¿Pueden sus usuarios registrarse con sus cuentas sociales existentes, como Google y Facebook?
+
+Auth0 proporciona un almacenamiento de identidades listo para usar que puede aprovechar para almacenar credenciales de usuario de forma segura. Consulte [Auto-registro](#self-sign-up) para obtener más información. Si ya tiene un almacén de identidades heredado y desea delegar su gestión, las capacidades de [Migración de usuarios](#user-migration) le ofrecen varias opciones para hacerlo.
+
+Como alternativa, si necesita mantener su almacén de identidades heredado, quizá porque tiene aplicaciones que aún no está listo para migrar o que no pueden migrarse, puede usar la capacidad de [proxy de almacén de identidades](#identity-store-proxy). Permitir que sus clientes usen “su propia identidad” también es una propuesta atractiva y, aunque hemos observado que nuestros clientes no suelen hacerlo al principio, puede usar la capacidad de [registro con redes sociales](#social-sign-up) para ofrecerlo.
+
+<div id="user-migration">
+  ## Migración de usuarios
+</div>
+
+Además de alojar el [Perfil de usuario](/es/docs/get-started/architecture-scenarios/business-to-consumer/profile-management), Auth0 también puede tanto actuar como [proxy](#identity-store-proxy) de tu propio almacén de identidades heredado como proporcionar un reemplazo seguro alojado por Auth0. Ambas capacidades se admiten mediante el uso de [Database Connections](/es/docs/authenticate/database-connections) de Auth0. Si decides usar Auth0 como reemplazo de tu almacén de identidades heredado, puedes [migrar usuarios](/es/docs/manage-users/user-migration) ya sea todos de una vez mediante una migración masiva, o progresivamente con migración automática.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los clientes suelen optar por un enfoque de migración de usuarios en dos etapas: primero usan la migración automática para migrar la mayor cantidad posible de usuarios y luego la migración masiva para los usuarios restantes. Consulta [Escenarios de migración de usuarios](/es/docs/manage-users/user-migration/user-migration-scenarios) para obtener más información.
+</Callout>
+
+Se prefiere la migración automática, ya que permite migrar a los usuarios individualmente y también les permite conservar su contraseña actual en casi todos los casos. Para la migración masiva, recomendamos usar la [Management API](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports) en lugar de la [extensión User Import/Export](/es/docs/manage-users/user-migration/user-import-export-extension) en todos los casos salvo los más simples, ya que la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip> ofrece mayor flexibilidad y control.
+
+Con la migración masiva, los usuarios normalmente deben **restablecer su contraseña una vez completada la migración**, a menos que las contraseñas se almacenen con hash en tu almacén de identidades heredado mediante bcrypt (o que puedas generarlas en formato bcrypt). En ese caso, es posible que puedas usar la migración masiva y **conservar las contraseñas de los usuarios** como parte del proceso, según el algoritmo bcrypt y la cantidad de rondas de sal utilizadas. Consulta [Ejemplos de esquemas de importación masiva de bases de datos](/es/docs/manage-users/user-migration/bulk-user-import-schema) para obtener más información.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Las llamadas a la Management API están sujetas a la [política de limitación de solicitudes de Auth0](/es/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy). Debes tener esto en cuenta y, para facilitarlo, Auth0 suele recomendar el uso del [SDK de Auth0](/es/docs/libraries) adecuado para tu entorno de desarrollo en lugar de llamar directamente a nuestras API.
+</Callout>
+
+<div id="identity-store-proxy">
+  ### Proxy de almacén de identidades
+</div>
+
+Los tipos de conexiones de base de datos de Auth0 también se pueden configurar para actuar como proxy de un almacén de identidades existente (heredado). Si necesita conservar las identidades de los usuarios definidas en su propio almacén heredado —por ejemplo, si tiene una o más aplicaciones críticas para el negocio que no puede migrar a Auth0, pero que aún necesitan acceso a estas identidades—, puede integrarse fácilmente con Auth0. Consulte [Authenticate Users Using Your Database](/es/docs/authenticate/database-connections/custom-db) para obtener más información.
+
+<div id="self-sign-up">
+  ## Autorregistro
+</div>
+
+El autorregistro utiliza las [Database Connections](/es/docs/authenticate/database-connections) de Auth0 para almacenar el ID de usuario, la contraseña y la información de identidad del nombre de usuario (opcional) recopilada de los nuevos usuarios durante el proceso de registro. Las políticas de conexión de bases de datos que regulan aspectos como la [longitud mínima del nombre de usuario](/es/docs/authenticate/database-connections/require-username) o la [fortaleza y complejidad de la contraseña](/es/docs/authenticate/database-connections/password-options) pueden configurarse desde el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El [Universal Login](/es/docs/authenticate/login/auth0-universal-login) de Auth0, así como los widgets de Auth0, como [Lock](https://auth0.com/lock), se integran con Database Connections para ofrecer, de forma inmediata, una interfaz de usuario completa para el registro. Estos componentes de interfaz son totalmente reactivos y, gracias a su amplia configuración y personalización, puedes implementar funcionalidades de autorregistro de usuarios, así como de inicio de sesión.
+</Callout>
+
+<div id="social-sign-up">
+  ## Registro con redes sociales
+</div>
+
+El registro con redes sociales es sinónimo de iniciar sesión mediante [autenticación social](/es/docs/get-started/architecture-scenarios/business-to-consumer/authentication); aquí no hay ninguna distinción *per se*, ya que el [perfil](/es/docs/get-started/architecture-scenarios/business-to-consumer/profile-management) del usuario se crea automáticamente la primera vez que inicia sesión con una cuenta social.
+
+<div id="project-planning-guide">
+  ## Guía de planificación del proyecto
+</div>
+
+Ofrecemos una guía de planificación en formato PDF que puedes descargar y consultar para obtener más información sobre las estrategias que recomendamos.
+
+[Guía de planificación del proyecto de B2C IAM](https://assets.ctfassets.net/cdy7uua7fh8z/3er1aEQ7Ul0q3c9leJWczR/b1f18b4c16abb7e78b01e4eb2b52bb8e/B2C_Project_Planning.pdf)

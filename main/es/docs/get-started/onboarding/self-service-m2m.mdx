@@ -1,0 +1,491 @@
+---
+description: Describe cómo darse de alta en un caso de negocio M2M.
+title: Autoservicio de máquina a máquina
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Si su caso de uso está dirigido a una <Tooltip tip="Audiencia: identificador único de la audiencia de un token emitido. Se llama aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/es/docs/glossary?term=audience">audiencia</Tooltip> no interactiva, como las API o los servidores backend, deberá incorporarse con una configuración de máquina a máquina (M2M).
+
+<div id="use-cases">
+  ## Casos de uso
+</div>
+
+Usa el proceso de incorporación de M2M si:
+
+* Das soporte a comunicaciones de servicio a servicio
+* Tienes tareas programadas o tareas `cron` ejecutándose en servidores que necesitan acceder a recursos protegidos o a APIs
+* Permites que dispositivos IoT se comuniquen con servicios de backend o APIs
+* Tienes una capa de API que necesita comunicarse con otras capas de API sin intervención del usuario o después de que haya expirado el token de un usuario
+* Tienes una API privilegiada que puede necesitar ser llamada antes de que un usuario se haya autenticado (es decir, desde una Action o un script de base de datos personalizada en tu tenant de Auth0)
+* Usas un API Gateway para gestionar servicios de backend
+* Usas o das soporte a aplicaciones no interactivas u otras herramientas sin interacción humana, como daemons o servicios de backend
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Estos servicios seguirán necesitando un token de acceso de M2M para la autenticación.
+</Callout>
+
+<div id="how-to-use-this-guide">
+  ## Cómo usar esta guía
+</div>
+
+Esta guía te orienta para crear tu implementación M2M en Auth0. Te ofrecemos consideraciones, prácticas recomendadas y conceptos que deberías revisar.
+
+* En Arquitectura, te recomendamos configurar Auth0 para que sea compatible con tu ciclo de vida de desarrollo de software y tu infraestructura actual.
+* En Crear una cuenta, te proporcionamos instrucciones para crear tu instancia de API en Auth0 y una aplicación que respalde el flujo de autenticación (o concesión) necesario para la autenticación máquina a máquina.
+* En Autenticación, te explicamos qué concesión debes usar para la autenticación, así como los <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=access+tokens">tokens de acceso</Tooltip> y permisos (o scopes) que puedes configurar.
+* En Branding, te indicamos dónde encontrar información sobre cómo configurar <Tooltip tip="Dominio personalizado: dominio de terceros con un nombre especializado o personalizado." cta="Ver glosario" href="/es/docs/glossary?term=Custom+Domains">dominio personalizado</Tooltip> según cómo planees administrar los certificados.
+* En Automatizaciones de despliegue, puedes consultar nuestras herramientas para facilitar el despliegue.
+* En control de calidad, puedes obtener más información sobre las pruebas unitarias y las comprobaciones de preparación que ofrecemos en <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>.
+
+<div id="architecture">
+  ## Arquitectura
+</div>
+
+Antes de configurar su cuenta y tenant de Auth0, o los grupos y estructuras de sus servicios de Auth0, cree un mapa de su infraestructura actual para aprovechar al máximo las capacidades de Auth0 dentro de su ecosistema existente.
+
+Como se menciona en los escenarios comunes, puede que tenga otras tecnologías no interactivas en el dominio de su aplicación, el dominio de su red o el dominio de dispositivos M2M que deba tener en cuenta antes de configurar Auth0. Para ver un ejemplo de escenario M2M, lea [Servidor + API](/es/docs/get-started/architecture-scenarios/server-application-api/part-1). Si quiere realizar un laboratorio práctico con Node y probar la implementación de una API, visite nuestro [repositorio de GitHub](https://www.google.com/url?q=https://github.com/auth0-training/labs-node-working-with-apis\&sa=D\&source=docs\&ust=1723578190947730\&usg=AOvVaw3IXRQG9ogH4pW6LEY047T6).
+
+También puede ser útil crear una visualización de su stack tecnológico actual y planificar cómo encaja Auth0 en su ciclo de vida actual de desarrollo de software (SDLC). Esto puede ayudarle a determinar cuántos tenants puede necesitar.
+
+<div id="considerations">
+  ### Consideraciones
+</div>
+
+Antes de crear una cuenta nueva o configurar tu primer tenant, quizá te convenga tener en cuenta lo siguiente:
+
+* Cómo particionas o agrupas tus API para llamar a endpoints específicos.
+
+  * Esto puede determinar la audiencia y otros claims de los tokens de acceso.
+* Cualquier consumidor de terceros de tu recurso puede solicitar un token de acceso para cada llamada. Un número excesivo de llamadas podría afectar tu [límite de frecuencia](/es/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-configurations/essentials-professional-b2b).
+
+  * Puedes usar un API Gateway para limitar la cantidad de tokens de acceso que un tercero puede solicitar. Para obtener más información sobre API Gateways y Auth0, consulta [Configurar un proveedor de identidad en Access Gateway](/es/docs/get-started/auth0-overview/create-applications/configure-an-identity-provider-in-access-gateway).
+
+<div id="create-an-account">
+  ## Crear una cuenta
+</div>
+
+Ahora que ya tienes un plan para tu arquitectura, configurarás tu cuenta de Auth0 y tus tenants. Cuando te registres en los servicios de Auth0, crearás tu primer [tenant](/es/docs/get-started/auth0-overview/create-tenants). Aquí es donde configurarás los recursos, servicios y demás elementos de Auth0. [Regístrate](https://auth0.com/signup) para comenzar.
+
+<Card title="Antes de empezar">
+  En el Auth0 Dashboard o mediante la Auth0 Management API, crea:
+
+  * Una API para representar tu API
+  * Una aplicación M2M para usar el flujo Client Credential Flow
+
+  Quizá te convenga planificar algunos detalles de configuración antes de crear una cuenta.
+
+  * El nombre de tu tenant influye en tu dominio de Auth0. Antes de decidirlo, deberías revisar las [características del tenant](/es/docs/get-started/auth0-overview/create-tenants#create-a-tenant-and-domain).
+  * Qué funcionalidades de Auth0 necesitas para tu caso de uso. Algunas solo están disponibles en los planes Professional y Enterprise.
+  * Determina si necesitas admitir varios entornos, como desarrollo, staging y producción. Para obtener más información, consulta [Set Up Multiple Environments](/es/docs/get-started/auth0-overview/create-tenants/set-up-multiple-environments).
+  * Si tienes un caso de uso que involucra aplicaciones de terceros que quieres registrar en un tenant, puedes usar [Dynamic Application Registration](/es/docs/get-started/applications/dynamic-client-registration), basada en la especificación [OIDC Client Registration](https://openid.net/specs/openid-connect-registration-1_0.html).
+</Card>
+
+<div id="provision-a-tenant">
+  ### Aprovisiona un tenant
+</div>
+
+Ahora que ya tienes un plan para tu arquitectura, configurarás tu cuenta de Auth0 y tu <Tooltip tip="Tenant: En Auth0, un grupo de usuarios lógicamente aislado que comparte un acceso común con privilegios específicos a una única instancia de software. Ningún tenant puede acceder a los datos de otro tenant, aunque varios tenants puedan ejecutarse en la misma máquina." cta="Ver glosario" href="/es/docs/glossary?term=Tenant">Tenant</Tooltip>.
+
+<Warning>
+  Una vez que creas una API en Auth0 Dashboard, se genera automáticamente una aplicación de prueba para esa API. Si creas una API de forma programática en [Management API](https://auth0.com/docs/api/management/v2/), es posible que tengas que crear una aplicación de prueba en una llamada independiente.
+</Warning>
+
+<div id="register-an-api">
+  #### Registrar una API
+</div>
+
+En esta sección, crea tu API en Auth0.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Siempre puedes actualizar tu API en Auth0 Dashboard o llamando al endpoint [Actualizar un resource server](https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id) de la Management API.
+</Callout>
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Empieza por crear una instancia en el Auth0 Dashboard para tus API.
+
+    1. Sigue las instrucciones para [registrar tu API](/es/docs/get-started/auth0-overview/set-up-apis).
+
+    En la sección [Authentication](/es/docs/get-started/onboarding/self-service-m2m#authentication), configura los ajustes de tu API para la autenticación M2M.
+  </Tab>
+
+  <Tab title="Management API">
+    Para registrar una API de forma programática, usa la Management API. Necesitarás un access token para usar la Management API. Para saber cómo hacerlo, consulta [Tokens de la Management API](/es/docs/secure/tokens/access-tokens/management-api-access-tokens).
+
+    Usa el ejemplo proporcionado en Management API Explorer para llamar al endpoint [Crear un Resource Server](https://auth0.com/docs/api/management/v2/resource-servers/post-resource-servers) de la Management API e incluye los siguientes parámetros en el cuerpo:
+
+    | Campo                                      | Descripción                                                                                                                                                                                                                                                                                                                                | Ejemplo                |
+    | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+    | **Name**                                   | Un nombre descriptivo para la API. No afecta a ninguna funcionalidad.                                                                                                                                                                                                                                                                      | `yourDomain`           |
+    | **Identifier**                             | Un identificador único para la API. Auth0 recomienda usar una URL. Auth0 sí distingue entre URL que incluyen la barra diagonal final. Por ejemplo, `https://example.com` y `https://example.com/` son dos identificadores distintos. La URL no tiene que ser pública. Auth0 no llamará a tu API. Este valor no se puede modificar después. | `https://{yourDomain}` |
+    | **JSON Web Token (JWT) Profile**           | El perfil determina el formato de los tokens de acceso emitidos para la API. Los valores disponibles son `Auth0` y `RFC 9068`. Para obtener más información, consulta [Perfiles de token de acceso](/es/docs/secure/tokens/access-tokens/access-token-profiles).                                                                              | `access_token`         |
+    | **JSON Web Token (JWT) Signing Algorithm** | El algoritmo con el que se firman los tokens de acceso. Los valores disponibles son `HS256`, `PS256`, `RS256`. Si seleccionas `RS256`, el token se firmará con la clave privada del tenant.                                                                                                                                                | `HS256`                |
+  </Tab>
+</Tabs>
+
+<div id="associate-an-application">
+  ### Asociar una aplicación
+</div>
+
+Debes crear una asociación entre tu aplicación y tu API para que tu aplicación pueda solicitarle tokens de acceso. Obtendrás más información sobre las autorizaciones de cliente en la sección de Autenticación.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  La API de Auth0 tiene varias configuraciones que quizá debas revisar antes de configurarla. Para obtener más información, consulta [Configuración de la API](/es/docs/get-started/apis/api-settings).
+</Callout>
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Si creas tu API en el Dashboard, Auth0 genera automáticamente una aplicación de prueba y la asocia con tu API.
+
+    1. Ve a [Auth0 Dashboard &gt; Applications](https://manage.auth0.com/#/applications).
+    2. Selecciona la aplicación de prueba M2M que se creó cuando creaste tu API.
+
+       <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+         Más adelante, puedes crear otra aplicación para desarrollo o producción siguiendo las instrucciones de [Registrar aplicaciones de máquina a máquina](/es/docs/get-started/auth0-overview/create-applications/machine-to-machine-apps).
+       </Callout>
+    3. Cambia a la vista **API** y luego busca la API que quieras habilitar para esta aplicación.
+    4. Activa el interruptor **Authorize** y luego selecciona el botón de flecha de la derecha para expandir la tarjeta.
+    5. Selecciona **Update**.
+
+       <Frame>![Dashboard > Applications > APIs](/docs/images/cdy7uua7fh8z/6L2R46XVdYw1kifRfMifRz/87e3b9f75039d55af6028be0eb0598ac/Timesheets_API_-_English.png)</Frame>
+
+       <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+         En esta vista, puedes seleccionar el menú desplegable y elegir los scopes que quieras agregar. Obtendremos más información sobre los scopes al hablar de los tokens de acceso en la sección de Autenticación.
+       </Callout>
+  </Tab>
+
+  <Tab title="Management API">
+    Crea una aplicación para asociarla con tu API. Usa el ejemplo proporcionado en Management API Explorer para lo siguiente:
+
+    1. Llamar al endpoint [Create a Client](https://auth0.com/docs/api/management/v2/clients/post-clients). Debes establecer `app_type` en `non-interactive`.
+    2. Llamar al endpoint [Create Client Grant](https://auth0.com/docs/api/management/v2/client-grants/post-client-grants) para asociar tu aplicación con tu API.
+
+    Para obtener información sobre la configuración de la aplicación y del tenant, consulta [Configuración del tenant](/es/docs/get-started/tenant-settings).
+  </Tab>
+</Tabs>
+
+<div id="authentication">
+  ## Autenticación
+</div>
+
+Cuando una API llama a otra API, o en cualquier situación en la que no haya un contexto de usuario autenticado, necesitas una forma de autorizar a la aplicación en lugar de a un usuario. Este es un proceso de un solo paso en el que la aplicación se autentica (mediante un `client_id` y un `client_secret`) y luego se autoriza en una sola llamada.
+
+Para aplicaciones o servicios no interactivos, debes seleccionar una autorización de cliente o un flujo de autenticación. El <Tooltip tip="OAuth 2.0: marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/es/docs/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> [flujo de credenciales de cliente](https://tools.ietf.org/html/rfc6749#section-4.4) no requiere interacción humana y es la opción más adecuada para las aplicaciones M2M.
+
+<Card title="Antes de comenzar">
+  En Auth0 Dashboard o Management API, harás lo siguiente:
+
+  * Configurar tu aplicación para usar flujo de credenciales de cliente
+  * Actualizar los scopes de tus tokens de acceso M2M
+
+  Antes de configurar tu método de autenticación:
+
+  * Revisa el [flujo de credenciales de cliente](/es/docs/get-started/authentication-and-authorization-flow/client-credentials-flow) para la autenticación de máquina a máquina. Este es el flujo de trabajo para la autenticación y autorización no interactivas.
+  * Determina el nivel de acceso de tus API. Esto te ayudará a determinar qué [scopes](/es/docs/get-started/apis/scopes/api-scopes), o permisos, configurarás cuando crees tu API.
+</Card>
+
+<div id="configure-the-client-credential-flow">
+  ### Configurar el flujo de credenciales de cliente
+</div>
+
+Puedes usar el Auth0 Dashboard o <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip> para configurar el flujo de autenticación para intercambiar una credencial de cliente por un token de acceso.
+
+Sigue las instrucciones de [Actualizar tipos de concesión](/es/docs/get-started/applications/update-grant-types) para usar Auth0 Dashboard o Management API.
+
+<div id="m2m-access-tokens">
+  ### Tokens de acceso M2M
+</div>
+
+En la autenticación basada en tokens, los clientes no interactivos proporcionan `client_id` y `client_secret` en una llamada al [endpoint de token de Authentication API](/es/docs/customize/actions/explore-triggers/machine-to-machine-trigger) para obtener un [token de acceso](/es/docs/secure/tokens/access-tokens). Este token de acceso permite acceder a tu API protegida.
+
+El perfil predeterminado, o formato, es el perfil de token de Auth0 asociado a uno de los dos perfiles de token. Puedes cambiar el perfil del token a RFC 9068. Para obtener más información, consulta [Perfiles de token de acceso](/es/docs/secure/tokens/access-tokens/access-token-profiles). Para verificar que el token sea válido, tu API comprobará los [Algoritmos de firma](/es/docs/get-started/applications/signing-algorithms). El <Tooltip tip="Algoritmo de firma: algoritmo usado para firmar digitalmente tokens y garantizar que el token no haya sido manipulado." cta="Ver glosario" href="/es/docs/glossary?term=signing+algorithm">algoritmo de firma</Tooltip> predeterminado es RSA256, un algoritmo basado en claves.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Auth0 admite otros métodos de autenticación de clientes además de usar el ID de cliente y el secreto de cliente como credenciales. Estos métodos, incluida nuestra recomendación de [clave privada JWT](/es/docs/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt) para configuraciones M2M, están disponibles con un plan empresarial. Para obtener más información, consulta [Credenciales de la aplicación](/es/docs/secure/application-credentials).
+</Callout>
+
+<div id="example">
+  #### Ejemplo
+</div>
+
+Una solicitud al endpoint `/oauth/token` debería ser similar al siguiente ejemplo:
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/oauth/token' \
+    --header 'content-type: application/x-www-form-urlencoded' \
+    --data grant_type=client_credentials \
+    --data client_id={yourClientId} \
+    --data client_secret={yourClientSecret} \
+    --data audience=YOUR_API_IDENTIFIER
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/oauth/token");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/x-www-form-urlencoded");
+  request.AddParameter("application/x-www-form-urlencoded", "grant_type=client_credentials&client_id={yourClientId}&client_secret={yourClientSecret}&audience=YOUR_API_IDENTIFIER", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/oauth/token"
+
+  	payload := strings.NewReader("grant_type=client_credentials&client_id={yourClientId}&client_secret={yourClientSecret}&audience=YOUR_API_IDENTIFIER")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/x-www-form-urlencoded")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.post("https://{yourDomain}/oauth/token")
+    .header("content-type", "application/x-www-form-urlencoded")
+    .body("grant_type=client_credentials&client_id={yourClientId}&client_secret={yourClientSecret}&audience=YOUR_API_IDENTIFIER")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/oauth/token',
+    headers: {'content-type': 'application/x-www-form-urlencoded'},
+    data: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: '{yourClientId}',
+      client_secret: '{yourClientSecret}',
+      audience: 'YOUR_API_IDENTIFIER'
+    })
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/oauth/token",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "grant_type=client_credentials&client_id={yourClientId}&client_secret={yourClientSecret}&audience=YOUR_API_IDENTIFIER",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/x-www-form-urlencoded"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "grant_type=client_credentials&client_id={yourClientId}&client_secret={yourClientSecret}&audience=YOUR_API_IDENTIFIER"
+
+  headers = { 'content-type': "application/x-www-form-urlencoded" }
+
+  conn.request("POST", "/{yourDomain}/oauth/token", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/oauth/token")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/x-www-form-urlencoded'
+  request.body = "grant_type=client_credentials&client_id={yourClientId}&client_secret={yourClientSecret}&audience=YOUR_API_IDENTIFIER"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+La respuesta debería ser similar al siguiente ejemplo:
+
+```json lines
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+  "access_token":"eyJz93a...k4laUWw",
+  "token_type":"Bearer",
+  "expires_in":86400
+}
+```
+
+<div id="token-expiration">
+  #### Vencimiento del token
+</div>
+
+Tus tokens de acceso tienen un tiempo de validez limitado. Como tus comunicaciones se realizan a través del back-channel, no puedes usar <Tooltip tip="token de actualización: token utilizado para obtener un token de acceso renovado sin obligar a los usuarios a iniciar sesión de nuevo." cta="Ver glosario" href="/es/docs/glossary?term=refresh+tokens">tokens de actualización</Tooltip> para extender las sesiones, por lo que deberías considerar configurar tus tokens de acceso para que venzan al cabo de 1 hora. Es posible que debas encontrar el equilibrio adecuado entre seguridad y rendimiento para tu entorno específico. Para obtener más información, consulta [Actualizar la duración del token de acceso](/es/docs/secure/tokens/access-tokens/update-access-token-lifetime).
+
+<div id="scopes">
+  ### Scopes
+</div>
+
+Antes de que cualquier cliente o servicio no interactivo llame a tu API, debes definir los permisos o scopes que admite tu API. Puedes configurar los scopes en Auth0 Dashboard para incluirlos en tu solicitud de authentication a Authentication API. Para ver más ejemplos de cómo usar scopes de API, consulta [API Scopes](/es/docs/get-started/apis/scopes/api-scopes).
+
+Para configurar scopes, sigue las instrucciones de [Agregar permisos de API](/es/docs/get-started/apis/add-api-permissions) en Auth0 Dashboard o usa el ejemplo proporcionado para Management API.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para agregar claims personalizadas a un token de acceso, puedes usar el flujo de máquina a máquina de Actions. Para obtener más información, consulta Flujo de máquina a máquina.
+</Callout>
+
+<div id="branding">
+  ## Branding
+</div>
+
+Aunque des servicio a clientes no interactivos o a servicios que funcionan mediante back-channel, igualmente puedes personalizar tu experiencia para que se alinee con la apariencia y el estilo de tu marca actual.
+
+<div id="custom-domains">
+  ### Dominios personalizados
+</div>
+
+Auth0 permite usar dominios personalizados cuando llame al `endpoint` `/authorize` para solicitar tokens de acceso.
+
+<Card title="Incorporación de M2M - dominios personalizados">
+  En Auth0 Dashboard, debe:
+
+  * Registrar y verificar su dominio antes de poder usarlo con sus servicios de Auth0.
+  * Decidir si desea administrar su propio certificado o usar un certificado gestionado por Auth0. Para obtener más información sobre los certificados, consulte [Certificate management options](/es/docs/customize/custom-domains#certificate-management-options).
+  * Verificar que la versión de TLS (SSL) y el cifrado que desea usar para los certificados autogestionados sean compatibles con Auth0. Para obtener más información, consulte [TLS (SSL) Versions and Ciphers](/es/docs/customize/custom-domains/self-managed-certificates/tls-ssl).
+</Card>
+
+1. Para configurar su dominio personalizado con certificados gestionados por Auth0, siga las instrucciones de [Configure Custom Domains with Auth0-Managed Certificates](/es/docs/customize/custom-domains/auth0-managed-certificates).
+
+   1. Si desea administrar sus propios certificados, siga las instrucciones de [Configure Custom Domains with Self-Managed Certificates](/es/docs/customize/custom-domains/self-managed-certificates).
+
+      <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+        Debe tener una suscripción Enterprise para administrar certificados en su dominio personalizado. Para obtener más información, consulte [Auth0 Pricing](https://auth0.com/pricing/) y [Login](/es/docs/authenticate/login).
+      </Callout>
+2. Revise [API configuration with custom domains](/es/docs/customize/custom-domains/configure-features-to-use-custom-domains#apis). Es posible que deba ajustar la configuración de su API para usar un dominio personalizado.
+
+<div id="deployment-automation">
+  ## Automatización del despliegue
+</div>
+
+Auth0 admite un par de opciones distintas para automatizar el despliegue, y ambas pueden utilizarse en conjunto.
+
+<Card title="Práctica recomendada">
+  Independientemente de cómo configure la automatización del despliegue, le recomendamos realizar pruebas unitarias de su código personalizado y de Actions antes del despliegue, y también ejecutar algunas pruebas de integración en su tenant después del despliegue.
+</Card>
+
+<div id="deploy-cli-tool">
+  ### Herramienta Deploy CLI
+</div>
+
+Como se recomienda en la sección de Arquitectura, deberías tener tenants de Auth0 para desarrollo, pruebas y producción. Estos tenants deben compartir configuraciones idénticas para los controles de calidad y las pruebas; sin embargo, puedes encontrarte con errores debido a discrepancias de configuración entre tus entornos. Por ejemplo, cada entorno tendrá diferentes <Tooltip tip="ID de cliente: valor de identificación asignado a tu recurso registrado por Auth0." cta="Ver glosario" href="/es/docs/glossary?term=Client+IDs">IDs de cliente</Tooltip> y <Tooltip tip="ID de cliente: valor de identificación asignado a tu recurso registrado por Auth0." cta="Ver glosario" href="/es/docs/glossary?term=Client+Secrets">secretos de cliente</Tooltip>.
+
+Para mitigar estos errores de discrepancia, puedes usar la herramienta Deploy CLI para integrar tu instancia de Auth0 con tu pipeline de CI/CD actual. Con el reemplazo dinámico de palabras clave, puedes sustituir variables de entorno en tenants que comparten configuraciones similares. Para obtener más información, consulta [Herramienta Deploy CLI](/es/docs/deploy-monitor/deploy-cli-tool) y [Reemplazo de palabras clave](/es/docs/deploy-monitor/deploy-cli-tool/keyword-replacement).
+
+<div id="actions-real-time-logs">
+  ### logs en tiempo real de Actions
+</div>
+
+Los logs en tiempo real de Actions muestran todos los logs del código personalizado en tiempo real, incluida la salida de `console.log` y otras excepciones. Si usas Auth0 Actions u otra lógica personalizada, puedes usar esta extensión para depurar y solucionar problemas. Para obtener más información sobre la instalación y la configuración, consulta [logs en tiempo real de Actions](/es/docs/customize/actions/actions-real-time-logs).
+
+<div id="quality-assurance">
+  ## Control de calidad
+</div>
+
+El control de calidad es importante para identificar problemas antes de poner en marcha tu implementación. Según la naturaleza de tu proyecto, hay varios tipos de pruebas de calidad que conviene considerar como parte de tu integración con Auth0:
+
+* ¿Cómo responderán tus API ante cargas de producción inesperadas?
+* ¿Cómo afectarán las aplicaciones de terceros a tus límites de frecuencia?
+
+Si no usas widgets o funcionalidades de Auth0, como <Tooltip tip="Universal Login: Tu aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/es/docs/glossary?term=Universal+Login">Universal Login</Tooltip>, no contarás de entrada con prácticas recomendadas integradas de usabilidad y accesibilidad para una amplia variedad de navegadores y dispositivos. Para garantizar que se cumplan los requisitos funcionales y que los eventos inesperados se gestionen correctamente, se ofrece orientación para probar la integración entre tu aplicación o aplicaciones y Auth0, así como para realizar pruebas unitarias de módulos individuales de extensibilidad, como Auth0 Actions. También te recomendamos revisar la [política de pruebas de penetración](/es/docs/troubleshoot/customer-support/operational-policies/penetration-testing-policy) de Auth0 y realizar pruebas simuladas que puedas aprovechar junto con nuestra [política de pruebas de carga](/es/docs/troubleshoot/customer-support/operational-policies/load-testing-policy) para ayudar a garantizar que tu aplicación o aplicaciones funcionen correctamente ante cargas inesperadas.
+
+<div id="unit-testing">
+  ### Pruebas unitarias
+</div>
+
+Las pruebas unitarias sirven para verificar unidades de extensibilidad, como Auth0 Actions. Si utiliza código personalizado, le recomendamos usar un framework de pruebas (como [Mocha](https://mochajs.org/)) para probar ese código adicional antes del despliegue.
+
+<div id="mock-testing">
+  ### Prueba simulada
+</div>
+
+Como punto medio entre la [política de pruebas de carga](/es/docs/troubleshoot/customer-support/operational-policies/load-testing-policy) de Auth0 y la necesidad de realizar pruebas de carga, es habitual crear una prueba simulada de los endpoints de Auth0. Esta práctica resulta muy útil para asegurarte de que tu configuración funcione con las interfaces previstas sin tener que limitar tus pruebas, y puedes apoyarte en herramientas como [MockServer](http://www.mock-server.com/), [JSON Server](https://github.com/typicode/json-server) o incluso [Postman](https://learning.getpostman.com/docs/postman/mock_servers/setting_up_mock/).
+
+<div id="deployment">
+  ## Implementación
+</div>
+
+Nuestra sección de [Implementación y monitoreo](/es/docs/deploy-monitor) ofrece orientación sobre prácticas recomendadas de implementación. Le recomendamos revisar las [Comprobaciones previas a la implement](/es/docs/deploy-monitor/pre-deployment-checks)[ación](/es/docs/deploy-monitor/pre-deployment-checks), especialmente las [Comprobaciones de preparación integradas del Auth0 Dashboard](/es/docs/deploy-monitor/pre-deployment-checks/how-to-run-production-checks).
+
+Para revisar la comprobación de preparación, seleccione el menú desplegable que aparece debajo del nombre de su tenant y de la etiqueta del entorno en [Auth0 Dashboard &gt; Ejecutar comprobaciones de preparación](https://manage.auth0.com/#/production-checks).
+
+<Frame>![Auth0 Dashboard > Lista de comprobación de preparación](/docs/images/cdy7uua7fh8z/7iu1CzH0NgaXJbLBNWXZli/b598b8cdaad0c676e83a0fb0595d4603/Readiness_Checks_-_English.png)</Frame>
+
+Puede usar el filtro para aplicar las comprobaciones de preparación a las aplicaciones seleccionadas. **Estas comprobaciones no se aplican a las API que tenga configuradas**.
+
+Para las comprobaciones que no se apliquen a su configuración específica, puede seleccionar **Descartar** para quitarlas de los resultados finales.
+
+Le recomendamos revisar las [Prácticas recomendadas de implementación](/es/docs/deploy-monitor/deployment-best-practices) para realizar las comprobaciones finales antes de entrar en producción y aprovechar los [Registros](/es/docs/deploy-monitor/logs) para supervisar sus servicios.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Descripción general de Auth0](/es/docs/get-started/auth0-overview)
+* [Descripción general de la solución (aplicaciones de servidor + API)](/es/docs/get-started/architecture-scenarios/server-application-api/part-1)
+* [Llama a tu API con el flujo de credenciales de cliente](/es/docs/get-started/authentication-and-authorization-flow/client-credentials-flow/call-your-api-using-the-client-credentials-flow)
+* [Recupera registros de eventos mediante la Management API](/es/docs/deploy-monitor/logs/retrieve-log-events-using-mgmt-api)
+* [Obtén tokens de acceso de la Management API para producción](/es/docs/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production)

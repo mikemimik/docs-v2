@@ -1,0 +1,197 @@
+---
+description: Découvrez comment le profil d’attribut utilisateur vous permet de configurer les utilisateurs pour le provisionnement SCIM dans l’expérience self-service.
+sidebarTitle: profil d’attribut utilisateur
+title: profil d’attribut utilisateur
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<ReleaseStageNotice feature="User Attribute Profile with Self-Service Enterprise Configuration" stage="ea" plans="B2B Professional and B2B Enterprise" terms="true" />
+
+Le profil d’attribut utilisateur (UAP) offre une façon cohérente de définir, de gérer et de faire le mappage des attributs utilisateur dans différents protocoles comme [SCIM](/fr-CA/docs/authenticate/protocols/scim), [SAML](/fr-CA/docs/authenticate/protocols/saml) et [OIDC](/fr-CA/docs/authenticate/login/oidc-conformant-authentication). Le UAP avec la [Self-Service Enterprise Configuration](/fr-CA/docs/authenticate/enterprise-connections/self-service-enterprise-configuration) donne aux administrateurs un meilleur contrôle des données d’identité des utilisateurs en définissant les attributs utilisateur et en appliquant le profil à l’ensemble des protocoles d’authentication.
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+* **Définition du profil**
+  Un administrateur crée un profil d’attribut utilisateur pour définir des attributs, notamment :
+  * Comment afficher les attributs
+  * Comment rendre les attributs obligatoires
+  * Comment les attributs sont mappés à Auth0 et aux systèmes d’identité externes
+
+* **Champ d’application flexible**
+  Les profils sont liés aux flux de Self-Service Enterprise Configuration, mais ils sont conçus pour le provisionnement, l’onboarding et la gestion des droits d’accès.
+
+* **Couche de mappage unifiée**
+  Chaque attribut prend en charge des mappages entre les protocoles d’authentification, avec la possibilité de surcharger les valeurs pour certains fournisseurs ou certaines stratégies de connexion, comme Okta et Entra ID.
+
+<div id="attribute-mapping-and-override">
+  ## Mappage d’attributs et remplacement
+</div>
+
+UAP prend en charge les définitions d’attributs pour plusieurs protocoles et les remplacements de stratégie afin de répondre à des besoins propres aux fournisseurs.
+
+**Mappage d’attributs**
+
+| **Protocole** | **Description**                                                                                                                                                                                                        |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mappage Auth0 | Attribut canonique stocké dans Auth0 (`email`, `name`, `app_metadata.department`).                                                                                                                                     |
+| Mappage OIDC  | Claims OIDC standards (`sub`, `preferred_username`, `zoneinfo`). Pour en savoir plus sur les claims OIDC standards, consultez [Standard Claims](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims). |
+| Mappage SAML  | Prend en charge un ou plusieurs URI d’assertion `(http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress).`                                                                                                |
+| Mappage SCIM  | Attributs de provisionnement (`name.familyName`, `addresses[type eq "work"].country`).                                                                                                                                 |
+
+**Remplacements de stratégie**
+
+Certains fournisseurs utilisent des mappages non standards. UAP permet les remplacements suivants :
+
+| **Protocole**   | **Description**                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------ |
+| SAML            | Mapper `userName` au lieu de `externalId`.                                                       |
+| WAAD (Entra ID) | Utiliser `oid` comme identifiant OIDC.                                                           |
+| Okta            | Mapper des attributs comme `middleNam`e ou `federated_groups` à l’aide de claims propres à Okta. |
+
+<div id="user-id">
+  ### ID utilisateur
+</div>
+
+La propriété user&#95;id définit comment associer les claims OIDC, les attributs SAML ou les attributs SCIM à l’ID utilisateur Auth0. Chaque utilisateur Auth0 doit avoir un ID; ce mappage est donc obligatoire.
+
+* Pour OIDC, les choix sont fixes (généralement `sub`, `oid` pour Azure AD ou `email` pour Google).
+  * Pour SAML et SCIM, le mappage est plus souple et peut renvoyer à plusieurs attributs possibles.
+
+<div id="user-attributes">
+  ### Attributs utilisateur
+</div>
+
+La propriété `user_attributes` contient des informations de mappage qui permettent au système d’interpréter les claims entrants de l’IdP et de les stocker comme attributs du profil utilisateur Auth0.
+
+Chaque attribut doit être fourni sous forme de paire clé/valeur :
+
+* La clé correspond au nom de l’attribut.
+  * La valeur est un objet avec :
+    * `label`
+    * `description`
+    * `profile_required`
+    * `auth0_mapping`
+    * `saml_mapping`
+    * `scim_mapping`
+    * `oidc_mapping`, un objet avec des propriétés
+      * `mapping` représente le claim entrant de l’IdP (valeur littérale, context object dynamique, ou les deux à l’aide de la syntaxe `${variable}`, qui prend en charge le [context object](/fr-CA/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc#context-object))
+      * `display_name`, le libellé affiché aux utilisateurs finaux dans les flows en libre-service
+
+<div id="strategy-overrides">
+  ### Dérogations de stratégie
+</div>
+
+La propriété `strategy_overrides` vous permet de définir des exceptions pour certains fournisseurs d’identité (IdP), car les IdP n’exposent pas tous les mêmes identifiants ni les mêmes claims.
+
+Chaque remplacement définit des mappages propres au protocole qui remplacent ceux définis par défaut dans `user_id` ou `user_attributes`.
+
+<div id="examples">
+  ## Exemples
+</div>
+
+<div id="user-identifier">
+  ### Identifiant de l’utilisateur
+</div>
+
+```json
+"user_id": {
+  "oidc_mapping": "sub",
+  "saml_mapping": [
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn",
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+  ],
+  "scim_mapping": "externalId",
+  "strategy_overrides": {
+    "waad": {
+      "oidc_mapping": "oid"
+    },
+    "samlp": {
+      "scim_mapping": "userName"
+    },
+    "google-apps": {
+      "oidc_mapping": "email"
+    }
+  }
+},
+```
+
+* **Identifiant par défaut**: `externalId` via SCIM.
+* **SAML**: Plusieurs URI d’identifiant sont prises en charge.
+* **OIDC**: Utilise `sub`.
+* **Remplacements**: SAML et WAAD permettent de personnaliser les mappages.
+
+<div id="email-attribute">
+  ### Attribut d’adresse courriel
+</div>
+
+```json
+"email": {
+  "description": "Email",
+  "label": "Email",
+  "profile_required": true,
+  "auth0_mapping": "email",
+  "scim_mapping": "emails[primary eq true].value",
+  "oidc_mapping": {
+    "mapping": "${context.tokenset.email}",
+    "display_name": "email"
+  },
+  "saml_mapping": [
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+  ],
+  "strategy_overrides": {
+    "waad": {
+      "scim_mapping": "emails[type eq \"work\"].value"
+    }
+  }
+}
+```
+
+* Suggéré pour la plupart des profils.
+* Harmonisé entre Auth0, OIDC, SAML et SCIM.
+* Le remplacement WAAD assure le mappage adéquat vers les courriels professionnels.
+
+<div id="create-a-user-attribute-profile">
+  ## Créer un profil d’attribut utilisateur
+</div>
+
+Vous pouvez définir un UAP dans Self-Service Enterprise Configuration à l’aide de l’Auth0 Dashboard ou de la Management API. Pour le moment, il peut être configuré dans l’interface Self-Service Enterprise Configuration.
+
+<div id="configure-with-auth0-dashboard">
+  ### Configurer dans Auth0 Dashboard
+</div>
+
+1. Accédez à [**Authentication &gt; Enterprise &gt; Self-Service Enterprise Configuration**](http://manage.auth0.com/*/connections/enterprise/self-service-profiles).
+2. Sélectionnez **+Create Profile**.
+3. Saisissez un **Name** et, au besoin, une **Description** pour le nouveau profil.
+4. Ajoutez une entrée **profil d’attribut utilisateur** en sélectionnant un profil existant ou en choisissant **+Create New**.
+   * Pour un nouveau profil, saisissez un **User Profile Attribute Name**.
+   * Vérifiez les correspondances afin de vous assurer que les attributs du profil sont associés aux attributs Auth0 de votre choix.
+5. Choisissez **Create**.
+
+Votre nouveau UAP est maintenant disponible pour la configuration du SSO.
+
+<div id="configure-with-management-api">
+  ### Configurer à l’aide de la Management API
+</div>
+
+Pour gérer les profils d’attribut utilisateur, les points de terminaison suivants de la [Management API](https://auth0.com/docs/api/management/v2/introduction) sont offerts :
+
+* `POST` `/api/v2/user-attribute-profiles`
+* `GET` `/api/v2/user-attribute-profiles`
+* `PATCH` `/api/v2/user-attribute-profiles/{id}`
+* `GET` `/api/v2/user-attribute-profiles/{id}`
+* `GET` `/api/v2/user-attribute-profiles/templates`
+* `GET` `/api/v2/user-attribute-profiles/templates/{id}`
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Self-Service Enterprise Configuration](/fr-CA/docs/authenticate/enterprise-connections/self-service-enterprise-configuration)
+* [Configurer PKCE et le mappage des claims pour les connexions OIDC](/fr-CA/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc)
+* [Mapper les attributs SAML avec Auth0 comme IdP/module complémentaire SAML](/fr-CA/docs/authenticate/protocols/saml/saml-configuration/saml-attribute-mapping-examples)
+* [Mapper les attributs de profil AD/LDAP au profil utilisateur Auth0](/fr-CA/docs/authenticate/protocols/saml/saml-configuration/saml-attribute-mapping-examples)

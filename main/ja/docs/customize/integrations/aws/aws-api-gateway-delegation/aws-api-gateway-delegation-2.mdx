@@ -1,0 +1,212 @@
+---
+description: Amazon API Gateway チュートリアルのステップ 2
+title: AWS API Gateway チュートリアルのステップ 2
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+<Warning>
+  この機能では委譲を使用します。デフォルトでは、2017年6月8日時点で使用中のアドオンがないテナントでは、委譲は無効化されています。現在、委譲を必要とするアドオンを使用しているレガシーテナントは、この機能を引き続き利用できます。今後、委譲機能が変更されたり、サービスから削除されたりする場合は、現在利用中のお客様に事前に通知し、移行のための十分な時間が提供されます。また、委譲はカスタムドメインの使用をサポートしていないため、それに依存する機能はカスタムドメインと併用すると完全には動作しない可能性がある点にもご注意ください。
+</Warning>
+
+<div id="step-2-secure-and-deploy-the-amazon-api-gateway">
+  ## Step 2 - Amazon API Gateway を保護してデプロイする
+</div>
+
+API が動作するようになったので、次はセキュリティを追加する必要があります。このステップでは、次のことを行います。
+
+* 特定の AWS IAM ロール を持つ認証済みユーザーだけがアクセスできるように、更新 API を保護する
+* AWS IAM のフェデレーション機能を使用するように Auth0 の委譲を設定する
+* AWS IAM ロール を使用する AWS の <Tooltip tip="アクセストークン: API へのアクセスに使用される認可資格情報で、opaque な文字列または JWT の形式を取ります。" cta="用語集を見る" href="/ja/docs/glossary?term=Access+Token">アクセストークン</Tooltip> を取得する
+
+API を保護したら、サーバーレスのシングルページアプリケーション (SPA) を構築します。この SPA は、どのユーザーにアクセスを許可するかを判断するために、アイデンティティ フェデレーションを利用します。AWS Gateway API 向けの AWS IAM 連携、<Tooltip tip="Security Assertion Markup Language (SAML): パスワードなしで 2 者間で認証情報を交換できるようにする標準化されたプロトコルです。" cta="用語集を見る" href="/ja/docs/glossary?term=SAML">SAML</Tooltip> 向けの AWS IAM Identity Federation、そして AWS 向け Auth0 委譲 を組み合わせることで、ソーシャルプロバイダーやエンタープライズ接続を含むさまざまなソースのユーザーが API にアクセスできるようになります。次の図は、SAML ベースの <Tooltip tip="Identity Provider (IdP): デジタルアイデンティティを保存および管理するサービスです。" cta="用語集を見る" href="/ja/docs/glossary?term=Identity+Provider">IDプロバイダー</Tooltip> と AWS 向け Auth0 SAML Federation および 委譲 を使用したサンプルフローを示しています。
+
+このフローを実装する 2 つの方法を確認します。
+
+1. Auth0 委譲 を AWS IAM とともに使用する
+2. Lambda 関数にアイデンティティを渡すために、フローに ID トークンを追加する
+
+委譲を使用すると、アプリケーション内で AWS サービスにアクセスするためのトークンを AWS から簡単に取得できます。
+
+<div id="ways-to-secure-the-amazon-api-gateway">
+  ### Amazon API Gateway を保護する方法
+</div>
+
+AWS API Gateway には、API を保護するための方法がいくつか用意されています。
+
+1. API キー;
+2. IAM;
+3. [Amazon Cognito](/ja/docs/customize/integrations/aws/aws-api-gateway-cognito)。
+
+API キーの使用は、通常、以下に示すようなサービス間通信に適しています。ただし、このアプローチにはいくつかの欠点があります。
+
+* 有効期間の長いシークレットをアプリケーションに配置するのは危険です (アプリケーションは侵害されやすいためです) 。
+* API キーを発行・管理するための仕組みを構築するには、安全な実装が必要であり、開発が難しい場合があります。
+
+このチュートリアルのこのセクションでは、API Gateway で API を保護するために IAM ロールとポリシーを使用しますが、Amazon Cognito のユーザープールを使用することもできます。AWS API を保護するための詳細な手順については、[Cognito を使用して AWS API Gateway を保護する](/ja/docs/customize/integrations/aws/aws-api-gateway-cognito)を参照してください。IAM ロールとポリシーの使用方法の詳細については、Amazon の記事「[IAM 権限を使用して API へのアクセスを制御する](http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html)」を参照してください。Cognito のユーザープールの詳細については、[Amazon Cognito ユーザープール](http://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html)を参照してください。
+
+<div id="step-1-configure-iam-and-auth0-for-saml-integration-with-the-api-gateway">
+  ### Step 1. API Gateway との SAML 連携に向けて IAM と Auth0 を設定する
+</div>
+
+SAMLトークンを AWS トークンと交換する際に使用する AWS IAM ロールを指定できます。受け取るトークンには、その IAM ロールに付与されている権限 (アイデンティティプロバイダーで設定) と同じ権限が付与されます。AWS IAM ロールごとに異なる SAMLトークンを発行することで、ユーザーのアクセスレベルを制御できます。
+
+たとえば、IDP は、グループメンバーシップ (Active Directory の管理者など) や認証元 (データベース接続や Facebook のようなソーシャルプロバイダーなど) に基づいて IAM ロールを指定できます。この方法により、AWS IAM で保護された Amazon API Gateway メソッドに対するユーザーアクセスを区別できます。
+
+<div id="configure-auth0">
+  #### Auth0 を設定する
+</div>
+
+Auth0 アカウントにログインします。管理ダッシュボードが表示されたら、ページ右上にある **+ New Application** をクリックします。
+
+新しいアプリケーションに AWS API Gateway という名前を付け、このアプリケーションの種類としてシングルページアプリケーションを指定します。**Create** をクリックします。
+
+新しく作成したアプリケーションの [アドオン] タブに移動します。該当するスイッチを使って Amazon Web Services を有効にします。これにより AWS 委譲が有効になります。
+
+<div id="configure-aws">
+  #### AWS を設定する
+</div>
+
+SAML を使用する委譲アクセス向けに AWS を設定するには、[委譲認証のための AWS の設定方法](/ja/docs/customize/integrations/aws/how-to-set-up-aws-for-delegated-authentication)のチュートリアルに従ってください。いくつか注意点があります。
+
+* ロールに権限ポリシーをアタッチする際は、前述のチュートリアルの手順ではなく、[以下の手順](#setting-the-permissions-policy-on-your-iws-iam-role)に従ってください。
+* 作成する SAML プロバイダーの名前は `auth0` にします。
+* AWS IAM ロールの名前は `auth0-api-role` にします。
+
+<div id="set-the-permissions-policy-on-your-iws-iam-role">
+  ##### IWS IAM ロールにPermissions Policyを設定する
+</div>
+
+AWS IAM ロールの設定が完了したら、API Gateway メソッドを実行できるようにするポリシーを `auth0-api-role` に追加します。この手順の詳細については、[Amazon API Gateway のユーザーアクセス権限](http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html)を参照してください。
+
+<div id="getting-the-gateway-api-arn">
+  #### Gateway API ARN を取得する
+</div>
+
+開始する前に、Gateway API の ARN を用意する必要があります。
+
+1. [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway) にアクセスしてログインします。
+2. 該当する API を選択します。
+3. API に関連付けられているいずれかの Method をクリックして、Method Execution ページを開きます。
+4. Method Execution ページの左上にあるメソッド要求ボックスには API の **ARN** が表示されますが、Method 名も含まれています。
+
+`arn:aws:execute-api:us-east-2:484857107747:97i1dwv0j4/*/POST/`
+
+API のベース ARN を取得するには、メソッド名を取り除きます。
+
+`arn:aws:execute-api:us-east-2:484857107747:97i1dwv0j4/*`
+
+上記の ARN の wildcard (`*`) は、すべてのステージに対する API への権限を有効にしますが、異なるステージを個別にデプロイすることもできます (たとえば、development、次に test、最後に production) 。
+
+先ほど作成した `auth0-api-role` ロール を選択して、その Summary ページを開きます。
+
+**Inline Policies** を展開し、**click here** をクリックします。
+
+**Custom Policy** を選択し、**Select** をクリックします。
+
+ポリシードキュメントを編集します。**Policy Name** には任意の名前を設定できますが、`api-gateway-policy` のような名前をお勧めします。この ロール に API メソッドへのアクセスを許可するには、ARN を自分の API のものに更新したうえで、次のポリシーを適用します。
+
+```json lines
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "execute-api:*"
+            ],
+            "Resource": [
+                "arn:[{yourArn}]"
+            ]
+        }
+    ]
+}
+```
+
+**Apply Policy** をクリックします。
+
+API Gateway はユーザーに代わってこのロールを引き受けるため、信頼ポリシーでこれを許可する必要があります。そのため、ロールの Summary ページにあるこのタブに移動し、ロールの Trust Relationships を編集します。
+
+最終的な信頼関係は、次のようになります。
+
+export const codeExample = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "auth0",
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::012345670:saml-provider/auth0-api"
+      },
+      "Action": "sts:AssumeRoleWithSAML",
+      "Condition": {
+        "StringEquals": {
+          "SAML:iss": "urn:{yourDomain}"
+        }
+      }
+    },
+    {
+      "Sid": "gateway",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "apigateway.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}`;
+
+<AuthCodeBlock children={codeExample} language="json" />
+
+この時点で、[API Gateway](https://console.aws.amazon.com/apigateway) で Authorization の設定を行う必要があります。
+
+**Resources** ビューで、`/pets` 配下の POST メソッドを選択します。
+
+**メソッド要求** リンクをクリックします。
+
+**Authorization Type** の横にある編集アイコンをクリックし、AWS&#95;IAM を選択します。次に、設定を保存するため、フィールド横の **Check Button** をクリックします。
+
+<div id="step-2-set-up-cors-and-deploy-the-api">
+  ### ステップ 2. CORS を設定して API をデプロイする
+</div>
+
+このシングルページアプリケーション (SPA) は、ページとは異なるドメインから Web API メソッドにアクセスします。ブラウザーが AWS API Gateway へのアクセスを許可できるようにするには、クロスオリジン リソース共有の設定でこれを明示的に許可する必要があります。通常、ブラウザーはまず、サイトがどの操作を許可するかを確認するために `OPTIONS` リクエストを送信します。
+
+Resources の下にある `/pets` を選択し、**Create Method** をクリックします。ドロップダウンで **OPTIONS** を選択し、設定を保存するために **checkmark** をクリックします。
+
+Options メソッドは、必要な HTTP ヘッダーを取得するためにブラウザーで使用されますが、その関数には何を行うかについて追加の指示が必要です。`OPTIONS` の設定画面で、次の変数/パラメータを設定します。
+
+* **Integration Type**: Lambda Function;
+* **Use Lambda Proxy Integration**: チェックを外したままにします;
+* **Lambda Region**: 使用するリージョンを選択します;
+* **Lambda Function**: NoOp.
+
+**Save** をクリックします。次のポップアップ画面で、Lambda 関数に必要な権限を付与します。
+
+その後、自動的に `OPTIONS` の Method Execution ページに移動します。Method Response ページを開きます。
+
+HTTP Status バーの下にある **200** セクションを展開し、次のレスポンスヘッダーを追加します。
+
+* Access-Control-Allow-Headers;
+* Access-Control-Allow-Methods;
+* Access-Control-Allow-Origin.
+
+次に、各レスポンスヘッダーに適切な値をマッピングします。Method Execution ページに戻ったら、**Integration Response** をクリックします。**200** メソッドの response status に関連付けられた行を展開した後、**Header Mappings** を展開し、次のマッピングを適用します。
+
+* Access-Control-Allow-Headers: `'Content-Type,X-Amz-Date,Authorization,x-api-key,x-amz-security-token'`;
+* Access-Control-Allow-Origin: `'*'`
+* Access-Control-Allow-Methods: `'POST, GET, OPTIONS'`
+
+最後に、POST メソッドと GET メソッドで CORS を有効にするために、上記の手順を繰り返します。ただし、この 2 つのメソッドでは、追加するヘッダーは 1 つだけで、Access-Control-Allow-Origin の値を `'*'` に設定する必要があります。
+
+<div id="deploy-the-api">
+  ### API をデプロイする
+</div>
+
+API の **Resources** view に戻ります。**Actions** をクリックし、**DEPLOY API** を選択します。
+
+Deploy State で **New Stage** を選択し、ステージ名を `Test` にします。**Deploy** ボタンをクリックします。
+
+結果ページで **SDK Generation** に移動します。**Platform** として JavaScript を選択し、**Generate SDK** ボタンをクリックします。
+
+後で使用するために、ダウンロードした zip ファイルを保存します。

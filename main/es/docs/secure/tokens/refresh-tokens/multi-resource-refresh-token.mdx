@@ -1,0 +1,55 @@
+---
+description: Obtén información sobre el token de actualización multirrecurso
+sidebarTitle: Descripción general
+title: Token de actualización multirrecurso
+---
+
+Los <Tooltip tip="Refresh Token: Token que se usa para obtener un Access Token renovado sin obligar a los usuarios a iniciar sesión de nuevo." cta="Ver glosario" href="/es/docs/glossary?term=Refresh+Tokens">tokens de actualización</Tooltip> multirrecurso (MRRT) permiten que un único [token de actualización](/es/docs/secure/tokens/refresh-tokens) obtenga [tokens de acceso](/es/docs/secure/tokens/access-tokens) para múltiples [APIs](/es/docs/get-started/apis), cada una con sus propios scopes y permisos. MRRT se basa en el comportamiento estándar de [OAuth 2.0](/es/docs/authenticate/protocols/oauth) al permitir que los tokens de actualización mantengan varias políticas de autorización.
+
+Cuando una aplicación intercambia un token de actualización por un <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=access+token">token de acceso</Tooltip>, puede seleccionar entre un conjunto de <Tooltip tip="Audience: Identificador único de la audiencia para un token emitido. Se denomina aud en un token, y su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un Access Token." cta="Ver glosario" href="/es/docs/glossary?term=audience">audiencias</Tooltip> y scopes configurados. De este modo, MRRT agiliza los flujos de autenticación al evitar la necesidad de obtener un nuevo token de actualización para cada API.
+Al usar MRRT, Auth0 combina dos fuentes de autorización para determinar qué token de acceso emitir durante un intercambio de token de actualización:
+
+1. La audiencia y los scopes concedidos en el flujo de autenticación original.
+2. La audiencia y los scopes configurados en la política MRRT de la aplicación.
+
+Esto permite que las aplicaciones reutilicen el token de actualización no solo para las APIs solicitadas al iniciar sesión, sino también para APIs adicionales permitidas en la política MRRT.
+
+**Los beneficios clave de MRRT incluyen**:
+
+* Un único token de actualización por aplicación para gestionar el acceso a múltiples APIs.
+* No es necesario pasar por un <Tooltip tip="Authorization Flow: Concesión de autorización (o workflow) especificada en el marco de OAuth 2.0." cta="Ver glosario" href="/es/docs/glossary?term=authorization+flow">flujo de autorización</Tooltip> completo cada vez que tu aplicación necesite acceder a una API nueva.
+* Mejora del rendimiento y reducción de la carga en el <Tooltip tip="Authorization Server: Servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, tareas y funciones disponibles para un usuario." cta="Ver glosario" href="/es/docs/glossary?term=authorization+server">servidor de autorización</Tooltip>.
+* Menor riesgo de [limitación de tasa](/es/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy) debido a flujos completos y repetidos de código de autorización.
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+<Frame>![](/docs/images/cdy7uua7fh8z/1V12Rzfm8mafMTaxlcEr25/a9ab2a335a835f0c2ae61eb1d767c9fa/Docs_Diagram_Toolkit_-_Carlos__1_.png)</Frame>
+
+1. La aplicación se autentica con Auth0.
+
+2. Auth0 devuelve un token de acceso y un token de actualización multirrecurso.
+
+3. La aplicación usa el token de acceso para llamar a la API 1.
+
+4. La aplicación intercambia el token de actualización multirrecurso para obtener acceso a la API 2.
+
+5. Auth0 devuelve un nuevo token de acceso para la API 2.
+
+6. La aplicación llama a la API 2 con el nuevo token de acceso.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Por ejemplo, una aplicación nativa autentica al usuario y solicita acceso a la audiencia `https://api.example.com`. Luego, la aplicación necesita acceso a la audiencia `https://billing.example.com`. Si ambas APIs están incluidas en la política de MRRT de la aplicación, la aplicación puede intercambiar un token de actualización por un token de acceso para cualquiera de las dos APIs.
+</Callout>
+
+Aprende a [configurar e implementar el token de actualización multirrecurso](/es/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token).
+
+<div id="limitations">
+  ## Limitaciones
+</div>
+
+* Cada token de acceso emitido a través de MRRT está limitado a una sola API. Si su aplicación requiere acceso a varias API, debe solicitar tokens de acceso independientes para cada API.
+* MRRT solo admite [aplicaciones propias](/es/docs/get-started/applications/first-party-and-third-party-applications#first-party-applications).
+* MRRT admite API configuradas para [omitir el consentimiento del usuario](/es/docs/get-started/applications/third-party-applications/user-consent-and-third-party-applications#skip-consent-for-first-party-applications).
+* La <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip> de Auth0 no se puede incluir en las políticas de MRRT.

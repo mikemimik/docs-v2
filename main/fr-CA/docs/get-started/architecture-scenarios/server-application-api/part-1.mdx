@@ -1,0 +1,69 @@
+---
+description: Aperçu des solutions pour le scénario d’architecture serveur + API
+title: Aperçu de la solution (Applications serveur + API)
+---
+
+Afin de garantir que seuls les utilisateurs et les applications autorisés peuvent accéder à la Timesheets API, ExampleCo a choisi de recourir au [cadre d’autorisation OAuth 2.0](https://tools.ietf.org/html/rfc6749). Ce cadre lui offre la souplesse recherchée, puisque les différents types d’autorisation lui permettent d’autoriser facilement les divers types d’applications qui doivent communiquer avec la Timesheets API.
+
+<div id="oauth-20">
+  ## OAuth 2.0
+</div>
+
+Grâce au cadre d’autorisation <Tooltip tip="OAuth 2.0 : cadre d’autorisation qui définit les protocoles et les processus d’autorisation." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip>, l’application Web classique d’ExampleCo et l’application tierce destinée aux sous-traitants externes peuvent bénéficier d’un accès limité à l’API Timesheets. Avec Auth0, ExampleCo peut facilement prendre en charge différents [types d’octroi](/fr-CA/docs/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use) ou flux d’authentification sans avoir à se préoccuper de la spécification OAuth 2.0/<Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC), ni des nombreux autres aspects techniques de l’autorisation des API.
+
+<Card title="Rôles OAuth">
+  Dans tout flux OAuth 2.0, on peut distinguer les rôles suivants :
+
+  * **Propriétaire de la ressource** : l’entité qui peut accorder l’accès à une ressource protégée. Il s’agit généralement de l’utilisateur final.
+  * **Serveur de ressources** : le serveur qui héberge les ressources protégées. Il s’agit de l’API à laquelle vous voulez accéder.
+  * **Client** : une application qui demande l’accès à une ressource protégée au nom du propriétaire de la ressource.
+  * **Serveur d’autorisation** : le serveur qui authentifie le propriétaire de la ressource et émet des jetons d’accès après avoir obtenu l’autorisation appropriée. Dans ce cas-ci, il s’agit de l’Authentication API d’Auth0.
+
+  Les [types d’octroi (ou flux)](/fr-CA/docs/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use) déterminent comment ces participants interagissent afin d’accorder aux applications un accès limité aux API que vous créez. L’application obtiendra alors un jeton d’accès qui pourra être utilisé pour appeler l’API au nom de l’utilisateur.
+</Card>
+
+<div id="client-credentials-grant">
+  ### Client Credentials Grant
+</div>
+
+OAuth 2 offre plusieurs types d’octroi pour différents cas d’utilisation. Dans ce cas précis, où une tâche cron téléversera des feuilles de temps au moyen d’une API, il n’y a pas d’utilisateur interactif (ni de <Tooltip tip="Resource Owner : entité (comme un utilisateur ou une application) capable d’accorder l’accès à une ressource protégée." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=resource+owner">propriétaire de la ressource</Tooltip>) pour accorder à la tâche cron les permissions d’accéder à l’API.
+
+La tâche cron n’effectue pas non plus les appels à l’API au nom d’un utilisateur. L’application (la tâche cron) utilise plutôt l’autorisation machine-à-machine pour effectuer des appels au <Tooltip tip="Resource Server : serveur hébergeant des ressources protégées. Les serveurs de ressources acceptent les requêtes visant des ressources protégées et y répondent." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Resource+Server">serveur de ressources</Tooltip> (l’API) pour son propre compte.
+
+Dans ce type de situation, où aucune interaction utilisateur n’est requise, le [Client Credentials Grant](/fr-CA/docs/get-started/authentication-and-authorization-flow/client-credentials-flow) est idéal. Avec le Client Credentials Grant (défini dans la [RFC 6749, section 4.4](https://tools.ietf.org/html/rfc6749#section-4.4)), une application peut demander directement un <Tooltip tip="Access Token : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=access+token">jeton d’accès</Tooltip> au <Tooltip tip="Access Token : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Authorization+Server">serveur d’autorisation</Tooltip> en utilisant ses identifiants client (un <Tooltip tip="Authorization Server : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités offertes à un utilisateur." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Client+ID">Client ID</Tooltip> et un <Tooltip tip="Client Secret : secret utilisé par un client (application) pour s’authentifier auprès du serveur d’autorisation; il ne devrait être connu que du client et du serveur d’autorisation et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Client+Secret">Client Secret</Tooltip>). Au lieu d’identifier un propriétaire de la ressource, ce jeton représentera l’application elle-même.
+
+<Frame>![undefined](/docs/images/cdy7uua7fh8z/5CfNEkbyG1ZC5BqHwi9gEs/309babf8329b165f1241f4cbc8e002ba/client-credentials-grant.png)</Frame>
+
+1. L’application s’authentifie auprès du serveur d’autorisation à l’aide de son Client ID et de son Client Secret.
+2. Le serveur d’autorisation valide ces renseignements et renvoie un jeton d’accès.
+3. L’application peut utiliser le jeton d’accès pour appeler le serveur de ressources pour son propre compte.
+
+<div id="api-authentication-and-authorization">
+  ## Authentification et autorisation des API
+</div>
+
+Une API permet d’exposer les fonctionnalités de votre application à d’autres applications. D’autres applications peuvent envoyer une requête à un point de terminaison d’API et recevoir une réponse. De la même manière, l’application externe utilisée par les sous-traitants d’ExampleCo peut communiquer avec la Timesheets API ainsi qu’avec la Regular Web Application qu’ExampleCo a créée pour ses employés à l’interne.
+
+Comme la Timesheets API traite des renseignements sensibles (comme des PII et des renseignements financiers), ExampleCo doit s’assurer que seuls les utilisateurs et les applications autorisés peuvent appeler ses points de terminaison.
+
+<div id="access-tokens-and-scopes">
+  ### Jetons d’accès et portées
+</div>
+
+Les API peuvent être sécurisées ou non. Lorsqu’une application veut accéder à des points de terminaison protégés d’une API, elle doit fournir un jeton d’accès (aussi appelé `access_token`) comme preuve qu’elle possède les permissions requises.
+
+Un jeton d’accès est une chaîne opaque qui représente une autorisation accordée à l’application. Il est obtenu en authentifiant l’utilisateur auprès d’un serveur d’autorisation. L’utilisateur peut ensuite autoriser l’application à accéder à l’API en son nom. Pour en savoir plus, consultez [Jetons d’accès](/fr-CA/docs/secure/tokens/access-tokens).
+
+Une API comme la Timesheets API peut appliquer un contrôle granulaire sur les personnes qui peuvent accéder aux différents points de terminaison qu’elle expose. Ces permissions sont exprimées sous forme de portées.
+
+Lorsque la Regular Web Application d’ExampleCo ou l’application tierce s’authentifie auprès d’Auth0 pour obtenir un jeton d’accès, la requête d’authentification inclut la liste des portées demandées dont l’application a besoin. Si ces portées sont autorisées, le jeton d’accès contiendra alors la liste des portées autorisées accordées à l’application.
+
+La Regular Web App ou l’application tierce inclut le jeton d’accès du serveur d’autorisation lorsqu’elle envoie des requêtes à la Timesheets API, et la Timesheets API examine la revendication de portée afin de s’assurer que les permissions requises ont bien été accordées pour appeler le point de terminaison en question.
+
+Par exemple, la Timesheets API peut accepter quatre niveaux d’autorisation différents : lecture des feuilles de temps (portée `read:timesheets`), création de feuilles de temps (portée `create:timesheets`), suppression de feuilles de temps (portée `delete:timesheets`) et approbation de feuilles de temps (portée `approve:timesheets`).
+
+Pour plus d’information sur les portées, consultez [Portées](/fr-CA/docs/get-started/apis/scopes).
+
+Lorsque la Regular Web App envoie une requête à la Timesheets API pour créer une nouvelle entrée de feuille de temps, le jeton d’accès doit contenir la portée `create:timesheets`, sinon la requête sera refusée. De même, pour supprimer des feuilles de temps existantes, le jeton d’accès doit contenir la portée `delete:timesheets`.
+
+Pour en savoir plus, consultez [Portées](/fr-CA/docs/get-started/apis/scopes).

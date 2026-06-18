@@ -1,0 +1,791 @@
+---
+description: Describe la implementación de la autenticación Passwordless con inicio de sesión integrado en aplicaciones nativas.
+title: Inicio de sesión Passwordless integrado en aplicaciones nativas
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+Para usar las API de <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/es/docs/glossary?term=Passwordless">Passwordless</Tooltip> Embedded en aplicaciones nativas, asegúrate de habilitar la concesión **Passwordless OTP** en [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications), dentro de la configuración de tu aplicación, en **Advanced Settings** &gt; **Grant Types**.
+
+La autenticación passwordless para aplicaciones nativas consta de dos pasos:
+
+* Recoge el identificador del usuario en tu aplicación (su correo electrónico o número de teléfono) e invoca el endpoint `/passwordless/start` para iniciar el flujo passwordless. El usuario recibirá un correo electrónico o un SMS con una contraseña de un solo uso.
+* Pide al usuario que introduzca el código de un solo uso y llama al endpoint `/oauth/token` para obtener tokens de autenticación.
+
+A continuación, mostramos algunos fragmentos de código que pueden usarse para llamar a estos endpoints de API en distintos escenarios.
+
+**Enviar una contraseña de un solo uso por correo electrónico**
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/passwordless/start' \
+    --header 'content-type: application/json' \
+    --data '{"client_id": "{yourClientId}",  "connection": "email",   "email": "USER_EMAIL",  "send": "code"}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/passwordless/start");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"client_id": "{yourClientId}",  "connection": "email",   "email": "USER_EMAIL",  "send": "code"}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/passwordless/start"
+
+  	payload := strings.NewReader("{"client_id": "{yourClientId}",  "connection": "email",   "email": "USER_EMAIL",  "send": "code"}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/passwordless/start")
+    .header("content-type", "application/json")
+    .body("{"client_id": "{yourClientId}",  "connection": "email",   "email": "USER_EMAIL",  "send": "code"}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/passwordless/start',
+    headers: {'content-type': 'application/json'},
+    data: {
+      client_id: '{yourClientId}',
+      connection: 'email',
+      email: 'USER_EMAIL',
+      send: 'code'
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/passwordless/start",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{"client_id": "{yourClientId}",  "connection": "email",   "email": "USER_EMAIL",  "send": "code"}",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"client_id": "{yourClientId}",  "connection": "email",   "email": "USER_EMAIL",  "send": "code"}"
+
+  headers = { 'content-type': "application/json" }
+
+  conn.request("POST", "/{yourDomain}/passwordless/start", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/passwordless/start")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/json'
+  request.body = "{"client_id": "{yourClientId}",  "connection": "email",   "email": "USER_EMAIL",  "send": "code"}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+**Enviar un Magic Link por correo electrónico**
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/passwordless/start' \
+    --header 'content-type: application/json' \
+    --data '{ "client_id": "{yourClientId}", "connection": "email", "email": "USER_EMAIL", "send": "link"}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/passwordless/start");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{ "client_id": "{yourClientId}", "connection": "email", "email": "USER_EMAIL", "send": "link"}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/passwordless/start"
+
+  	payload := strings.NewReader("{ "client_id": "{yourClientId}", "connection": "email", "email": "USER_EMAIL", "send": "link"}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/passwordless/start")
+    .header("content-type", "application/json")
+    .body("{ "client_id": "{yourClientId}", "connection": "email", "email": "USER_EMAIL", "send": "link"}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/passwordless/start',
+    headers: {'content-type': 'application/json'},
+    data: {
+      client_id: '{yourClientId}',
+      connection: 'email',
+      email: 'USER_EMAIL',
+      send: 'link'
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/passwordless/start",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{ "client_id": "{yourClientId}", "connection": "email", "email": "USER_EMAIL", "send": "link"}",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{ "client_id": "{yourClientId}", "connection": "email", "email": "USER_EMAIL", "send": "link"}"
+
+  headers = { 'content-type': "application/json" }
+
+  conn.request("POST", "/{yourDomain}/passwordless/start", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/passwordless/start")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/json'
+  request.body = "{ "client_id": "{yourClientId}", "connection": "email", "email": "USER_EMAIL", "send": "link"}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+**Envíe una contraseña de un solo uso por SMS**
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/passwordless/start' \
+    --header 'content-type: application/json' \
+    --data '{ "client_id": "{yourClientId}",  "connection": "sms",  "phone_number": "USER_PHONE_NUMBER", "send": "code"}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/passwordless/start");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{ "client_id": "{yourClientId}",  "connection": "sms",  "phone_number": "USER_PHONE_NUMBER", "send": "code"}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/passwordless/start"
+
+  	payload := strings.NewReader("{ "client_id": "{yourClientId}",  "connection": "sms",  "phone_number": "USER_PHONE_NUMBER", "send": "code"}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/passwordless/start")
+    .header("content-type", "application/json")
+    .body("{ "client_id": "{yourClientId}",  "connection": "sms",  "phone_number": "USER_PHONE_NUMBER", "send": "code"}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/passwordless/start',
+    headers: {'content-type': 'application/json'},
+    data: {
+      client_id: '{yourClientId}',
+      connection: 'sms',
+      phone_number: 'USER_PHONE_NUMBER',
+      send: 'code'
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/passwordless/start",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{ "client_id": "{yourClientId}",  "connection": "sms",  "phone_number": "USER_PHONE_NUMBER", "send": "code"}",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{ "client_id": "{yourClientId}",  "connection": "sms",  "phone_number": "USER_PHONE_NUMBER", "send": "code"}"
+
+  headers = { 'content-type': "application/json" }
+
+  conn.request("POST", "/{yourDomain}/passwordless/start", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/passwordless/start")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/json'
+  request.body = "{ "client_id": "{yourClientId}",  "connection": "sms",  "phone_number": "USER_PHONE_NUMBER", "send": "code"}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+**Autenticar a un usuario mediante SMS**
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/oauth/token' \
+    --header 'content-type: application/json' \
+    --data '{ "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",  "client_id": "{yourClientId}",  "username": "USER_PHONE_NUMBER",  "otp": "code",  "realm": "sms", "audience": "your-api-audience", "scope": "openid profile email"}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/oauth/token");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{ "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",  "client_id": "{yourClientId}",  "username": "USER_PHONE_NUMBER",  "otp": "code",  "realm": "sms", "audience": "your-api-audience", "scope": "openid profile email"}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/oauth/token"
+
+  	payload := strings.NewReader("{ "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",  "client_id": "{yourClientId}",  "username": "USER_PHONE_NUMBER",  "otp": "code",  "realm": "sms", "audience": "your-api-audience", "scope": "openid profile email"}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/oauth/token',
+    headers: {'content-type': 'application/json'},
+    data: {
+      grant_type: 'http://auth0.com/oauth/grant-type/passwordless/otp',
+      client_id: '{yourClientId}',
+      username: 'USER_PHONE_NUMBER',
+      otp: 'code',
+      realm: 'sms',
+      audience: 'your-api-audience',
+      scope: 'openid profile email'
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/oauth/token",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{ "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",  "client_id": "{yourClientId}",  "username": "USER_PHONE_NUMBER",  "otp": "code",  "realm": "sms", "audience": "your-api-audience", "scope": "openid profile email"}",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{ "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",  "client_id": "{yourClientId}",  "username": "USER_PHONE_NUMBER",  "otp": "code",  "realm": "sms", "audience": "your-api-audience", "scope": "openid profile email"}"
+
+  headers = { 'content-type': "application/json" }
+
+  conn.request("POST", "/{yourDomain}/oauth/token", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/oauth/token")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/json'
+  request.body = "{ "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",  "client_id": "{yourClientId}",  "username": "USER_PHONE_NUMBER",  "otp": "code",  "realm": "sms", "audience": "your-api-audience", "scope": "openid profile email"}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+**Autentica a un usuario con Email**
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/oauth/token' \
+    --header 'content-type: application/json' \
+    --data '{"grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp", "client_id": "{yourClientId}", "username": "USER_EMAIL", "otp": "code", "realm": "email", "audience": "your-api-audience", "scope": "openid profile email"}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/oauth/token");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp", "client_id": "{yourClientId}", "username": "USER_EMAIL", "otp": "code", "realm": "email", "audience": "your-api-audience", "scope": "openid profile email"}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/oauth/token"
+
+  	payload := strings.NewReader("{"grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp", "client_id": "{yourClientId}", "username": "USER_EMAIL", "otp": "code", "realm": "email", "audience": "your-api-audience", "scope": "openid profile email"}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/oauth/token")
+    .header("content-type", "application/json")
+    .body("{"grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp", "client_id": "{yourClientId}", "username": "USER_EMAIL", "otp": "code", "realm": "email", "audience": "your-api-audience", "scope": "openid profile email"}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/oauth/token',
+    headers: {'content-type': 'application/json'},
+    data: {
+      grant_type: 'http://auth0.com/oauth/grant-type/passwordless/otp',
+      client_id: '{yourClientId}',
+      username: 'USER_EMAIL',
+      otp: 'code',
+      realm: 'email',
+      audience: 'your-api-audience',
+      scope: 'openid profile email'
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/oauth/token",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{"grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp", "client_id": "{yourClientId}", "username": "USER_EMAIL", "otp": "code", "realm": "email", "audience": "your-api-audience", "scope": "openid profile email"}",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp", "client_id": "{yourClientId}", "username": "USER_EMAIL", "otp": "code", "realm": "email", "audience": "your-api-audience", "scope": "openid profile email"}"
+
+  headers = { 'content-type': "application/json" }
+
+  conn.request("POST", "/{yourDomain}/oauth/token", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/oauth/token")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/json'
+  request.body = "{"grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp", "client_id": "{yourClientId}", "username": "USER_EMAIL", "otp": "code", "realm": "email", "audience": "your-api-audience", "scope": "openid profile email"}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Si lo prefieres, puedes usar los SDKs de Android o iOS, que encapsulan estas APIs de forma adaptada a la plataforma:
+
+* [Lock.Android Passwordless](/es/docs/libraries/lock-android/lock-android-passwordless)
+* [Auth0.Android Passwordless](/es/docs/libraries/auth0-android/auth0-android-passwordless)
+* [Auth0.swift Passwordless](/es/docs/libraries/auth0-swift/auth0-swift-passwordless)
+
+<div id="customize-mfa-with-embedded">
+  ## Personaliza MFA con Embedded
+</div>
+
+<ReleaseStageNotice feature="MFA personalizable con los flujos de Resource Owner Password Grant, Embedded o token de actualización" stage="ea" terms="true" contact="equipo de soporte de Auth0" />
+
+Personaliza <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuarios que utiliza un factor adicional además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/es/docs/glossary?term=MFA">MFA</Tooltip> con flujos Embedded. Usa la API de MFA para permitir que los usuarios registren los factores compatibles con tu aplicación que prefieran y respondan a los desafíos con ellos.
+
+Cuando tu aplicación solicita un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=access+token+at+the">token de acceso en</Tooltip> el endpoint `oauth/token`, la respuesta incluye `mfa_token` para usar la API de MFA y el parámetro `mfa_requirements`, con una lista de autenticadores que tu aplicación admite actualmente:
+
+```json lines
+{
+  "error": "mfa_required",
+  "error_description": "Multifactor authentication required",
+  "mfa_token": "Fe26...Ha",
+  "mfa_requirements": {
+    "challenge": [
+      { "type": "otp" },
+      { "type": "push-notification" },
+      { "type": "phone" },
+      { "type": "recovery-code" }
+    ]
+  }
+}
+```
+
+Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](https://auth0.com/docs/api/authentication/muti-factor-authentication/list-authenticators), obtener la lista de todos los factores que el usuario tiene inscritos y encontrar el mismo `type` que admite tu aplicación. También necesitas obtener el `authenticator_type` correspondiente para emitir desafíos:
+
+```json lines
+[
+  {
+    "type": "recovery-code",
+    "id": "recovery-code|dev_qpOkGUOxBpw6R16t",
+    "authenticator_type": "recovery-code",
+    "active": true
+  },
+  {
+    "type": "otp",
+    "id": "totp|dev_6NWz8awwC8brh2dN",
+    "authenticator_type": "otp",
+    "active": true
+  }
+]
+```
+
+Aplica el desafío MFA llamando al endpoint [`request/mfa/challenge`](https://auth0.com/docs/api/authentication/muti-factor-authentication/request-mfa-challenge).
+
+Personaliza aún más tu flujo de MFA con Auth0 Actions. Para obtener más información, consulta [Actions Triggers: post-challenge - objeto de API](/es/docs/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-api-object).

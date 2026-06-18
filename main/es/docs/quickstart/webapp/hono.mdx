@@ -1,0 +1,250 @@
+---
+title: "Añade el inicio de sesión a tu aplicación Hono"
+mode: wide
+sidebarTitle: Hono
+description: "Este Quickstart muestra cómo proteger tus aplicaciones Hono con la autenticación de Auth0. Sigue los pasos para añadir inicio de sesión, cierre de sesión y rutas protegidas a una aplicación Hono."
+---
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+import {HowToSchema} from "/snippets/HowToSchema.jsx";
+
+<HowToSchema />
+
+<Callout icon="pencil" color="#FFC107" iconType="solid">
+  Esta Quickstart se encuentra actualmente en **Beta**. ¡Nos encantaría conocer tu opinión!
+</Callout>
+
+<Note>
+  **Requisitos previos:**
+
+  * **Node.js** 20 LTS o posterior
+  * **npm** 10+ o **yarn** 1.22+ o **pnpm** 8+
+  * Opcional: **[jq](https://jqlang.org/)**: para la configuración de Auth0 CLI y **openssl** para generar secrets de forma segura
+  * Los proyectos de Hono deben usar Hono &gt;= 3.x (peer dependency)
+</Note>
+
+<div id="get-started">
+  ## Primeros pasos
+</div>
+
+Esta Quickstart muestra la forma mínima y recomendada de proteger una aplicación de Hono con `@auth0/auth0-hono`. Sigue los patrones recomendados del repositorio: configuración basada en variables de entorno, middleware `app.use(auth0(...))` y `requiresAuth()` para proteger solo lo necesario.
+
+<Steps>
+  <Step title="Crea una nueva aplicación con Hono" stepNumber={1}>
+    Crea una nueva aplicación de Hono con la utilidad create-hono.
+
+    ```shellscript
+    npm create hono@latest auth0-hono-app && cd auth0-hono-app
+    ```
+
+    Selecciona la plantilla `nodejs`
+  </Step>
+
+  <Step title="Instalar dependencias" stepNumber={2}>
+    Instala el middleware de Auth0.
+
+    ```shellscript
+    npm install @auth0/auth0-hono
+    ```
+
+    Esta guía de inicio rápido usa el paquete `dotenv` para cargar variables de entorno desde un archivo `.env`.
+
+    Para instalar `dotenv` localmente:
+
+    ```shellscript
+    npm install -D dotenv
+    ```
+
+    Como alternativa, si prefieres no añadir una dependencia, puedes cargar un archivo `.env` al iniciar el proceso con la opción `--env-file` de Node, lo que te permite evitar instalar e importar `dotenv`.
+
+    Modifica el script `start` de `package.json` para que quede así:
+
+    ```json
+      "scripts": {
+        "start": "node --env-file=.env dist/index.js"
+      }
+    ```
+  </Step>
+
+  <Step title="Crea una aplicación en Auth0" stepNumber={3}>
+    Crea una aplicación de Auth0 en tu tenant de Auth0 (Regular Web Application) y guarda el **dominio**, el **ID de cliente** y el **secreto de cliente** como variables de entorno en tu proyecto.
+    Puedes hacerlo automáticamente ejecutando un comando de CLI o manualmente desde el Dashboard:
+
+    <Tabs>
+      <Tab title="CLI">
+        Ejecuta el siguiente comando de shell en el directorio raíz de tu proyecto para crear una aplicación de Auth0 y generar un archivo `.env`:
+
+        <AuthCodeGroup>
+          ```shellscript Mac
+          AUTH0_APP_NAME="Hono Quickstart" && brew tap auth0/auth0-cli && brew install auth0 && auth0 login --no-input && auth0 apps create -n "${AUTH0_APP_NAME}" -t regular -c http://localhost:3000/auth/callback -l http://localhost:3000 -o http://localhost:3000 --reveal-secrets --json --metadata created_by="quickstart-docs-cli" > auth0-app-details.json && CLIENT_ID=$(jq -r '.client_id' auth0-app-details.json) && CLIENT_SECRET=$(jq -r '.client_secret' auth0-app-details.json) && DOMAIN=$(auth0 tenants list --json | jq -r '.[] | select(.active == true) | .name') && SECRET=$(openssl rand -hex 32) && echo "AUTH0_DOMAIN=${DOMAIN}" > .env && echo "AUTH0_CLIENT_ID=${CLIENT_ID}" >> .env && echo "AUTH0_CLIENT_SECRET=${CLIENT_SECRET}" >> .env && echo "APP_BASE_URL=http://localhost:3000" >> .env && echo "AUTH0_SESSION_ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env && rm auth0-app-details.json && cat .env
+          ```
+
+          ```shellscript Windows
+          $AppName = "Hono Quickstart"; winget install Auth0.CLI; auth0 login --no-input; auth0 apps create -n "$AppName" -t regular -c http://localhost:3000/auth/callback -l http://localhost:3000 -o http://localhost:3000 --reveal-secrets --json --metadata created_by="quickstart-docs-cli" | Set-Content -Path auth0-app-details.json; $ClientId = (Get-Content -Raw auth0-app-details.json | ConvertFrom-Json).client_id; $ClientSecret = (Get-Content -Raw auth0-app-details.json | ConvertFrom-Json).client_secret; $Domain = (auth0 tenants list --json | ConvertFrom-Json | Where-Object { $_.active -eq $true }).name; $Secret = [System.Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLower(); Set-Content -Path .env -Value "AUTH0_DOMAIN=$Domain"; Add-Content -Path .env -Value "AUTH0_CLIENT_ID=$ClientId"; Add-Content -Path .env -Value "AUTH0_CLIENT_SECRET=$ClientSecret"; Add-Content -Path .env -Value "AUTH0_SESSION_ENCRYPTION_KEY=$Secret"; Add-Content -Path .env -Value "APP_BASE_URL=http://localhost:3000"; Remove-Item auth0-app-details.json; Write-Output ".env file created with your Auth0 details:"; Get-Content .env
+          ```
+        </AuthCodeGroup>
+
+        Usa el archivo `.env` generado o actualiza los valores manualmente según sea necesario.
+      </Tab>
+
+      <Tab title="Dashboard">
+        Pasos manuales:
+
+        1. Ve al [Auth0 Dashboard](https://manage.auth0.com/dashboard/)
+        2. Applications → Create Application → **Regular Web Application**
+        3. En la configuración de la aplicación, establece:
+
+        **Allowed Callback URLs**
+
+        ```
+        http://localhost:3000/auth/callback
+        ```
+
+        **Allowed Logout URLs**
+
+        ```
+        http://localhost:3000
+        ```
+
+        4. Crea un archivo `.env` en la raíz de tu proyecto y complétalo con estos valores:
+
+        ```env
+        AUTH0_DOMAIN=YOUR_AUTH0_DOMAIN
+        AUTH0_CLIENT_ID=YOUR_AUTH0_CLIENT_ID
+        AUTH0_CLIENT_SECRET=YOUR_AUTH0_CLIENT_SECRET
+        APP_BASE_URL=http://localhost:3000
+        AUTH0_SESSION_ENCRYPTION_KEY=your_32_char_min_secret
+        # Opcional para APIs
+        AUTH0_AUDIENCE=YOUR_API_IDENTIFIER
+        ```
+
+        Nota: `AUTH0_SESSION_ENCRYPTION_KEY` debe tener al menos 32 caracteres. Usa `openssl rand -hex 32` para generar uno.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Configura el servidor web de Hono con el middleware de Auth0" stepNumber={4}>
+    Reemplaza la plantilla inicial del archivo `index.ts` con el siguiente ejemplo. El código muestra una configuración sin ajustes, en la que las variables de entorno se leen automáticamente, lo que crea un middleware `auth0()` con rutas públicas de forma predeterminada y rutas protegidas con `requiresAuth()`.
+
+    ```typescript ./src/index.ts wrap lines
+    // src/index.ts
+    import { serve } from '@hono/node-server';
+    import { Hono } from 'hono';
+    import { auth0, requiresAuth, Auth0Error, type OIDCEnv } from '@auth0/auth0-hono';
+
+    const app = new Hono<OIDCEnv>();
+
+    // Configuración cero: lee AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET,
+    // APP_BASE_URL, AUTH0_SESSION_ENCRYPTION_KEY del entorno
+    app.use(
+      auth0({
+        authRequired: false, // Público por defecto, protege rutas específicas
+      })
+    );
+
+    // Ruta pública
+    app.get('/', (c) => c.text('Public — no login required'));
+
+    // Rutas protegidas
+    app.use('/profile/*', requiresAuth());
+
+    app.get('/profile', (c) => {
+      const user = c.var.auth0.user;
+      return c.json({ message: 'Protected profile', user });
+    });
+
+    // Gestión de errores
+    app.onError((err, c) => {
+      if (err instanceof Auth0Error) {
+        return c.json({ error: err.code, error_description: err.description }, err.status);
+      }
+      return c.json({ error: 'Internal server error' }, 500);
+    });
+
+    const port = Number(process.env.PORT) || 3000;
+    serve({ fetch: app.fetch, port }, (info) => {
+      console.log(`Server is running on http://localhost:${info.port}`);
+    });
+    ```
+  </Step>
+
+  <Step title="Ejecuta tu aplicación" stepNumber={5}>
+    Inicia el servidor y abre `http://localhost:3000`.
+
+    ```shellscript
+    npm run dev
+    ```
+  </Step>
+</Steps>
+
+<Check>
+  **Comprobación**
+
+  Tu aplicación de Hono debería estar ejecutándose en [http://localhost:3000](http://localhost:3000). La ruta `/` es pública. Al visitar `/profile`, se te debería redirigir al inicio de sesión (si no estás autenticado) y, después de autenticarte correctamente, devolverte los datos del perfil.
+</Check>
+
+<div id="troubleshooting">
+  ## Resolución de problemas
+</div>
+
+<Accordion title="Problemas comunes">
+  <Accordion title="La devolución de llamada o la redirección no coinciden">
+    Causa: La URL de devolución de llamada configurada en el Auth0 Dashboard no coincide exactamente con `APP_BASE_URL` + la ruta de devolución de llamada (p. ej., `http://localhost:3000/auth/callback`).
+
+    Solución:
+
+    1. Verifica el valor de `APP_BASE_URL` en `.env`.
+    2. Asegúrate de que Allowed Callback URLs en el Auth0 Dashboard contenga `http://localhost:3000/auth/callback`.
+    3. Reinicia el servidor de desarrollo después de realizar los cambios.
+  </Accordion>
+
+  <Accordion title="Descifrado de sesión / JWEDecryptionFailed">
+    Causa: Falta `AUTH0_SESSION_ENCRYPTION_KEY`, es demasiado corta, o la cambiaste mientras aún quedan cookies de un secreto anterior.
+
+    Solución:
+
+    * Asegúrate de que `AUTH0_SESSION_ENCRYPTION_KEY` tenga al menos 32 caracteres.
+    * Borra las cookies del navegador para localhost después de cambiar la clave.
+    * Reinicia el servidor de desarrollo.
+  </Accordion>
+
+  <Accordion title="Rutas 404 (p. ej., /auth/login devuelve 404)">
+    Causa: El middleware no está instalado o se colocó después del registro de rutas.
+
+    Solución:
+
+    * Asegúrate de que `app.use(auth0(...))` se ejecute antes de las rutas que dependen de la autenticación.
+    * Confirma que el paquete esté instalado: `npm ls @auth0/auth0-hono`.
+  </Accordion>
+
+  <Accordion title="Faltan variables de entorno en producción">
+    Causa: La plataforma de despliegue no proporciona variables de entorno o usa nombres diferentes.
+
+    Solución:
+
+    * Asigna en el Dashboard de tu proveedor de hosting las variables de entorno a los nombres usados en este Quickstart.
+    * Para Cloudflare Workers, verifica que el manejo de sesiones/cookies sea compatible con la plataforma.
+  </Accordion>
+</Accordion>
+
+<div id="advanced-usage">
+  ## Uso avanzado
+</div>
+
+* Protección selectiva: usa `app.use(auth0({ authRequired: false }))` para que las rutas sean públicas de forma predeterminada y `app.use('/private/*', requiresAuth())` para proteger rutas específicas.
+* Inicio de sesión silencioso: usa el middleware `attemptSilentLogin()` para intentar la autenticación silenciosa y mejorar la experiencia de usuario.
+* Flujo de inicio de sesión personalizado: llama a `login({...})` para personalizar los parámetros de consulta que se reenvían, `redirectAfterLogin` o las opciones de inicio de sesión silencioso.
+* Gestión de tokens: el middleware expone tokens de acceso y tokens de ID a través de la sesión; sigue el principio de mínimo privilegio para los scopes y rota los tokens de actualización de forma segura.
+
+<div id="best-practices-security">
+  ## Prácticas recomendadas y seguridad
+</div>
+
+* Mantén los secretos fuera del control de versiones; usa variables de entorno.
+* Usa una `AUTH0_SESSION_ENCRYPTION_KEY` de 32 caracteres o más.
+* Establece `secure` en `true` para la cookie en producción y configura una política `sameSite` adecuada.
+* Limita los scopes del token; usa audience solo cuando solicites tokens de acceso para APIs.
+* Captura `Auth0Error` en `app.onError` para gestionar correctamente los errores específicos de autenticación.
+
+***

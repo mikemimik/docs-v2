@@ -1,0 +1,2242 @@
+---
+title: SSOプロバイダーテーブル
+sidebarTitle: SSOプロバイダーの一覧と設定
+description: 作成、編集、削除、有効化/無効化に対応した表形式のインターフェースで、SSOアイデンティティプロバイダーを表示・管理します。
+---
+
+`SsoProviderTable` コンポーネントは、organization 向けの[シングルサインオン](/ja/docs/authenticate/enterprise-connections/self-service-enterprise-configuration)プロバイダーを一覧表示し、設定するための統一インターフェースを提供します。
+
+import Spinner from "/snippets/Spinner.jsx";
+import { ComponentLoader } from "/snippets/ComponentLoader.jsx";
+
+<ComponentLoader componentSelector="sso-provider-table" componentPreviewText="SSO Provider テーブル コンポーネントのプレビュー" />
+
+<Tabs>
+  <Tab title="React">
+    ## 設定要件
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Auth0 Configuration が必要です** - tenant で
+      My Organization API が有効になっていることを確認してください。[設定ガイドを表示
+      →](/ja/docs/get-started/universal-components/my-organization/build-delegated-admin#enable-the-my-organization-api)
+    </Callout>
+
+    ## インストール
+
+    <CodeGroup>
+      ```bash pnpm
+      pnpm add @auth0/universal-components-react
+      ```
+
+      ```bash npm
+      npm install @auth0/universal-components-react
+      ```
+    </CodeGroup>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      いずれのコマンドを実行しても、共有ユーティリティと Auth0 連携に必要な @auth0/universal-components-core
+      依存関係もインストールされます。
+    </Callout>
+
+    ## はじめに
+
+    ```tsx
+    import { SsoProviderTable } from "@auth0/universal-components-react";
+    import { useNavigate } from "react-router-dom";
+
+    export function ProvidersPage() {
+      const navigate = useNavigate();
+
+      return (
+        <SsoProviderTable
+          createAction={{
+            onAfter: () => navigate("/providers/create"),
+          }}
+          editAction={{
+            onAfter: (provider) => navigate(`/providers/${provider.id}`),
+          }}
+        />
+      );
+    }
+    ```
+
+    <Accordion title="完全な連携例">
+      ```tsx
+      import React from "react";
+      import { SsoProviderTable } from "@auth0/universal-components-react";
+      import { Auth0Provider } from "@auth0/auth0-react";
+      import { Auth0ComponentProvider } from "@auth0/universal-components-react/spa";
+      import { useNavigate } from "react-router-dom";
+      import { analytics } from "./lib/analytics";
+
+      function ProvidersManagementPage() {
+        const navigate = useNavigate();
+
+        return (
+          <div className="max-w-6xl mx-auto p-6">
+            <SsoProviderTable
+              createAction={{
+                onAfter: () => {
+                  analytics.track("Create Provider Started");
+                  navigate("/providers/create");
+                },
+              }}
+              editAction={{
+                onAfter: (provider) => {
+                  analytics.track("Provider Selected", { name: provider.name });
+                  navigate(`/providers/${provider.id}`);
+                },
+              }}
+              deleteAction={{
+                onBefore: (provider) => {
+                  return confirm(
+                    `Delete "${provider.display_name}"? This is permanent.`,
+                  );
+                },
+                onAfter: (provider) => {
+                  analytics.track("Provider Deleted", { name: provider.name });
+                },
+              }}
+              enableProviderAction={{
+                onAfter: (provider) => {
+                  analytics.track(
+                    provider.is_enabled ? "Provider Enabled" : "Provider Disabled",
+                    {
+                      name: provider.name,
+                    },
+                  );
+                },
+              }}
+              customMessages={{
+                header: {
+                  title: "SSO Providers",
+                  description: "Manage identity providers for your organization",
+                  create_button_text: "Add New Provider",
+                },
+                table: {
+                  empty_message:
+                    "No providers configured yet. Add one to enable SSO.",
+                },
+              }}
+              styling={{
+                variables: {
+                  light: { "--color-primary": "#0066cc" },
+                },
+                classes: {
+                  "SsoProviderTable-header": "shadow-lg rounded-xl",
+                },
+              }}
+            />
+          </div>
+        );
+      }
+
+      export default function App() {
+        const domain = "your-domain.auth0.com";
+
+        return (
+          <Auth0Provider
+            domain={domain}
+            clientId="your-client-id"
+            authorizationParams={{
+              redirect_uri: window.location.origin,
+            }}
+            interactiveErrorHandler="popup" // Universal Login ポップアップ経由でのステップアップ認証チャレンジを処理するために必要
+          >
+            <Auth0ComponentProvider domain={domain}>
+              <ProvidersManagementPage />
+            </Auth0ComponentProvider>
+          </Auth0Provider>
+        );
+      }
+
+      ```
+    </Accordion>
+
+    ## プロパティ
+
+    ### 必須プロパティ
+
+    必須プロパティはコンポーネントの動作に不可欠です。`SsoProviderTable` は、一般的なプロバイダー管理ワークフローに対応するため、両方のナビゲーションアクションが必要です。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>createAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;void&gt;</code>
+          </td>
+
+          <td>
+            <strong>必須。</strong> Provider の作成画面に移動します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>editAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            <strong>必須。</strong> Provider の編集画面に移動します。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **createAction**
+
+    **Type:** `ComponentAction<void>`
+
+    `createAction` プロパティは必須です。ユーザーが「Add Provider」をクリックした際の遷移先を制御するためです。このプロパティがないと、テーブルはProviderの作成フローを開始する方法を判断できません。
+
+    **プロパティ:**
+
+    * `disabled` - &quot;Add Provider&quot; ボタンを無効にします
+    * `onBefore()` - ナビゲーションの前に実行されます。ナビゲーションを行わせないようにするには、`false` を返します (例: ユーザーに権限がない場合) 。
+    * `onAfter()` - `onBefore` が成功した後に実行されます。作成ページへの移動や、アナリティクスの記録に使用します。
+
+    **例：**
+
+    ```tsx
+    // 作成ページに移動する
+    createAction={{
+      onAfter: () => navigate("/providers/create"),
+    }}
+
+    // 作成を許可する前にpermissionsを確認する
+    createAction={{
+      onBefore: () => {
+        if (!hasPermission("create:providers")) {
+          alert("You don't have permission to create providers");
+          return false;
+        }
+        return true;
+      },
+      onAfter: () => navigate("/providers/create"),
+    }}
+
+    // 作成操作のアナリティクスを追跡する
+    createAction={{
+      onAfter: () => {
+        analytics.track("Create Provider Started");
+        navigate("/providers/create");
+      },
+    }}
+    ```
+
+    ***
+
+    **editAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    `editAction` プロパティは必須です。ユーザーがプロバイダーの行をクリックした際の遷移先を制御するためです。コールバックはプロバイダーのデータを受け取るので、適切な編集ページへ遷移できます。
+
+    **プロパティ:**
+
+    * `disabled` - 行クリックによるナビゲーションを無効にします
+    * `onBefore(provider)` - ナビゲーションが発生する前に実行されます。ナビゲーションを止めるには `false` を返します (例: 条件付きアクセスのチェック) 。
+    * `onAfter(provider)` - `onBefore` が成功した後に実行されます。これを使用して、Provider のデータを使って編集ページへ移動します。
+
+    **例：**
+
+    ```tsx
+    // プロバイダーIDを使用して編集ページに移動する
+    editAction={{
+      onAfter: (provider) => navigate(`/providers/${provider.id}`),
+    }}
+
+    // プロバイダー選択時にアナリティクスを記録する
+    editAction={{
+      onAfter: (provider) => {
+        analytics.track("Provider Selected", {
+          id: provider.id,
+          name: provider.name,
+          strategy: provider.strategy,
+        });
+        navigate(`/providers/${provider.id}`);
+      },
+    }}
+    ```
+
+    ***
+
+    ### 表示プロパティ
+
+    表示プロパティは、コンポーネントの動作に影響を与えずにレンダリング方法を制御します。セクションを非表示にしたり、読み取り専用モードを有効にしたりするために使用します。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>readOnly</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            テーブルのすべての操作を無効にします。デフォルト: <code>false</code>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>hideHeader</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            ヘッダー部分を非表示にします。デフォルト: <code>false</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    ### Action のプロパティ
+
+    Action のプロパティは、コアナビゲーション以外のユーザー操作を処理します。削除、除去、有効化/無効化などの操作を制御します。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>deleteAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            プロバイダーを完全に削除します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>deleteFromOrganizationAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            organizationからプロバイダーを削除します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>enableProviderAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            プロバイダーを有効/無効に切り替えるトグルです。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **deleteAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    SSOプロバイダーの完全削除を制御します。この操作は破壊的です。プロバイダーはAuth0テナントから完全に削除されます。
+
+    **プロパティ:**
+
+    * `disabled` - 削除オプションを無効にします
+    * `onBefore(provider)` - 削除前に実行されます。削除を中止するには `false` を返します (確認ダイアログでの使用を推奨) 。
+    * `onAfter(provider)` - Provider が正常に削除された後に実行されます。イベントの追跡や通知の表示に使用します。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      deleteAction={{
+        onBefore: (provider) => {
+          return confirm(
+            `Permanently delete "${provider.display_name}"? This cannot be undone.`,
+          );
+        },
+        onAfter: (provider) => {
+          analytics.track("Provider Deleted", { name: provider.name });
+          toast.success("Provider deleted");
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **deleteFromOrganizationAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    テナントから削除せずに、組織からプロバイダーを削除する操作を制御します。プロバイダーは後で再追加できるよう保持されます。
+
+    **プロパティ:**
+
+    * `disabled` - 削除オプションを無効にします
+    * `onBefore(provider)` - 削除前に実行されます。`false` を返すと削除を中止できます (確認を表示する場合など) 。
+    * `onAfter(provider)` - Provider が organization から正常に削除された後に実行されます。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      deleteFromOrganizationAction={{
+        onBefore: (provider) => {
+          return confirm(
+            `Remove "${provider.display_name}" from this organization?`,
+          );
+        },
+        onAfter: (provider) => {
+          toast.success(`${provider.display_name} removed from organization`);
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **enableProviderAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    プロバイダーの有効/無効の切り替えを制御します。無効化されたプロバイダーは設定が保持されますが、ユーザーはそのプロバイダーを通じて認証することができなくなります。
+
+    **プロパティ:**
+
+    * `disabled` - トグルを無効にします
+    * `onBefore(provider)` - トグルを切り替える前に実行されます。状態の変更を防ぐには `false` を返します。
+    * `onAfter(provider)` - `provider` が正常に有効化または無効化された後に実行されます。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      enableProviderAction={{
+        onBefore: (provider) => {
+          if (!provider.is_enabled) {
+            return confirm(`Enable "${provider.display_name}" for authentication?`);
+          }
+          return confirm(
+            `Disable "${provider.display_name}"? Users won't be able to authenticate.`,
+          );
+        },
+        onAfter: (provider) => {
+          analytics.track(
+            provider.is_enabled ? "Provider Enabled" : "Provider Disabled",
+            {
+              name: provider.name,
+            },
+          );
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    ### カスタマイズのプロパティ
+
+    カスタマイズ用のプロパティを使用することで、ソースコードを変更せずに、コンポーネントをブランド、ロケール、バリデーション要件に合わせて調整できます。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>schema</code>
+          </td>
+
+          <td>
+            <code>SsoProviderTableSchema</code>
+          </td>
+
+          <td>
+            確認フィールドのバリデーション。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>customMessages</code>
+          </td>
+
+          <td>
+            <code>Partial&lt;SsoProviderTableMessages&gt;</code>
+          </td>
+
+          <td>
+            i18n テキストのオーバーライド。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>styling</code>
+          </td>
+
+          <td>
+            <code>ComponentStyling&lt;SsoProviderTableClasses&gt;</code>
+          </td>
+
+          <td>
+            CSS 変数とクラスのオーバーライド。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **スキーマ**
+
+    確認ダイアログにカスタムバリデーションルールを設定します (例：削除確認時にプロバイダー名を入力する) 。
+
+    <Accordion title="利用可能なスキーマフィールド">
+      すべてのスキーマフィールドで次をサポートしています: `regex`, `errorMessage`
+
+      **delete.providerName** - 完全削除の確認
+      **remove.providerName** - organization からの削除の確認
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      schema={{
+        delete: {
+          providerName: {
+            regex: /^.+$/,
+            errorMessage: "Please type the provider name to confirm",
+          },
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **customMessages**
+
+    すべてのテキストと翻訳をカスタマイズできます。すべてのフィールドは省略可能で、指定しない場合はデフォルト値が使用されます。
+
+    <Accordion title="利用できるメッセージ">
+      **header** - コンポーネントヘッダー
+
+      * `title`, `description`, `create_button_text`
+
+      **table** - テーブル表示
+
+      * `empty_message`
+      * `columns.name`, `columns.strategy`, `columns.status`
+      * `actions.edit_button_text`, `actions.delete_button_text`, `actions.remove_button_text`
+
+      **delete.modal** - 削除の確認
+
+      * `title`, `description`
+      * `field.label`, `field.placeholder`, `field.error`
+      * `actions.cancel_button_text`, `actions.delete_button_text`
+
+      **remove.modal** - organization からの削除の確認
+
+      * `title`, `description`
+      * `actions.cancel_button_text`, `actions.remove_button_text`
+
+      **notifications** - APIレスポンス
+
+      * `provider_delete_success`, `provider_delete_error`
+      * `provider_remove_success`, `provider_enable_success`, `provider_disable_success`
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      customMessages={{
+        header: {
+          title: "Identity Providers",
+          description: "Manage SSO connections for your organization",
+          create_button_text: "Add Provider",
+        },
+        table: {
+          empty_message:
+            "No SSO providers configured. Add one to enable single sign-on.",
+        },
+        notifications: {
+          provider_delete_success: "Provider deleted successfully!",
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **スタイリング**
+
+    CSS変数とクラスのオーバーライドで外観をカスタマイズできます。テーマに応じたスタイリングにも対応しています。
+
+    <Accordion title="利用可能なスタイルオプション">
+      **Variables** - CSS カスタムプロパティ
+
+      * `common` - すべてのテーマに適用
+      * `light` - ライトテーマのみ
+      * `dark` - ダークテーマのみ
+
+      **Classes** - コンポーネントのクラスのオーバーライド
+
+      * `SsoProviderTable-header`
+      * `SsoProviderTable-table`
+      * `SsoProviderTable-row`
+      * `SsoProviderTable-deleteModal`
+      * `SsoProviderTable-removeModal`
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      styling={{
+        variables: {
+          common: {
+            "--font-size-title": "1.25rem",
+          },
+          light: {
+            "--color-primary": "#4f46e5",
+          },
+        },
+        classes: {
+          "SsoProviderTable-header": "mb-6",
+          "SsoProviderTable-table": "rounded-lg shadow-sm",
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    ## 高度なカスタマイズ
+
+    `SsoProviderTable` コンポーネントは、より小さなサブコンポーネントとフックで構成されています。shadcn を使用している場合は、それらを個別にインポートすることで、カスタムのプロバイダー管理ワークフローを構築できます。
+
+    ### 利用可能なサブコンポーネント
+
+    高度なユースケースでは、個々のサブコンポーネントをインポートして、カスタムのプロバイダー管理インターフェースを構築できます。テーブルを別のレイアウトに埋め込んだり、行のレンダリングをカスタマイズしたりする必要がある場合に役立ちます。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>コンポーネント</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>ProviderRow</code>
+          </td>
+
+          <td>操作付きの各プロバイダー行</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderDeleteModal</code>
+          </td>
+
+          <td>完全削除用の確認モーダル</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderRemoveModal</code>
+          </td>
+
+          <td>organization からの削除用の確認モーダル</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderStatusToggle</code>
+          </td>
+
+          <td>有効/無効の切り替えコンポーネント</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderStrategyIcon</code>
+          </td>
+
+          <td>認証方式アイコンのレンダラー (Okta、SAML など) </td>
+        </tr>
+      </tbody>
+    </table>
+
+    ### 利用可能なフック
+
+    これらのフックはUIを持たず、基盤となるロジックのみを提供します。Auth0 APIとの連携を活用しながら、完全にカスタムなインターフェースを構築するためにご活用ください。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Hook</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>useSsoProviderTable</code>
+          </td>
+
+          <td>Providerリストの取得と管理</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>useSsoProviderTableLogic</code>
+          </td>
+
+          <td>UIの操作状態 + ハンドラー (モーダル、操作) </td>
+        </tr>
+      </tbody>
+    </table>
+  </Tab>
+
+  <Tab title="Next.js">
+    ## 設定要件
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Auth0 の設定が必要です** - テナントに
+      My Organization API が設定されていることを確認してください。[設定ガイドを見る
+      →](/ja/docs/get-started/universal-components/my-organization/build-delegated-admin#configure-auth0-dashboard)
+    </Callout>
+
+    ## インストール
+
+    <CodeGroup>
+      ```bash npm (Recommended)
+      npm install @auth0/universal-components-react
+      ```
+
+      ```bash pnpm
+      pnpm add @auth0/universal-components-react
+      ```
+    </CodeGroup>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      npm または pnpm コマンドを実行すると、共有ユーティリティと Auth0 連携に必要な依存パッケージ @auth0/universal-components-core がインストールされます。
+    </Callout>
+
+    ## はじめに
+
+    ```tsx page.tsx
+    import { SsoProviderTable } from "@auth0/universal-components-react";
+    import { useRouter } from "next/navigation";
+
+    export function ProvidersPage() {
+      const router = useRouter();
+
+      return (
+        <SsoProviderTable
+          createAction={{
+            onAfter: () => router.push("/providers/create"),
+          }}
+          editAction={{
+            onAfter: (provider) => router.push(`/providers/${provider.id}`),
+          }}
+        />
+      );
+    }
+    ```
+
+    <Accordion title="連携の完全な例">
+      ```tsx
+      import React from "react";
+      import { SsoProviderTable } from "@auth0/universal-components-react";
+      import { useRouter } from "next/navigation";
+      import { analytics } from "./lib/analytics";
+
+      function ProvidersManagementPage() {
+        const router = useRouter();
+
+        return (
+          <div className="max-w-6xl mx-auto p-6">
+            <SsoProviderTable
+              createAction={{
+                onAfter: () => {
+                  analytics.track("Create Provider Started");
+                  router.push("/providers/create");
+                },
+              }}
+              editAction={{
+                onAfter: (provider) => {
+                  analytics.track("Provider Selected", { name: provider.name });
+                  router.push(`/providers/${provider.id}`);
+                },
+              }}
+              deleteAction={{
+                onBefore: (provider) => {
+                  return confirm(
+                    `Delete "${provider.display_name}"? This is permanent.`,
+                  );
+                },
+                onAfter: (provider) => {
+                  analytics.track("Provider Deleted", { name: provider.name });
+                },
+              }}
+              enableProviderAction={{
+                onAfter: (provider) => {
+                  analytics.track(
+                    provider.is_enabled ? "Provider Enabled" : "Provider Disabled",
+                    {
+                      name: provider.name,
+                    },
+                  );
+                },
+              }}
+              customMessages={{
+                header: {
+                  title: "SSO Providers",
+                  description: "Manage identity providers for your organization",
+                  create_button_text: "Add New Provider",
+                },
+                table: {
+                  empty_message:
+                    "No providers configured yet. Add one to enable SSO.",
+                },
+              }}
+              styling={{
+                variables: {
+                  light: { "--color-primary": "#0066cc" },
+                },
+                classes: {
+                  "SsoProviderTable-header": "shadow-lg rounded-xl",
+                },
+              }}
+            />
+          </div>
+        );
+      }
+
+      export default ProvidersManagementPage;
+      ```
+    </Accordion>
+
+    ## プロパティ
+
+    ### コアプロパティ
+
+    コアpropsはコンポーネントの動作に不可欠です。`SsoProviderTable`は、一般的なプロバイダー管理ワークフローを処理するために、両方のナビゲーションアクションを必要とします。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>createAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;void&gt;</code>
+          </td>
+
+          <td>
+            <strong>必須。</strong> Provider の作成画面に遷移します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>editAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            <strong>必須。</strong> Provider の編集画面に遷移します。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **createAction**
+
+    **Type:** `ComponentAction<void>`
+
+    `createAction` プロパティは必須です。ユーザーが「Add Provider」をクリックした際の遷移先を制御するためです。このプロパティがないと、テーブルはProviderの作成フローを開始する方法を判断できません。
+
+    **プロパティ:**
+
+    * `disabled` - 「Add Provider」ボタンを無効にします
+    * `onBefore()` - ナビゲーションが行われる前に実行されます。ナビゲーションを防ぐには `false` を返します (例: ユーザーに権限がない場合) 。
+    * `onAfter()` - `onBefore()` が成功した後に実行されます。作成ページへの移動や、分析の追跡に使用します。
+
+    **例：**
+
+    ```tsx
+    // 作成ページに移動する
+    createAction={{
+      onAfter: () => router.push("/providers/create"),
+    }}
+
+    // 作成を許可する前にパーミッションを確認する
+    createAction={{
+      onBefore: () => {
+        if (!hasPermission("create:providers")) {
+          alert("You don't have permission to create providers");
+          return false;
+        }
+        return true;
+      },
+      onAfter: () => router.push("/providers/create"),
+    }}
+
+    // 作成操作のアナリティクスを追跡する
+    createAction={{
+      onAfter: () => {
+        analytics.track("Create Provider Started");
+        router.push("/providers/create");
+      },
+    }}
+    ```
+
+    ***
+
+    **editAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    `editAction` プロパティは必須です。ユーザーがプロバイダーの行をクリックした際の遷移先を制御するためです。コールバックはプロバイダーのデータを受け取るので、適切な編集ページへ遷移できます。
+
+    **プロパティ:**
+
+    * `disabled` - 行クリックによるナビゲーションを無効にします
+    * `onBefore(provider)` - ナビゲーションが行われる前に実行されます。ナビゲーションを止めるには `false` を返します (例: 条件付きアクセスを確認する場合) 。
+    * `onAfter(provider)` - `onBefore` が成功した後に実行されます。これを使って、プロバイダーのデータを渡して編集ページに移動します。
+
+    **例：**
+
+    ```tsx
+    // プロバイダーIDを使用して編集ページに移動する
+    editAction={{
+      onAfter: (provider) => router.push(`/providers/${provider.id}`),
+    }}
+
+    // プロバイダー選択時にアナリティクスを記録する
+    editAction={{
+      onAfter: (provider) => {
+        analytics.track("Provider Selected", {
+          id: provider.id,
+          name: provider.name,
+          strategy: provider.strategy,
+        });
+        router.push(`/providers/${provider.id}`);
+      },
+    }}
+    ```
+
+    ***
+
+    ### 表示プロパティ
+
+    表示プロパティは、コンポーネントの動作に影響を与えずにレンダリング方法を制御します。セクションを非表示にしたり、読み取り専用モードを有効にしたりするために使用します。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>readOnly</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            テーブルのすべての操作を無効にします。デフォルト: <code>false</code>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>hideHeader</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            ヘッダーを非表示にします。デフォルト: <code>false</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    ### Action のプロパティ
+
+    Action のプロパティは、コアナビゲーション以外のユーザー操作を処理します。削除、除去、有効化/無効化といった操作を制御します。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>deleteAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            プロバイダーを完全に削除します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>deleteFromOrganizationAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            プロバイダーをorganizationから削除します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>enableProviderAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            プロバイダーの有効/無効を切り替えます。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **deleteAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    SSOプロバイダーの完全削除を制御します。この操作は破壊的です。プロバイダーはAuth0テナントから完全に削除されます。
+
+    **プロパティ:**
+
+    * `disabled` - 削除オプションを無効にします
+    * `onBefore(provider)` - 削除前に実行されます。`false` を返すと削除を中止できます (確認ダイアログでの使用を推奨) 。
+    * `onAfter(provider)` - provider が正常に削除された後に実行されます。イベントの追跡や通知の表示に使用します。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => router.push("/providers/create") }}
+      editAction={{ onAfter: (p) => router.push(`/providers/${p.id}`) }}
+      deleteAction={{
+        onBefore: (provider) => {
+          return confirm(
+            `Permanently delete "${provider.display_name}"? This cannot be undone.`,
+          );
+        },
+        onAfter: (provider) => {
+          analytics.track("Provider Deleted", { name: provider.name });
+          toast.success("Provider deleted");
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **deleteFromOrganizationAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    テナントから削除せずに、組織からプロバイダーを削除する操作を制御します。プロバイダーは後で再追加できるよう保持されます。
+
+    **プロパティ:**
+
+    * `disabled` - 削除オプションを無効にします
+    * `onBefore(provider)` - 削除前に実行されます。`false` を返すと削除を中止できます (例: 確認を表示する場合) 。
+    * `onAfter(provider)` - プロバイダーが organization から正常に削除された後に実行されます。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => router.push("/providers/create") }}
+      editAction={{ onAfter: (p) => router.push(`/providers/${p.id}`) }}
+      deleteFromOrganizationAction={{
+        onBefore: (provider) => {
+          return confirm(
+            `Remove "${provider.display_name}" from this organization?`,
+          );
+        },
+        onAfter: (provider) => {
+          toast.success(`${provider.display_name} removed from organization`);
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **enableProviderAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    プロバイダーの有効/無効の切り替えを制御します。無効化されたプロバイダーは設定が保持されますが、ユーザーはそのプロバイダーを通じて認証できなくなります。
+
+    **プロパティ:**
+
+    * `disabled` - トグルを無効にします
+    * `onBefore(provider)` - トグルが切り替わる前に実行されます。`false` を返すと、状態の変更を防げます。
+    * `onAfter(provider)` - provider の有効化または無効化が正常に完了した後に実行されます。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => router.push("/providers/create") }}
+      editAction={{ onAfter: (p) => router.push(`/providers/${p.id}`) }}
+      enableProviderAction={{
+        onBefore: (provider) => {
+          if (!provider.is_enabled) {
+            return confirm(`Enable "${provider.display_name}" for authentication?`);
+          }
+          return confirm(
+            `Disable "${provider.display_name}"? Users won't be able to authenticate.`,
+          );
+        },
+        onAfter: (provider) => {
+          analytics.track(
+            provider.is_enabled ? "Provider Enabled" : "Provider Disabled",
+            {
+              name: provider.name,
+            },
+          );
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    ### カスタマイズのプロパティ
+
+    カスタマイズ用のプロパティを使用することで、ソースコードを変更せずに、コンポーネントをブランド、ロケール、バリデーション要件に合わせて調整できます。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>schema</code>
+          </td>
+
+          <td>
+            <code>SsoProviderTableSchema</code>
+          </td>
+
+          <td>
+            確認フィールドのバリデーション。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>customMessages</code>
+          </td>
+
+          <td>
+            <code>Partial&lt;SsoProviderTableMessages&gt;</code>
+          </td>
+
+          <td>
+            i18n テキストのオーバーライド。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>styling</code>
+          </td>
+
+          <td>
+            <code>ComponentStyling&lt;SsoProviderTableClasses&gt;</code>
+          </td>
+
+          <td>
+            CSS 変数とクラスのオーバーライド。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **スキーマ**
+
+    確認ダイアログにカスタムバリデーションルールを設定します (例：削除の確認としてプロバイダー名を入力する) 。
+
+    <Accordion title="利用可能なスキーマフィールド">
+      すべてのスキーマフィールドで、`regex`、`errorMessage` をサポートしています
+
+      **delete.providerName** - 完全に削除する際の確認
+      **remove.providerName** - organization から削除する際の確認
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => router.push("/providers/create") }}
+      editAction={{ onAfter: (p) => router.push(`/providers/${p.id}`) }}
+      schema={{
+        delete: {
+          providerName: {
+            regex: /^.+$/,
+            errorMessage: "Please type the provider name to confirm",
+          },
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **customMessages**
+
+    すべてのテキストと翻訳をカスタマイズできます。すべてのフィールドは省略可能で、指定しない場合はデフォルト値が使用されます。
+
+    <Accordion title="利用可能なメッセージ">
+      **header** - コンポーネントのヘッダー
+
+      * `title`, `description`, `create_button_text`
+
+      **table** - テーブル表示
+
+      * `empty_message`
+      * `columns.name`, `columns.strategy`, `columns.status`
+      * `actions.edit_button_text`, `actions.delete_button_text`, `actions.remove_button_text`
+
+      **delete.modal** - Delete 確認
+
+      * `title`, `description`
+      * `field.label`, `field.placeholder`, `field.error`
+      * `actions.cancel_button_text`, `actions.delete_button_text`
+
+      **remove.modal** - organization からの削除確認
+
+      * `title`, `description`
+      * `actions.cancel_button_text`, `actions.remove_button_text`
+
+      **notifications** - API レスポンス
+
+      * `provider_delete_success`, `provider_delete_error`
+      * `provider_remove_success`, `provider_enable_success`, `provider_disable_success`
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => router.push("/providers/create") }}
+      editAction={{ onAfter: (p) => router.push(`/providers/${p.id}`) }}
+      customMessages={{
+        header: {
+          title: "Identity Providers",
+          description: "Manage SSO connections for your organization",
+          create_button_text: "Add Provider",
+        },
+        table: {
+          empty_message:
+            "No SSO providers configured. Add one to enable single sign-on.",
+        },
+        notifications: {
+          provider_delete_success: "Provider deleted successfully!",
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **スタイリング**
+
+    CSS変数とクラスのオーバーライドで外観をカスタマイズできます。テーマに応じたスタイリングにも対応しています。
+
+    <Accordion title="利用可能なスタイリングオプション">
+      **変数** - CSS カスタムプロパティ
+
+      * `common` - すべてのテーマに適用
+      * `light` - ライトテーマのみ
+      * `dark` - ダークテーマのみ
+
+      **クラス** - コンポーネントのクラスのオーバーライド
+
+      * `SsoProviderTable-header`
+      * `SsoProviderTable-table`
+      * `SsoProviderTable-row`
+      * `SsoProviderTable-deleteModal`
+      * `SsoProviderTable-removeModal`
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => router.push("/providers/create") }}
+      editAction={{ onAfter: (p) => router.push(`/providers/${p.id}`) }}
+      styling={{
+        variables: {
+          common: {
+            "--font-size-title": "1.25rem",
+          },
+          light: {
+            "--color-primary": "#4f46e5",
+          },
+        },
+        classes: {
+          "SsoProviderTable-header": "mb-6",
+          "SsoProviderTable-table": "rounded-lg shadow-sm",
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    ## 高度なカスタマイズ
+
+    `SsoProviderTable` コンポーネントは、小さなサブコンポーネントとフックで構成されています。それらを個別にインポートすることで、カスタムのプロバイダー管理ワークフローを構築できます。
+
+    ### 利用可能なサブコンポーネント
+
+    高度なユースケースでは、個々のサブコンポーネントをインポートして、カスタムのプロバイダー管理インターフェースを構築できます。テーブルを別のレイアウトに埋め込んだり、行のレンダリングをカスタマイズしたりする必要がある場合に役立ちます。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>コンポーネント</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>ProviderRow</code>
+          </td>
+
+          <td>アクション付きの各プロバイダー行</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderDeleteModal</code>
+          </td>
+
+          <td>完全削除の確認モーダル</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderRemoveModal</code>
+          </td>
+
+          <td>organization から削除する際の確認モーダル</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderStatusToggle</code>
+          </td>
+
+          <td>有効化/無効化の切り替えコンポーネント</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderStrategyIcon</code>
+          </td>
+
+          <td>ストラテジーアイコンのレンダラー (Okta、SAML など) </td>
+        </tr>
+      </tbody>
+    </table>
+
+    ### 利用可能なフック
+
+    これらのフックはUIを持たず、基盤となるロジックのみを提供します。Auth0 APIとの連携を活用しながら、完全にカスタムなインターフェースを構築するためにご活用ください。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Hook</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>useSsoProviderTable</code>
+          </td>
+
+          <td>Provider リストの取得と管理</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>useSsoProviderTableLogic</code>
+          </td>
+
+          <td>UI のインタラクション状態 + ハンドラー (モーダル、アクション) </td>
+        </tr>
+      </tbody>
+    </table>
+  </Tab>
+
+  <Tab title="shadcn">
+    ## 設定要件
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Auth0 の設定が必要です** - テナントに
+      My Organization API が設定されていることを確認してください。[設定ガイドを見る
+      →](/ja/docs/get-started/universal-components/my-organization/build-delegated-admin#configure-auth0-dashboard)
+    </Callout>
+
+    ## インストール
+
+    ```bash
+    npx shadcn@latest add https://auth0-universal-components.vercel.app/r/my-organization/sso-provider-table.json
+    ```
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      shadcn コマンドを実行すると、共有ユーティリティと Auth0 連携に必要な @auth0/universal-components-core
+      依存関係もインストールされます。
+    </Callout>
+
+    ## はじめに
+
+    ```tsx
+    import { SsoProviderTable } from "@/components/auth0/my-organization/sso-provider-table";
+
+    export function ProvidersPage() {
+      const navigate = useNavigate();
+
+      return (
+        <SsoProviderTable
+          createAction={{
+            onAfter: () => navigate("/providers/create"),
+          }}
+          editAction={{
+            onAfter: (provider) => navigate(`/providers/${provider.id}`),
+          }}
+        />
+      );
+    }
+    ```
+
+    <Accordion title="完全な連携例">
+      ```tsx
+      import React from "react";
+      import { SsoProviderTable } from "@/components/auth0/my-organization/sso-provider-table";
+      import { Auth0Provider } from "@auth0/auth0-react";
+      import { Auth0ComponentProvider } from "@auth0/universal-components-react/spa";
+      import { useNavigate } from "react-router-dom";
+      import { analytics } from "./lib/analytics";
+
+      function ProvidersManagementPage() {
+        const navigate = useNavigate();
+
+        return (
+          <div className="max-w-6xl mx-auto p-6">
+            <SsoProviderTable
+              createAction={{
+                onAfter: () => {
+                  analytics.track("Create Provider Started");
+                  navigate("/providers/create");
+                },
+              }}
+              editAction={{
+                onAfter: (provider) => {
+                  analytics.track("Provider Selected", { name: provider.name });
+                  navigate(`/providers/${provider.id}`);
+                },
+              }}
+              deleteAction={{
+                onBefore: (provider) => {
+                  return confirm(
+                    `Delete "${provider.display_name}"? This is permanent.`,
+                  );
+                },
+                onAfter: (provider) => {
+                  analytics.track("Provider Deleted", { name: provider.name });
+                },
+              }}
+              enableProviderAction={{
+                onAfter: (provider) => {
+                  analytics.track(
+                    provider.is_enabled ? "Provider Enabled" : "Provider Disabled",
+                    {
+                      name: provider.name,
+                    },
+                  );
+                },
+              }}
+              customMessages={{
+                header: {
+                  title: "SSO Providers",
+                  description: "Manage identity providers for your organization",
+                  create_button_text: "Add New Provider",
+                },
+                table: {
+                  empty_message:
+                    "No providers configured yet. Add one to enable SSO.",
+                },
+              }}
+              styling={{
+                variables: {
+                  light: { "--color-primary": "#0066cc" },
+                },
+                classes: {
+                  "SsoProviderTable-header": "shadow-lg rounded-xl",
+                },
+              }}
+            />
+          </div>
+        );
+      }
+
+      export default function App() {
+        const domain = "your-domain.auth0.com";
+
+        return (
+          <Auth0Provider
+            domain={domain}
+            clientId="your-client-id"
+            authorizationParams={{
+              redirect_uri: window.location.origin,
+            }}
+            interactiveErrorHandler="popup" // Universal Login ポップアップ経由でステップアップ認証チャレンジを処理するために必要
+          >
+            <Auth0ComponentProvider domain={domain}>
+              <ProvidersManagementPage />
+            </Auth0ComponentProvider>
+          </Auth0Provider>
+        );
+      }
+
+      ```
+    </Accordion>
+
+    ## プロパティ
+
+    ### コアプロパティ
+
+    コアpropsはコンポーネントの動作に不可欠です。`SsoProviderTable`は、一般的なプロバイダー管理ワークフローを処理するために、両方のナビゲーションアクションを必要とします。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>createAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;void&gt;</code>
+          </td>
+
+          <td>
+            <strong>必須。</strong> Provider の作成画面へ移動します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>editAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            <strong>必須。</strong> Provider の編集画面へ移動します。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **createAction**
+
+    **Type:** `ComponentAction<void>`
+
+    `createAction` プロパティは必須です。ユーザーが「Add Provider」をクリックした際の遷移先を制御するためです。このプロパティがないと、テーブルはProviderの作成フローを開始する方法を判断できません。
+
+    **プロパティ:**
+
+    * `disabled` - 「Add Provider」ボタンを無効にします
+    * `onBefore()` - 画面遷移が行われる前に実行されます。画面遷移を止めるには `false` を返します (例: ユーザーに権限がない場合) 。
+    * `onAfter()` - `onBefore()` が正常に完了した後に実行されます。ここで作成ページに移動したり、分析をトラッキングしたりできます。
+
+    **例：**
+
+    ```tsx
+    // 作成ページに移動する
+    createAction={{
+      onAfter: () => navigate("/providers/create"),
+    }}
+
+    // 作成を許可する前にパーミッションを確認する
+    createAction={{
+      onBefore: () => {
+        if (!hasPermission("create:providers")) {
+          alert("You don't have permission to create providers");
+          return false;
+        }
+        return true;
+      },
+      onAfter: () => navigate("/providers/create"),
+    }}
+
+    // 作成操作のアナリティクスを追跡する
+    createAction={{
+      onAfter: () => {
+        analytics.track("Create Provider Started");
+        navigate("/providers/create");
+      },
+    }}
+    ```
+
+    ***
+
+    **editAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    `editAction` プロパティは必須です。ユーザーがプロバイダーの行をクリックした際の遷移先を制御するためです。コールバックはプロバイダーのデータを受け取るので、適切な編集ページへ遷移できます。
+
+    **プロパティ:**
+
+    * `disabled` - 行クリックによるナビゲーションを無効にします
+    * `onBefore(provider)` - ナビゲーションが行われる前に実行されます。`false` を返すと、ナビゲーションを中止できます (例: 条件付きアクセスを確認する場合) 。
+    * `onAfter(provider)` - `onBefore` が正常に完了した後に実行されます。プロバイダーのデータを使って編集ページへ移動する場合に使用します。
+
+    **例：**
+
+    ```tsx
+    // プロバイダーIDを使用して編集ページに移動する
+    editAction={{
+      onAfter: (provider) => navigate(`/providers/${provider.id}`),
+    }}
+
+    // プロバイダー選択時にアナリティクスを記録する
+    editAction={{
+      onAfter: (provider) => {
+        analytics.track("Provider Selected", {
+          id: provider.id,
+          name: provider.name,
+          strategy: provider.strategy,
+        });
+        navigate(`/providers/${provider.id}`);
+      },
+    }}
+    ```
+
+    ***
+
+    ### 表示プロパティ
+
+    表示プロパティは、コンポーネントの動作に影響を与えずにレンダリング方法を制御します。セクションを非表示にしたり、読み取り専用モードを有効にしたりするために使用します。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>readOnly</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            テーブル内のすべての操作を無効にします。デフォルト: <code>false</code>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>hideHeader</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            ヘッダー部分を非表示にします。デフォルト: <code>false</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    ### Action のプロパティ
+
+    Action のプロパティは、コアナビゲーション以外のユーザー操作を処理します。削除、除去、有効化/無効化といった操作を制御するために使用します。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>deleteAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            プロバイダーを完全に削除します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>deleteFromOrganizationAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            organization からプロバイダーを削除します。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>enableProviderAction</code>
+          </td>
+
+          <td>
+            <code>ComponentAction&lt;IdentityProvider&gt;</code>
+          </td>
+
+          <td>
+            プロバイダーを有効/無効に切り替えます。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **deleteAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    SSOプロバイダーの完全削除を制御します。この操作は破壊的です。プロバイダーはAuth0 テナントから完全に削除されます。
+
+    **プロパティ:**
+
+    * `disabled` - 削除オプションを無効にします
+    * `onBefore(provider)` - 削除前に実行されます。削除を中止するには `false` を返します (確認ダイアログでの使用を推奨) 。
+    * `onAfter(provider)` - provider が正常に削除されたあとに実行されます。イベントの追跡や通知の表示に使用します。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      deleteAction={{
+        onBefore: (provider) => {
+          return confirm(
+            `Permanently delete "${provider.display_name}"? This cannot be undone.`,
+          );
+        },
+        onAfter: (provider) => {
+          analytics.track("Provider Deleted", { name: provider.name });
+          toast.success("Provider deleted");
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **deleteFromOrganizationAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    テナントから削除せずに、組織からプロバイダーを削除する操作を制御します。プロバイダーは後で再追加できるよう保持されます。
+
+    **プロパティ:**
+
+    * `disabled` - 削除オプションを無効にします
+    * `onBefore(provider)` - 削除前に実行されます。`false` を返すと削除を中止できます (例: 確認を表示する場合) 。
+    * `onAfter(provider)` - Provider が organization から正常に削除された後に実行されます。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      deleteFromOrganizationAction={{
+        onBefore: (provider) => {
+          return confirm(
+            `Remove "${provider.display_name}" from this organization?`,
+          );
+        },
+        onAfter: (provider) => {
+          toast.success(`${provider.display_name} removed from organization`);
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **enableProviderAction**
+
+    **Type:** `ComponentAction<IdentityProvider>`
+
+    プロバイダーの有効/無効の切り替えを制御します。無効化されたプロバイダーは設定が保持されますが、ユーザーはそのプロバイダーを通じて認証できなくなります。
+
+    **プロパティ:**
+
+    * `disabled` - トグルを無効にします
+    * `onBefore(provider)` - トグルの実行前に呼び出されます。`false` を返すと状態の変更を防げます。
+    * `onAfter(provider)` - プロバイダーの有効化または無効化が正常に完了した後に呼び出されます。
+
+    **例：**
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      enableProviderAction={{
+        onBefore: (provider) => {
+          if (!provider.is_enabled) {
+            return confirm(`Enable "${provider.display_name}" for authentication?`);
+          }
+          return confirm(
+            `Disable "${provider.display_name}"? Users won't be able to authenticate.`,
+          );
+        },
+        onAfter: (provider) => {
+          analytics.track(
+            provider.is_enabled ? "Provider Enabled" : "Provider Disabled",
+            {
+              name: provider.name,
+            },
+          );
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    ### カスタマイズのプロパティ
+
+    カスタマイズ用のプロパティを使用すると、ソースコードを変更せずに、ブランド、ロケール、バリデーション要件に合わせてコンポーネントをカスタマイズできます。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>プロパティ</th>
+          <th>型</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>schema</code>
+          </td>
+
+          <td>
+            <code>SsoProviderTableSchema</code>
+          </td>
+
+          <td>
+            確認フィールドのバリデーション。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>customMessages</code>
+          </td>
+
+          <td>
+            <code>Partial&lt;SsoProviderTableMessages&gt;</code>
+          </td>
+
+          <td>
+            i18nテキストの上書き。
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>styling</code>
+          </td>
+
+          <td>
+            <code>ComponentStyling&lt;SsoProviderTableClasses&gt;</code>
+          </td>
+
+          <td>
+            CSS変数とクラスの上書き。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    **スキーマ**
+
+    確認ダイアログにカスタムバリデーションルールを設定します (例：削除の確認としてプロバイダー名を入力する) 。
+
+    <Accordion title="利用可能なスキーマフィールド">
+      すべてのスキーマフィールドで次をサポートします: `regex`, `errorMessage`
+
+      **delete.providerName** - 完全に削除するための確認
+      **remove.providerName** - organization から削除するための確認
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      schema={{
+        delete: {
+          providerName: {
+            regex: /^.+$/,
+            errorMessage: "Please type the provider name to confirm",
+          },
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **customMessages**
+
+    すべてのテキストと翻訳をカスタマイズします。すべてのフィールドは省略可能で、指定しない場合はデフォルト値が使用されます。
+
+    <Accordion title="使用可能なメッセージ">
+      **header** - コンポーネントヘッダー
+
+      * `title`, `description`, `create_button_text`
+
+      **table** - テーブル表示
+
+      * `empty_message`
+      * `columns.name`, `columns.strategy`, `columns.status`
+      * `actions.edit_button_text`, `actions.delete_button_text`, `actions.remove_button_text`
+
+      **delete.modal** - 削除の確認
+
+      * `title`, `description`
+      * `field.label`, `field.placeholder`, `field.error`
+      * `actions.cancel_button_text`, `actions.delete_button_text`
+
+      **remove.modal** - organization からの削除の確認
+
+      * `title`, `description`
+      * `actions.cancel_button_text`, `actions.remove_button_text`
+
+      **notifications** - APIレスポンス
+
+      * `provider_delete_success`, `provider_delete_error`
+      * `provider_remove_success`, `provider_enable_success`, `provider_disable_success`
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      customMessages={{
+        header: {
+          title: "Identity Providers",
+          description: "Manage SSO connections for your organization",
+          create_button_text: "Add Provider",
+        },
+        table: {
+          empty_message:
+            "No SSO providers configured. Add one to enable single sign-on.",
+        },
+        notifications: {
+          provider_delete_success: "Provider deleted successfully!",
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    **スタイリング**
+
+    CSS変数とクラスのオーバーライドで外観をカスタマイズできます。テーマに応じたスタイリングにも対応しています。
+
+    <Accordion title="利用可能なスタイリングオプション">
+      **変数** - CSS カスタムプロパティ
+
+      * `common` - すべてのテーマに適用される
+      * `light` - ライトテーマのみ
+      * `dark` - ダークテーマのみ
+
+      **クラス** - コンポーネントクラスのオーバーライド
+
+      * `SsoProviderTable-header`
+      * `SsoProviderTable-table`
+      * `SsoProviderTable-row`
+      * `SsoProviderTable-deleteModal`
+      * `SsoProviderTable-removeModal`
+    </Accordion>
+
+    ```tsx
+    <SsoProviderTable
+      createAction={{ onAfter: () => navigate("/providers/create") }}
+      editAction={{ onAfter: (p) => navigate(`/providers/${p.id}`) }}
+      styling={{
+        variables: {
+          common: {
+            "--font-size-title": "1.25rem",
+          },
+          light: {
+            "--color-primary": "#4f46e5",
+          },
+        },
+        classes: {
+          "SsoProviderTable-header": "mb-6",
+          "SsoProviderTable-table": "rounded-lg shadow-sm",
+        },
+      }}
+    />
+    ```
+
+    ***
+
+    ## 高度なカスタマイズ
+
+    `SsoProviderTable` コンポーネントは、より小さなサブコンポーネントとフックで構成されています。shadcn を使用している場合は、それらを個別にインポートして、カスタムのプロバイダー管理ワークフローを構築できます。
+
+    ### 利用可能なサブコンポーネント
+
+    高度なユースケースでは、個々のサブコンポーネントをインポートして、カスタムのプロバイダー管理インターフェースを構築できます。テーブルを別のレイアウトに埋め込んだり、行のレンダリングをカスタマイズしたりする必要がある場合に役立ちます。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>コンポーネント</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>ProviderRow</code>
+          </td>
+
+          <td>アクション付きの各プロバイダー行</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderDeleteModal</code>
+          </td>
+
+          <td>完全削除の確認モーダル</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderRemoveModal</code>
+          </td>
+
+          <td>organization から削除する際の確認モーダル</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderStatusToggle</code>
+          </td>
+
+          <td>有効/無効の切り替えコンポーネント</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>ProviderStrategyIcon</code>
+          </td>
+
+          <td>認証方式アイコンの表示用コンポーネント (Okta、SAML など) </td>
+        </tr>
+      </tbody>
+    </table>
+
+    ### 利用可能なフック
+
+    これらのフックはUIを持たず、基盤となるロジックのみを提供します。Auth0 APIとの連携を活用しながら、完全にカスタムなインターフェースを構築する際にご利用ください。
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Hook</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>useSsoProviderTable</code>
+          </td>
+
+          <td>Provider リストの取得・管理</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>useSsoProviderTableLogic</code>
+          </td>
+
+          <td>UI の操作状態とハンドラー (モーダル、アクション) </td>
+        </tr>
+      </tbody>
+    </table>
+  </Tab>
+</Tabs>

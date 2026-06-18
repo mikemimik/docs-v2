@@ -1,0 +1,123 @@
+---
+description: Explica el escenario de arquitectura de B2E en una gran organización que quiere ampliar su servicio de directorio empresarial existente.
+title: De empresa a empleados
+---
+
+El escenario B2E (Business to Employees) abarca aplicaciones utilizadas por empleados. Son aplicaciones orientadas a usuarios que normalmente actúan en nombre de una organización, como un empleador, una universidad o un grupo del que forman parte, en lugar de actuar en nombre propio.
+
+Estas aplicaciones, cuando la organización las desarrolla a medida, pueden usar el protocolo OIDC/<Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/es/docs/glossary?term=OAuth">OAuth</Tooltip> para delegar la autenticación, mientras que las que se adquieren suelen usar el protocolo <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=SAML">SAML</Tooltip>. En cualquiera de los dos casos, la empresa normalmente querrá usar algún tipo de conexión empresarial, como un <Tooltip tip="Identity Provider (IdP): Servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/es/docs/glossary?term=Identity+Provider">Proveedor de identidad</Tooltip> SAML, ADFS, Google Workspace, Azure AD o un servicio de directorio como AD u OpenLDAP y, con menor frecuencia, una base de datos personalizada, para autenticar a los usuarios empresariales.
+
+Para una empresa que está creando o integrando aplicaciones con Auth0 en un entorno B2E, hay varios requisitos comunes a este escenario. Esta guía resume los requisitos más habituales de las aplicaciones B2E y explica las funcionalidades de Auth0 que ayudan a cubrir cada necesidad.
+
+<div id="enterprise-providers">
+  ## Proveedores empresariales
+</div>
+
+La mayoría de las empresas ya cuentan con un repositorio corporativo de identidades que contiene información sobre todos los empleados y sus perfiles de usuario. También puede contener información sobre partners y contratistas. Por lo tanto, un requisito común en el escenario B2E es permitir que estos usuarios inicien sesión mediante [conexiones empresariales de Auth0](/es/docs/authenticate/identity-providers/enterprise-identity-providers), como proveedores SAML2, ADFS, Google Workspace, Azure AD o un servicio de directorio corporativo local. Esto resulta atractivo para los usuarios porque les evita tener que crear otro username y Password para cada aplicación y, en su lugar, les permite usar las mismas credenciales de inicio de sesión en todas sus aplicaciones empresariales.
+
+Esto es especialmente atractivo para los equipos de seguridad de la empresa, porque las credenciales de usuario solo se exponen a la infraestructura de identidad y no a cada aplicación. Además, esta arquitectura permite a la empresa mantener el control sobre el acceso a las aplicaciones, ya que el proveedor de identidad empresarial ofrece un único punto para revocarlo. Si un usuario deja la organización, los administradores simplemente pueden deshabilitar la cuenta del usuario en el proveedor de identidad corporativa, y el usuario ya no podrá iniciar sesión en ninguna de las aplicaciones que usen ese proveedor de identidad.
+
+Auth0 facilita habilitar el inicio de sesión mediante una amplia variedad de proveedores empresariales con solo unos pocos pasos de configuración sencillos.
+
+<div id="groups-and-roles">
+  ## Grupos y roles
+</div>
+
+Cuando hay muchos usuarios, puedes configurar grupos y roles para gestionar el acceso y los privilegios. A menudo, estos se almacenan y administran en un servicio de directorio.
+
+Auth0 puede obtener atributos de usuario, como grupos y roles, de un servicio de directorio o de un proveedor de identidad empresarial durante la autenticación. Luego, puedes poner esos atributos a disposición de la aplicación mediante los tokens que se le devuelven o mediante la Auth0 <Tooltip tip="Management API: un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip>.
+
+<div id="profile-translation">
+  ## Traducción del perfil
+</div>
+
+A veces, un directorio o proveedor de identidad devuelve atributos en un formato, pero tu aplicación usa otro. Con las [Rules](/es/docs/manage-users/user-accounts/metadata/manage-metadata-rules) de Auth0, puedes [mapear y traducir los atributos del perfil de usuario](https://auth0.com/rules/saml-attribute-mapping). Incluso puedes traducir entre OIDC/OAuth, SAML, <Tooltip tip="Web Service Federation (WS-Fed): Protocolo para gestionar identidades de usuario entre dominios." cta="Ver glosario" href="/es/docs/glossary?term=WS-Fed">WS-Fed</Tooltip> y LDAP.
+
+Por ejemplo, obtienes atributos en formato de aserción SAML de un proveedor de identidad SAML. Con una rule, puedes traducir esos atributos a custom claims en un <Tooltip tip="token de ID: Credencial destinada al propio cliente, en lugar de acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=ID+Token">token de ID</Tooltip> para una aplicación OIDC/OAuth.
+
+También puedes mapear atributos SAML al perfil de usuario de Auth0 desde el Dashboard. Para hacerlo, ve a [Conexiones &gt; empresarial &gt; proveedor de identidad SAMLP](https://manage.auth0.com/#/connections/enterprise), selecciona tu conexión SAML y configura el mapeo de atributos en la pestaña **Mappings**.
+
+<div id="extensibility-with-augmented-user-profiles">
+  ## Extensibilidad con perfiles de usuario enriquecidos
+</div>
+
+Es posible que quieras enriquecer los perfiles de usuario con atributos o datos obtenidos de otros servicios. Por ejemplo, podrías recibir una dirección o un número de teléfono y querer convertirlos en una región geográfica. [Auth0 Rules](/es/docs/customize/rules) te permite escribir pequeños fragmentos de código que se ejecutan durante la transacción de autenticación. Esto te permite ejecutar lógica o llamar a otros servicios para obtener información del usuario y luego añadir [metadatos del usuario](/es/docs/manage-users/user-accounts/metadata) al perfil de usuario de Auth0 y, opcionalmente, a los tokens resultantes que se envían a tus aplicaciones.
+
+<div id="single-sign-on">
+  ## Inicio de sesión único
+</div>
+
+Si tiene varias aplicaciones internas, puede configurar el [inicio de sesión único (SSO)](/es/docs/authenticate/single-sign-on) entre ellas para que los usuarios solo tengan que iniciar sesión una vez.
+
+Auth0 admite la integración con aplicaciones que externalizan la autenticación mediante protocolos de identidad estándar del sector:
+
+* OIDC/OAuth
+* SAML2
+* WS-Fed
+
+Tras una breve configuración, todas sus aplicaciones pueden aprovechar su proveedor de identidad empresarial. En esta configuración, Auth0 actúa como intermediario entre sus aplicaciones y los proveedores de identidad empresariales.
+
+Así, cuando un usuario inicie sesión en una aplicación, podrá acceder a otras aplicaciones integradas con Auth0 sin tener que volver a iniciar sesión. Esto seguirá siendo así hasta que caduque su sesión de <Tooltip tip="Inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/es/docs/glossary?term=SSO">SSO</Tooltip>. Debe configurar la duración de la sesión de SSO en Auth0 para cumplir con las políticas de seguridad.
+
+<div id="single-sign-on-integrations">
+  ## Integraciones de inicio de sesión único
+</div>
+
+También puedes integrar con Auth0 las aplicaciones que hayas adquirido para el inicio de sesión único (SSO). Auth0 ofrece [integraciones prediseñadas](/es/docs/customize/integrations/sso-integrations) para aplicaciones como:
+
+* Salesforce
+* Zendesk
+* Slack
+* New Relic
+
+<div id="branding">
+  ## Branding
+</div>
+
+El branding es una parte importante de cualquier aplicación. Su logotipo, colores y estilos deben ser coherentes en toda la aplicación. Puede [personalizar](/es/docs/libraries/custom-signup) las páginas de inicio de sesión, registro y error que muestra Auth0 para que se ajusten a su aplicación. Añada su propio logotipo, texto y colores. También hay compatibilidad con I18N/L10N para despliegues globales. Los [correos electrónicos de verificación o de restablecimiento de contraseña](/es/docs/customize/email/email-templates) también se pueden personalizar.
+
+Las [pantallas de inicio de sesión](/es/docs/libraries/lock/lock-ui-customization) deben dar la impresión de pertenecer al dominio de marca de su aplicación. Para mantener la coherencia, puede definir un [dominio personalizado](/es/docs/customize/custom-domains) para la pantalla de inicio de sesión que muestra Auth0.
+
+<div id="multi-factor-authentication">
+  ## Autenticación multifactor
+</div>
+
+Las aplicaciones internas o para empleados suelen manejar contenido sensible. La [autenticación multifactor (MFA)](/es/docs/secure/multi-factor-authentication) ayuda a proteger tus datos y tus aplicaciones. Auth0 ofrece varias formas de implementar <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación del usuario que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/es/docs/glossary?term=MFA">MFA</Tooltip>. Y, para tener mayor flexibilidad, puedes usar Rules para activarla solo en las aplicaciones o grupos de usuarios que la necesiten.
+
+<div id="logs-export">
+  ## Exportación de registros
+</div>
+
+¿Necesitas analizar registros o almacenarlos a largo plazo? Auth0 ofrece extensiones para [exportar registros a herramientas externas](/es/docs/deploy-monitor/logs) para su análisis y conservación. También puedes recuperar datos de registros con la Management API.
+
+<div id="audit">
+  ## Auditoría
+</div>
+
+Las empresas utilizan los datos de registro de muchas maneras; una de ellas es para los informes de auditoría. Auth0 recopila diversos datos en archivos de registro que pueden resultar útiles para sus informes de auditoría. Los registros contienen información sobre los usuarios autenticados, el proveedor de identidad utilizado y cuándo se realizan cambios administrativos importantes en el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+dashboard">Auth0 Dashboard</Tooltip>.
+
+Cada evento de registro tiene un tipo de evento. Puede usar los tipos de evento como filtros al consultar datos de registro con la Management API o al exportar registros a herramientas de análisis de registros.
+
+<div id="monitoring">
+  ## Monitoreo
+</div>
+
+Monitorear la infraestructura y los servicios de los que dependen sus aplicaciones es fundamental. Auth0 ofrece una página de [Auth0 Status](https://status.auth0.com/) a la que puede suscribirse.
+
+Auth0 hace todo lo posible por minimizar las interrupciones, pero, si se produce alguna, aparecerá en la página de estado. Para cumplir con los requisitos de documentación del análisis de causa raíz tras una interrupción, Auth0 realiza un análisis interno y publica los resultados en el aviso de interrupción una vez que este se completa.
+
+<div id="attack-protection">
+  ## Protección contra ataques
+</div>
+
+Una parte desafortunada de la vida moderna en internet son los hackers. Constantemente intentan encontrar la manera de acceder a las aplicaciones. Por ejemplo, pueden intentar iniciar sesión con contraseñas comunes. O bien pueden usar credenciales robadas de otros sitios, con la esperanza de que los usuarios hayan reutilizado esas mismas contraseñas en otros sitios.
+
+La [Protección contra ataques](/es/docs/secure/attack-protection) de Auth0 detecta estas situaciones en las conexiones de base de datos de Auth0 y ofrece opciones sobre cómo responder. Activa <Tooltip tip="Protección contra ataques: Funciones que Auth0 proporciona para detectar y mitigar ataques, incluida la protección contra ataques de fuerza bruta, la limitación de IP sospechosas, la detección de contraseñas vulneradas, Bot Detection y la autenticación multifactor adaptativa." cta="Ver glosario" href="/es/docs/glossary?term=Attack+Protection">Protección contra ataques</Tooltip> y configura las opciones de respuesta para poder reaccionar adecuadamente si se produce un evento de este tipo.
+
+<div id="github-deployment">
+  ## Despliegue con GitHub
+</div>
+
+¿Gestionas gran parte del código de tu aplicación en GitHub? Puedes desplegar desde allí código para Actions, Rules, Hooks o para el acceso a una base de datos personalizada con la [extensión GitHub Deployment de Auth0](https://marketplace.auth0.com/integrations/github-actions).
+
+Si tienes un pipeline completo de integración continua y despliegue continuo, usa la [herramienta Auth0 Deploy CLI](https://github.com/auth0/auth0-deploy-cli) para tener mayor flexibilidad.
