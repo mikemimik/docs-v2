@@ -1,0 +1,62 @@
+---
+description: カスタムデータベースのアクションスクリプトテンプレートについて説明します。
+title: カスタムデータベースのアクションスクリプトテンプレート
+---
+
+<Card title="利用可否はAuth0のプランによって異なります">
+  ご利用のAuth0のプランまたは個別契約によっては、この機能を利用できない場合があります。詳しくは、[Pricing](https://auth0.com/pricing)をご覧ください。
+</Card>
+
+ユーザーのアイデンティティデータを含む独自のデータベース (Auth0ではレガシーデータストアと呼ばれます) がある場合は、それを<Tooltip tip="IDプロバイダー（IdP）: デジタルアイデンティティを保存および管理するサービス。" cta="用語集を見る" href="/docs/ja/glossary?term=identity+provider">アイデンティティプロバイダー</Tooltip>として使用し、ユーザーを認証できます。
+レガシーデータストアへの接続は、Auth0でカスタムデータベースとして作成および設定します。レガシーデータベースからAuth0のデータストアへ時間をかけて段階的にデータを移行することも、データを移行せずそのまま使い続けることもできます。カスタムデータベースに対する処理を実行するためのスクリプトテンプレートが用意されており、必要に応じて利用・カスタマイズできます。
+
+カスタムデータベーススクリプトには、次の2種類があります。
+
+* **自動移行**: ユーザーがAuth0にログインするたびに、そのユーザーがまだAuth0に存在しない場合、スクリプトはレガシーデータベースを確認して、ユーザーが存在するかどうかを調べます。ユーザーが見つかり、**Import users to Auth0** フラグがオンになっている場合は、ユーザーデータがAuth0のデータストアに移行されます。この機能は、**trickle migration** または **lazy migration** と呼ばれることもあります。
+* **レガシーデータベース**: ユーザーがログインしようとしたとき、作成されたとき、パスワードを変更したとき、メールアドレスを確認したとき、または削除されたときは、Auth0は常に基盤となるデータベースを照会します。ユーザーが見つかり、**Import users to Auth0** フラグが **オフ** の場合、ユーザーデータはレガシーデータベースに保持され、Auth0には移行されません。
+
+Auth0では、次のカスタムデータベース アクションスクリプトを提供しています。
+
+* [パスワード変更](/docs/ja/authenticate/database-connections/custom-db/templates/change-password)
+* [ユーザー作成](/docs/ja/authenticate/database-connections/custom-db/templates/create)
+* [ユーザー削除](/docs/ja/authenticate/database-connections/custom-db/templates/delete)
+* [ユーザー取得](/docs/ja/authenticate/database-connections/custom-db/templates/get-user)
+* [ログイン](/docs/ja/authenticate/database-connections/custom-db/templates/login)
+* [ユーザー確認](/docs/ja/authenticate/database-connections/custom-db/templates/verify)
+* [メールアドレス変更](/docs/ja/authenticate/database-connections/custom-db/templates/change-email)
+
+<Card title="ネットワークファイアウォール">
+  ファイアウォールの内側にある環境では、この機能を正しく動作させるために、該当するAuth0のIPアドレスを許可リストに追加する必要がある場合があります。
+</Card>
+
+<div id="script-execution">
+  ## スクリプトの実行
+</div>
+
+[カスタムデータベース接続](/docs/ja/authenticate/database-connections/custom-db)で説明したように、カスタムデータベース接続では、レガシーアイデンティティストアと連携する際に使用するカスタムコードであるアクションスクリプトを設定できます。各アクションスクリプトは、基本的には名前付きの JavaScript 関数で、スクリプトに応じて関数名と渡されるパラメーターが決まります。
+
+<div id="limits">
+  ### 制限
+</div>
+
+アクションスクリプトの実行では JavaScript の非同期特性がサポートされており、[Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) オブジェクトなどを使用できます。非同期処理では、処理が完了するまで実質的に中断された状態となります。Auth0 の serverless Webtask container の実行時間は通常 20 秒に制限されており、その後コンテナは再利用のために破棄される場合があります。この制限によりコンテナが破棄されると、処理は途中で終了し、最終的にエラーが返されます (また、`global` オブジェクトがリセットされる可能性もあります) 。
+
+<div id="completion-and-the-callback-function">
+  ### 完了とコールバック関数
+</div>
+
+各アクションスクリプトに渡される `callback` 関数は、実質的に処理の完了を示すシグナルとして機能します。アクションスクリプトは、`callback` 関数を呼び出したら直ちに終了し (暗黙的に終了する場合も、JavaScript の `return` 文を明示的に実行する場合も含みます) 、それ以降はほかの処理を行わないようにしてください。
+
+<Warning>
+  Auth0 が提供する `callback` 関数は、**必ず1回だけ**呼び出す必要があります。アクションスクリプト内でこの関数を複数回呼び出すと、予期しない結果やエラーの原因になります。
+</Warning>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  `callback` を `callback()` のように引数なしで実行した場合は、`callback(null)` を実行したものとして扱われます。
+</Callout>
+
+アクションスクリプトで非同期処理を使用する場合、`callback` 関数の呼び出しは非同期処理が完了するまで遅らせる必要があり、かつ最後に呼び出されるものでなければなりません。非同期実行では、非同期処理が完了した後に JavaScript の `callback` が実行されます。このコールバックは通常、JavaScript 関数のメインの (同期的な) 本体の実行が完了した後のどこかの時点で発火します。
+
+<Warning>
+  `callback` 関数を実行しないと、実行が停止し、最終的にエラー状態が返されます。アクションスクリプトでは、`callback` 関数を必ず1回だけ呼び出す必要があります。実行の停止を防ぐには `callback` 関数を少なくとも1回呼び出す必要がありますが、2回以上呼び出すと予期しない結果やエラーが発生します。
+</Warning>

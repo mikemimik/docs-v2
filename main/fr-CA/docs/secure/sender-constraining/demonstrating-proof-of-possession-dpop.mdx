@@ -1,0 +1,480 @@
+---
+description: Découvrez comment utiliser Demonstrating Proof-of-Possession (DPoP) pour lier les jetons d’accès à leur émetteur dans Auth0.
+title: Demonstrating Proof-of-Possession (DPoP)
+validatedOn: 2026-05-28
+---
+
+Demonstrating Proof-of-Possession (DPoP) est une [extension du framework OAuth 2.0](https://datatracker.ietf.org/doc/draft-ietf-oauth-dpop/) qui lie, ou [restreint par l’émetteur](/docs/fr-CA/secure/sender-constraining), les <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> à l’aide de la cryptographie asymétrique et des <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JSON+Web+Tokens">JSON Web Tokens</Tooltip> (JWT) dans la couche applicative. DPoP veille à ce que seule l’application cliente qui a demandé le jeton d’accès, et qui possède la clé privée, puisse l’utiliser. Cela empêche l’utilisation abusive de jetons volés.
+
+DPoP utilise une paire de clés publique/privée pour créer une preuve DPoP sous la forme d’un JSON Web Token (JWT) signé. La preuve DPoP contient :
+
+* La clé publique du client (`jwk`).
+* La charge utile qui fait référence à la demande de jeton d’accès, y compris la méthode (`htm`) et l’URI (`htu`).
+* Une signature créée à l’aide de la clé privée du client.
+* Un identifiant unique (`jti`) pour prévenir les attaques par rejeu.
+* Pour chaque requête d’API, un condensé SHA-256 (`ath`) du jeton d’accès encodé en base64url.
+* Facultatif : pour les <Tooltip tip="Client public : client (application) qui ne peut pas conserver des informations d’authentification de façon sécurisée. Les exemples incluent une application native de bureau ou mobile et une application Web côté client basée sur JavaScript (comme une application monopage (SPA))." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=public+clients">clients publics</Tooltip>, une revendication `nonce` pour confirmer que l’application cliente a généré récemment le JWT de preuve DPoP.
+
+L’application cliente envoie le JWT de preuve DPoP dans une demande de jeton d’accès au <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités offertes à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">serveur d’autorisation</Tooltip> Auth0. Une fois que le serveur d’autorisation Auth0 a validé le JWT de preuve DPoP, il lie le jeton d’accès émis à la clé publique du client.
+
+<div id="common-use-cases">
+  ## Cas d’utilisation courants
+</div>
+
+Découvrez quelques cas d’utilisation courants de DPoP :
+
+* **Applications monopages (SPA) et applications mobiles :** En tant que clients publics, les SPA et les applications mobiles ne disposent pas d’un environnement fiable et confidentiel, comme un serveur backend, pour stocker de façon sécuritaire les <Tooltip tip="Secret client : Secret utilisé par un client (application) pour s’authentifier auprès du serveur d’autorisation; il ne devrait être connu que du client et du serveur d’autorisation et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=client+secrets">secrets client</Tooltip>, ce qui les rend vulnérables au vol de jetons. DPoP répond à cette vulnérabilité de sécurité en liant les jetons d’accès à la clé publique de l’application cliente, sous la forme d’un DPoP Proof JWT. L’application cliente signe le DPoP Proof JWT avec sa clé privée et l’envoie avec une requête d’autorisation. Auth0 Authorization Server valide le DPoP Proof JWT et, s’il est valide, lie le jeton d’accès émis à la clé publique du client.
+* **Intégrations à des API tierces :** Si un agent d’IA intégré à votre application cliente appelle une API tierce au nom de l’utilisateur à l’aide d’un DPoP Proof JWT, le <Tooltip tip="Serveur de ressources : Serveur qui héberge des ressources protégées. Les serveurs de ressources acceptent les requêtes visant des ressources protégées et y répondent." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=resource+server">serveur de ressources</Tooltip> peut alors valider de façon cryptographique que la requête provient de l’agent d’IA et non d’un tiers non autorisé.
+
+<div id="supported-application-grant-types">
+  ## Types d’autorisation d’application pris en charge
+</div>
+
+Auth0 prend en charge les [types d’autorisation d’application](/docs/fr-CA/get-started/applications/application-grant-types) suivants pour sender constraining avec DPoP :
+
+| Type d’autorisation                                   | Description                                                                                                                                          |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorization_code`                                  | Octroi par code d’autorisation                                                                                                                       |
+| `client_credentials`                                  | Octroi par informations d’identification du client                                                                                                   |
+| `password`                                            | Octroi par mot de passe du propriétaire de la ressource                                                                                              |
+| `refresh_token`                                       | Octroi par jeton d’actualisation                                                                                                                     |
+| `urn:ietf:params:oauth:grant-type:device_code`        | Octroi d’autorisation d’appareil                                                                                                                     |
+| `http://auth0.com/oauth/grant-type/password-realm`    | Utiliser un octroi d’extension semblable à l’octroi par mot de passe du propriétaire de la ressource, avec la possibilité d’indiquer un realm précis |
+| `http://auth0.com/oauth/grant-type/passwordless/otp`  | Demande d’octroi Passwordless                                                                                                                        |
+| `http://auth0.com/oauth/grant-type/mfa-oob`           | Demande d’octroi OOB d’authentification multifacteur                                                                                                 |
+| `http://auth0.com/oauth/grant-type/mfa-otp`           | Demande d’octroi OTP d’authentification multifacteur                                                                                                 |
+| `http://auth0.com/oauth/grant-type/mfa-recovery-code` | Demande d’octroi avec code de récupération pour l’authentification multifacteur                                                                      |
+| `urn:ietf:params:oauth:grant-type:token-exchange`     | Demande d’octroi d’échange de jeton personnalisé                                                                                                     |
+| `urn:okta:params:oauth:grant-type:webauthn`           | Demande d’octroi WebAuthn                                                                                                                            |
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Le diagramme de séquence suivant illustre les grandes étapes du flux DPoP d’Auth0 :
+
+<Frame>![](/docs/images/cdy7uua7fh8z/XoEV4y12QtnGwBPCiFbep/6744ab830ab2119664463f8c52fe6b02/Screenshot_2025-07-28_at_11.15.42_AM.png)</Frame>
+
+1. Lorsqu’elle demande un jeton d’accès à l’Auth0 Authorization Server, l’application cliente génère une paire de clés cryptographiques unique et utilise la clé publique pour prouver qu’elle possède la clé privée.
+2. L’application cliente génère le DPoP Proof JWT et l’envoie au point de terminaison `/token` de l’Auth0 Authorization Server.
+3. L’Auth0 Authorization Server vérifie le DPoP Proof JWT et, s’il est valide, émet le jeton d’accès et le lie à la clé publique du client.
+4. Avant d’appeler l’API Customer, l’application cliente génère un nouveau DPoP Proof JWT pour prouver qu’elle possède la clé privée associée au jeton. L’application cliente envoie le DPoP Proof JWT et le jeton d’accès lié à l’émetteur au serveur de ressources.
+5. Le serveur de ressources vérifie le DPoP Proof JWT afin de s’assurer que seul le détenteur légitime du jeton, soit l’application cliente d’origine, peut l’utiliser pour accéder aux ressources protégées. Pour demander un jeton d’accès à partir d’un jeton d’actualisation, l’application cliente génère un nouveau DPoP Proof JWT afin de s’assurer que le jeton d’actualisation est lié à la clé publique du client.
+
+<div id="sender-constrain-tokens-using-dpop-in-auth0">
+  ## Lier les jetons à l’expéditeur à l’aide de DPoP dans Auth0
+</div>
+
+Le schéma suivant illustre le flux de bout en bout pour lier les jetons à l’expéditeur à l’aide de DPoP dans Auth0 :
+
+<Frame>![](/docs/images/cdy7uua7fh8z/7sonusMpvBMP0fDS6OkXSA/7cd0d50ffc44167f52f7e29d7f723d4a/Screenshot_2025-07-28_at_11.17.43_AM.png)</Frame>
+
+Les sections suivantes vous guident, étape par étape, dans le flux DPoP d’Auth0 à l’aide d’exemples de code pour l’implémentation :
+
+* [Prérequis](#prerequisites)
+* [Étape 1 : L’application cliente génère une paire de clés DPoP](#step-1-client-application-generates-a-dpop-key-pair)
+* [Étape 2 : L’application cliente crée un DPoP Proof JWT](#step-2-client-application-creates-a-dpop-proof-jwt)
+* [Étape 3 : L’application cliente demande un jeton lié à DPoP](#step-3-client-application-requests-a-dpop-bound-token)
+* [Étape 4 : Auth0 Authorization Server valide le DPoP Proof JWT](#step-4-auth0-authorization-server-validates-the-dpop-proof-jwt)
+* [Étape 5 : L’application cliente appelle l’API avec le jeton lié à DPoP et le DPoP Proof JWT](#step-5-client-application-calls-api-with-the-dpop-bound-token-and-dpop-proof-jwt)
+* [Étape 6 : Gérer le renouvellement des jetons avec DPoP](#step-6-handle-token-refresh-with-dpop)
+
+<div id="prerequisites">
+  ## Prérequis
+</div>
+
+Avant de commencer, assurez-vous d’avoir :
+
+* [Configurer Sender Constraining](/docs/fr-CA/secure/sender-constraining/configure-sender-constraining) pour votre application cliente et votre serveur de ressources.
+
+<div id="step-1-client-application-generates-a-dpop-key-pair">
+  ## Étape 1 : L’application cliente génère une paire de clés DPoP
+</div>
+
+Pour DPoP, l’application cliente doit générer une paire de clés cryptographiques asymétriques. Auth0 prend en charge l’utilisation de courbes elliptiques, notamment avec les clés ES256. Cette paire de clés est propre à votre application cliente et doit être stockée de manière sécuritaire, par exemple dans un magasin de clés sécurisé par le matériel.
+
+L’application cliente garde la clé privée secrète tout en incluant la clé publique dans le JSON Web Token (JWT) de preuve DPoP, qui sert de « preuve de possession » à [l’étape 2](#step-2-client-application-creates-a-dpop-proof-jwt).
+
+<div id="step-2-client-application-creates-a-dpop-proof-jwt">
+  ## Étape 2 : L’application cliente crée un DPoP Proof JWT
+</div>
+
+Avant de demander un jeton d’accès lié à DPoP au point de terminaison `/token` d’Auth0 Authorization Server, votre application cliente doit créer un DPoP Proof JWT. Un DPoP Proof JWT est un JSON Web Token (JWT) signé avec la clé privée de votre client et servant de « preuve de possession ».
+
+Le DPoP Proof JWT se compose d’un en-tête JWT et d’une charge utile contenant des [revendications](/docs/fr-CA/secure/tokens/json-web-tokens/json-web-token-claims) associées à la demande de jeton :
+
+<div id="jwt-header-claims">
+  ### Claims de l’en-tête JWT
+</div>
+
+| Claim du DPoP Proof JWT | Description                                                               |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `typ`                   | Défini sur `dpop+jwt`.                                                    |
+| `alg`                   | L’algorithme de signature asymétrique utilisé, comme `RS256` ou `ES256`.  |
+| `jwk`                   | Une représentation JSON Web Key (JWK) de la clé publique de votre client. |
+
+<div id="jwt-payload-claims">
+  ### Claims du payload JWT
+</div>
+
+| Claim du DPoP Proof JWT | Description                                                                                                                                                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jti`                   | Un identifiant unique pour le JWT afin d’empêcher les attaques par rejeu.                                                                                                                                              |
+| `htm`                   | La méthode HTTP de la requête à laquelle la preuve DPoP s’applique, par exemple `POST` pour les requêtes de jeton et `GET` pour les appels d’API.                                                                      |
+| `htu`                   | L’URI HTTP de la requête à laquelle le DPoP Proof JWT s’applique, sans le fragment ni les paramètres de requête. Par exemple : `https://api.example.com/data?param=1#section1` devient `https://api.example.com/data`. |
+| `iat`                   | L’horodatage de création du JWT.                                                                                                                                                                                       |
+| `ath`                   | Pour les appels d’API avec un jeton d’accès, un hachage SHA-256 du jeton d’accès encodé en base64url.                                                                                                                  |
+| `nonce`                 | Pour les clients publics qui nécessitent un `nonce`, une valeur `nonce` fournie par le serveur.                                                                                                                        |
+
+Une fois que l’application cliente a créé le DPoP Proof JWT, elle le signe avec la clé privée générée à l’[étape 1](#step-1-client-application-generates-a-dpop-key-pair).
+
+L’exemple de code suivant montre comment créer et signer un DPoP Proof JWT dans votre application cliente :
+
+```jsx lines
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import jwt from 'jsonwebtoken';
+
+// Générer une paire de clés DPoP
+const keyPair = generateKeyPairSync('ec', {
+  namedCurve: 'P-256',
+});
+
+// Construire le JWT de preuve DPoP pour la demande de jeton
+const jti = randomBytes(16).toString('base64url');
+const jwk = keyPair.publicKey.export({ format: 'jwk' });
+const dpopHeader = jwt.sign({
+    jti,
+    htm: 'POST',
+    htu: 'https://[TENANT]/oauth/token',
+    iat: Date.now() / 1000,
+  },
+  keyPair.privateKey,
+  {
+    algorithm: 'ES256',
+    header: {
+      typ: 'dpop+jwt',
+      jwk,
+    },
+  });
+```
+
+<div id="step-3-client-application-requests-a-dpop-bound-token">
+  ## Étape 3 : L’application cliente demande un jeton d’accès lié à DPoP
+</div>
+
+Lorsque votre application cliente demande un jeton d’accès au point de terminaison `/token` d’Auth0 Authorization Server, elle inclut le DPoP Proof JWT dans l’en-tête HTTP de la requête :
+
+```http lines
+DPoP: {DPoP_proof_JWT_value}
+```
+
+Voici un exemple de requête de jeton d’accès qui inclut l’en-tête HTTP DPoP contenant un DPoP Proof JWT :
+
+```http lines
+POST /oauth/token HTTP/1.1
+Host: auth.example.com
+Content-Type: application/x-www-form-urlencoded
+DPoP: {DPoP Proof JWT}
+Authorization: Basic Y2xpZW50MTIzOm15c2VjcmV0
+Cache-Control: no-cache
+grant_type=client_credentials&client_id=client123
+```
+
+Pour implémenter la demande d’un jeton d’accès lié à DPoP dans votre application cliente, utilisez l’exemple de code suivant, qui effectue les actions suivantes :
+
+1. Remplit l’en-tête HTTP DPoP avec un DPoP Proof JWT signé.
+2. Envoie l’en-tête HTTP DPoP avec un DPoP Proof JWT signé dans une demande de jeton d’accès au point de terminaison `/token`.
+3. Traite la réponse de l’Auth0 Authorization Server.
+
+```javascript lines
+// Effectuer la requête vers le endpoint /oauth/token
+// Remplacer [...] par votre grant_type, client_id et URL de tenant réels
+const response = await fetch('https://[TENANT]/oauth/token', {
+    method: 'POST',
+    body: new URLSearchParams({
+      grant_type: '...',
+      client_id: '...',
+      // Autres paramètres du corps ici
+    }),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      // Ajouter le header DPoP
+      dpop: dpopHeader
+    }
+  });
+
+// Traiter la réponse du Auth0 Authorization Server
+const result = await response.json();
+console.log('Initial token request result:', result);
+```
+
+<div id="public-clients">
+  ### Clients publics
+</div>
+
+Si un client public, comme une application monopage (SPA) ou une application mobile, demande un jeton d’accès lié à DPoP, vous ne disposerez pas de secret client ni d’autres paramètres d’authentification du client. Dans ce cas, et conformément à la [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449#section-8), Auth0 exige que votre en-tête HTTP DPoP contienne une valeur <Tooltip tip="Nonce : Nombre arbitraire émis une seule fois dans un protocole d’authentification pour détecter et prévenir les attaques par rejeu." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=nonce">nonce</Tooltip> afin de s’assurer que l’application cliente a généré récemment le JWT de preuve DPoP. Il s’agit du comportement attendu, car cela permet au serveur d’autorisation de vérifier que la preuve DPoP est récente et de limiter la période pendant laquelle elle peut être utilisée.
+
+Si un client public effectue une requête `/token` et n’inclut pas de valeur `nonce` dans l’en-tête HTTP DPoP, Auth0 répond avec un code `HTTP 400` et un message d’erreur comme celui-ci :
+
+```js lines
+{
+  error: 'use_dpop_nonce',
+  error_description: 'Le serveur d'autorisation exige un nonce dans la preuve DPoP'
+}
+```
+
+Auth0 inclut un en-tête `DPoP-Nonce` dans les en-têtes de la réponse. Cela suit le flux standard « challenge-response » défini dans la [spécification DPoP](https://datatracker.ietf.org/doc/html/rfc9449). Vous devez utiliser la valeur de l’en-tête `DPoP-Nonce` et régénérer la preuve DPoP (comme à la [Step 2](#step-2-client-application-creates-a-dpop-proof-jwt)), inclure un claim `nonce` avec cette valeur, puis soumettre de nouveau la requête au endpoint `/token`.
+
+L’exemple de code suivant montre le flux de bout en bout lors de l’envoi d’une requête `/token`, puis de sa nouvelle tentative, avec un claim `nonce` à partir d’un client public :
+
+```jsx lines expandable
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import jwt from 'jsonwebtoken';
+
+// Générer une paire de clés DPoP
+const keyPair = generateKeyPairSync('ec', {
+  namedCurve: 'P-256',
+});
+
+/**
+ * Fonction utilitaire pour générer un DPoP Proof JWT.
+ * @param {string} method - Méthode HTTP (p. ex., 'POST', 'GET').
+ * @param {string} url - URL complète de la requête.
+ * @param {string} [nonce] - Valeur DPoP-Nonce optionnelle provenant du serveur.
+ * @param {string} [accessToken] - Jeton d'accès optionnel à hacher pour la revendication 'ath'.
+ * @returns {string} Le DPoP Proof JWT signé.
+ */
+function generateDPoPHeader(method, url, nonce) {
+  const jti = randomBytes(16).toString('base64url');
+  const jwk = keyPair.publicKey.export({ format: 'jwk' });
+  return jwt.sign({
+      jti,
+      htm: method,
+      htu: url,
+      iat: Date.now() / 1000,
+      nonce
+    },
+    keyPair.privateKey,
+    {
+      algorithm: 'ES256',
+      header: {
+        typ: 'dpop+jwt',
+        jwk,
+      },
+    });
+  }
+
+// Demander le jeton d'accès pour la première fois sans nonce 
+async function getTokens(nonce) {
+  const response = await fetch('https://[TENANT]/oauth/token', {
+      method: 'POST',
+      body: new URLSearchParams({
+        grant_type: '...',
+        client_id: '...',
+        // Autres paramètres du corps ici
+      }),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        dpop: generateDPoPHeader('POST', 'https://[TENANT]/oauth/token', nonce),
+      }
+    });
+
+  const result = await response.json();
+  return { response, result };
+}
+
+// La première fois qu'on demande des jetons, on n'aura pas de nonce
+let { response, result } = await getTokens(); 
+console.log('Initial token request result:', result);
+
+if (response.status === 400 && result.error === 'use_dpop_nonce') {
+  const nonce = response.headers.get('dpop-nonce');
+
+  console.log('Received nonce:', nonce);
+
+  // Réessayer avec le nonce
+  ({ response, result } = await getTokens(nonce)); 
+
+  console.log('Tokens received:', result);
+}
+```
+
+<div id="step-4-auth0-authorization-server-validates-the-dpop-proof-jwt">
+  ## Étape 4 : Auth0 Authorization Server valide le DPoP Proof JWT
+</div>
+
+Lorsque l’Auth0 Authorization Server reçoit la demande de jeton, il effectue les opérations suivantes :
+
+* Extrait le DPoP Proof JWT, sa clé publique et sa signature.
+* Vérifie la signature à l’aide de la clé publique fournie.
+* Valide les claims `htm`, `htu`, `jti,` et `iat`.
+* S’il est valide, il émet un jeton d’accès. L’Auth0 Authorization Server inclut un claim de confirmation, `cnf`, dans le jeton d’accès. Le claim `cnf` contient l’empreinte (hachage) de la clé publique tirée du DPoP Proof JWT. En l’incluant dans le jeton d’accès, l’Auth0 Authorization Server lie le jeton d’accès à cette clé publique précise, autrement dit, il « lie le jeton d’accès à l’expéditeur ».
+* Définit le `token_type` dans l’en-tête `Authorization` à `DPoP` plutôt qu’à `Bearer` dans la réponse de jeton. Traditionnellement, lorsque le jeton d’accès est transmis dans l’en-tête `Authorization`, il est défini à `Bearer`. Toutefois, comme nous transmettons un jeton d’accès lié à une clé publique au moyen de DPoP, il est défini à `DPoP` à la place.
+* L’Auth0 Authorization Server émet ensuite à votre application cliente le jeton d’accès DPoP lié à l’expéditeur.
+
+<div id="step-5-client-application-calls-api-with-the-dpop-bound-token-and-dpop-proof-jwt">
+  ## Étape 5 : l’application cliente appelle l’API avec le jeton lié à DPoP et le JWT de preuve DPoP
+</div>
+
+Pour chaque appel d’API à un serveur de ressources qui applique DPoP, votre application cliente doit présenter à la fois le jeton d’accès lié à DPoP et un nouveau JWT de preuve DPoP.
+
+En exigeant un JWT de preuve DPoP avec chaque requête d’API, DPoP garantit que seule l’application cliente qui possède la clé privée peut utiliser le jeton d’accès.
+
+Pour une nouvelle requête d’API, l’application cliente :
+
+1. Génère un nouveau JWT de preuve DPoP avec les claims suivants :
+
+* Le claim `htm` correspond à la méthode `HTTP` de la requête d’API, comme `GET` ou `POST`.
+* Le claim `htu` correspond à l’URI de la requête d’API.
+* Le claim `ath` correspond au hachage SHA-256 encodé en base64url du jeton d’accès lié à DPoP que vous avez reçu à l’[étape 3](#step-3-client-application-requests-a-dpop-bound-token).
+
+2. Signe cryptographiquement le nouveau JWT de preuve DPoP avec la clé privée du client.
+
+3. Inclut le jeton d’accès lié à DPoP dans l’en-tête `Authorization` en utilisant le schéma d’authentification `DPoP` :
+
+```javascript lines
+// Le schéma DPoP correspond au token_type reçu du serveur d'autorisation
+Authorization: DPoP {access_token}
+```
+
+4. Inclut le DPoP Proof JWT nouvellement généré dans l’en-tête HTTP `DPoP` :
+
+```http lines
+DPoP: {new_dpop_proof_jwt}
+```
+
+L’en-tête HTTP `DPoP` doit inclure un claim `ath` supplémentaire. Le claim `ath` est un hachage SHA256 du jeton d’accès émis, encodé en base64url.
+
+Le serveur de ressources :
+
+* Reçoit la requête API et extrait le jeton d’accès, la preuve JWT DPoP, la clé publique et la signature.
+* Vérifie la signature de la preuve JWT DPoP à l’aide de la clé publique figurant dans son en-tête `jwk`.
+* Valide les claims `htm`, `htu`, `jti`, `iat` et `ath`.
+* Vérifie que la clé publique indiquée dans la preuve JWT DPoP par son en-tête `jwk` correspond à la clé publique liée au jeton d’accès par le claim `cnf.jkt` dans le jeton d’accès.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Le serveur de ressources est responsable de mettre en œuvre la protection contre la relecture de `jti` ; les Auth0 SDKs n’appliquent pas tous cette protection par défaut.
+</Callout>
+
+Si toutes les vérifications réussissent, le serveur de ressources autorise la requête. Sinon, il la rejette et l’accès est refusé.
+
+L’exemple de code suivant demande un jeton d’accès à Auth0 à l’aide de DPoP, puis appelle le point de terminaison `/userinfo` à l’aide d’un jeton d’accès lié à DPoP :
+
+```jsx lines expandable
+import { generateKeyPairSync, randomBytes, createHash } from 'node:crypto';
+import jwt from 'jsonwebtoken';
+
+const keyPair = generateKeyPairSync('ec', {
+  namedCurve: 'P-256',
+});
+
+function hashToken(token) {
+  return createHash('sha256').update(token).digest('base64url');
+}
+
+function generateDPoPHeader(method, url, nonce, accessToken) {
+  const jti = randomBytes(16).toString('base64url');
+  const jwk = keyPair.publicKey.export({ format: 'jwk' });
+  return jwt.sign({
+      jti,
+      htm: method,
+      htu: url,
+      iat: Date.now() / 1000,
+      nonce,
+
+      // Inclure facultativement une revendication `ath` contenant un hachage du jeton d'accès
+      ...(accessToken ? { ath: hashToken(accessToken) } : {}),
+    },
+    keyPair.privateKey,
+    {
+      algorithm: 'ES256',
+      header: {
+        typ: 'dpop+jwt',
+        jwk,
+      },
+    });
+  }
+
+async function getTokens(nonce) {
+  const response = await fetch('https://[TENANT]/oauth/token', {
+      method: 'POST',
+      body: new URLSearchParams({
+        grant_type: '...',
+        client_id: '...',
+        // Autres paramètres du corps ici
+      }),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        dpop: generateDPoPHeader('POST', 'https://test1.local.dev.auth0.com/oauth/token', nonce),
+      }
+    });
+
+  const result = await response.json();
+  return { response, result };
+}
+
+// La première fois, nous n'aurons pas de nonce
+let { response, result } = await getTokens(); 
+console.log('Initial token request result:', result);
+
+if (response.status === 400 && result.error === 'use_dpop_nonce') {
+  const nonce = response.headers.get('dpop-nonce');
+  console.log('Received nonce:', nonce);
+  ({ response, result } = await getTokens(nonce)); // Réessayer avec le nonce
+  console.log('Tokens received:', result);
+}
+
+// Appeler /userinfo avec DPoP
+const userInfoResponse = await fetch('https://[TENANT]/userinfo', {
+  method: 'GET',
+  headers: {
+    // Transmettre notre jeton d'accès via le schéma d'autorisation DPoP
+    Authorization: `DPoP ${result.access_token}`,
+
+    // Inclure un en-tête DPoP, cette fois avec le hachage du jeton d'accès
+    dpop: generateDPoPHeader('GET', 'https://[TENANT]/userinfo', nonce, result.access_token),
+  },
+});
+
+console.log('User info response status:', userInfoResponse.status);
+console.log('User info result:', await userInfoResponse.json());
+```
+
+<div id="step-6-handle-token-refresh-with-dpop">
+  ## Étape 6 : Gérer le renouvellement du jeton avec DPoP
+</div>
+
+Lorsque votre jeton d’accès lié à DPoP expire, vous pouvez utiliser un <Tooltip tip="Refresh Token : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+token">jeton d’actualisation</Tooltip> pour en obtenir un nouveau. Une requête de jeton d’actualisation nécessite un DPoP Proof JWT généré à l’aide de la même paire de clés que celle utilisée dans la requête de jeton initiale.
+
+Voici comment se déroule le flux de jeton d’actualisation avec DPoP dans Auth0 :
+
+L’application cliente :
+
+* Effectue une requête de jeton d’actualisation vers le point de terminaison `/token` de l’Auth0 Authorization Server.
+* Génère un DPoP Proof JWT pour la requête de jeton d’actualisation (comme à [l’étape 2](#step-2-client-application-creates-a-dpop-proof-jwt), avec `htm` défini sur `POST` et `htu` défini sur l’URI du <Tooltip tip="Token Endpoint : point de terminaison sur le serveur d’autorisation utilisé pour demander des jetons par programmation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=token+endpoint">point de terminaison de jeton</Tooltip>).
+* Inclut le DPoP Proof JWT dans l’en-tête HTTP `DPoP`.
+
+L’Auth0 Authorization Server :
+
+* Valide le DPoP Proof JWT (comme à [l’étape 4](#step-4-auth0-authorization-server-validates-the-dpop-proof-jwt)) et émet un nouveau jeton d’accès lié à DPoP.
+
+<div id="important-considerations">
+  ## Considérations importantes
+</div>
+
+Lorsque vous implémentez DPoP dans vos applications clientes, tenez compte des éléments suivants :
+
+* **Sécurité de la clé privée :** La sécurité de votre implémentation DPoP dépend de celle de la clé privée de votre client; vous devez donc la protéger contre tout accès non autorisé. Les clés privées devraient être générées et stockées dans un support matériel, et être marquées comme non exportables.
+* **Protection contre les attaques par relecture (**`jti`** et **`dpop-nonce`** ) :** La claim `jti` dans le DPoP Proof JWT aide à prévenir les attaques par relecture visant les ressources protégées, comme le endpoint [`/userinfo`](https://auth0.com/docs/api/authentication/user-profile/get-user-info). L’Auth0 Authorization Server émet un HTTP header `DPoP-Nonce` dans sa réponse, que les clients publics doivent inclure comme claim `nonce` dans les DPoP Proof JWT subséquents afin d’améliorer la protection contre la relecture.
+* **Limites de débit :** Comme le flow DPoP challenge-response peut parfois nécessiter une requête initiale suivie d’une nouvelle tentative avec le nonce fourni par le serveur, chaque échange compte effectivement comme deux requêtes dans vos [limites de débit du tenant Auth0](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy). Assurez-vous que le volume de requêtes de votre application tient compte de cette surcharge.
+* **Gestion des erreurs :** Il vous incombe d’implémenter la logique nécessaire pour gérer les erreurs propres à DPoP provenant de l’Auth0 Authorization Server ou du resource server, comme `invalid_dpop_proof` ou `use_dpop_nonce`.
+* **Types de clients :** Utilisez DPoP pour les clients publics, comme les Single Page Applications (SPAs) ou les applications mobiles qui ne peuvent pas stocker un client secret de façon sécuritaire. Pour les <Tooltip tip="Confidential Client : un client (application) qui peut conserver des credentials de façon sécuritaire en utilisant un serveur d’arrière-plan fiable. Par exemple, une application Web avec un backend sécurisé et une application machine-to-machine (M2M)." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=confidential+clients">clients confidentiels</Tooltip>, comme les services backend avec des client secrets, DPoP ajoute une couche de sécurité, mais ils disposent déjà d’autres mécanismes de limitation de l’expéditeur.
+* **Performance :** Comme la génération et la signature de DPoP Proof JWT pour chaque appel d’API ajoutent une légère surcharge, assurez-vous que les opérations cryptographiques de votre application cliente sont efficaces.
+* **Rotation des clés :** Implémentez une stratégie de rotation de vos paires de clés DPoP pour renforcer la sécurité. Assurez-vous d’utiliser la même paire de clés pour une même session.
+* **Persistance :** Pour les applications clientes qui doivent maintenir une session et réutiliser des access tokens liés à DPoP, comme les SPA de longue durée, enregistrez et récupérez de façon sécuritaire la paire de clés générée à l’origine lors des rechargements de l’application. Si une nouvelle paire de clés est générée ou si une paire différente est utilisée, l’access token lié à DPoP devient invalide, car il est lié cryptographiquement à la clé publique de la paire d’origine. Vous pouvez enregistrer la paire de clés, par exemple, dans l’`IndexedDB` d’un navigateur ou dans le stockage sécurisé d’une application mobile.
+
+<div id="learn-more">
+  ## Pour en savoir plus
+</div>
+
+* [Configurer Sender Constraining](/docs/fr-CA/secure/sender-constraining/configure-sender-constraining)

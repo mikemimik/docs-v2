@@ -1,0 +1,215 @@
+---
+description: Comienza a usar Lock for Android, un widget que ofrece una experiencia fluida de inicio de sesión y registro para tus aplicaciones nativas de Android.
+title: 'Lock.Android: Primeros pasos'
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Lock for Android puede integrarse en tus aplicaciones nativas de Android para ofrecer una forma atractiva de permitir que tus usuarios inicien sesión y se registren en tu aplicación. Ofrece compatibilidad con proveedores de identidad sociales <Tooltip tip="Proveedor de identidad (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+providers">proveedores de identidad</Tooltip> como Facebook, Google o X, así como con proveedores empresariales como Active Directory.
+
+Consulta el [repositorio de Lock.Android](https://github.com/auth0/Lock.Android) en GitHub.
+
+<div id="requirements">
+  ## Requisitos
+</div>
+
+Para usar la interfaz de usuario de Lock o tu propia interfaz a través de la [biblioteca Auth0.Android](https://github.com/auth0/Auth0.Android), el nivel mínimo de API de Android requerido es 21+ y la versión de Java debe ser 8 o superior. También necesitarás una Auth0 application de tipo &quot;Native&quot;.
+
+Esto es lo que necesitas en `build.gradle` para generar bytecode de Java 8 para los plugins de Android y Kotlin, respectivamente.
+
+```kotlin lines
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+```
+
+<div id="installation">
+  ## Instalación
+</div>
+
+Lock está disponible en [Maven Central](https://central.sonatype.com/). Para empezar a usar Lock, añade estas líneas al archivo de dependencias `build.gradle`:
+
+`implementation 'com.auth0.android:lock:3.+'`
+
+Puedes consultar la versión más reciente en el [README](https://github.com/auth0/Lock.Android#install) del repositorio o en [Maven](https://central.sonatype.com/artifact/com.auth0.android/lock).
+
+Después de añadir la dependencia de Gradle, recuerda sincronizar el proyecto con los archivos de Gradle.
+
+<div id="dashboard-settings">
+  ## Configuración del Dashboard
+</div>
+
+Debes completar algunos ajustes en tu [Auth0 Dashboard](https://manage.auth0.com/#) antes de comenzar.
+
+<div id="callback-url">
+  ### URL de devolución de llamada
+</div>
+
+Ve a tu <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> y ve a la configuración de la aplicación. Agrega la siguiente URL a las **Allowed Callback URLs** de la aplicación:
+
+`https://{yourDomain}/android/{yourAppPackageName}/callback`
+
+Reemplaza `{yourAppPackageName}` por el nombre real del paquete de tu aplicación, que puedes encontrar en el archivo `app/build.gradle` como el valor de `applicationId`.
+
+<div id="keystores-and-key-hashes">
+  ### Keystores y hashes de clave
+</div>
+
+Las aplicaciones de Android deben estar firmadas antes de poder instalarse en un dispositivo. Para ello, la primera vez que se ejecuta, el IDE Android Studio genera un &quot;Android Debug Keystore&quot; predeterminado que usará para firmar las compilaciones de desarrollo. Es probable que este [Keystore](https://developer.android.com/studio/publish/app-signing) sea diferente en tu compilación de producción, ya que se usará para identificarte como desarrollador.
+
+Al usar la funcionalidad de Web Authentication (es decir, conexiones sociales), Lock se configurará de forma predeterminada para intentar usar Android App Links. Esto requiere una configuración adicional en el Dashboard de la aplicación de Auth0. Usa nuestra [guía de Android Keystores and Key Hashes](/docs/es/libraries/auth0-android/android-development-keystores-hashes) para completar este paso.
+
+<div id="implementing-lock-social-database-enterprise">
+  ## Implementar Lock (Social, Base de datos, Empresarial)
+</div>
+
+Las siguientes instrucciones explican cómo implementar Classic Lock para Android. Si lo que buscas específicamente es implementar <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/docs/es/glossary?term=Passwordless">Passwordless</Tooltip> Lock para Android, consulta [Lock.Android: Passwordless](/docs/es/libraries/lock-android/lock-android-passwordless).
+
+<div id="configuring-the-sdk">
+  ### Configurar el SDK
+</div>
+
+En el archivo `app/build.gradle`, agrega los [marcadores de posición del manifiesto](https://developer.android.com/build/manage-manifests) para las propiedades Auth0 Domain y Auth0 Scheme, que la biblioteca usará internamente para registrar un intent-filter que capture el resultado de la autenticación.
+
+```kotlin lines
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+}
+
+android {
+    compileSdkVersion 30
+    defaultConfig {
+        applicationId "com.auth0.samples"
+        minSdkVersion 21
+        targetSdkVersion 30
+        // ...
+
+        // ---> Agrega la siguiente línea
+        manifestPlaceholders = [auth0Domain: "@string/com_auth0_domain", auth0Scheme: "https"]
+        // <---
+    }
+}
+```
+
+Es recomendable añadir estos valores al archivo `strings.xml` como recursos de cadena a los que se pueda hacer referencia más adelante desde el código. Esta guía seguirá esa práctica.
+
+export const codeExample = `<resources>
+    <string name="com_auth0_client_id">{yourClientId}</string>
+    <string name="com_auth0_domain">{yourDomain}</string>
+</resources>`;
+
+<AuthCodeBlock children={codeExample} language="xml" />
+
+<div id="sdk-usage">
+  ### Uso del SDK
+</div>
+
+En la actividad donde vayas a invocar Lock, crea una instancia de `Auth0` con la información de tu aplicación. La forma más sencilla de hacerlo es pasar un Context de Android. Esto usará los valores definidos previamente en el archivo `strings.xml`. Para que esto funcione, los recursos de cadena deben definirse con las mismas claves indicadas arriba.
+
+```text lines
+val account = Auth0(context)
+```
+
+Declara una implementación de `AuthenticationCallback` que se encargará de gestionar los eventos de autenticación del usuario. El objeto `Credentials` que se devuelve cuando la autenticación se completa correctamente contendrá los tokens que consumirá tu aplicación o API. Consulta [Tokens](/docs/es/secure/tokens) para obtener más información.
+
+```kotlin lines
+private val callback = object : AuthenticationCallback() {
+    override fun onAuthentication(credentials: Credentials) {
+        // Autenticado
+    }
+
+    override fun onError(error: AuthenticationException) {
+        // Ocurrió una excepción
+    }
+}
+```
+
+Prepara una nueva instancia de Lock con la clase Builder para configurarla. Proporciona los datos de la cuenta y la implementación del callback declarada anteriormente. Aquí puedes configurar valores como <Tooltip tip="Audience: Identificador único de la audience de un token emitido. Se denomina aud en un token, y su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (API Identifier) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audience</Tooltip>, scope y las conexiones disponibles.
+
+Cuando termines, construye la instancia de Lock. Esta instancia está pensada para reutilizarse y debe liberarse cuando ya no sea necesaria. Un buen lugar para hacerlo es en el método `onDestroy` de tu actividad.
+
+```kotlin lines expandable
+// Esta actividad mostrará Lock
+class MyActivity : AppCompatActivity() {
+
+    private lateinit var lock: Lock
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val account = Auth0(this)
+        // Instanciar Lock una vez
+        lock = Lock.newBuilder(account, callback)
+            // Personalizar Lock
+            .build(this)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // ¡Importante! Liberar Lock y sus recursos
+        lock.onDestroy(this)
+    }
+
+    private val callback = object : AuthenticationCallback() {
+        override fun onAuthentication(credentials: Credentials) {
+            // Autenticado
+        }
+
+        override fun onError(error: AuthenticationException) {
+            // Se produjo una excepción
+        }
+    }
+}
+```
+
+Por último, inicia el widget `Lock` desde tu actividad.
+
+```kotlin lines
+startActivity(lock.newIntent(this))
+```
+
+¡Eso es todo! Lock se encargará del resto.
+
+<div id="android-app-links-custom-scheme">
+  #### Android App Links - Esquema personalizado
+</div>
+
+El esquema de la URI de devolución de llamada que se usa en este artículo y que Lock utiliza de forma predeterminada es `https`. Esto funciona mejor en Android Marshmallow (API 23) o versiones posteriores si usas [Android App Links](https://developer.android.com/training/app-links), pero en versiones anteriores de Android puede aparecer el cuadro de diálogo del selector de intents, que le pide al usuario que elija entre tu aplicación o el navegador para resolver el intent. Esto se conoce como el &quot;cuadro de diálogo de desambiguación&quot;. Puedes cambiar este comportamiento usando un esquema personalizado único para que el sistema operativo abra el enlace directamente con tu aplicación.
+
+1. Actualiza el valor de `auth0Scheme` en el marcador de posición del manifiesto del archivo `app/build.gradle` o directamente en la definición del filtro de intent del archivo `AndroidManifest.xml`, cambiando el esquema actual por el nuevo.
+2. Actualiza las &quot;Allowed Callback URLs&quot; en la configuración de la Application de tu Auth0 Dashboard para que coincidan con las URL que comienzan con el nuevo esquema.
+3. Llama a `withScheme()` al configurar Lock con el builder, pasando el esquema que quieras usar.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El valor del esquema debe estar completamente en minúsculas. Si no es así, se registrará un mensaje de advertencia y la autenticación nunca se completará.
+</Callout>
+
+<div id="lock-configuration">
+  ## Configuración de Lock
+</div>
+
+Para ver la lista completa de las opciones de configuración de Lock, consulta [Lock.Android: Configuración](/docs/es/libraries/lock-android/lock-android-configuration).
+
+<div id="error-messages">
+  ## Mensajes de error
+</div>
+
+Si tu `callback` recibe una `AuthenticationException`, puedes consultar el [código fuente](https://github.com/auth0/Auth0.Android/blob/main/auth0/src/main/java/com/auth0/android/authentication/AuthenticationException.kt) para saber cómo identificar cada caso de error.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Lock.Android: Personalización de temas](/docs/es/libraries/lock-android/lock-android-custom-theming)
+* [Lock.Android: Configuración](/docs/es/libraries/lock-android/lock-android-configuration)
+* [Lock.Android: Campos personalizados durante el registro](/docs/es/libraries/lock-android/lock-android-custom-fields-at-signup)
+* [Internacionalización de Lock.Android](/docs/es/customize/internationalization-and-localization/lock-android-internationalization)
+* [Cierre de sesión](/docs/es/authenticate/login/logout)

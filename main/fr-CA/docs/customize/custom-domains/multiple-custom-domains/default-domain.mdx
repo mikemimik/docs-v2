@@ -1,0 +1,251 @@
+---
+description: Découvrez comment configurer et utiliser un domaine personnalisé par défaut dans Auth0.
+title: Domaine personnalisé par défaut
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Lorsque plusieurs [domaines personnalisés](/docs/fr-CA/customize/custom-domains/multiple-custom-domains) sont configurés pour votre tenant Auth0, vous pouvez en définir un comme **domaine personnalisé par défaut**. Le domaine par défaut simplifie la configuration et assure une expérience utilisateur cohérente lorsqu’aucun domaine personnalisé n’est explicitement précisé.
+
+<div id="what-is-a-default-custom-domain">
+  ## Qu’est-ce qu’un domaine personnalisé par défaut?
+</div>
+
+Le domaine personnalisé par défaut est le domaine personnalisé qu’Auth0 utilise automatiquement pour :
+
+* **Communications par courriel et par téléphone** : l’envoi de courriels de réinitialisation de mot de passe, de liens de vérification de l’adresse courriel et d’autres notifications générées par Auth0 lorsqu’aucun domaine personnalisé précis n’est indiqué. Cela comprend les cas où des notifications sont envoyées pendant l’authentification.
+* **Appels à la Management API** : le traitement des requêtes d’API qui déclenchent des notifications sans l’en-tête `auth0-custom-domain`
+
+Vous pouvez configurer votre domaine canonique de tenant (`YOUR_TENANT.auth0.com` ou `YOUR_TENANT.REGION.auth0.com`) comme domaine personnalisé par défaut. Un domaine personnalisé par défaut sera toujours configuré pour votre tenant.
+
+<div id="benefits-of-setting-a-default-domain">
+  ## Avantages de définir un domaine par défaut
+</div>
+
+Définir un domaine personnalisé par défaut offre plusieurs avantages :
+
+* **Configuration simplifiée** : Réduit la nécessité de préciser des domaines personnalisés dans chaque appel à la Management API ou dans chaque configuration
+* **Image de marque cohérente** : Garantit que les utilisateurs voient toujours votre marque, même lorsqu’aucun domaine précis n’est indiqué
+* **En-tête `auth0-custom-domain` facultatif** : Rend l’en-tête de domaine personnalisé facultatif dans les requêtes de la Management API
+* **Comportement de repli** : Fournit des valeurs par défaut appropriées pour les mises en œuvre multimarques ou multilocataires
+* **Migration facilitée** : Simplifie la transition d’un seul domaine personnalisé à plusieurs domaines personnalisés
+
+<div id="configure-a-default-domain">
+  ## Configurer un domaine par défaut
+</div>
+
+Vous pouvez définir un domaine personnalisé par défaut à partir de l’Auth0 Dashboard ou au moyen de la Management API.
+
+<div id="using-the-auth0-dashboard">
+  ### Utilisation d’Auth0 Dashboard
+</div>
+
+Pour définir un domaine personnalisé par défaut dans Auth0 Dashboard :
+
+1. Accédez à **Auth0 Dashboard** &gt; **Branding &gt; Custom Domains**
+2. Dans la liste, repérez le domaine personnalisé vérifié que vous voulez définir par défaut
+3. Cliquez sur le bouton **Set as Default** pour ce domaine
+4. Confirmez l’action dans la boîte de dialogue qui s’affiche
+
+Le domaine affichera maintenant l’étiquette « Default » dans la liste des domaines personnalisés.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Seuls les domaines personnalisés vérifiés peuvent être définis par défaut. Assurez-vous que votre domaine personnalisé est entièrement vérifié et actif avant de le désigner comme domaine par défaut.
+</Callout>
+
+<div id="using-the-management-api">
+  ### Utiliser la Management API
+</div>
+
+Pour définir un domaine personnalisé par défaut à l’aide de la Management API, utilisez le point de terminaison `PATCH /api/v2/custom-domains/default` :
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request PATCH \
+    --url 'https://{yourDomain}/api/v2/custom-domains/default' \
+    --header 'authorization: Bearer {yourMgmtApiAccessToken}' \
+    --header 'content-type: application/json' \
+    --data '{
+      "domain": "my-custom-domain.com"
+    }'
+  ```
+
+  ```javascript Node.js
+  import { ManagementClient } from "auth0";
+
+  const management = new ManagementClient({
+    domain: '{yourDomain}',
+    clientId: '{yourClientId}',
+    clientSecret: '{yourClientSecret}',
+  });
+
+  await management.customDomains.setDefault({
+    domain: 'my-custom-domain.com',
+  });
+  ```
+
+  ```python Python
+  from auth0.management import ManagementClient
+
+  client = ManagementClient(
+      domain='{yourDomain}',
+      client_id='{yourClientId}',
+      client_secret='{yourClientSecret}',
+  )
+
+  client.custom_domains.set_default({
+      'domain': 'my-custom-domain.com',
+  })
+  ```
+
+  ```go Go
+  import (
+      "context"
+      "github.com/auth0/go-auth0/v2/management"
+      management_client "github.com/auth0/go-auth0/v2/management/client"
+      "github.com/auth0/go-auth0/v2/management/option"
+  )
+
+  mgmt, err := management_client.New(
+      "{yourDomain}",
+      option.WithClientCredentials("{yourClientId}", "{yourClientSecret}"),
+  )
+  if err != nil {
+      // Gérer l’erreur
+  }
+
+  err = mgmt.CustomDomains.SetDefault(context.Background(), &management.SetDefaultCustomDomainRequestContent{
+      Domain: "my-custom-domain.com",
+  })
+  ```
+
+  ```java Java
+  import com.auth0.client.mgmt.ManagementAPI;
+  import com.auth0.json.mgmt.customdomains.SetDefaultCustomDomainRequest;
+
+  ManagementAPI mgmt = ManagementAPI.newBuilder(
+      "{yourDomain}",
+      "{yourMgmtApiAccessToken}"
+  ).build();
+
+  SetDefaultCustomDomainRequest request = new SetDefaultCustomDomainRequest("my-custom-domain.com");
+
+  mgmt.customDomains()
+      .setDefault(request)
+      .execute();
+  ```
+</AuthCodeGroup>
+
+<div id="remove-default-domain-designation">
+  ## Retirer la désignation de domaine par défaut
+</div>
+
+Pour retirer la désignation par défaut d’un domaine personnalisé :
+
+1. Définissez un autre domaine personnalisé comme domaine par défaut (un seul domaine peut être défini par défaut à la fois), ou
+2. Utilisez la Management API pour définir `is_default: false` pour le domaine par défaut actuel
+
+Lorsqu’aucun domaine personnalisé n’est défini par défaut, Auth0 utilisera votre domaine canonique du tenant.
+
+<div id="how-the-default-domain-is-used">
+  ## Utilisation du domaine par défaut
+</div>
+
+<div id="email-notifications">
+  ### Notifications par courriel
+</div>
+
+Lorsque Auth0 envoie des notifications par courriel (réinitialisations de mot de passe, vérification de l’adresse courriel, courriels de bienvenue), le domaine par défaut est utilisé pour les liens et les éléments personnalisés de ces notifications. Vous pouvez personnaliser les modèles de courriel pour utiliser les informations du domaine personnalisé dans l’adresse « De », l’objet et le corps du courriel.
+
+<div id="management-api-endpoints-that-trigger-notifications">
+  ### Points de terminaison de la Management API qui déclenchent des notifications
+</div>
+
+Le domaine personnalisé par défaut est utilisé précisément pour les points de terminaison de la Management API qui déclenchent des notifications par courriel ou par téléphone. L’en-tête `auth0-custom-domain` devient facultatif pour ces points de terminaison lorsqu’un domaine par défaut est configuré.
+
+**Points de terminaison qui déclenchent des notifications par courriel :**
+
+* `POST /api/v2/tickets/password-change` - Envoie un courriel de réinitialisation du mot de passe
+* `POST /api/v2/tickets/email-verification` - Envoie une vérification de l’adresse courriel
+* `POST /api/v2/jobs/verification-email` - Envoie un courriel de vérification à un ou plusieurs utilisateurs
+* `POST /api/v2/users` - Peut déclencher un courriel de bienvenue si cette option est configurée
+* `PATCH /api/v2/users/{id}` - Peut déclencher un courriel de vérification lorsque l’adresse courriel est mise à jour
+
+**Points de terminaison qui déclenchent des notifications par téléphone :**
+
+* `POST /api/v2/users/{id}/phone/verification` - Envoie un code de vérification par SMS
+
+**Exemple :**
+
+<AuthCodeGroup>
+  ```bash Sans en-tête de domaine personnalisé (utilise la valeur par défaut)
+  # Le ticket de réinitialisation du mot de passe utilise le domaine par défaut dans les liens du courriel
+  curl --request POST \
+    --url 'https://{yourDomain}/api/v2/tickets/password-change' \
+    --header 'authorization: Bearer {yourMgmtApiAccessToken}' \
+    --header 'content-type: application/json' \
+    --data '{
+      "user_id": "auth0|123456",
+      "result_url": "https://example.com/password-changed"
+    }'
+  ```
+
+  ```bash Avec en-tête de domaine personnalisé (remplace la valeur par défaut)
+  # Indique explicitement un autre domaine personnalisé pour cette notification
+  curl --request POST \
+    --url 'https://{yourDomain}/api/v2/tickets/password-change' \
+    --header 'authorization: Bearer {yourMgmtApiAccessToken}' \
+    --header 'auth0-custom-domain: brand-specific.com' \
+    --header 'content-type: application/json' \
+    --data '{
+      "user_id": "auth0|123456",
+      "result_url": "https://example.com/password-changed"
+    }'
+  ```
+</AuthCodeGroup>
+
+Lorsque vous ne fournissez pas l’en-tête `auth0-custom-domain` pour ces points de terminaison de notification, Auth0 utilise automatiquement le domaine personnalisé par défaut pour les liens et les personnalisations dans le courriel ou le SMS. Vous pouvez remplacer ce comportement pour chaque requête en incluant l’en-tête `auth0-custom-domain`.
+
+<div id="using-the-default-domain-with-actions">
+  ## Utiliser le domaine par défaut avec Actions
+</div>
+
+Utilisez [Actions](/docs/fr-CA/customize/actions) pour mettre en place une logique basée sur le domaine personnalisé :
+
+```javascript
+exports.onExecutePostLogin = async (event, api) => {
+  const domain = event.custom_domain?.domain;
+
+  // Stocker le domaine de connexion dans les métadonnées de l'utilisateur
+  if (domain) {
+    api.user.setAppMetadata('login_domain', domain);
+  }
+};
+```
+
+Pour en savoir plus sur l’utilisation des informations sur les domaines personnalisés dans Actions, consultez [l’intégration d’Actions avec plusieurs domaines personnalisés](/docs/fr-CA/customize/custom-domains/multiple-custom-domains/actions-integration).
+
+<div id="best-practices">
+  ## Bonnes pratiques
+</div>
+
+Lorsque vous configurez un domaine personnalisé par défaut, tenez compte des bonnes pratiques suivantes :
+
+* **Choisissez un domaine stable** : sélectionnez comme domaine par défaut un domaine qui ne risque pas de changer souvent
+* **Vérifiez avant de le définir** : assurez-vous que le domaine est entièrement vérifié et opérationnel avant de le définir comme domaine par défaut
+* **Documentez la décision** : consignez les raisons pour lesquelles un domaine en particulier a été choisi comme domaine par défaut afin de pouvoir vous y référer plus tard
+* **Testez les flux de courriel** : après avoir défini un domaine par défaut, testez les flux de réinitialisation du mot de passe et de vérification du courriel
+* **Surveillez les émetteurs de jetons** : vérifiez que les jetons contiennent la revendication `iss` attendue après avoir défini un domaine par défaut
+* **Prévoyez les scénarios multimarques** : si vous prenez en charge plusieurs marques, choisissez comme domaine par défaut un domaine générique ou un domaine d’administration
+* **Mettez à jour les intégrations** : informez votre équipe du domaine par défaut afin d’assurer une configuration adéquate des intégrations
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Plusieurs domaines personnalisés](/docs/fr-CA/customize/custom-domains/multiple-custom-domains)
+* [Configurer les fonctionnalités pour utiliser des domaines personnalisés](/docs/fr-CA/customize/custom-domains/configure-features-to-use-custom-domains)
+* [Aperçu des domaines personnalisés](/docs/fr-CA/customize/custom-domains)
+* [Utiliser des domaines personnalisés dans les courriels](/docs/fr-CA/customize/custom-domains/configure-features-to-use-custom-domains#use-custom-domains-in-emails-and-phone-notifications)
+* [Intégration d’Actions avec des domaines personnalisés](/docs/fr-CA/customize/actions)

@@ -1,0 +1,135 @@
+---
+description: Auth0 を使用して Tessel デバイスを認証・認可する方法。
+title: Auth0 を使用して Tessel デバイスを認証・認可する
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+[Tessel](https://tessel.io) はすばらしいボードです。ハードウェアの仕様が優れていて拡張性も高いだけでなく、JavaScript でプログラムできます！ Kickstarter で発表されたとき、私たちはすぐに支援し、実機を手にするまで何週間も待ちました。
+
+<Frame>![Tessel - Tessel Ports Diagram](/docs/images/cdy7uua7fh8z/5mSnxvHvgWrHtCwk35z4Db/891c39e289c58d97c7a4047084d118a5/TM-00-04-ports.png)</Frame>
+
+そしてついに届いたので、最初のプログラムを書いてみましょう。Auth0 からトークンを取得し、API を呼び出します。
+
+Tessel は JavaScript との完全な互換性を目指しています。Node のコアモジュールの多くも動作しますが、すべてではありません。詳しくは、[GitHub 上の Tessel のドキュメント](https://github.com/tessel/docs/blob/master/compatibility.md) を参照してください。
+
+<div id="the-sample">
+  ## サンプル
+</div>
+
+この例はシンプルです:
+
+1. デバイス認証情報を使って、Auth0 の リソース所有者 エンドポイントを呼び出します
+2. トークンを受け取ります
+3. そのトークンを使って API を呼び出します
+
+<Frame>![Tessel - Tessel から Auth0 へのフロー図](/docs/images/cdy7uua7fh8z/3iyOfO564gkbyQSsvTJE9c/a981ca1166d1384ba2e5e7dd72f5a255/2023-09-22_13-14-21.png)</Frame>
+
+export const codeExample = `var http = require('https');
+var tessel = require('tessel');
+
+tessel.syncClock(function () {
+
+  var device_id = 'tessel-01';
+  var password = 'TESSELのパスワード';
+
+  authenticate(device_id, password, function(e,token){
+
+    if(e) return console.log("エラー:" + e);
+
+    getDeviceProfile(token.access_token, function(e, profile){
+      console.log("デバイス プロファイル:");
+      console.log(profile);
+    });
+  });
+
+  function getDeviceProfile(token, done){
+    request('{yourDomain}',
+          '/userinfo',
+          'GET',
+          {
+          "Content-type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        null,
+        function(e,response){
+          if(e) return done(e);
+          done(null, JSON.parse(response));
+        });
+  }
+
+  function authenticate(device_id, password, done)
+  {
+    request('{yourDomain}',
+          '/oauth/ro',
+          'POST',
+          {
+          "Content-type": "application/json",
+        },
+        JSON.stringify({
+            client_id:   '{yourClientId}',
+            username:    device_id,
+            password:    password,
+            connection:  'devices',
+            grant_type:  "password",
+            scope: 'openid'
+          }),
+          function(e,response){
+            if(e) return done(e);
+            done(null, JSON.parse(response));
+        });
+  }
+
+  function request(host, path, method, headers, body, done){
+    var options = {
+      hostname: host,
+      path: path,
+      method: method,
+      headers: headers
+    };
+
+    var req = http.request(options, function(res) {
+      res.setEncoding('utf8');
+
+      var response = "";
+
+      res.on('data', function (chunk) {
+        response += chunk;
+      });
+
+      res.on('end', function(){
+        done(null, response);
+        });
+    });
+
+    req.on('error', function(e) {
+      done(e);
+    });
+
+    if( body ) req.write(body);
+    req.end();
+  }
+});`;
+
+<AuthCodeBlock children={codeExample} language="javascript" />
+
+コードの注目ポイント:
+
+1. これは Node と 99% の互換性があります (デバイス固有のモジュールは `tessel` だけで、すべての SSL 呼び出しが適切な時刻参照に基づいて行われるようにするためにのみ使用しています。
+2. `request` 関数は、`http` モジュールの関数を簡単にラップしたものです。`request` モジュールは現在 Tessel では動作しません。
+
+<Tooltip tip="リソース所有者: 保護されたリソースへのアクセスを許可できる主体（ユーザーやアプリケーションなど）。" cta="用語集を見る" href="/docs/ja/glossary?term=Resource+Owner">リソース所有者</Tooltip>エンドポイントでは認証情報 (ユーザー名/パスワードなど) が必要になるため、Auth0 に接続されたバックエンドのユーザーストアはこれに対応している必要があります (Database 接続や Active Directory など) 。
+
+<div id="tessel-setup">
+  ## Tessel のセットアップ
+</div>
+
+* SSL に対応した最新のファームウェアを確実にインストールするため、`tessel update` を実行してください。
+* 当然ながら、インターネット接続が必要です。WiFi は `tessel wifi` コマンドで設定できます。
+* 認証情報 (`username`/`password` など) は、必ず安全なネットワーク経由で送信してください。
+
+<div id="summary">
+  ## 概要
+</div>
+
+Tessel はすばらしく、大きな可能性を秘めています。このサンプルでは、Auth0 と簡単に連携できることを紹介します。

@@ -1,0 +1,109 @@
+---
+title: Protección contra ataques de fuerza bruta
+description: Protege las cuentas de usuario frente a intentos de inicio de sesión por fuerza bruta bloqueando la dirección IP de origen, bloqueando la cuenta del usuario o notificando al usuario por correo electrónico o SMS.
+---
+
+La protección contra ataques de fuerza bruta determina cómo responde Auth0 a varios intentos fallidos de iniciar sesión en una cuenta de usuario desde una única dirección IP. Puedes configurar la protección contra ataques de fuerza bruta para:
+
+* Bloquear la dirección IP de origen para que no pueda iniciar sesión como ese usuario
+
+* Impedir cualquier intento de inicio de sesión de ese usuario
+
+* Notificar al usuario por correo electrónico o SMS
+
+De forma predeterminada, la protección contra ataques de fuerza bruta está habilitada cuando creas un tenant de Auth0. La protección contra ataques de fuerza bruta se aplica a todos los usuarios, incluidos los administradores del tenant.
+
+Te recomendamos encarecidamente mantener habilitada la protección contra ataques de fuerza bruta en tus conexiones y contar con un administrador secundario del tenant para poder desbloquear otras cuentas de administrador.
+
+<div id="configure-brute-force-protection">
+  ## Configurar la protección contra ataques de fuerza bruta
+</div>
+
+Puede habilitar, personalizar y deshabilitar la protección contra ataques de fuerza bruta desde [Dashboard &gt; Security &gt; Attack Protection &gt; Brute-force Protection](https://manage.auth0.com/#/security/attack-protection/brute-force), donde encontrará la siguiente configuración:
+
+* El interruptor en la parte superior de la página activa y desactiva la protección contra ataques de fuerza bruta. El estado actual se muestra en el indicador de estado **Enabled** / **Disabled**.
+
+* La sección **Detection** contiene la configuración del [umbral de fuerza bruta](#brute-force-threshold) y de la [lista de IP permitidas](#ip-allowlist).
+
+* La sección **Response** contiene la configuración de [bloqueo](#block-settings) y de [notificaciones](#notifications).
+
+Si habilita la protección contra ataques de fuerza bruta pero deshabilita toda la configuración de respuesta, el indicador de estado cambia a **Monitoring** y Auth0 registra [eventos de protección contra ataques en el log de su tenant](/docs/es/secure/attack-protection/view-attack-protection-events), pero no realiza ninguna otra acción.
+
+<Warning>
+  Para garantizar que la protección contra ataques de fuerza bruta funcione al usar el [flujo de contraseña del propietario del recurso (ROP)](/docs/es/get-started/authentication-and-authorization-flow/resource-owner-password-flow/call-your-api-using-resource-owner-password-flow), debe configurar su aplicación para [enviar la dirección IP del usuario](/docs/es/get-started/authentication-and-authorization-flow/resource-owner-password-flow/avoid-common-issues-with-resource-owner-password-flow-and-attack-protection#send-the-user’s-ip-address-from-your-server) mediante el encabezado `auth0-forwarded-for`.
+</Warning>
+
+<div id="brute-force-threshold">
+  ### Umbral de fuerza bruta
+</div>
+
+El umbral de fuerza bruta es la cantidad de intentos de login fallidos permitidos desde una sola dirección IP para un solo [identificador de usuario](/docs/es/authenticate/database-connections/flexible-identifiers-and-attributes#attribute-and-identifier-definitions) antes de que se active la protección contra ataques de fuerza bruta. Hay dos opciones:
+
+* **Predeterminado** establece el umbral de fuerza bruta en 10.
+
+* **Custom** te permite establecer el umbral de fuerza bruta en un valor de entre 1 y 100.
+
+Inmediatamente después de completar el procesamiento del intento de login fallido que alcance el umbral de fuerza bruta que especificaste, aplicamos las protecciones de mitigación de ataques que hayas seleccionado.
+
+Al usar un SDK de Auth0 con métodos asíncronos, un identificador de usuario puede enviar de forma sucesiva a tu aplicación más solicitudes de autenticación que las permitidas por el umbral de fuerza bruta configurado. Sin embargo, una vez que una solicitud alcance el umbral de fuerza bruta, responderemos a las solicitudes posteriores de ese identificador de usuario con un [error HTTP 429 `too_many_attempts`](/docs/es/libraries/common-auth0-library-authentication-errors#sign-up).
+
+<div id="ip-allowlist">
+  ### Lista de IP permitidas
+</div>
+
+La lista de IP permitidas es una lista de direcciones IPv4 o IPv6, o de rangos en notación CIDR, separada por comas. Los intentos de inicio de sesión que se originan en direcciones IP incluidas en la lista de IP permitidas están exentos de la protección contra ataques de fuerza bruta.
+
+Puede usar la lista de IP permitidas para especificar direcciones IP o rangos de confianza en situaciones como cuando hay usuarios detrás de un proxy.
+
+<div id="block-settings">
+  ### Configuración de bloqueo
+</div>
+
+La configuración de bloqueo de la protección contra ataques de fuerza bruta determina si Auth0 bloquea intentos adicionales de inicio de sesión en una cuenta de usuario específica cuando se activa la detección de fuerza bruta y cómo lo hace. Hay dos opciones:
+
+* **Bloquear inicios de sesión por fuerza bruta** bloquea los intentos adicionales de inicio de sesión para el identificador de usuario indicado desde la dirección IP que activó la protección contra ataques de fuerza bruta. Esta opción está habilitada de forma predeterminada.
+
+* **Bloqueo de cuenta** bloquea todos los intentos de inicio de sesión para el identificador de usuario indicado. Esta opción está deshabilitada de forma predeterminada.
+
+<div id="notifications">
+  ### Notificaciones
+</div>
+
+Si **Send notifications to the affected users** está activado, Auth0 envía una notificación por SMS o correo electrónico al usuario cuando se bloquea su cuenta.
+
+Auth0 envía un SMS al usuario si utiliza un número de teléfono como identificador en el flujo de login. Las notificaciones por SMS están limitadas a un máximo de 1 por hora por identificador.
+
+Auth0 envía un correo electrónico al usuario si tiene una dirección de correo electrónico asociada a su cuenta. Las notificaciones por correo electrónico están limitadas a un máximo de 1 por hora por dirección IP única. De forma predeterminada, los [correos electrónicos de notificación de cuenta bloqueada](/docs/es/customize/email/customize-blocked-account-emails) contienen un enlace que permite al usuario desbloquear su cuenta.
+
+<div id="remove-brute-force-protection-blocks">
+  ## Eliminar bloqueos de protección contra ataques de fuerza bruta
+</div>
+
+Los bloqueos de protección contra ataques de fuerza bruta permanecen vigentes hasta que ocurra uno de los siguientes eventos.
+
+* Transcurren treinta (30) días desde el último intento fallido de inicio de sesión.
+
+* Un administrador elimina el bloqueo de protección contra ataques de fuerza bruta con la Management API mediante uno de los siguientes endpoints:
+
+  * El [endpoint Unblock by identifier](/docs/es/api/management/v2/user-blocks/delete-user-blocks) (`DELETE /user-blocks`) usando el identificador del usuario.
+
+  * El [endpoint Unblock a user](/docs/es/api/management/v2/user-blocks/delete-user-blocks-by-id) (`DELETE /user-blocks/{id}`).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los bloqueos de [administrador del tenant](/docs/es/manage-users/user-accounts/block-and-unblock-users) se gestionan por separado de los bloqueos de protección contra ataques de fuerza bruta. Obtén más información sobre [cómo eliminar bloqueos de administrador del tenant](/docs/es/manage-users/user-accounts/block-and-unblock-users#remove-tenant-administrator-blocks).
+</Callout>
+
+* Un administrador aumenta el [umbral de fuerza bruta](#brute-force-threshold).
+
+* El usuario afectado selecciona el enlace de desbloqueo en la [notificación por correo electrónico](#notifications), si está configurado.
+
+* El usuario afectado cambia su contraseña. Si la cuenta de un usuario está vinculada mediante varios tipos de conexión, como una cuenta OTP y una cuenta de base de datos, debe cambiar su contraseña en todas las cuentas vinculadas para eliminar el bloqueo.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Ver eventos de log de Attack Protection](/docs/es/secure/attack-protection/view-attack-protection-events)
+* [Bloquear y desbloquear usuarios](/docs/es/manage-users/user-accounts/block-and-unblock-users)
+* [Personalizar los correos electrónicos de cuentas bloqueadas](/docs/es/customize/email/customize-blocked-account-emails)
+* [Límites de frecuencia de autenticación con usuario/contraseña](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy/database-connections-rate-limits)

@@ -1,0 +1,262 @@
+---
+description: Un widget que ofrece una experiencia de inicio de sesión y registro sin complicaciones para tus aplicaciones web.
+title: Lock for Web
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Lock es un formulario de inicio de sesión integrable que puede [configurarse según tus necesidades](/docs/es/libraries/lock/lock-configuration). Lock te permite añadir fácilmente <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+providers">proveedores de identidad</Tooltip> sociales, para que tus usuarios puedan iniciar sesión sin complicaciones con el proveedor que prefieran.
+
+<Warning>
+  El inicio de sesión integrado para aplicaciones web usa [autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication) a menos que [configures un dominio personalizado](/docs/es/customize/custom-domains) para tu tenant. La autenticación de origen cruzado usa cookies de terceros para permitir transacciones de autenticación seguras entre distintos orígenes.
+</Warning>
+
+<div id="lock-installation">
+  ## Instalación de Lock
+</div>
+
+Puedes instalar Lock de varias formas. Selecciona cualquiera de las siguientes opciones de instalación que mejor se adapten a tu entorno y aplicación.
+
+<div id="installation-sources">
+  ### Fuentes de instalación
+</div>
+
+Instala con [npm](https://npmjs.org):
+`npm install auth0-lock`
+
+Instala con [bower](http://bower.io):
+
+`bower install auth0-lock`
+
+Inclúyelo desde nuestro CDN (Reemplaza `.x` y `.y` con los números de la versión menor y de parche más recientes del [repositorio de GitHub de Lock](https://github.com/auth0/lock/releases)):
+
+Última versión menor:`<script src="https://cdn.auth0.com/js/lock/11.x/lock.min.js"></script>`Última versión de parche:
+`<script src="https://cdn.auth0.com/js/lock/11.x.y/lock.min.js"></script>`
+
+Se recomienda que las aplicaciones de producción usen una versión de parche específica o, como mínimo, una versión menor específica. Independientemente del método con el que se incluya Lock, la recomendación es fijar la versión y actualizarla solo manualmente, para garantizar que esas actualizaciones no afecten negativamente a tu implementación. Consulta el [repositorio de GitHub](https://github.com/auth0/lock/releases) para ver la lista actualizada de versiones.
+
+<div id="mobile">
+  ### Móvil
+</div>
+
+Si tu aplicación está dirigida a usuarios móviles, Auth0 recomienda que añadas la siguiente etiqueta meta al `head` de tu aplicación:
+
+`<meta name="viewport" content="width=device-width, initial-scale=1"/>`
+
+<div id="bundling-dependencies">
+  ### Empaquetado de dependencias
+</div>
+
+Si usa browserify o webpack para compilar su proyecto y empaquetar sus dependencias, después de instalar el módulo `auth0-lock`, tendrá que empaquetarlo junto con todas sus dependencias. Hay ejemplos disponibles para [Browserify](https://github.com/auth0/lock/tree/master/examples/bundling/browserify) y [webpack](https://github.com/auth0/lock/tree/master/examples/bundling/webpack).
+
+<div id="cross-origin-authentication">
+  ### Autenticación de origen cruzado
+</div>
+
+<Warning>
+  El inicio de sesión integrado para aplicaciones web usa la [autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication), a menos que [configures un dominio personalizado](/docs/es/customize/custom-domains) para tu tenant. La autenticación de origen cruzado usa cookies de terceros para permitir transacciones de autenticación seguras entre distintos orígenes.
+</Warning>
+
+Integrar Lock en tu aplicación requiere que la [autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication) esté configurada correctamente. En concreto, debes establecer la propiedad **Allowed Web Origins** con el dominio desde el que se realiza la solicitud. Puedes encontrar este campo en [Application Settings](https://manage.auth0.com/#/applications/\{yourClientId}/settings).
+
+<div id="usage">
+  ## Uso
+</div>
+
+<div id="step-1-initializing-lock">
+  ### Paso 1. Inicialización de Lock
+</div>
+
+Primero, debes inicializar un nuevo objeto `Auth0Lock` y proporcionarle tu Auth0 <Tooltip tip="ID de cliente: valor de identificación asignado por Auth0 a tu recurso registrado." cta="Ver glosario" href="/docs/es/glossary?term=client+ID">ID de cliente</Tooltip> (el ID de cliente único de cada aplicación de Auth0, que puedes obtener en el [Dashboard de administración](https://manage.auth0.com/#)) y tu dominio de Auth0 (por ejemplo, `yourname.auth0.com`).
+
+export const codeExample1 = `// Inicializando nuestro Auth0Lock
+var lock = new Auth0Lock(
+  '{yourClientId}',
+  '{yourDomain}'
+);`;
+
+<AuthCodeBlock children={codeExample1} language="js" />
+
+<div id="step-2-authenticating-and-getting-user-info">
+  ### Paso 2. Autenticación y obtención de información del usuario
+</div>
+
+A continuación, usa el método `on` para escuchar el evento `authenticated`. Cuando ocurra, usa el `accessToken` recibido para llamar al método `getUserInfo` y obtener la información del perfil del usuario (según sea necesario).
+
+export const codeExample2 = `var Auth = (function() {
+
+  var wm = new WeakMap();
+  var privateStore = {};
+  var lock;
+
+  function Auth() {
+    this.lock = new Auth0Lock(
+      '<{yourClientId}>',
+      '<{yourDomain}>'
+    );
+    wm.set(privateStore, {
+      appName: "example"
+    });
+  }
+
+  Auth.prototype.getProfile = function() {
+    return wm.get(privateStore).profile;
+  };
+
+  Auth.prototype.authn = function() {
+    // Escucha el evento authenticated
+    this.lock.on("authenticated", function(authResult) {
+      // Usa el token de authResult para getUserInfo() y guárdalo si es necesario
+      this.getUserInfo(authResult.accessToken, function(error, profile) {
+        if (error) {
+          // Manejar el error
+          return;
+        }
+
+        //recomendamos no almacenar tokens de acceso a menos que sea absolutamente necesario
+        wm.set(privateStore, {
+          accessToken: authResult.accessToken
+        });
+
+        wm.set(privateStore, {
+          profile: profile
+        });
+
+      });
+    });
+  };
+  return Auth;
+}());`;
+
+<AuthCodeBlock children={codeExample2} language="js" />
+
+Luego puedes manipular el contenido de la página y mostrar información del perfil al usuario (por ejemplo, mostrando su nombre en un mensaje de bienvenida).
+
+`<h2>Welcome <span id="nick" class="nickname"></span></h2>`
+
+Ten en cuenta que, si vas a almacenar el perfil de usuario, te convendrá aplicar `JSON.stringify` al objeto `profile` y, después, cuando vuelvas a usarlo, `JSON.parse`, ya que deberá almacenarse en `localStorage` como una cadena, en lugar de como un objeto JSON.
+
+<div id="step-3-showing-lock">
+  ### Paso 3. Mostrar Lock
+</div>
+
+Aquí muestras el widget Lock después de que el usuario hace clic en un botón de inicio de sesión; igual de fácil puedes mostrar Lock automáticamente al llegar a una página con solo usar `lock.show();` al cargar la página.
+
+Esto mostrará el widget Lock y, junto con lo anterior, ¡ya estás listo para gestionar los inicios de sesión!
+
+```js lines
+document.getElementById('btn-login').addEventListener('click', function() {
+  lock.show();
+});
+```
+
+<div id="passwordless">
+  ## Passwordless
+</div>
+
+El modo <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/docs/es/glossary?term=Passwordless">Passwordless</Tooltip> de Lock solo está disponible en Lock v11.2.0 y versiones posteriores. ¡Usa la [versión más reciente de Lock](https://github.com/auth0/lock/releases) para esta funcionalidad!
+
+Puedes usar el modo Passwordless de Lock para permitir que los usuarios se autentiquen únicamente con una dirección de correo electrónico o un número de teléfono móvil. Recibirán el código y luego volverán para introducirlo, o harán clic en el enlace, y podrán autenticarse sin tener que recordar una contraseña.
+
+En Lock, para implementar el modo Passwordless, inicializas Lock de una forma ligeramente distinta: con `Auth0LockPasswordless` en lugar de `Auth0Lock`:
+
+export const codeExample3 = `var lockPasswordless = new Auth0LockPasswordless(
+ '{yourClientId}',
+ '{yourDomain}'
+);`;
+
+<AuthCodeBlock children={codeExample3} language="js" />
+
+<div id="passwordless-options">
+  ### Opciones de Passwordless
+</div>
+
+Además, el modo Passwordless de Lock tiene un par de opciones de configuración que le son exclusivas.
+
+Para indicar qué tipo de conexión quieres, inicializa Lock con la opción `allowedConnections` y asigna como valor `email` o `sms`:
+
+```js lines
+var passwordlessOptions = {
+  allowedConnections: ['sms']
+}
+```
+
+Recuerda habilitar la conexión passwordless que elijas en el [Dashboard](https://manage.auth0.com/#), en **Connections -&gt; Passwordless**, y después habilitarla para tu aplicación; de ese modo, cuando Lock intente usarla, ya estará configurada y vinculada a la aplicación.
+
+Si eliges usar `email`, tienes una opción adicional para seleccionar: si deseas que tus usuarios reciban un código para ingresar o un &quot;Magic Link&quot; para usar. Esto se hace mediante la opción `passwordlessMethod`, que acepta los valores `code` o `link`.
+
+```js lines
+var passwordlessOptions = {
+  allowedConnections: ['email'],
+  passwordlessMethod: 'code'
+}
+```
+
+<div id="passwordless-example">
+  ### Ejemplo de Passwordless
+</div>
+
+export const codeExample4 = `var passwordlessOptions = {
+  allowedConnections: ['email'],
+  passwordlessMethod: 'code',
+  auth: {
+    redirectUrl: 'http://localhost:3000/callback',   
+    responseType: 'token id_token',
+    params: {
+      scope: 'openid email'               
+    }          
+  }
+}
+
+var lockPasswordless = new Auth0LockPasswordless(
+ '{yourClientId}',
+ '{yourDomain}',
+ passwordlessOptions
+);`;
+
+<AuthCodeBlock children={codeExample4} language="js" />
+
+<div id="single-sign-on-with-embedded-authentication">
+  ### Inicio de sesión único con autenticación integrada
+</div>
+
+Las aplicaciones con inicio de sesión integrado deben cumplir dos criterios para poder tener <Tooltip tip="Inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=Single+Sign-on">inicio de sesión único</Tooltip> (SSO).
+
+1. Ambas aplicaciones que intentan usar SSO deben ser aplicaciones propias. El SSO con aplicaciones de terceros no funcionará.
+2. Deben usar dominios personalizados, y tanto las dos aplicaciones que quieran tener SSO como el tenant de Auth0 deben estar en el mismo dominio. Tradicionalmente, los dominios de Auth0 tienen el formato `foo.auth0.com`, pero los dominios personalizados le permiten usar el mismo dominio para cada una de las aplicaciones en cuestión, así como para su tenant de Auth0, lo que evita el riesgo de ataques CSRF.
+
+Nuestra recomendación es usar <Tooltip tip="Universal Login: su aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Universal+Login">Universal Login</Tooltip> en lugar de configurar SSO en escenarios de inicio de sesión integrado. Universal Login es la forma más confiable y estable de realizar SSO, y es la única manera de hacerlo si debe usar varios dominios para sus aplicaciones o [aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/configure-third-party-applications).
+
+<div id="error-codes-and-descriptions">
+  ## Códigos de error y descripciones
+</div>
+
+Cuando Lock se usa para inicio de sesión integrado, utiliza el endpoint `/co/authenticate`, que puede devolver los siguientes errores.
+
+La descripción del error es legible para las personas. **No debe ser procesada por ningún código** y está sujeta a cambios en cualquier momento.
+
+| **Estado** | **Código**                          | **Descripción**                                                                                                                                                                                                       |
+| ---------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400        | invalid&#95;request                 | Cuerpo de la solicitud no válido. Se requieren todos y solo client&#95;id, credential&#95;type, username, otp, realm.                                                                                                 |
+| 401        | unauthorized&#95;client             | No se permite el inicio de sesión entre orígenes.                                                                                                                                                                     |
+| 400        | unsupported&#95;credential&#95;type | Parámetro de tipo de credencial desconocido.                                                                                                                                                                          |
+| 400        | invalid&#95;request                 | Realm desconocido non-existent-connection.                                                                                                                                                                            |
+| 403        | access&#95;denied                   | Correo electrónico o contraseña incorrectos.                                                                                                                                                                          |
+| 403        | access&#95;denied                   | Error de autenticación                                                                                                                                                                                                |
+| 403        | blocked&#95;user                    | Usuario bloqueado                                                                                                                                                                                                     |
+| 401        | password&#95;leaked                 | Este intento de inicio de sesión ha sido bloqueado porque la contraseña que estás usando ya había quedado expuesta previamente en una violación de la seguridad de los datos (no en esta aplicación).                 |
+| 429        | too&#95;many&#95;attempts           | Tu cuenta ha sido bloqueada después de múltiples intentos consecutivos de inicio de sesión. Te hemos enviado una notificación a través de tu método de contacto preferido con instrucciones sobre cómo desbloquearla. |
+| 429        | too&#95;many&#95;attempts           | Hemos detectado un comportamiento de inicio de sesión sospechoso y se bloquearán los intentos posteriores. Ponte en contacto con el administrador.                                                                    |
+
+<div id="browser-compatibility">
+  ## Compatibilidad con navegadores
+</div>
+
+La compatibilidad con navegadores está garantizada para **Chrome**, **Safari**, **Firefox** e **IE &gt;= 10**. Actualmente, Auth0 usa [zuul](https://github.com/defunctzombie/zuul) junto con [Saucelabs](https://saucelabs.com) para ejecutar pruebas de integración con cada envío de código.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Referencia de la API de Lock](/docs/es/libraries/lock/lock-api-reference)
+* [Opciones de configuración de Lock](/docs/es/libraries/lock/lock-configuration)

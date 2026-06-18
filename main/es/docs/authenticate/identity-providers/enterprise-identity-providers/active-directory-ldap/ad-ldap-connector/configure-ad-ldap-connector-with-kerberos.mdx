@@ -1,0 +1,156 @@
+---
+description: Describe cómo configurar conector AD/LDAP para federarse con la autenticación de Kerberos.
+title: Configurar la autenticación de conector AD/LDAP con Kerberos
+---
+
+Puede federarse con Active Directory mediante conector AD/LDAP si usa Classic Login. conector AD/LDAP permite que sus usuarios se autentiquen cuando usan un equipo unido al dominio dentro de la red corporativa.
+
+<div id="configure-active-directory">
+  ## Configurar Active Directory
+</div>
+
+1. Ve a [Auth0 Dashboard &gt; Authentication &gt; Enterprise &gt; Active Directory/LDAP](https://manage.auth0.com/#/connections/enterprise/ad) y selecciona la conexión que quieras configurar.
+2. Activa el interruptor **Use Windows Integrated Auth (Kerberos)**.
+
+<div id="auto-detected-range-for-kerberos">
+  ### Rango detectado automáticamente para Kerberos
+</div>
+
+Cuando la autenticación de Kerberos está habilitada, la dirección IP visible del servidor en el que se ejecuta AD Connector se agrega implícitamente al rango de IP de la red. Esto significa que, si las solicitudes de un usuario se originan desde la misma dirección IP visible que la de AD Connector, se intentará la autenticación Kerberos.
+
+1. Configure los **rangos de IP**. Use la [notación CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing). Deben ser rangos visibles para Auth0. Cuando Auth0 se ejecuta en la nube, no puede ver la dirección IP interna del usuario. En ese caso, debe configurar la(s) dirección(es) IP pública(s)/WAN de su empresa.
+2. Recomendamos reiniciar el servicio de Windows que hospeda AD Connector cada vez que se cambie esta configuración. De este modo, los cambios surtirán efecto de inmediato.
+
+<div id="authentication-flow">
+  ## Flujo de autenticación
+</div>
+
+Según la ubicación de los usuarios, el flujo de autenticación será diferente cuando se configuren rangos de IP. Tomando Fabrikam como ejemplo, como usa la versión SaaS de Auth0, configuró su dirección IP pública (`24.12.34.56/32`) en la conexión. Todos los usuarios que se conecten desde dentro del edificio saldrán desde `24.12.34.56` (según lo configurado en la conexión). Cuando se autentiquen, podrán seguir el flujo nativo de AD/LDAP y disfrutar de una experiencia de <Tooltip tip="Single Sign-On (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente su sesión en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=SSO">SSO</Tooltip> fluida.
+
+Para que esto funcione, la red debe permitir que los usuarios se conecten al conector AD/LDAP a través del puerto configurado en el archivo `config.json`. En implementaciones de alta disponibilidad del conector, la dirección a la que se conectarán los usuarios es la del balanceador de carga de red que está delante de todas las instancias del conector.
+
+<Frame>
+  ![Configurar la autenticación del conector AD/LDAP con el diagrama de flujo de Kerberos](/docs/images/cdy7uua7fh8z/1EUZhFx2w5FjDeIoMySERC/fc50869b131faf3257cfe429c96f68d1/2023-09-22_14-28-30.png)
+</Frame>
+
+Para obtener más información, lee [Implementar conectores AD/LDAP para entornos de alta disponibilidad.](/docs/es/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/ad-ldap-high-availability)
+
+Por otro lado, cuando los usuarios no están en la red corporativa (por ejemplo, en las instalaciones de un cliente o trabajando desde casa sin VPN), no podrán acceder directamente al conector AD/LDAP. Los usuarios deberán introducir su nombre de usuario y contraseña, y Auth0 validará estas credenciales con el conector AD/LDAP (que, a su vez, usará Active Directory para validarlas).
+
+<Frame>
+  ![Configurar la autenticación del conector AD/LDAP con el diagrama de flujo de credenciales de Kerberos](/docs/images/cdy7uua7fh8z/7xo1cIdF6GmSowlVB8kjQn/4b55f555977742af3f3df94c5b3a0a9b/2023-09-22_14-29-00.png)
+</Frame>
+
+<div id="auto-login-with-lock">
+  ## Inicio de sesión automático con Lock
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Detectar rangos de IP en una conexión AD/LDAP y usar esos rangos con Lock para permitir la autenticación integrada de Windows es una función compatible con Lock 10, pero en Lock 11 solo puede usarse en escenarios de Universal Login. Esta función está deshabilitada en Lock 11 cuando se utiliza en escenarios de Embedded Login.
+</Callout>
+
+Cuando una aplicación usa Lock 10 u 11 dentro de la Login Page alojada por Auth0 (normalmente utilizada para protocolos <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip>/WS-Federation e integraciones de SSO), habrá un botón que permitirá a los usuarios autenticarse mediante &quot;Autenticación de Windows&quot;.
+
+En algunos casos, puede ser necesario iniciar sesión automáticamente al usuario si Kerberos está disponible (según la dirección IP del usuario final). Se pueden agregar los siguientes cambios a la Login Page de Auth0 para iniciar sesión automáticamente al usuario si Kerberos está disponible:
+
+```html lines expandable
+<script src="https://cdn.auth0.com/js/lock/11.x.x/lock.min.js"></script>
+<script src="https://cdn.auth0.com/js/auth0/9.x/auth0.min.js"></script>
+<script src="https://cdn.auth0.com/js/polyfills/1.0/object-assign.min.js"></script>
+
+<script>
+  var config = JSON.parse(decodeURIComponent(escape(window.atob('@@config@@'))));
+
+  var lock = new Auth0Lock(config.clientID, config.auth0Domain, {
+      //...configuración adicional
+  });
+
+  function handleError(err) {
+    // agregar el manejo de errores adecuado
+    console.log(err);
+  };
+
+  var params = Object.assign({
+      scope: config.internalOptions.scope,
+      _csrf: config.internalOptions._csrf,
+      state: config.internalOptions.state,
+    },
+    {
+      /* configuración adicional necesaria para el uso de dominios personalizados 
+      overrides: {
+        __tenant: config.auth0Tenant,
+        __token_issuer: '{yourCustomDomain}'
+      }, */
+      domain: config.auth0Domain,
+      clientID: config.clientID,
+      redirectUri: config.callbackURL,
+      responseType: 'code'
+    });
+
+  var webAuth = new auth0.WebAuth(params);
+
+  /*
+   * Verificar si Kerberos es posible; si lo es, intentar autenticar al usuario.
+   *
+   * la respuesta de getSSOData solo tendrá una conexión y estrategia si
+   * la dirección IP está dentro del rango de Kerberos en la configuración de la conexión
+   */
+  webAuth.client.getSSOData(true, function(err, data) {
+    if (err) handleError(err);
+
+    if (data.connection && data.strategy === 'ad') {
+      webAuth.authorize({connection: data.connection}, function(err) {
+        if (err) handleError(err);
+      });
+    } else {
+      lock.show();
+    }
+  });
+</script>
+```
+
+<div id="bypass-kerberos-at-runtime">
+  ## Omitir Kerberos en tiempo de ejecución
+</div>
+
+Puedes evitar que se utilice Kerberos, incluso si el usuario inicia sesión desde una dirección IP dentro del rango configurado en los ajustes de la conexión, pasando `rememberLastLogin: false` a `lock.show()`.
+
+```javascript lines
+function useKerberos() {
+      // devuelve true para usar Kerberos, false para omitirlo
+    };
+    
+    lock.show({rememberLastLogin: useKerberos()});
+```
+
+<div id="enable-kerberos-request-logging">
+  ## Habilitar el registro de solicitudes de Kerberos
+</div>
+
+1. Para habilitar el registro detallado de las solicitudes de Kerberos, agrega una variable de entorno del sistema `DEBUG=kerberos-server`.
+2. Reinicia el Connector.
+3. Vuelve a iniciar sesión y consulta los logs para obtener más información.
+
+<div id="firefox-support-for-kerberos">
+  ## Compatibilidad de Firefox con Kerberos
+</div>
+
+De forma predeterminada, [Firefox](https://www.mozilla.org/firefox) [rechaza todas las solicitudes &quot;negotiate&quot; necesarias para autenticar a los usuarios con Kerberos](https://developer.mozilla.org/en-US/docs/Mozilla/Integrated_authentication). Si quieres usar Firefox con Kerberos, debes añadir a la lista de permitidos el servidor en el que está instalado el conector.
+
+1. Abre una pestaña de Firefox y escribe `about:config` en la barra de direcciones.
+2. Omite cualquier mensaje de advertencia y, en el cuadro de búsqueda, escribe `negotiate`.
+3. Busca la entrada `network.negotiate-auth.trusted-uris` y haz doble clic para cambiar su valor.
+4. Escribe el nombre de dominio del servidor en el que está instalado el conector. Si tienes varias instancias del conector detrás de un equilibrador de carga, añade el nombre DNS del equilibrador.
+   El valor admite una lista de prefijos de URL o dominios separados por comas con el formato `mydomain.com, https://myotherdomain.com`.
+5. Haz clic en **Aceptar**. No necesitas reiniciar el servidor para que los cambios surtan efecto.
+
+<div id="https-support-for-kerberos">
+  ## Compatibilidad con HTTPS para Kerberos
+</div>
+
+La autenticación Kerberos funciona mediante HTTP (no HTTPS). Es posible que Microsoft Office 365 y otros productos modernos no funcionen con HTTP.
+
+Para solucionar esta limitación:
+
+1. Configure un proxy inverso y exponga el conector AD/LDAP en un dominio HTTPS. Puede usar el parámetro `SERVER_URL` (URL pública) para publicar la ubicación pública en la que el conector AD/LDAP escuchará las solicitudes entrantes.
+2. Asigne `SERVER_URL` en el proxy inverso a todas las instancias internas de los conectores implementados.

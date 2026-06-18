@@ -1,0 +1,66 @@
+---
+title: "Personnaliser les messages SMS et vocaux de l’authentification multifacteur"
+description: "Découvrez comment personnaliser les messages SMS et vocaux envoyés par Auth0 lors de l’inscription et de la vérification."
+---
+
+Pour personnaliser les messages SMS et vocaux de l’authentification multifacteur envoyés par Auth0 :
+
+1. Accédez à [Dashboard &gt; Security &gt; Multi-factor Auth](https://manage.auth0.com/#/security/mfa), puis cliquez sur **Phone Message**.
+2. Dans la section **Enrollment Template** ou **Verification Template**, personnalisez votre message.
+3. Cliquez sur **Save**.
+
+Le **Enrollment Template** définit le message envoyé lorsqu’un utilisateur inscrit un nouvel appareil pour la première fois à l’aide de l’authentification multifacteur. Le **Verification Template** définit le message envoyé lorsqu’un utilisateur se connecte après l’inscription.
+
+<div id="syntax">
+  ## Syntaxe
+</div>
+
+La syntaxe [Liquid](https://github.com/Shopify/liquid/wiki/Liquid-for-Designers) est le moteur de modèles pris en charge utilisé pour accéder aux attributs utilisateur dans les modèles SMS. Les attributs suivants sont disponibles :
+
+| Attribute                       | Description                                                                                                                                                                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message_type`                  | Indique quel type de message est envoyé : `sms` ou `voice`.                                                                                                                                                                                         |
+| `code`                          | Code d’enrôlement/de vérification. Lors de l’envoi de messages vocaux, les valeurs des variables sont séparées par des points entre les chiffres (`1.2.3.4.5`) pour en assurer une prononciation précise par les fournisseurs de messagerie vocale. |
+| `locale`                        | Pour Universal Login ou l’API MFA. Désigne la langue.                                                                                                                                                                                               |
+| `requestInfo.lang`              | Pour la localisation de Classic Login. En-tête `accept-language` du navigateur. Par exemple : `es-AR,es;q=8.0`, `en-US,en`.                                                                                                                         |
+| `tenant.friendlyName`           | Le **nom convivial** défini dans **Dashboard &gt; Tenant Settings**.                                                                                                                                                                                |
+| `custom_domain.domain`          | Le nom de domaine du tenant.                                                                                                                                                                                                                        |
+| `custom_domain.domain_metadata` | Les champs de métadonnées du domaine personnalisé (sous forme de paires clé-valeur).                                                                                                                                                                |
+
+Voici un exemple d’utilisation de la syntaxe Liquid pour envoyer, selon la langue, différents messages vocaux et SMS :
+
+```liquid lines
+{% if message_type == "voice" %}
+    {% if locale contains "fr" %}
+        Bonjour, vous avez demandé à recevoir un code de vérification pour vous enregister avec {{tenant.friendly_name}}. Votre code est: {{pause}} {{code}}. Je répète, votre code est: {{pause}}{{code}}.
+    {% elsif locale contains "es" %}
+        Usted ha requerido un código de verificación para inscribirse con {{tenant.friendly_name}}. Su código es: {{pause}}{{code}}. Repito, su código es: {{pause}}{{code}}.
+    {% else %}
+        Hello, you requested a verification code to enroll with {{tenant.friendly_name}}. Your code is: {{pause}}{{code}}. I repeat, your code is: {{pause}}{{code}}.
+    {% endif %}
+{% else %}
+    {% if locale contains "fr" %}
+        {{code}} est votre code de vérification pour vous enregistrer avec {{tenant.friendly_name}}.
+    {% elsif locale contains "es" %}
+        {{code}} es su código para inscribirse con {{tenant.friendly_name}}.
+    {% else %}
+        {{code}} is your verification code to enroll with {{tenant.friendly_name}}.
+    {% endif %}
+{% endif %}
+```
+
+<div id="localization">
+  ## Localisation
+</div>
+
+Dans l’Auth0 Authentication API, le [point de terminaison Get Code or Link](https://auth0.com/docs/api/authentication/passwordless/get-code-or-link), le [point de terminaison de requête de challenge MFA](https://auth0.com/docs/api/authentication/muti-factor-authentication/request-mfa-challenge) et le [point de terminaison d’ajout d’un authentificateur MFA](https://auth0.com/docs/api/authentication/muti-factor-authentication/add-an-authenticator) prennent en charge l’en-tête `x-request-language`.
+
+Pour l’utiliser, configurez vos langues prises en charge dans **Tenant &gt; Paramètres** (sous **Langues prises en charge**). Lorsque l’en-tête `x-request-lanuage` est envoyé, ce paramètre régional est accessible dans la variable `locale` des modèles de messages téléphoniques MFA. Consultez [la prise en charge multilingue de Passwordless](/docs/fr-CA/authenticate/passwordless/authentication-methods/sms-otp#multi-language-support) pour en savoir plus.
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Authentification multifacteur (MFA)](/docs/fr-CA/secure/multi-factor-authentication)
+* [Configurer les notifications SMS et vocales pour l’authentification multifacteur](/docs/fr-CA/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-sms-voice-notifications-mfa)
+* [Inscrire des authentificateurs SMS et vocaux et lancer un challenge](/docs/fr-CA/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)

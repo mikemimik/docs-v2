@@ -1,0 +1,273 @@
+---
+description: Aprende a crear una conexión de base de datos.
+title: Crear conexiones personalizadas de bases de datos
+validatedOn: 2026-02-25
+---
+
+Si tienes tu propia base de datos de usuarios, puedes usarla como <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+provider">proveedor de identidad</Tooltip> en Auth0 para autenticar usuarios. Sigue el proceso para crear la conexión personalizada de base de datos, crear scripts de acción de base de datos y agregar parámetros de configuración.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Asegúrate de que tu base de datos tenga los campos adecuados para almacenar [atributos del perfil de usuario](/docs/es/manage-users/user-accounts/user-profiles/user-profile-structure#user-profile-attributes), como `id`, `nickname`, `email` y `password`. Para conocer el esquema del perfil de usuario de Auth0, consulta [Perfiles de usuario normalizados](/docs/es/manage-users/user-accounts/user-profiles/normalized-user-profiles). Para obtener más información sobre cómo actualizar perfiles de usuario, consulta [Actualizar perfiles de usuario usando tu base de datos](/docs/es/manage-users/user-accounts/user-profiles/update-user-profiles-using-your-database).
+</Callout>
+
+Auth0 te permite crear conexiones y scripts para la mayoría de las bases de datos de uso común, entre ellas:
+
+* ASP.NET Identity
+* MongoDB
+* MySQL
+* PostgreSQL
+* SQLServer
+* Windows Azure SQL Database
+* Servicios web a los que se accede mediante Basic Auth
+
+Puedes conectarte a cualquier tipo de base de datos o servicio web con un script personalizado configurado correctamente. Ten en cuenta que el saneamiento de entradas debe realizarlo el cliente; Auth0 no sanea ni valida ninguna combinación de nombre de usuario y contraseña enviada por una base de datos personalizada. Los scripts de Custom Database están sujetos a la [Política de limitación de tasa](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy) de Auth0.
+
+<Card title="Cortafuegos de red">
+  Si estás detrás de un cortafuegos, es posible que esta función requiera que agregues las direcciones IP correspondientes de Auth0 a la lista de permitidos para que funcione correctamente.
+</Card>
+
+<div id="create-the-connection-in-the-auth0-dashboard">
+  ## Cree la conexión en el Auth0 Dashboard
+</div>
+
+1. Vaya a [Auth0 Dashboard &gt; Authentication &gt; Database](https://manage.auth0.com/#/connections/database) y seleccione **Create DB Connection**.
+2. Configure los ajustes de la conexión y seleccione **Create**:
+
+| Parámetro                                             | Definición                                                                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**                                              | El nombre de la conexión. Debe comenzar y terminar con un carácter alfanumérico, contener solo caracteres alfanuméricos y guiones, y no exceder los 35 caracteres. |
+| **Choose one or more attributes as user identifiers** | Elija los [atributos identificadores](/docs/es/authenticate/database-connections/activate-and-configure-attributes-for-flexible-identifiers) para la conexión.        |
+| **Choose one or more authentication methods**         | Elija un método de autenticación para verificar a los usuarios.                                                                                                    |
+| **Use my own database**                               | Actívelo si tiene una base de datos que desea conectar a Auth0.                                                                                                    |
+| **Disable Sign Ups**                                  | Evita que nuevos usuarios se registren desde endpoints públicos.                                                                                                   |
+| **Promote Connection to Domain Level**                | Promueva esta conexión al nivel de dominio para usarla con aplicaciones de terceros.                                                                               |
+
+Una vez que Auth0 cree la conexión, tendrá las siguientes vistas (además de la vista **Settings**):
+
+* Atributos
+  * Métodos de autenticación
+  * Custom Database
+  * Aplicaciones
+
+3. Seleccione la vista **Custom Database** y active el interruptor **Use my own database**.
+
+   <Frame>![Activar la opción Use My Own Database en Custom Database](/docs/images/cdy7uua7fh8z/3kgHDpBFdVWNq9XOfhsTXI/2efa43e44793b8dd69b9f9e8b54bf752/2025-02-25_10-20-20.png)</Frame>
+
+<div id="create-database-action-scripts">
+  ## Crear scripts de acción de base de datos
+</div>
+
+Al activar el interruptor **Use my own database**, se habilita la sección **scripts de acción de base de datos**, donde crearás scripts para configurar cómo funciona la autenticación al usar tu base de datos. Puedes escribir tus propios scripts de acción de base de datos o seleccionar una plantilla en el menú desplegable **Templates** y modificarla según sea necesario.
+
+**Debes** configurar un script `login`; los scripts adicionales para la funcionalidad de usuario son opcionales.
+
+Los scripts de acción de base de datos disponibles son:
+
+| Name                    | Description                                                                                                                 | Parameters             |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Login**<br />Required | Se ejecuta cada vez que un usuario intenta iniciar sesión.                                                                  | `email`, `password`    |
+| **Create**              | Se ejecuta cuando un usuario se registra.                                                                                   | `user`                 |
+| **Verify**              | Se ejecuta después de que un usuario hace clic en el enlace de verificación.                                                | `email`                |
+| **Change Password**     | Se ejecuta cuando un usuario hace clic en el enlace de confirmación después de solicitar un restablecimiento de contraseña. | `email`, `newPassword` |
+| **Get User**            | Recupera el perfil de un usuario de tu base de datos sin autenticarlo.                                                      | `email`                |
+| **Delete**              | Se ejecuta cuando se elimina un usuario mediante la API o el Auth0 Dashboard.                                               | `id`                   |
+
+Para obtener más información sobre los scripts, consulta [Custom Database Action Script Templates](/docs/es/authenticate/database-connections/custom-db/templates) y [Custom Database Action Script Execution Best Practices](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution).
+
+<div id="create-a-login-script">
+  ### Crear un script de inicio de sesión
+</div>
+
+<Card title="Evita colisiones de ID de usuario con varias bases de datos">
+  Auth0 usará la propiedad `id` (o, alternativamente, `user_id`) del perfil de usuario devuelto para identificar al usuario.
+
+  Si usas varias conexiones de bases de datos personalizadas, el valor de `id` debe ser único en todas ellas para evitar colisiones de ID de usuario. Te recomendamos anteponer al valor de `id` el nombre de la conexión (sin espacios en blanco). Para obtener más información sobre los ID de usuario, consulta [Identify Users](/docs/es/manage-users/user-accounts/identify-users).
+</Card>
+
+Los siguientes pasos usan como ejemplo un script de inicio de sesión para una base de datos MySQL
+
+1. Después de activar el interruptor **Use my own database**, se habilita el área **scripts de acción de base de datos**. Asegúrate de estar en la pestaña **Login**.
+2. Usa el menú desplegable **Templates** para seleccionar la plantilla de script para base de datos MySQL.
+
+   ```javascript lines expandable
+   function login(email, password, callback) {
+     var bcrypt = require('bcrypt');
+     var mysql = require('mysql');
+     var connection = mysql.createConnection({
+       host: 'localhost',
+       user: 'me',
+       password: 'secret',
+       database: 'mydb'
+     });
+     connection.connect();
+     var query = "SELECT id, nickname, email, password " +
+       "FROM users WHERE email = ?";
+     connection.query(query, [email], function (err, results) {
+       if (err) return callback(err);
+       if (results.length === 0) return callback(new WrongUsernameOrPasswordError(email));
+       var user = results[0];
+       bcrypt.compare(password, user.password, function (err, isValid) {
+         if (err) {
+           callback(err);
+         } else if (!isValid) {
+           callback(new WrongUsernameOrPasswordError(email));
+         } else {
+           callback(null, {
+             // Este prefijo (sustitúyelo por el nombre de tu propia BD personalizada)
+             // garantiza la unicidad entre distintas BD personalizadas si existe la
+             // posibilidad de colisiones (p. ej., si el ID de usuario es una dirección de correo electrónico o un entero)
+             id: 'MyConnection1|' + user.id.toString(),
+             nickname: user.nickname,
+             email: user.email
+           });
+         }
+       });
+     });
+   }
+   ```
+
+   El script anterior se conecta a una base de datos MySQL y ejecuta una consulta para recuperar el primer usuario con `email == user.email`.
+   Luego, con el método `bcrypt.compareSync`, valida que las contraseñas coincidan y, si la validación es correcta, devuelve un objeto con la información del perfil del usuario, incluidos `id`, `nickname` y `email`.
+   Este script asume que tienes una tabla `users` con estas columnas. El `id` que devuelve el script de Login se usa para construir el atributo de ID de usuario del perfil.
+3. Selecciona **Save and Try**.
+4. En la ventana modal emergente, introduce tu correo electrónico y contraseña, y haz clic en **Try**. Esto muestra un menú desplegable para seleccionar entre una lista de runtimes disponibles, con el runtime actual en la parte superior.
+
+   <Frame>![Ventana modal para probar el script de inicio de sesión.](/docs/images/cdy7uua7fh8z/8uBGZhHYZwOcO19ljJNNp/ccd69d84fdbdff90dc779a6b1ea8a6fd/db-connection-try-login-script.png)</Frame>
+
+Auth0 no usa las plantillas de script hasta que seleccionas **Save** o **Try**. Esto es así incluso si solo modificas un script y no haces cambios en los demás. Debes seleccionar **Save** al menos una vez para que todos los scripts queden configurados.
+
+<div id="custom-database-support-for-organizations">
+  ## Compatibilidad con Custom Database para Organizations
+</div>
+
+Si usa conexiones de Custom Database junto con Organizations, puede usar el parámetro `context` en la firma del script para que los detalles de la organización, como `id`, `name` y `metadata`, estén disponibles en sus scripts de acción de Custom Database. Los datos de la organización se pasan en el objeto de contexto cuando la acción correspondiente se produce en el contexto de una organización; por ejemplo, cuando un usuario se autentica en la pantalla de inicio de sesión de una organización, se pasa el script de acción de inicio de sesión. Para obtener más información, consulte [Database Connections](/docs/es/authenticate/database-connections).
+
+<div id="enable-context-object">
+  ### Habilitar el objeto de contexto
+</div>
+
+1. Ve a [Auth0 Dashboard &gt; Authentication &gt; Database](https://manage.auth0.com/dashboard/us/#/connections/database/).
+2. Selecciona tu conexión de base de datos.
+3. En la pestaña **Custom Database**, busca **Context objects in database scripts** y selecciona **Enable**.
+
+   <Warning>
+     Esta función no se puede desactivar una vez habilitada.
+   </Warning>
+4. En el cuadro de diálogo de confirmación, selecciona **Confirm**.
+
+<div id="use-organization-context">
+  ### Usar el contexto de Organization
+</div>
+
+Una vez que el objeto de contexto esté habilitado en Dashboard, puedes agregar un objeto `context` a tus scripts personalizados de acción de base de datos, insertado justo antes del parámetro `callback`. Cuando se desencadenan eventos con el contexto de Organization, los datos correspondientes se ponen a disposición de tus scripts personalizados de acción de base de datos con el siguiente formato:
+
+<Tabs>
+  <Tab title="Inicio de sesión">
+    ```json lines
+    {
+        "organization": {
+            "display_name": "My Organization",
+            "id": "org_XXXXXX",
+            "metadata": {
+                "example": "value"
+            },
+            "name": "my-organization"
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Crear">
+    ```json lines
+    {
+        "organization": {
+            "display_name": "My Organization",
+            "id": "org_XXXXXX",
+            "metadata": {
+                "example": "value"
+            },
+            "name": "my-organization"
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Verificar">
+    ```json lines
+    {
+        "organization": {
+            "display_name": "My Organization",
+            "id": "org_XXXXXX",
+            "metadata": {
+                "example": "value"
+            },
+            "name": "my-organization"
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Cambiar contraseña">
+    ```json lines
+    {
+        "organization": {
+            "display_name": "My Organization",
+            "id": "org_XXXXXX",
+            "metadata": {
+                "example": "value"
+            },
+            "name": "my-organization"
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Obtener usuario">
+    ```json lines
+    {
+        "organization": {
+            "display_name": "My Organization",
+            "id": "org_XXXXXX",
+            "metadata": {
+                "example": "value"
+            },
+            "name": "my-organization"
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Eliminar" />
+</Tabs>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Siempre se pasará un contexto vacío al script `delete`.
+</Callout>
+
+<div id="add-configuration-parameters">
+  ## Agregar parámetros de configuración
+</div>
+
+Puedes almacenar parámetros, como las credenciales necesarias para conectarte a tu base de datos, en la sección **Settings**, debajo del editor de scripts. Estarán disponibles para todos tus scripts y podrás acceder a sus valores mediante el objeto `configuration` en los scripts de acción de tu base de datos (es decir, `configuration.MYSQL_PASSWORD`).
+
+Usa los parámetros añadidos en tus scripts para configurar la conexión. Por ejemplo, podrías añadir lo siguiente al script de inicio de sesión de MySQL:
+
+```javascript lines
+function login (username, password, callback) {
+  var mysql = require('mysql');
+  var connection = mysql.createConnection({
+    host     : configuration.MYSQL_HOST,
+    user     : 'me',
+    password : configuration.MYSQL_PASSWORD,
+    database : 'mydb'
+  });
+}
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Prácticas recomendadas para conexiones de Custom Database y scripts de acciones](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts)
+* [Solucionar problemas con Custom Database](/docs/es/authenticate/database-connections/custom-db/error-handling)
+* [Importar y exportar usuarios](/docs/es/manage-users/user-migration)

@@ -1,0 +1,82 @@
+---
+description: Décrit le fonctionnement des jetons d’actualisation, qui permettent à l’application de demander à Auth0 d’émettre un nouveau jeton d’accès ou jeton d’identification sans avoir à réauthentifier l’utilisateur.
+sidebarTitle: Vue d’ensemble
+title: Jetons d’actualisation
+---
+
+Auth0 émet un <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+token">jeton d’accès</Tooltip> ou un <Tooltip tip="Jeton d’identification : justificatif destiné au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton d’identification</Tooltip> en réponse à une requête d’authentification. Vous pouvez utiliser les jetons d’accès pour effectuer des appels authentifiés à une API sécurisée, tandis que le jeton d’identification contient des attributs du profil utilisateur représentés sous forme de claims. Les deux sont des <Tooltip tip="Jeton d’identification : justificatif destiné au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JSON+web+tokens">jetons Web JSON</Tooltip> (JWT) et ont donc une date d’expiration indiquée au moyen du claim `exp`, ainsi que des mesures de sécurité comme des signatures. En règle générale, un utilisateur a besoin d’un nouveau jeton d’accès lorsqu’il accède à une ressource pour la première fois, ou après l’expiration du jeton d’accès précédent qui lui avait été accordé.
+
+Un <Tooltip tip="OAuth 2.0 : framework d’autorisation qui définit les protocoles et workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth">OAuth</Tooltip> <Tooltip tip="OAuth 2.0 : framework d’autorisation qui définit les protocoles et workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Refresh+Token">jeton d’actualisation</Tooltip> est un justificatif qu’OAuth peut utiliser pour obtenir un nouveau jeton d’accès sans interaction de l’utilisateur. Cela permet au <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">serveur d’autorisation</Tooltip> de réduire la durée de vie du jeton d’accès pour des raisons de sécurité, sans faire intervenir l’utilisateur lorsque le jeton d’accès expire. Vous pouvez demander de nouveaux jetons d’accès jusqu’à ce que le jeton d’actualisation soit placé sur la DenyList.
+
+Il est important de maintenir le nombre de jetons d’actualisation à un niveau raisonnable et gérable afin de pouvoir administrer ces informations d’identification de façon sûre et sécuritaire. Les applications doivent stocker les jetons d’actualisation de manière sécurisée, car ils permettent essentiellement à un utilisateur de rester authentifié indéfiniment.
+
+<Card title="Accès hors ligne">
+  Si vous souhaitez permettre aux utilisateurs d’obtenir des jetons d’actualisation lorsqu’ils sont hors ligne, vous pouvez sélectionner le commutateur **Allow Offline Access** dans [API Settings](/docs/fr-CA/get-started/apis/api-settings).
+</Card>
+
+Vous pouvez renforcer la sécurité en utilisant la [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation), qui émet un nouveau jeton d’actualisation et invalide le jeton précédent à chaque demande faite à Auth0 pour obtenir un nouveau jeton d’accès. La rotation des jetons d’actualisation réduit le risque qu’un jeton d’actualisation soit compromis.
+
+<div id="limitations">
+  ### Limites
+</div>
+
+* Auth0 limite à 200 le nombre de jetons d’actualisation actifs par utilisateur et par application. Cette limite s’applique uniquement aux jetons actifs. Si cette limite est atteinte et qu’un nouveau jeton d’actualisation est créé, le système révoque et supprime le plus ancien jeton de cet utilisateur pour cette application. Les jetons révoqués et expirés ne sont pas comptabilisés dans cette limite. Pour consulter nos recommandations et bonnes pratiques afin d’éviter d’avoir trop de jetons, lisez [Token Best Practices](/docs/fr-CA/secure/tokens/token-best-practices).
+
+* Après un [échange de jeton d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/use-refresh-tokens), Auth0 ne met pas à jour les propriétés `event.refresh_token.device.last*` pour les jetons qui n’expirent pas. Pour savoir comment activer l’expiration des jetons d’actualisation, lisez [Configure Refresh Token Expiration](/docs/fr-CA/secure/tokens/refresh-tokens/configure-refresh-token-expiration).
+
+<div id="enable-oidc-flag">
+  ### Activer l’indicateur OIDC
+</div>
+
+Le comportement du jeton d’actualisation s’applique aux applications conformes à OIDC. Vous pouvez configurer une application pour qu’elle soit conforme à OIDC de l’une des façons suivantes :
+
+1. Activer l’indicateur **OIDC Conformant** pour une application.
+2. Transmettre une revendication `audience` au point de terminaison `/authorize` de l’Authentication API.
+
+<div id="sdk-support">
+  ## Soutien pour le SDK
+</div>
+
+<div id="for-web-apps">
+  ### Pour les applications web
+</div>
+
+Les SDK Auth0 prennent en charge les jetons d’actualisation, notamment pour :
+
+* Node.js
+* ASP.NET Core
+* PHP
+* Java
+
+Pour obtenir la liste complète, consultez [Quickstarts](/docs/fr-CA/quickstart/webapp).
+
+<div id="for-single-page-apps">
+  ### Pour les SPA
+</div>
+
+Assurer une authentification sécurisée dans les SPA présente plusieurs défis selon le cas d’utilisation de votre application. Les nouvelles mesures de protection de la vie privée des navigateurs, comme Intelligent Tracking Prevention (ITP), nuisent à l’expérience utilisateur dans les SPA en bloquant l’accès aux cookies tiers.
+
+Auth0 recommande d’utiliser la <Tooltip tip="Rotation des jetons d’actualisation : stratégie consistant à remplacer fréquemment les jetons d’actualisation afin de réduire les vulnérabilités. Avec la rotation des jetons d’actualisation, chaque fois que votre application échange un jeton d’actualisation pour obtenir un nouveau jeton d’accès, Auth0 renvoie également un nouveau jeton d’actualisation." cta="Consulter le glossaire" href="/docs/fr-CA/glossary?term=refresh+token+rotation">rotation des jetons d’actualisation</Tooltip>, qui permet d’utiliser les jetons d’actualisation de façon sécurisée dans les SPA tout en offrant aux utilisateurs finaux un accès fluide aux ressources, sans les interruptions de l’expérience utilisateur causées par les technologies de protection de la vie privée des navigateurs comme ITP.
+
+<div id="for-nativemobile-apps">
+  ### Pour les applications natives/mobiles
+</div>
+
+Pour les applications natives, les jetons d’actualisation améliorent considérablement l’expérience d’authentification. L’utilisateur n’a à s’authentifier qu’une seule fois, au moyen du processus d’authentification Web. Les réauthentifications suivantes peuvent ensuite se faire sans interaction de l’utilisateur, à l’aide du jeton d’actualisation.
+
+Pour en savoir plus sur l’utilisation des jetons d’actualisation avec nos SDK mobiles, consultez :
+
+* [Quickstarts Mobile/Native](/docs/fr-CA/quickstart/native)
+* [Lock Android : actualiser les jetons JWT](/docs/fr-CA/libraries/lock-android/lock-android-refresh-jwt)
+* [Lock iOS : enregistrer et renouveler les jetons JWT](/docs/fr-CA/libraries/auth0-swift/auth0-swift-save-and-renew-tokens)
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Obtenir des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/get-refresh-tokens)
+* [Utiliser des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/use-refresh-tokens)
+* [Révoquer des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/revoke-refresh-tokens)
+* [Rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation)
+* [Configurer l’expiration des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/configure-refresh-token-expiration)
+* [Bonnes pratiques relatives aux jetons](/docs/fr-CA/secure/tokens/token-best-practices)

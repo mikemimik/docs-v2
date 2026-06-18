@@ -1,0 +1,199 @@
+---
+description: Describe cómo las partes que confían pueden confirmar que la reautenticación se realizó dentro de un intervalo de tiempo específico mediante el parámetro de solicitud `max_age`. 
+title: Forzar la reautenticación en OIDC
+---
+
+El mecanismo `prompt=login` puede verse comprometido simplemente eliminando el parámetro mientras pasa por el agente de usuario (navegador) y solo sirve para proporcionar una indicación de UX al proveedor de <Tooltip tip="OpenID: Estándar abierto de autenticación que permite a las aplicaciones verificar las identidades de los usuarios sin recopilar ni almacenar información de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=OpenID">OpenID</Tooltip> (OP) en los casos en que la <Tooltip tip="Relying Party: Entidad (como un servicio o una aplicación) que depende de un proveedor de identidad de terceros para autenticar a un usuario." cta="Ver glosario" href="/docs/es/glossary?term=relying+party">parte que confía</Tooltip> (RP) quiere mostrar un enlace como:
+
+**“Hola Josh. ¿No eres tú? Haz clic aquí.”**
+
+Sin embargo, no debes confiar en él para validar que se haya producido una autenticación reciente. Para evitarlo, el cliente debe validar que la reautenticación se haya realizado usando el claim `auth_time`. Este claim se incluirá automáticamente en el <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de ID</Tooltip> cuando se proporcionen los parámetros `prompt=login` o `max_age=0` en la solicitud de autenticación.
+
+Debes pasar el parámetro `max_age` al endpoint [`/authorize` de la API de autenticación](https://auth0.com/docs/api/authentication). Si usas [Auth0.js](/docs/es/libraries/auth0js) o [Lock](/docs/es/libraries/lock/lock-authentication-parameters), puedes configurar el parámetro en las opciones correspondientes de la biblioteca.
+
+La forma en que implementes la reautenticación depende de tu caso de uso específico. Distingue entre la reautenticación simple para operaciones sensibles y el [step-up](/docs/es/secure/multi-factor-authentication/step-up-authentication) (es decir, la <Tooltip tip="Multi-factor authentication (MFA): Proceso de autenticación del usuario que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=multi-factor+authentication">autenticación multifactor</Tooltip>) para operaciones sensibles. Ambas son medidas de seguridad válidas. La primera requiere que el usuario final vuelva a introducir su contraseña, mientras que la segunda también requiere que use un método de autenticación multifactor configurado previamente.
+
+<div id="limitations-of-promptlogin-parameters">
+  ## Limitaciones de los parámetros `prompt=login`
+</div>
+
+La [especificación de OIDC](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest) define el parámetro `prompt=login`, que puede usarse para activar la interfaz de reautenticación (normalmente, una pantalla de inicio de sesión):
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  **prompt**
+
+  OPCIONAL: Lista de valores de cadenas ASCII delimitada por espacios y sensible a mayúsculas y minúsculas que especifica si el servidor de autorización solicita al usuario final que vuelva a autenticarse y otorgue su consentimiento. Los valores definidos son:
+
+  **login**
+
+  El servidor de autorización debe solicitar al usuario final que vuelva a autenticarse. Si no puede volver a autenticar al usuario final, debe devolver un error, normalmente `login_required`.
+</Callout>
+
+Sin embargo, hay un problema al usar este parámetro para garantizar la reautenticación: **el RP no tiene forma de validar que realmente se haya llevado a cabo una reautenticación**. Veamos el tráfico para entender por qué. El flujo de una solicitud de autenticación del RP es el siguiente:
+
+```http lines
+https://mydomain.auth0.com/authorize?
+client_id=abcd1234
+&redirect_uri= https://mydomain.com/callback
+&scope=openid profile
+&response_type=id_token
+&prompt=login
+```
+
+Tras una autenticación correcta por parte del AS, el RP recibirá un token de ID:
+
+```json JSON lines
+{
+  "nickname": "user",
+  "name": "user@mydomain.auth0.com",
+  "updated_at": "2019-04-01T14:43:03.445Z",
+  "iss": "https://jcain0.auth0.com/",
+  "sub": "auth0|l33t",
+  "aud": "abcd1234",
+  "iat": 1554129793,
+  "exp": 1554165793
+}
+```
+
+El documento de identidad de confianza devuelto por el AS **no contiene claims que permitan validar cuándo se produjo el último inicio de sesión**. Esto se convierte en un problema cuando la solicitud de autorización inicial llega como una redirección 302 a través del navegador del usuario final. Si un actor malicioso quiere omitir el paso de reautenticación solicitado por el RP, simplemente tiene que eliminar el parámetro `prompt=login`, y el RP no puede distinguir ninguna diferencia en los campos contenidos en el token de ID.
+
+Aquí tienes un diagrama de un flujo implícito simplificado que utiliza el parámetro `prompt=login`:
+
+<Frame>![Forzar reautenticación en el flujo implícito de OIDC](/docs/images/cdy7uua7fh8z/7lhntbIKJ25JqQ1M9uB6rJ/26163ab92ac6e289e1185bcb50db2a72/simplified-implicit-flow-with-prompt-login.png)</Frame>
+
+Ten en cuenta que lo único que tiene que hacer el usuario final es eliminar el parámetro `prompt=login`, y así puede omitir el paso de reautenticación:
+
+<Frame>![Flujo implícito simplificado al eliminar prompt=login](/docs/images/cdy7uua7fh8z/3hye4mnbcsny7oT0L2kxeq/029a66b8f4f98ee56c5d45a2da617e88/simplified-implicit-flow-remove-prompt.png)</Frame>
+
+Los tokens devueltos por el primer flujo serán idénticos a los devueltos por el segundo. El RP no tiene ninguna forma definida por la especificación de verificar que la reautenticación se haya producido y, por lo tanto, no puede confiar en que `prompt=login` haya dado lugar realmente a una reautenticación.
+
+<div id="max_age-authentication-request-parameter">
+  ## parámetro de solicitud de autenticación `max_age`
+</div>
+
+A diferencia de `prompt=login`, el parámetro de solicitud de autenticación `max_age` proporciona un mecanismo mediante el cual los RP pueden confirmar de manera fehaciente que la reautenticación se ha producido dentro de un intervalo de tiempo determinado. La [especificación de OIDC](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest) establece lo siguiente:
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  **max&#95;age**
+
+  OPCIONAL: antigüedad máxima de la autenticación. Especifica el tiempo transcurrido permitido, en segundos, desde la última vez que el usuario final fue autenticado activamente por el OP. Si el tiempo transcurrido es mayor que este valor, el OP debe intentar reautenticar activamente al usuario final. (El parámetro de solicitud `max_age` corresponde al parámetro de solicitud `max_auth_age` de OpenID 2.0 PAPE). Cuando se usa `max_age`, el token de ID devuelto debe incluir un valor del claim `auth_time`.
+</Callout>
+
+La última frase de la definición es la parte más importante. Cuando el RP solicita `max_age`, debe estar presente un claim `auth_time` en el RP. Esto significa que `max_age` puede usarse de una de estas dos formas:
+
+* **Para exigir una antigüedad máxima de la sesión**: Si una aplicación exige que los usuarios se reautentiquen una vez al día, esto puede aplicarse en el contexto de una sesión de <Tooltip tip="Single Sign-On (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, automáticamente inicia la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=SSO">SSO</Tooltip> mucho más larga proporcionando un valor para `max_age`. Estos valores se definen en segundos.
+* **Para forzar una reautenticación inmediata**: Si una aplicación requiere que un usuario se reautentique antes de obtener acceso, proporcione un valor de 0 para el parámetro `max_age` y el AS forzará un nuevo inicio de sesión.
+
+Este requisito se describe de la siguiente manera:
+
+<Frame>![Flujo de reautenticación max\_age de OIDC](/docs/images/cdy7uua7fh8z/2IHX6TjuCEcMrPZxoHkC41/11a32321789feee0eac6e71e9c64b307/max-age-flow.png)</Frame>
+
+Tenga en cuenta que el RP recibe un token con la información adecuada para validar si la reautenticación se ha producido o no. El RP ahora puede consultar el claim `auth_time` en el token de ID para determinar si se cumplió o no el parámetro `max_age` que solicitó. De este modo, el parámetro `max_age=0` es inmune al mismo tipo de manipulación del cliente que podría vulnerar el parámetro `prompt=login`.
+
+<Warning>
+  Tenga en cuenta que depende exclusivamente del RP validar que está recibiendo un token de ID con un `auth_time` adecuado. Esta validación adicional deberá ser asumida por los autores de aplicaciones y los frameworks que utilicen el parámetro `max_age`.
+</Warning>
+
+<div id="use-auth_time-claims">
+  ## Usar claims de auth_time
+</div>
+
+Hemos establecido que la especificación de OIDC ofrece el parámetro `max_age` como una forma de confirmar de manera inequívoca que se ha producido una reautenticación, pero `prompt=login` no. Esto no plantea opciones muy seguras si quieres forzar una reautenticación:
+
+* **prompt=login**: Incluir solo el parámetro `prompt` y no validar que el AS realmente haya reautenticado al usuario.
+* **prompt=login &amp; max&#95;age=999999**: Incluir un `max_age` arbitrario para que esté presente un claim `auth_time`. Puedes validar que se haya producido una reautenticación, pero los parámetros se vuelven engorrosos.
+* **max&#95;age=0**: En la práctica, fuerza una pantalla de inicio de sesión usando solo el parámetro `max_age`. Ten en cuenta que una actualización reciente de la especificación aclaró aún más este parámetro y señaló que, en la práctica, es lo mismo que `prompt=login`. Esta opción no es viable, ya que mezcla lo que debería ser un parámetro de UX con un parámetro de mantenimiento de sesión.
+
+En su lugar, Auth0 ha optado por enviar el claim `auth_time` en el token de ID al responder a una solicitud con el parámetro `prompt=login`. Esto significa que tienes la opción de usar `prompt=login` Y validar que se ha producido una reautenticación.
+
+<div id="auth_time-validation-example">
+  ### Ejemplo de validación de auth_time
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Debes asegurarte de validar que la reautenticación se haya realizado. Debes comprobar que se haya devuelto un `auth_time` válido.
+</Callout>
+
+El siguiente ejemplo usa el módulo [passport-auth0-openidconnect](https://github.com/auth0/passport-auth0-openidconnect) para mostrar cómo validar la reautenticación. La primera forma (y la más sencilla) es añadir la opción `max_age=0` a `Auth0OidcStrategy`:
+
+```javascript JavaScript lines
+var strategy = new Auth0OidcStrategy(
+  {
+    domain: process.env.AUTH0_DOMAIN,
+    clientID: process.env.AUTH0_CLIENT_ID,
+    clientSecret: process.env.AUTH0_CLIENT_SECRET,
+    callbackURL: process.env.AUTH0_CALLBACK_URL || 'http://localhost:5000/callback',
+    max_age: 0
+  },
+  function(req, issuer, audience, profile, accessToken, refreshToken, params, cb) {
+    // ¡No se necesita validación adicional!
+    return cb(null, profile);
+  });
+```
+
+Ten en cuenta que no se requieren más pasos de validación, ya que la estrategia ya se encarga de validar el parámetro `max_age`:
+
+```javascript JavaScript lines
+// https://openid.net/specs/openid-connect-basic-1_0.html#IDTokenValidation - verificación 8.
+if (meta.params.max_age && (!jwtClaims.auth_time || ((meta.timestamp - meta.params.max_age) > jwtClaims.auth_time))) {
+  return self.error(new Error('auth_time in id_token not included or too old'));
+}
+```
+
+También puedes usar `prompt=login` en el mismo contexto, pero como el estándar no exige que la respuesta del token de ID vaya acompañada de un `auth_time`, debes encargarte de la validación manualmente. Por tanto, el constructor de la estrategia sería:
+
+```javascript JavaScript lines
+var strategy = new Auth0OidcStrategy(
+  {
+    domain: process.env.AUTH0_DOMAIN,
+    clientID: process.env.AUTH0_CLIENT_ID,
+    clientSecret: process.env.AUTH0_CLIENT_SECRET,
+    callbackURL: process.env.AUTH0_CALLBACK_URL || 'http://localhost:5000/callback',
+    prompt: 'login'
+  },
+  function(req, issuer, audience, profile, accessToken, refreshToken, params, cb) {
+    const tenSecondsAgo = (Date.now() / 1000) - 10;
+    if (isNaN(profile.auth_time) || profile.auth_time < tenSecondsAgo) {
+      return cb('prompt=login requested, but auth_time is greater than 10 seconds old', null);
+    }
+
+    return cb(null, profile);
+  });
+```
+
+A diferencia de `max_age=0`, el cliente debe validar manualmente el parámetro `auth_time`. Para obtener más información, consulta [Usar claims de auth&#95;time](/docs/es/authenticate/login/max-age-reauthentication#use-auth_time-claims).
+
+<Warning>
+  El ejemplo anterior representa una prueba de concepto simplificada (debe haberse autenticado en los últimos 10 segundos). Idealmente, si quieres validar que se ha producido una reautenticación, tendrías que:
+
+  1. Almacenar la hora en que se realizó la solicitud de autenticación inicial.
+  2. Al recibir la respuesta de autenticación, recuperar la hora a la que se envió la solicitud.
+  3. Comparar la hora original de la solicitud de autenticación con el `claim` `auth_time` para asegurarte de que `auth_time` sea posterior.
+
+  **Auth0 no recomienda seguir en sistemas de producción el enfoque utilizado en el ejemplo.**
+</Warning>
+
+<div id="known-issues">
+  ## Problemas conocidos
+</div>
+
+Auth0 solo puede garantizar que se haya realizado un intercambio con el <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+provider">proveedor de identidad</Tooltip> de origen. Esto puede ocurrir porque el usuario realmente inició sesión en un proveedor de identidad de terceros o porque ya tenía una sesión activa y no tuvo que volver a iniciarla. En cualquier caso, el intercambio de Auth0 con el proveedor de identidad de origen dará como resultado un `auth_time` actualizado.
+
+Forzar la reautenticación dentro del proveedor de identidad de origen no es algo que Auth0 admita, porque no todos los proveedores lo permiten.
+
+El siguiente diagrama presenta un flujo de ejemplo para un usuario que elige reautenticarse con una conexión federada:
+
+<Frame>![Diagrama: las conexiones federadas no fuerzan la reautenticación](/docs/images/cdy7uua7fh8z/8o7GZWQo6LKRTwuYC6dDS/119eeb33dcafcdc5e8d992f284fd5134/federated-connection-flow.png)</Frame>
+
+Este método supone que usas [conexiones de base de datos](/docs/es/authenticate/database-connections). Los proveedores de identidad externos pueden o no permitir forzar la reautenticación. Usar `prompt=login` o `prompt=consent` suele ser una forma de indicar a un proveedor de identidad externo (social) que reautentique a un usuario, pero Auth0 no puede obligarlo.
+
+<Warning>
+  No confíes en la verificación del lado del cliente (es decir, en el navegador) del token de ID o `auth_time` para impedir operaciones sensibles.
+</Warning>
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Flujo implícito con Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post)
+* [Protocolo OpenID Connect](/docs/es/authenticate/protocols/openid-connect-protocol)

@@ -1,0 +1,105 @@
+---
+description: Setup, consideraciones de seguridad y prácticas recomendadas para usar nombres de organización en la Authentication API.
+title: Usar nombres de organización en la Authentication API
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+De forma predeterminada, la [Authentication API](https://auth0.com/docs/api/authentication) usa IDs de organización para identificar organizaciones específicas. Si es necesario, puedes configurar tu tenant para que también use nombres de organización como identificador. Sin embargo, antes de habilitar esta función, debes tener en cuenta sus implicaciones de usabilidad y seguridad. Para comprender mejor el posible impacto, revisa la sección [Consideraciones y recomendaciones](#considerations-and-recommendations).
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+Configurar tu tenant para admitir nombres de organización en la Authentication API produce lo siguiente:
+
+* El parámetro `organization` en los endpoints [/authorize](https://auth0.com/docs/api/authentication#authorize-application) y [SAML](https://auth0.com/docs/api/authentication#saml) puede aceptar tanto nombres de organización como IDs.
+* Los tokens de acceso y los <Tooltip tip="Token de ID: credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+tokens">tokens de ID</Tooltip> incluyen automáticamente los claims `org_name` y `org_id`.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  - [Organizations](/docs/es/manage-users/organizations/configure-organizations/create-organizations) se puede configurar con dos nombres: un valor Name obligatorio que funciona como identificador lógico único y un Display Name opcional, más fácil de usar. El parámetro `org_name` solo acepta el valor Name obligatorio y no admite valores de Display Name.
+  - Esta funcionalidad se gestiona a nivel de tenant. No se puede habilitar de forma individual para organizaciones específicas.
+</Callout>
+
+Puedes habilitar esta funcionalidad desde tu <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o la <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>:
+
+* **Auth0 Dashboard**: Selecciona [Settings](/docs/es/get-started/tenant-settings) en el menú lateral izquierdo y elige la pestaña **Advanced**. En la sección **Settings**, habilita el interruptor **Allow Organization Names in Authentication API**.
+* **Management API**: Usa el endpoint `PATCH /api/v2/tenants/settings` para establecer `allow_organization_name_in_authentication_api` en `true`. Para obtener más información, consulta la documentación de la [Management API](https://auth0.com/docs/api/management/v2).
+
+<div id="example-flow">
+  ### Flujo de ejemplo
+</div>
+
+El siguiente ejemplo muestra un flujo de código de autorización que utiliza nombres de organización.
+
+1. Llama al endpoint `/authorize` pasando el nombre de tu organización en el parámetro `organization`:
+
+export const codeExample1 = `https://{yourDomain}/authorize?
+    response_type=code&
+    client_id={yourClientId}&
+    redirect_uri={https://yourApp/callback}&
+    scope={scope}&
+    state={state}&
+    organization={yourOrganizationName}`;
+
+<AuthCodeBlock children={codeExample1} language="http" />
+
+2. Después de obtener el código de autorización, llama al endpoint `POST /oauth/token` para obtener tokens de acceso y de ID:
+
+export const codeExample2 = `curl --request POST \
+  --url 'https://{yourDomain}/oauth/token' \
+  --header 'content-type: application/x-www-form-urlencoded' \
+  --data grant_type=authorization_code \
+  --data 'client_id={yourClientId}' \
+  --data 'client_secret={yourClientSecret}' \
+  --data 'code=yourAuthorizationCode}' \
+  --data 'redirect_uri={https://yourApp/callback}'`;
+
+<AuthCodeBlock children={codeExample2} language="bash" />
+
+3. Los tokens decodificados devueltos incluyen las claims `org_id` y `org_name`:
+
+```json lines
+{
+    "sub": "google-oauth2|10...17",
+    "aud": [
+        "https://yourApp"
+    ],
+    "iat": 1686840988,
+    "exp": 1686927388,
+    "azp": "Suo...qTd",
+    "scope": "openid profile",
+    "org_id": "{yourOrganizationId}",
+    "org_name": "{yourOrganizationName}"
+}
+```
+
+<div id="considerations-and-recommendations">
+  ## Consideraciones y recomendaciones
+</div>
+
+Antes de usar nombres de organización en la Authentication API, es importante comprender las principales diferencias entre los nombres de organización y los IDs.
+
+A diferencia de los IDs de organización (que permanecen estáticos), puedes cambiar el nombre de una organización en cualquier momento después de crearla. Además, puedes reutilizar nombres de organización dentro de un mismo tenant, siempre que solo estén asignados a **exactamente una** organización a la vez. En la práctica, esto significa que puedes cambiar el nombre de una de tus organizaciones y reutilizar su nombre original para otra organización de tu tenant. Los nombres de organización solo son únicos dentro de un mismo tenant; el mismo nombre puede usarse para dos o más organizaciones en distintos tenants.
+
+En general, se recomienda usar IDs de organización al validar tokens. Sin embargo, si usar nombres de organización es más adecuado para tu caso de uso, ten en cuenta las implicaciones que se indican a continuación al implementar esta funcionalidad.
+
+<div id="usability-and-security-considerations">
+  ### Consideraciones de usabilidad y seguridad
+</div>
+
+Ten en cuenta los posibles efectos que se indican a continuación al usar nombres de organización para solicitar y validar tokens:
+
+* **Los nombres de las organizaciones se pueden reutilizar**: Los tokens de larga duración no caducan cuando una organización cambia de nombre, y los claims `org_name` de esos tokens conservan su valor original. Si más adelante otra organización reutiliza el nombre original, esos tokens podrían otorgar a los usuarios acceso no autorizado a datos y recursos gestionados por la nueva organización.
+* **Los nombres de las organizaciones solo son únicos dentro de un mismo tenant**: Si tu API no verifica los claims `iss` (issuer) de los tokens, una organización con el mismo nombre en otro tenant podría generar tokens que tu API aceptara por error.
+* **Los nombres de las organizaciones se pueden cambiar**: Si cambias el nombre de una organización, tus applications deben proporcionar el nuevo nombre de la organización en las solicitudes a Authentication API. Como los tokens pueden ser de larga duración, es posible que el claim `org_name` de un token ya no coincida con el nombre actual de la organización, lo que podría impedir que las applications otorguen acceso a la organización correcta.
+
+<div id="recommended-best-practices">
+  ### Prácticas recomendadas
+</div>
+
+Debido a los posibles efectos en la seguridad y la usabilidad, se recomienda usar IDs en lugar de nombres para validar tokens al trabajar con organizaciones. Si decide usar nombres de organización, siga las prácticas recomendadas que se indican a continuación para obtener una experiencia óptima:
+
+* Valide siempre el claim `iss` para asegurarse de que un token haya sido emitido por su tenant de Auth0.
+* Evite reutilizar nombres de organización que ya hayan existido en su tenant. Para evitar su reutilización y garantizar que los tokens emitidos anteriormente no puedan usarse para acceder a otras organizaciones, mantenga un registro preciso y actualizado de los nombres históricos de las organizaciones.
+* Evite cambiar el nombre de las organizaciones una vez que estén en uso, salvo que sea absolutamente necesario. Si decide cambiar el nombre de una organización, tenga en cuenta que los tokens de acceso y de ID existentes no incluirán automáticamente el nuevo nombre de la organización. Después de cambiarle el nombre a una organización, asegúrese de pedir a los usuarios que vuelvan a iniciar sesión.

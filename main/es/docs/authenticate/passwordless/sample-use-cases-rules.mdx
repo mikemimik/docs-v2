@@ -1,0 +1,54 @@
+---
+description: "Explora ejemplos de uso de reglas con conexiones sin contraseña."
+title: "Ejemplos de casos de uso: reglas con autenticación sin contraseña"
+---
+
+<Warning>
+  La fecha de fin de vida (EOL) de Reglas y Hooks será el **18 de noviembre de 2026**, y ya no están disponibles para nuevos tenants creados a partir del **16 de octubre de 2023**. Los tenants existentes con Hooks activos conservarán el acceso al producto Hooks hasta su fin de vida.
+
+  Te recomendamos encarecidamente que uses Actions para ampliar Auth0. Con Actions, tienes acceso a información de tipos más completa, documentación integrada y paquetes públicos de `npm`, y puedes conectar integraciones externas que mejoran tu experiencia de extensibilidad. Para obtener más información sobre lo que ofrece Actions, consulta [Comprender cómo funcionan las Auth0 Actions](/docs/es/customize/actions/actions-overview).
+
+  Para ayudarte con la migración, ofrecemos guías que te ayudarán a [migrar de Reglas a Actions](/docs/es/customize/actions/migrate/migrate-from-rules-to-actions) y [migrar de Hooks a Actions](/docs/es/customize/actions/migrate/migrate-from-hooks-to-actions). También contamos con una página específica de [Move to Actions](https://auth0.com/extensibility/movetoactions) que destaca comparaciones de funcionalidades, [una demostración de Actions](https://www.youtube.com/watch?v=UesFSY1klrI) y otros recursos para acompañarte en el proceso de migración.
+
+  Para obtener más información sobre la retirada de Reglas y Hooks, consulta nuestra entrada de blog: [Preparación para el fin de vida de Reglas y Hooks](https://auth0.com/blog/preparing-for-rules-and-hooks-end-of-life/).
+</Warning>
+
+Con [reglas](/docs/es/customize/rules), puedes gestionar casos más complejos de lo que permiten por sí solas las [conexiones sin contraseña](/docs/es/authenticate/passwordless). Por ejemplo, puedes añadir medidas adicionales para reforzar la verificación de la posesión de una dirección de correo electrónico o un dispositivo.&quot;
+
+<div id="require-multi-factor-authentication-for-users-who-are-outside-the-corporate-network">
+  ## Requerir autenticación multifactor para los usuarios que están fuera de la red corporativa
+</div>
+
+Supongamos que quieres exigir [autenticación multifactor (MFA)](/docs/es/secure/multi-factor-authentication) a cualquier usuario que acceda a la aplicación mediante una conexión <Tooltip tip="Sin contraseña: forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/docs/es/glossary?term=passwordless">sin contraseña</Tooltip> desde fuera de tu red corporativa.
+
+Con una regla, puedes comprobar si un usuario se está autenticando mediante un método sin contraseña (`sms`, `email`) y, si la IP de su sesión está fuera de la red corporativa designada, pedirle un segundo factor de autenticación.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  También podrías activar esta regla en función de otros criterios, como si la IP actual coincide con la lista de IP permitidas del usuario o si la geolocalización del usuario indica que está en un país distinto del que figura en su perfil de usuario.
+</Callout>
+
+Para ello, [crea la siguiente regla](/docs/es/customize/rules/create-rules):
+
+```javascript lines
+function(user, context, callback) {
+  const ipaddr = require('ipaddr.js');
+  const corp_network = "192.168.1.134/26";
+  const current_ip = ipaddr.parse(context.request.ip);
+  // ¿el método de autenticación es sin contraseña y la IP está fuera de la red corporativa?
+  const passwordlessOutside = context.authentication.methods.find(
+    (method) => (
+      ((method.name === 'sms') || (method.name === 'email')) && 
+      (!current_ip.match(ipaddr.parseCIDR(corp_network)))
+    )
+  );
+
+  // si es así, solicitar MFA
+  if (passwordlessOutside) {
+    context.multifactor = {
+      provider: 'any',
+      allowRememberBrowser: false
+    };
+  }
+  callback(null, user, context);
+}
+```

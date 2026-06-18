@@ -1,0 +1,75 @@
+---
+description: Event Stream Actions について学びます。
+'og:image': https://cdn2.auth0.com/docs/1.14553.0/img/share-image.png
+'og:title': イベントストリーム トリガー
+'og:url': https://auth0.com/docs/
+permalink: event-stream-trigger
+title: イベントストリーム トリガー
+sidebarTitle: 概要
+'twitter:description': イベントストリーム フローの一部として実行される Event Stream Actions について学びます。
+'twitter:title': イベントストリーム トリガー
+---
+
+Event Stream Actions は、Auth0 テナント内で特定のイベントが発生したときに非同期で実行される、ロジックベースの関数です。これらは非ブロッキングの Action であるため、ユーザー体験のレイテンシーには影響しません。
+
+各 Event Stream Action はイベントストリームに関連付けられており、事前に定義された一連のイベントタイプ (たとえば、ログイン成功、パスワード変更、ユーザー削除など) を監視します。購読対象のイベントが発生すると、Action がトリガーされます。Login や Pre-Registration Actions とは異なり、Event Stream Actions はバックグラウンドで実行されるため、ユーザーの主要なトランザクションには影響しません。
+
+<Frame>![TBD を示す図。](/docs/images/customize/actions/event-stream-triggers.svg)</Frame>
+
+これらの Actions は非ブロッキング (非同期) で、特定の [イベントタイプ](/docs/ja/customize/events/event-types) を購読します。
+
+<div id="triggers">
+  ## トリガー
+</div>
+
+<div id="event-stream">
+  ### イベントストリーム
+</div>
+
+`event-stream` Actions は、サブスクライブしているイベントタイプが発生したときに実行される関数です。
+
+<div id="references">
+  #### 参考資料
+</div>
+
+* [イベントオブジェクト](/docs/ja/customize/actions/explore-triggers/event-stream-triggers/event-stream-event-object): イベントストリームのメッセージと Action の実行の両方に関する情報を提供します。
+* [API オブジェクト](/docs/ja/customize/actions/explore-triggers/event-stream-triggers/event-stream-api-object): フローの動作を変更するためのメソッドを提供します。
+
+<div id="use-cases">
+  ## 使用例
+</div>
+
+<div id="synchronization">
+  ### 同期
+</div>
+
+event-stream Action を使用すると、カスタムロジックに基づいて特定のイベントを外部サービスに送信できます。以下の Action は、保存済みの API key を使用してイベントメッセージを外部サービスへ安全に転送する方法を示しています。
+
+```javascript lines
+/**
+* イベントストリームでイベントを処理する際に実行されるハンドラー。
+* @param {Event} event - 受信イベントの詳細。
+* @param {EventStreamAPI} api - イベントストリーム処理を定義するメソッドとユーティリティ。
+*/
+exports.onExecuteEventStream = async (event, api) => {
+  const message = event.message;
+
+  try {
+    await fetch(event.secrets.URL, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': event.secrets.API_KEY,
+      },
+      body: JSON.stringify(message),
+    });
+  } catch (err) {
+    throw new Error('External service failure');
+  }
+
+  return;
+};
+```
+
+Actionsの作成について詳しくは、[初めてのActionを作成する](/docs/ja/customize/actions/write-your-first-action)をお読みください。
+
+イベントストリームの作成について詳しくは、[イベントストリームを作成する](/docs/ja/customize/events/create-an-event-stream#create-an-event-stream-actions)をお読みください。

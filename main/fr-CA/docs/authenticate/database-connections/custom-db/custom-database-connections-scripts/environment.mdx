@@ -1,0 +1,72 @@
+---
+description: Découvrez les pratiques exemplaires relatives à l’environnement des scripts d’action de base de données personnalisée.
+title: Pratiques exemplaires relatives à l’environnement des scripts d’action de base de données personnalisée
+---
+
+Les scripts d’action s’exécutent comme une série de fonctions JavaScript appelées dans une instance de conteneur Webtask serverless. Dans ce contexte, un environnement précis est fourni, ainsi qu’un certain nombre d’artefacts provenant à la fois du conteneur Webtask et du serveur Auth0 <Tooltip tip="Serveur d’authentification : serveur qui confirme ou refuse l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authentication+server">d’authentification</Tooltip> (votre tenant Auth0) lui-même.
+
+<div id="npm-modules">
+  ## modules npm
+</div>
+
+Les conteneurs Webtask serverless d’Auth0 peuvent utiliser une vaste gamme de modules [`npm`](https://www.npmjs.com/) ; les modules `npm` réduisent non seulement la taille globale du code d’implémentation des scripts d’action, mais donnent aussi accès à un large éventail de fonctionnalités prédéfinies.
+
+Par défaut, une longue liste de modules `npm` accessibles au public est prise en charge d’emblée. Cette liste a été compilée et vérifiée afin de déceler tout risque potentiel en matière de sécurité. Pour voir quels modules `npm` sont pris en charge, consultez [Can I require: Auth0 Extensibility](https://auth0-extensions.github.io/canirequire/).
+
+Si vous avez besoin d’un module `npm` qui n’est pas pris en charge d’emblée, vous pouvez en faire la demande par l’entremise du portail [Auth0 Extensibility](https://auth0-extensions.github.io/canirequire/) ou auprès de votre représentant Auth0. Auth0 évaluera votre demande pour en déterminer la pertinence. Si vous devez faire remonter une demande non résolue, ouvrez un ticket de soutien au moyen du [portail de soutien Auth0](https://support.auth0.com/). Auth0 ne prend actuellement pas en charge l’utilisation de modules `npm` provenant de dépôts privés.
+
+<div id="variables">
+  ## Variables
+</div>
+
+Les scripts d’action Auth0 prennent en charge les variables d’environnement, auxquelles on accède au moyen de l’objet `configuration`, défini comme étant accessible globalement. L’objet `configuration` doit être traité comme étant en lecture seule et utilisé pour stocker des renseignements sensibles, comme des informations d’identification ou des clés API servant à accéder à des identity stores externes. Cela évite d’avoir des valeurs sensibles codées en dur dans un script d’action.
+
+L’objet `configuration` peut aussi servir à appuyer les stratégies de pratiques exemplaires du cycle de vie du développement logiciel (SDLC) que vous appliquez, comme [la configuration de plusieurs environnements](/docs/fr-CA/get-started/auth0-overview/create-tenants/set-up-multiple-environments), en vous permettant de définir des variables dont les valeurs sont propres à chaque tenant. Cela évite d’avoir des valeurs codées en dur dans un script d’action, qui peuvent changer selon le tenant qui l’exécute.
+
+<div id="global-object">
+  ## objet global
+</div>
+
+Les conteneurs Webtask serverless d’Auth0 sont alloués à partir d’un bassin associé à chaque tenant Auth0. Chaque instance de conteneur met à disposition un objet global, accessible par tous les scripts d’action qui s’y exécutent. L’objet global agit comme une variable globale propre au conteneur et peut servir à définir des renseignements — ou même des fonctions — utilisables par tous les scripts d’action qui s’exécutent dans cette instance de conteneur.
+
+Cela signifie que l’objet global peut servir de cache pour des ressources coûteuses, tant que ces ressources ne sont pas propres à un utilisateur. Par exemple, un <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip> pour une API tierce (p. ex. une API de journalisation) offrant des fonctionnalités non propres à un utilisateur pourrait y être stocké. Il pourrait aussi servir à stocker un jeton d’accès pour votre propre API non propre à un utilisateur, définie dans Auth0 et obtenue à l’aide du flux Client Credentials.
+
+<Warning>
+  Un script d’action peut s’exécuter dans n’importe laquelle des instances de conteneur déjà en cours d’exécution ou dans une nouvelle instance de conteneur (qui pourrait ensuite être ajoutée au bassin). Dans Auth0, il n’existe aucune affinité de conteneur pour l’exécution des scripts d’action. Cela signifie que vous devez éviter de stocker dans l’objet global toute information propre à un utilisateur et toujours vous assurer que toute déclaration faite dans l’objet global prévoit aussi une initialisation.
+</Warning>
+
+Chaque fois qu’un conteneur Webtask est recyclé, ou chaque fois qu’un nouveau conteneur Webtask est instancié, l’objet global qu’il définit est réinitialisé. Par conséquent, toute affectation déclarée dans l’objet global associé à un conteneur devrait aussi prévoir une initialisation. Pour offrir une plus grande souplesse de performance, les conteneurs Webtask serverless sont alloués dans Auth0 au besoin et sont également assujettis à diverses politiques de recyclage. En règle générale, nous recommandons de ne pas considérer la durée de vie d’un objet global comme dépassant 20 minutes.
+
+<div id="custom-database-connection-environment-checklist">
+  ## Liste de vérification de l’environnement d’une connexion de base de données personnalisée
+</div>
+
+* Assurez-vous que votre base de données comprend les champs appropriés pour stocker les attributs du profil utilisateur, comme **id**, **nickname**, **email** et **password**. Pour en savoir plus sur le schéma du profil utilisateur d’Auth0 et les champs attendus, consultez [Profils utilisateur normalisés](/docs/fr-CA/manage-users/user-accounts/user-profiles/normalized-user-profiles). Pour savoir comment mettre à jour les profils utilisateur, consultez [Mettre à jour les profils utilisateur à l’aide de votre base de données](/docs/fr-CA/manage-users/user-accounts/user-profiles/update-user-profiles-using-your-database).
+* Vous pouvez utiliser les erreurs renvoyées par votre connexion de base de données personnalisée à des fins de dépannage.
+* La propriété `id` (ou `user_id`) du profil utilisateur renvoyé sera utilisée par Auth0 pour identifier l’utilisateur. Si vous utilisez plusieurs connexions de base de données personnalisées, la valeur de **id** **doit être unique dans l’ensemble de ces connexions** afin d’éviter des collisions d’**ID utilisateur**. Nous vous recommandons de préfixer la valeur de **id** avec le nom de la connexion (sans espace). Pour en savoir plus sur les ID utilisateur, consultez [Identifier les utilisateurs](/docs/fr-CA/manage-users/user-accounts/identify-users).
+* La latence sera plus élevée que pour les référentiels d’utilisateurs hébergés par Auth0.
+* La base de données ou le service doit être accessible depuis les serveurs Auth0. Vous devrez configurer les connexions entrantes si votre référentiel d’utilisateurs se trouve derrière un pare-feu.
+
+<div id="testing-a-specific-runtime-version">
+  ## Tester une version précise du runtime
+</div>
+
+La version du runtime des scripts de **Custom Database** se définit dans **Dashboard &gt; Settings &gt; Advanced**, dans la section **Extensibility**.
+
+Suivez ces étapes pour tester un script de base de données personnalisé avec une version précise du runtime :
+
+1. Accédez à **Authentication &gt; Database.**
+2. Sélectionnez la connexion **Database** dans laquelle vous avez défini un script personnalisé.
+3. Sur la page de la connexion de base de données sélectionnée, sélectionnez l’onglet **Custom Database**.
+4. Faites défiler la page jusqu’à la section **Database Action Scripts**.
+5. Sélectionnez le script précis que vous souhaitez vérifier (p. ex. **Login**, **Create**, etc.) dans l’onglet correspondant.
+6. Sélectionnez **Save and Try**. Une fenêtre modale s’ouvre avec des paramètres de test précis et des exemples de détails de contexte. Mettez-les à jour au besoin.
+7. Sélectionnez **Try** dans la fenêtre modale pour ouvrir une liste déroulante permettant de choisir une version précise de Node.
+8. Le test se déclenche lorsque vous sélectionnez la version de Node souhaitée, et les résultats s’affichent dans un message sur le même écran.
+
+<div id="learn-more">
+  ## Pour en savoir plus
+</div>
+
+* [Meilleures pratiques d’exécution des scripts d’action de connexion à une base de données personnalisée](/docs/fr-CA/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution)
+* [Meilleures pratiques de sécurité des connexions à une base de données personnalisée](/docs/fr-CA/authenticate/database-connections/custom-db/custom-database-connections-scripts/connection-security)

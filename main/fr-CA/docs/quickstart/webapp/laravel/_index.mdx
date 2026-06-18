@@ -1,0 +1,262 @@
+---
+title: Ajouter la connexion à votre application Laravel
+sidebarTitle: Laravel
+
+---
+
+import { Recipe, Content, Section, SideMenu, SideMenuSectionItem, SignUpForm } from "/snippets/recipe.jsx";
+import { LoggedInForm } from "/snippets/Login.jsx";
+import Web from "/snippets/fr-CA/quickstart/webapp/laravel/web.php.mdx";
+import Web2 from "/snippets/fr-CA/quickstart/webapp/laravel/web.php2.mdx";
+import Web3 from "/snippets/fr-CA/quickstart/webapp/laravel/web.php3.mdx";
+
+export const sections = [
+  { id: "laravel-installation", title: "Installation de Laravel" },
+  { id: "sdk-installation", title: "Installation du SDK" },
+  { id: "sdk-configuration", title: "Configuration du SDK" },
+  { id: "login-routes", title: "Routes de connexion" },
+  { id: "access-control", title: "Contrôle d’accès" },
+  { id: "user-information", title: "Informations utilisateur" },
+  { id: "user-management", title: "Gestion des utilisateurs" },
+  { id: "run-the-application", title: "Lancer l’application" }
+]
+
+<Recipe isSingleColumn>
+  <Content>
+    [Auth0&#39;s Laravel SDK](https://github.com/auth0/laravel-auth0)
+    vous permet d&#39;ajouter rapidement l&#39;authentification, la gestion du profil utilisateur et le contrôle d&#39;accès aux routes de votre application Laravel. Ce guide explique comment intégrer Auth0 dans une application [Laravel 9
+    ou 10](https://github.com/auth0/laravel-auth0#support-policy) nouvelle ou existante.
+
+    Modification de test
+
+    <Section id={sections[0].id} title={sections[0].title} stepNumber="1" isSingleColumn>
+      **Si vous n’avez pas encore configuré d’application Laravel**, ouvrez un shell dans un répertoire approprié pour un nouveau
+      projet et exécutez la commande suivante :
+
+      ```sh wrap lines
+      composer create-project --prefer-dist laravel/laravel auth0-laravel-app ^9.0
+      ```
+
+      Toutes les commandes de ce guide supposent que vous les exécutez depuis la racine du répertoire de votre projet Laravel, donc
+      vous devriez faire `cd` dans le répertoire du nouveau projet :
+
+      ```sh lines
+      cd auth0-laravel-app
+      ```
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[1].id} title={sections[1].title} stepNumber="2" isSingleColumn>
+      Exécutez la commande suivante dans le répertoire de votre projet pour installer l’[Auth0 Laravel SDK](https://github.com/auth0/laravel-auth0) :
+
+      ```sh wrap lines
+      composer require auth0/login:^7.8 --update-with-all-dependencies
+      ```
+
+      Générez ensuite un fichier de configuration du SDK pour votre application :
+
+      ```sh lines
+      php artisan vendor:publish --tag auth0
+      ```
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[2].id} title={sections[2].title} stepNumber="3" isSingleColumn>
+      Exécutez la commande suivante à partir du répertoire de votre projet pour télécharger Auth0 CLI :
+
+      ```sh wrap lines
+      curl -sSfL https://raw.githubusercontent.com/auth0/auth0-cli/main/install.sh | sh -s -- -b .
+      ```
+
+      Ensuite, authentifiez la CLI avec votre compte Auth0, en choisissant &quot;en tant qu’utilisateur&quot; lorsqu’on vous le demande :
+
+      ```sh lines
+      ./auth0 login
+      ```
+
+      Ensuite, créez une nouvelle application avec Auth0 :
+
+      ```sh lines
+      ./auth0 apps create \
+        --name "My Laravel Application" \
+        --type "regular" \
+        --auth-method "post" \
+        --callbacks "http://localhost:8000/callback" \
+        --logout-urls "http://localhost:8000" \
+        --reveal-secrets \
+        --no-input \
+        --json > .auth0.app.json
+      ```
+
+      Vous devriez également créer une nouvelle API :
+
+      ```sh lines
+      ./auth0 apis create \
+        --name "My Laravel Application's API" \
+        --identifier "https://github.com/auth0/laravel-auth0" \
+        --offline-access \
+        --no-input \
+        --json > .auth0.api.json
+      ```
+
+      Cela crée deux fichiers dans le répertoire de votre projet qui configurent le SDK.
+
+      Comme ces fichiers contiennent des identifiants d’authentification, il est important de les traiter comme des données sensibles. Assurez-vous de ne pas
+      les inclure dans votre système de gestion de versions. Si vous utilisez Git, vous devriez les ajouter à votre fichier `.gitignore` :
+
+      ```sh lines
+      echo ".auth0.*.json" >> .gitignore
+      ```
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[3].id} title={sections[3].title} stepNumber="4" isSingleColumn>
+      Le SDK enregistre automatiquement toutes les routes nécessaires pour que les utilisateurs de votre application puissent s’authentifier.
+
+      Si vous avez besoin de mieux contrôler ces routes, ou si elles entrent en conflit avec des routes existantes dans votre application, vous pouvez
+      enregistrer manuellement les contrôleurs du SDK à la place. Veuillez consulter [le README du SDK](https://github.com/auth0/laravel-auth0) pour les intégrations avancées.
+
+      <LoggedInForm />
+    </Section>
+
+    <Section id={sections[4].id} title={sections[4].title} stepNumber="5" isSingleColumn>
+      Les fonctionnalités d&#39;authentification de Laravel utilisent des &quot;guards&quot; pour définir la manière dont les utilisateurs sont authentifiés pour chaque requête. Vous pouvez
+      utiliser le garde d&#39;authentification de l&#39;Auth0 SDK pour restreindre l&#39;accès aux routes de votre application.
+
+      Pour obliger les utilisateurs à s&#39;authentifier avant d&#39;accéder à une route, vous pouvez utiliser le middleware `auth` de Laravel.
+
+      ```text lines
+      Route::get('/private', function () {
+        return response('Welcome! You are logged in.');
+      })->middleware('auth');
+      ```
+
+      Vous pouvez aussi exiger que les utilisateurs authentifiés aient des [autorisations](https://auth0.com/docs/manage-users/access-control/rbac) précises en combinant cette approche
+      avec le middleware `can` de Laravel.
+
+      ```text lines
+      Route::get('/scope', function () {
+        return response('You have `read:messages` permission, and can therefore access this resource.');
+
+      })->middleware('auth')->can('read:messages');
+      ```
+
+      <Web />
+    </Section>
+
+    <Section id={sections[5].id} title={sections[5].title} stepNumber="6" isSingleColumn>
+      Les informations sur l’utilisateur authentifié sont accessibles par l’entremise de la façade `Auth` de Laravel ou de la
+      fonction d’assistance `auth()`.
+
+      Par exemple, pour récupérer l’identifiant de l’utilisateur et son adresse courriel :
+
+      ```text lines
+      Route::get('/', function () {
+        if (! auth()->check()) {
+        return response('You are not logged in.');
+
+        }
+        $user = auth()->user();
+        $name = $user->name ?? 'User';
+        $email = $user->email ?? '';
+        return response("Hello {$name}! Your email address is {$email}.");
+      });;
+      ```
+
+      <Web2 />
+    </Section>
+
+    <Section id={sections[6].id} title={sections[6].title} stepNumber="7" isSingleColumn>
+      Vous pouvez mettre à jour les renseignements d’un utilisateur à l’aide de l’[Auth0 Management API](https://github.com/auth0/laravel-auth0/blob/main/docs/Management.md). Tous les points de terminaison de gestion sont accessibles par la
+      méthode `management()` du SDK.
+
+      **Avant d’effectuer des appels à l’Auth0 Management API, vous devez autoriser votre application à communiquer avec l’API de gestion.** Cela peut se faire à partir de [la page API de l’Auth0 Dashboard](https://manage.auth0.com/dashboard/us/dev-gja8kxz4ndtex3rq/apis/), en choisissant
+      `Auth0 Management API`, puis en sélectionnant l’onglet « Machine to Machine Applications ». Autorisez votre application Laravel,
+      puis cliquez sur la flèche vers le bas pour choisir les scopes que vous souhaitez accorder.
+
+      Pour l’exemple suivant, dans lequel nous mettrons à jour les métadonnées d’un utilisateur et lui attribuerons une couleur préférée aléatoire, vous
+      devriez accorder les scopes `read:users` et `update:users`. Une liste des points de terminaison de l’API et des
+      scopes requis se trouve dans [la documentation de l’Auth0 Management
+      API](https://auth0.com/docs/api/management/v2).
+
+      ```text lines
+      use Auth0\Laravel\Facade\Auth0;
+      Route::get('/colors', function () {
+      $endpoint = Auth0::management()->users();
+      $colors = ['red', 'blue', 'green', 'black', 'white', 'yellow', 'purple', 'orange', 'pink', 'brown'];
+      $endpoint->update(
+      id: auth()-&gt;id(),
+
+      body: [
+
+          'user_metadata' =&gt; [
+
+              'color' =&gt; $colors[random_int(0, count($colors) - 1)]
+
+          ]
+
+      ]
+
+      );
+      $metadata = $endpoint->get(auth()->id());
+      $metadata = Auth0::json($metadata);
+      $color = $metadata['user_metadata']['color'] ?? 'unknown';
+      $name = auth()->user()->name;
+      return response("Hello {$name}! Your favorite color is {$color}.");
+      })->middleware('auth');
+      ```
+
+      Un guide de référence rapide de toutes les méthodes de la Management API du SDK est [accessible ici](https://github.com/auth0/laravel-auth0/blob/main/docs/Management.md).
+
+      <Web3 />
+    </Section>
+
+    <Section id={sections[7].id} title={sections[7].title} stepNumber="8" isSingleColumn>
+      Vous pouvez maintenant démarrer votre application Laravel afin qu’elle puisse recevoir des requêtes :
+
+      ```text lines
+      php artisan serve
+      ```
+
+      <Info>
+        ##### Checkpoint
+
+        Ouvrez votre navigateur Web et essayez d’accéder aux routes suivantes :
+
+        * [http://localhost:8000](http://localhost:8000/)
+          pour afficher la route publique.
+        * [http://localhost:8000/private](http://localhost:8000/private) pour être invité à vous authentifier.
+        * [http://localhost:8000](http://localhost:8000/)
+          pour afficher la route publique, cette fois en étant authentifié.
+        * [http://localhost:8000/scope](http://localhost:8000/scope) pour vérifier si vous avez la
+          `read:messages`[permission](https://auth0.com/docs/manage-users/access-control/rbac).
+        * [http://localhost:8000/update](http://localhost:8000/update) pour mettre à jour le profil de l’utilisateur.
+        * [http://localhost:8000/logout](http://localhost:8000/logout) pour vous déconnecter.
+      </Info>
+
+      ### Lectures complémentaires
+
+      * [User Repositories and Models](https://github.com/auth0/laravel-auth0/blob/main/docs/Users.md) explique comment étendre le SDK Auth0 Laravel afin d’utiliser des modèles d’utilisateur personnalisés,
+        ainsi que comment stocker et récupérer des utilisateurs à partir d’une base de données.
+      * [Hooking Events](https://github.com/auth0/laravel-auth0/blob/main/docs/Events.md) explique comment écouter les événements émis par le SDK Auth0 Laravel,
+        afin de personnaliser entièrement le comportement de votre intégration.
+      * La prise en charge de [Management API](https://github.com/auth0/laravel-auth0/blob/main/docs/Management.md) est intégrée au SDK Auth0 Laravel, ce qui vous permet d’interagir
+        avec la Management API depuis votre application Laravel.
+
+      <LoggedInForm />
+    </Section>
+
+    ## Prochaines étapes
+
+    Excellent travail ! Si vous avez suivi toutes les étapes jusqu&#39;ici, vous devriez maintenant avoir la connexion, la déconnexion et les informations du profil utilisateur fonctionnelles dans votre application.
+
+    Ce tutoriel de démarrage rapide se termine ici, mais il reste encore beaucoup à explorer. Pour en savoir plus sur ce que vous pouvez faire avec Auth0, consultez :
+
+    * [Auth0 Dashboard](https://manage.auth0.com/dashboard/us/dev-gja8kxz4ndtex3rq) - Découvrez comment configurer et gérer votre tenant Auth0 ainsi que vos applications
+    * [laravel-auth0 SDK](https://github.com/auth0/laravel-auth0) - Explorez en détail le SDK utilisé dans ce tutoriel
+    * [Auth0 Marketplace](https://marketplace.auth0.com/) - Découvrez les intégrations que vous pouvez activer pour étendre les fonctionnalités d’Auth0
+  </Content>
+</Recipe>

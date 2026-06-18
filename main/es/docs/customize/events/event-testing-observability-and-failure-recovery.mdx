@@ -1,0 +1,202 @@
+---
+description: Más información sobre cómo probar y gestionar tus eventos y flujos de eventos.
+title: Pruebas de eventos, observabilidad y recuperación ante fallos
+---
+
+Las siguientes secciones ofrecen información sobre cómo probar los flujos de eventos y gestionar los eventos.
+
+<div id="test-the-event-stream">
+  ## Probar el flujo de eventos
+</div>
+
+Después de crear y habilitar un flujo de eventos, puedes probarlo. Actualmente, Auth0 no admite enviar eventos a flujos de eventos deshabilitados.
+
+Para probar tu flujo de eventos, primero crea un usuario para tu aplicación ejecutando lo siguiente con las credenciales que prefieras:
+
+<Tabs>
+  <Tab title="Auth0 CLI">
+    ```bash lines
+    auth0 users create # sigue las indicaciones para crear un usuario de prueba
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    ```bash lines
+    curl -s \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Content-Type: application/json" \
+      -X POST https://$TENANT/api/v2/users \
+      -d '{
+            "email": "nick-testing-21@example.com",
+            "password": "Password123!",
+            "connection": "Username-Password-Authentication"
+          }'
+    ```
+  </Tab>
+</Tabs>
+
+Una vez creado el usuario, debería activarse el evento `user.created` en tu flujo de eventos y devolverse una respuesta. En este ejemplo, se usan webhooks para gestionar el flujo de eventos.
+
+```json lines expandable
+"Webhook received": {
+  "id": "evt_6SfwXrtm8nVcjzzNCFFH1L",
+  "source": "urn:auth0:",
+  "specversion": "1.0",
+  "type": "user.created",
+  "time": "2025-02-02T17:56:01.573Z",
+  "data": {
+    "object": {
+      "created_at": "2025-02-02T17:56:01.566Z",
+      "email": "nick-testing-21@example.com",
+      "email_verified": false,
+      "identities": [
+        {
+          "connection": "Username-Password-Authentication",
+          "isSocial": false,
+          "provider": "auth0",
+          "user_id": "679fb1b1e809445f129bc18d"
+        }
+      ],
+      "name": "nick-testing-21@example.com",
+      "nickname": "nick-testing-21",
+      "picture": "test.png",
+      "updated_at": "2025-02-02T17:56:01.566Z",
+      "user_id": "auth0|679fb1b1e809445f129bc18d"
+    }
+  },
+  "a0tenant": "acme",
+  "a0stream": "est_38ANnv8pQhqsZrX2VFbftv",
+  "a0purpose": "test"
+}
+```
+
+Puedes listar los errores de entrega de un flujo de eventos específico ejecutando:
+
+<Tabs>
+  <Tab title="Auth0 CLI">
+    ```bash lines
+    auth0 api get event-streams/$EVENT_STREAM_ID/deliveries
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    ```bash lines
+    curl -s -H "Authorization: Bearer $TOKEN" \
+      "https://$TENANT/api/v2/event-streams/${EVENT_STREAM_ID}/deliveries" | jq .
+    ```
+  </Tab>
+</Tabs>
+
+Si se devuelve un array vacío de errores de entrega, tu flujo de eventos está funcionando correctamente.
+
+<div id="observability">
+  ## Observabilidad
+</div>
+
+Para garantizar la fiabilidad de los flujos de eventos, implementa un proceso de supervisión que compruebe periódicamente si se producen errores de entrega y active alertas cuando sea necesario.
+
+Los errores de entrega pueden deberse a lo siguiente:
+
+* Flujos de eventos deshabilitados.
+* Flujos de eventos no disponibles.
+* Errores de conexión.
+
+<div id="polling-deliveries-endpoint">
+  ### Endpoint de Deliveries
+</div>
+
+Consulta el endpoint de Deliveries cada **5 minutos** para comprobar si hay eventos fallidos. Usa la siguiente llamada a la API para obtener las entregas recientes de eventos:
+
+<Tabs>
+  <Tab title="Auth0 CLI">
+    ```bash lines
+    auth0 api get event-streams/$EVENT_STREAM_ID/deliveries
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    ```bash lines
+    curl -s -H "Authorization: Bearer $TOKEN" \
+      "https://$TENANT/api/v2/event-streams/${EVENT_STREAM_ID}/deliveries" | jq .
+    ```
+  </Tab>
+</Tabs>
+
+Si se detectan fallos:
+
+* Registra los detalles del evento fallido.
+* Alerta al equipo o sistema correspondiente para que revise y diagnostique el problema.
+
+<div id="recovery">
+  ## Recuperación
+</div>
+
+La entrega de eventos se reintentará automáticamente. Para obtener más información, consulta [Prácticas recomendadas](/docs/es/customize/events/event-testing-observability-and-failure-recovery#batch-redelivery-of-failed-events).
+
+Si se producen fallos, usa la Redelivery API para volver a intentar la entrega del evento.
+
+<div id="redeliver-a-single-failed-event">
+  ### Reenviar un único evento fallido
+</div>
+
+Para volver a intentar un evento fallido específico, usa:
+
+<Tabs>
+  <Tab title="Auth0 CLI">
+    ```bash lines
+    EVENT_ID=<your event id>
+    auth0 api POST event-streams/$EVENT_STREAM_ID/redeliver/$EVENT_ID --data '{}'
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    ```bash lines
+    curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+      "https://<your-domain>/api/v2/event-streams/$EVENT_STREAM_ID/redeliver/$EVENT_ID"
+    ```
+  </Tab>
+</Tabs>
+
+<div id="batch-redelivery-of-failed-events">
+  ### Reintento por lotes de eventos fallidos
+</div>
+
+Para reintentar todos los eventos fallidos en el flujo de eventos:
+
+<Tabs>
+  <Tab title="Auth0 CLI">
+    ```bash wrap lines
+    auth0 api POST event-streams/$EVENT_STREAM_ID/redeliver --data '{}'
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    ```bash lines
+    curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+      "https://<your-tenant>.auth0.com/api/v2/event-streams/<event_stream_id>/redeliver"
+    ```
+  </Tab>
+</Tabs>
+
+<div id="auto-disable-mechanism">
+  ### Mecanismo de desactivación automática
+</div>
+
+Auth0 desactiva automáticamente un flujo de eventos si se producen demasiados fallos.
+
+| Condición               | Medida adoptada                                   |
+| ----------------------- | ------------------------------------------------- |
+| 500 fallos consecutivos | El flujo de eventos se desactiva automáticamente. |
+| 5000 fallos totales     | El flujo de eventos se desactiva automáticamente. |
+
+* Si un flujo de eventos se desactiva automáticamente, **debes** usar la Redelivery API para procesar los eventos que hayan fallado.
+* El flujo de eventos **no puede** volver a activarse manualmente hasta que el recuento total de fallos sea inferior a 5000.
+* Una vez reducido el número de fallos, puedes volver a activar el flujo mediante la API.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Tipos de eventos](/docs/es/customize/events/event-types)
+* [Crear un flujo de eventos](/docs/es/customize/events/create-an-event-stream)
+* [Prácticas recomendadas sobre eventos](/docs/es/customize/events/events-best-practices)

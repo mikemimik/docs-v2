@@ -1,0 +1,118 @@
+---
+description: Integración de los endpoints de la Management API de Auth0 con tus aplicaciones PHP.
+title: 'PHP: Uso de la Management API con Auth0-PHP'
+---
+
+El SDK de Auth0 para PHP proporciona una clase `Auth0\SDK\API\Management` que contiene los métodos que puedes usar para acceder a la [Management API](https://auth0.com/docs/api/management/v2) y realizar operaciones en tu tenant de Auth0. Con esta interfaz, puedes fácilmente:
+
+* Buscar y crear usuarios
+* Crear y actualizar Applications
+* Recuperar entradas de registro
+* Administrar reglas
+
+... y mucho más. Consulta nuestra [referencia de la API](https://auth0.com/docs/api/management/v2) para obtener más información sobre todo lo que es posible.
+Autenticación
+
+Para usar la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>, debes autenticarte de una de estas dos formas:
+
+* Para acceso temporal o pruebas, puedes [generar manualmente un token de API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) y guardarlo en tu archivo `.env`.
+* Para acceso prolongado, debes crear y ejecutar una Concesión de credenciales de cliente cuando se necesite acceso. Este proceso se detalla en la [página de Authentication API](/docs/es/libraries/auth0-php/using-the-authentication-api-with-auth0-php).
+
+Independientemente del método, el token generado debe tener los scopes necesarios para las operaciones que tu aplicación quiera ejecutar. Consulta la [documentación de la API](https://auth0.com/docs/api/management/v2) para conocer los scopes necesarios para el endpoint específico al que intentas acceder.
+
+Para conceder los scopes necesarios:
+
+1. Ve a [APIs](https://manage.auth0.com/#/apis) &gt; Auth0 Management API &gt; pestaña **Machine to Machine Applications**.
+2. Busca tu aplicación y autorízala.
+3. Haz clic en la flecha para expandir la fila y seleccionar los scopes necesarios.
+
+Ahora puedes autenticarte de una de las dos formas anteriores y usar ese token para realizar operaciones:
+
+```php lines
+// 👆 Continuamos desde la guía de "getting started" enlazada en "Prerequisites" arriba. Añade esto al archivo index.php que creaste allí.
+
+if (isset($env['AUTH0_MANAGEMENT_API_TOKEN'])) {
+    $auth0->configuration()->setManagementToken($env['AUTH0_MANAGEMENT_API_TOKEN']);
+}
+
+// Crea una instancia configurada de la clase `Auth0\SDK\API\Management`, basada en la configuración que usamos para inicializar el SDK ($auth0).
+// Si no se configura AUTH0_MANAGEMENT_API_TOKEN, se realizará automáticamente un intercambio de credenciales de cliente para generar uno, siempre que haya un secreto de cliente configurado.
+$management = $auth0->management();
+```
+
+La clase `Management` proporciona acceso a los endpoints como métodos de fábrica de sus instancias; por ejemplo, `$management->users()` devuelve una instancia de `Auth0\SDK\API\Management\Users` que puedes usar para interactuar con los endpoints de /users de la Management API.
+
+<div id="example-search-users-by-email">
+  ### Ejemplo: Buscar usuarios por correo electrónico
+</div>
+
+Este endpoint está documentado [aquí](https://auth0.com/docs/api/management/v2#!/Users/get_users).
+
+```php lines
+// 👆 Continuamos desde el código anterior. Añade esto a tu archivo de código fuente.
+
+$response = $management->users()->getAll(['q' => 'josh']);
+
+// ¿El código de estado de la respuesta indica un error?
+if ($response->getStatusCode() !== 200) {
+    die("API request failed.");
+}
+
+// Decodifica la respuesta JSON en un arreglo de PHP:
+$response = json_decode(response->getBody()->__toString(), true, 512, JSON_THROW_ON_ERROR);
+
+if (! empty($response)) {
+    echo '<h2>User Results</h2>';
+
+    foreach ($response as $result) {
+        printf(
+            '<p><strong>%s</strong> &lt;%s&gt; - %s</p>',
+            !empty($result['nickname']) ? $result['nickname'] : 'No nickname',
+            !empty($result['email']) ? $result['email'] : 'No email',
+            $result['user_id']
+        );
+    }
+}
+```
+
+<div id="example-get-all-clients">
+  ### Ejemplo - Obtener todos los Clients
+</div>
+
+Este endpoint está documentado [aquí](https://auth0.com/docs/api/management/v2#!/Clients/get_clients).
+
+```php lines
+// 👆 Continuamos desde el código anterior. Agrega esto a tu archivo de código fuente.
+
+$response = $management->clients()->getAll(['q' => 'josh']);
+
+// ¿El código de estado de la respuesta indica un error?
+if ($response->getStatusCode() !== 200) {
+    die("API request failed.");
+}
+
+// Decodifica la respuesta JSON en un arreglo de PHP:
+$response = json_decode(response->getBody()->__toString(), true, 512, JSON_THROW_ON_ERROR);
+
+if (! empty($response)) {
+    echo '<h2>Get All Clients</h2>';
+
+    foreach ($response as $result) {
+        printf(
+            '<p><strong>%s</strong> - %s</p>',
+            $result['name'],
+            $result['client_id']
+        );
+    }
+}
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [PHP: Primeros pasos con Auth0-PHP](/docs/es/libraries/auth0-php)
+* [PHP: Iniciar y cerrar sesión, y obtener perfiles de usuario con Auth0-PHP](/docs/es/libraries/auth0-php/auth0-php-basic-use)
+* [PHP: Uso de la Authentication API con Auth0-PHP](/docs/es/libraries/auth0-php/using-the-authentication-api-with-auth0-php)
+* [PHP: Validación de JWT (JSON Web Tokens) con Auth0-PHP](/docs/es/libraries/auth0-php/validating-jwts-with-auth0-php)
+* [PHP: Solución de problemas de tu integración con Auth0-PHP](/docs/es/libraries/auth0-php/troubleshoot-auth0-php-library)

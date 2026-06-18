@@ -1,0 +1,139 @@
+---
+description: Más información sobre el flujo de Registro previo de usuario, que se ejecuta cuando un usuario intenta registrarse mediante una conexión Database o Passwordless. Puede usarse para agregar metadatos al perfil de usuario antes de que se cree o para rechazar un registro.
+sidebarTitle: Información general
+title: Trigger de Registro previo de usuario
+---
+
+El trigger de Registro previo de usuario se ejecuta antes de que se agregue un usuario a una conexión Database o a una conexión <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/docs/es/glossary?term=Passwordless">Passwordless</Tooltip>.
+
+<Frame>![Diagrama que muestra el flujo de Registro previo de usuario de Actions.](/docs/images/cdy7uua7fh8z/2KtUcZhaBcT12GxjhBJZFG/9633b4454ac1c06c0deed6c97e70fe7d/pre-user-registration-flow.png)</Frame>
+
+Las Actions de este flujo son bloqueantes (sincrónicas), lo que significa que se ejecutan como parte del proceso de un trigger e impiden que el resto del pipeline de Auth0 se ejecute hasta que la Action se complete.
+
+<div id="triggers">
+  ## Triggers
+</div>
+
+<div id="pre-user-registration">
+  ### Registro previo de usuario
+</div>
+
+El trigger `pre-user-registration` se ejecuta cuando un usuario intenta registrarse a través de una conexión Database o Passwordless. Este trigger puede usarse para agregar metadata al perfil del usuario antes de que se cree o para denegar un registro con lógica personalizada.
+
+<Warning>
+  Actualmente, no puedes usar Actions de `pre-user-registration` para agregar metadata a usuarios passwordless.
+</Warning>
+
+<div id="references">
+  #### Referencias
+</div>
+
+* [Objeto de evento](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-event-object): Proporciona información contextual sobre la solicitud de registro de un nuevo usuario.
+* [objeto de API](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-api-object): Proporciona métodos para cambiar el comportamiento del flujo.
+
+<div id="common-use-cases">
+  ## Casos de uso frecuentes
+</div>
+
+<div id="deny-registration-by-location">
+  ### Impedir el registro por ubicación
+</div>
+
+Se puede usar una Action de Registro previo de usuario para impedir que un usuario se registre.
+
+```javascript lines
+/**
+ * @param {Event} event - Detalles sobre el evento de registro.
+ * @param {PreUserRegistrationAPI} api
+ */
+exports.onExecutePreUserRegistration = async (event, api) => {
+  if (event.request.geoip.continentCode === "NA") {
+
+    // localizar el mensaje de error 
+    const LOCALIZED_MESSAGES = {
+      en: 'You are not allowed to register.',
+      es: 'No tienes permitido registrarte.'
+    };
+
+    const userMessage = LOCALIZED_MESSAGES[event.request.language] || LOCALIZED_MESSAGES['en'];
+    api.access.deny('no_signups_from_north_america', userMessage);
+  }
+};
+```
+
+<div id="set-metadata-in-the-user-profile">
+  ### Establecer metadata en el perfil de usuario
+</div>
+
+Se puede usar una Action de Registro previo de usuario para agregar metadata al perfil de usuario antes de que se cree.
+
+<Warning>
+  Actualmente, no se pueden usar las Actions de `pre-user-registration` para agregar metadata a usuarios passwordless.
+</Warning>
+
+```javascript lines
+/**
+ * @param {Event} event - Details about registration event.
+ * @param {PreUserRegistrationAPI} api
+ */
+exports.onExecutePreUserRegistration = async (event, api) => {
+  api.user.setUserMetadata("screen_name", "username");  
+};
+```
+
+<div id="store-a-user-id-from-another-system-in-the-user-profile">
+  ### Almacenar un ID de usuario de otro sistema en el perfil del usuario
+</div>
+
+Se puede usar una Action de Registro previo de usuario para almacenar un ID de usuario de otro sistema en el perfil del usuario.
+
+```javascript lines expandable
+const axios = require('axios');
+
+const REQUEST_TIMEOUT = 2000; // Ejemplo de tiempo de espera
+
+/**
+* Manejador que se invocará durante la ejecución de un flujo PreUserRegistration.
+*
+* @param {Event} event - Detalles sobre el contexto y el usuario que intenta registrarse.
+* @param {PreUserRegistrationAPI} api - Interfaz cuyos métodos pueden usarse para cambiar el comportamiento del registro.
+*/
+exports.onExecutePreUserRegistration = async (event, api) => {
+  try {
+    // Establece un Secret USER_SERVICE_URL = 'https://yourservice.com'
+    const remoteUser = await axios.get(event.secrets.USER_SERVICE_URL, {
+      timeout: REQUEST_TIMEOUT,
+      params: {
+        email: event.user.email 
+      }
+    });
+
+    if (remoteUser) {
+      api.user.setAppMetadata('my-api-user-id', remoteUser.id); 
+    }
+  } catch (err) {
+    api.validation.error('custom_error', 'Custom Error');
+  }
+};
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para usar una biblioteca de `npm` como `axios`, debes agregarla a la Action como dependencia. Para obtener más información, consulta la sección &quot;Agregar una dependencia&quot; de [Write Your First Action](/docs/es/customize/actions/write-your-first-action).
+</Callout>
+
+<div id="deny-access-to-specific-ja3ja4-fingerprints">
+  ### Denegar el acceso a huellas JA3/JA4 específicas
+</div>
+
+El objeto `event.security_context` contiene los valores de las huellas JA3/JA4 de la transacción actual.
+
+```js lines
+exports.onExecutePreUserRegistration = async (event, api) => {
+  const clientJa4 = event?.security_context?.ja4;
+  console.log('[ACTION]', {clientJa4});
+  const badFingerprints = ['t13d1517h2_8daaf6152771_b6f405a00624','t13d1516h2_8daaf6152771_d8a2da3f94cd'];
+  if (clientJa4 && badFingerprints.includes(clientJa4)){
+    api.access.deny('suspicious_tls_fingerprint', 'Your TLS fingerprint has been flagged as suspicious');
+  }
+};
+```

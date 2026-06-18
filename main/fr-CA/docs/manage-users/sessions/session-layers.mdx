@@ -1,0 +1,52 @@
+---
+description: Décrit les couches de session créées lorsque les utilisateurs se connectent.
+title: Couches de session
+---
+
+Il existe généralement trois couches de session qui peuvent être créées lorsque vos utilisateurs se connectent :
+
+* **Couche de session de l’application** : Cette couche correspond à la session à l’intérieur de votre application. Bien que votre application utilise Auth0 pour authentifier les utilisateurs, elle garde aussi la trace du fait que l’utilisateur s’est connecté à l’application; dans une application Web traditionnelle, par exemple, cela se fait en stockant cette information dans un cookie.
+* **Couche de session Auth0** : Auth0 maintient également une session sur le <Tooltip tip="Authorization Server : Serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">serveur d’autorisation</Tooltip> pour l’utilisateur et stocke ses renseignements dans un cookie. Cette couche sert à faire en sorte que, la prochaine fois qu’un utilisateur est redirigé vers Auth0 pour se connecter, ses renseignements soient mémorisés. Cette couche de session rend possible l’expérience de <Tooltip tip="Single Sign-On (SSO) : Service qui, après qu’un utilisateur se connecte à une application, connecte automatiquement cet utilisateur à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SSO">SSO</Tooltip> dans les implémentations de SSO entrant.
+* **Couche de session du <Tooltip tip="Identity Provider (IdP) : Service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseur d’identité</Tooltip>** : Lorsque les utilisateurs tentent de se connecter à l’aide de fournisseurs d’identité comme Facebook ou Google, s’ils ont déjà une session valide (chez le fournisseur choisi), ils n’auront pas à se reconnecter, bien qu’on puisse leur demander d’autoriser le partage de leurs renseignements avec Auth0, puis avec votre application.
+
+<div id="session-logout">
+  ### Déconnexion de session
+</div>
+
+Dans le contexte des implémentations Auth0, la déconnexion consiste à mettre fin à une session authentifiée. Il s’agit d’une bonne pratique de sécurité de mettre fin aux sessions lorsqu’elles ne sont plus nécessaires afin d’éviter toute prise de contrôle potentielle par des parties non autorisées.
+
+Auth0 fournit des outils pour vous aider à permettre aux utilisateurs de se déconnecter; cela comprend des options pour offrir différents niveaux de déconnexion et pour déterminer où l’utilisateur sera redirigé une fois la déconnexion terminée.
+
+* **Déconnexion de la couche de session de l’application** : Déconnecter les utilisateurs de vos applications a généralement pour effet d’effacer leur session d’application, et cela doit être géré par votre application : pour la couche de session de l’application, il n’y a rien dans votre tenant Auth0 que vous devez utiliser pour faciliter la fin de la session. Vous devrez utiliser le mécanisme de session de votre application pour effacer toute information liée à la session. Notez que certains SDK Auth0 offrent aussi une certaine prise en charge des sessions d’application; veuillez consulter la documentation pour vérifier si une suppression de session locale du SDK est nécessaire.
+* **Déconnexion de la couche de session Auth0** : Vous pouvez déconnecter les utilisateurs de la couche de session Auth0 en les redirigeant vers le point de terminaison Logout d’Auth0 afin qu’Auth0 puisse effacer le cookie SSO.
+
+  <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+    En règle générale, vous effacez une session Auth0 en redirigeant les utilisateurs vers le point de terminaison `/logout`. Toutefois, si vous appelez le point de terminaison [Update a User](https://auth0.com/docs/api/management/v2/#!/Users/patch_users_by_id) pour réinitialiser des attributs utilisateur (en transmettant les valeurs `email`, `email_verified`, `phone_number`, `password` et `username`), `auth0.checkSession` ne renouvelle pas la session, et l’utilisateur doit se reconnecter.
+  </Callout>
+* **Déconnexion de la couche de session du fournisseur d’identité** : Il n’est pas nécessaire de déconnecter les utilisateurs de cette couche de session, mais vous pouvez utiliser Auth0 pour forcer la déconnexion au besoin.
+
+<div id="redirect-urls">
+  #### URL de redirection
+</div>
+
+Pour fermer la session de votre couche de session Auth0, vous devrez rediriger l’utilisateur vers `https://{yourCNAME}` ou `{yourTenant}.auth0.com/oidc/logout` — généralement en utilisant la méthode appropriée du SDK Auth0 correspondant à votre pile technologique. Cela mettra fin à votre session Auth0. Vous devrez aussi ajouter à cette requête un paramètre de requête nommé `id_token_hint` — ce paramètre doit contenir une URL préenregistrée afin de vous protéger contre les attaques de redirection ouverte.
+
+Après la déconnexion, Auth0 redirige uniquement vers les URL figurant dans l’AllowList, et vous pouvez les configurer à deux endroits. Le premier est au niveau de votre tenant Auth0, où vous pouvez définir l’ensemble des URL de déconnexion partagées par toutes les applications. Le second se trouve dans les paramètres de l’application : si vous avez besoin de redirections différentes pour chaque application, vous pouvez ajouter les URL à l’AllowList dans les paramètres de votre application. Cela vous permet de définir des URL de déconnexion propres à chaque application.
+
+<div id="session-lifetime-and-session-timeout">
+  #### Durée de vie de la session et délai d’expiration de la session
+</div>
+
+Vous pouvez définir le comportement à adopter lorsqu’un utilisateur ne se déconnecte pas explicitement de votre application. Auth0 offre des limites de [durée de vie de la session](/docs/fr-CA/manage-users/sessions/session-lifetime-limits) pour gérer la fin d’une session Auth0 dans ce scénario.
+
+<div id="federated-logout">
+  #### Déconnexion fédérée
+</div>
+
+Vous pouvez aussi déconnecter les utilisateurs au niveau de la couche de session du fournisseur d’identité. Bien que cela ne soit pas recommandé, Auth0 prend aussi en charge ce comportement pour de nombreux fournisseurs, à condition d’ajouter le paramètre de requête `federated` à la redirection vers `/oidc/logout`. L’utilisateur est alors redirigé vers son fournisseur d’identité et y est également déconnecté. Pour en savoir plus sur la déconnexion fédérée, consultez l’article [Déconnecter les utilisateurs des fournisseurs d’identité](/docs/fr-CA/authenticate/login/logout/log-users-out-of-idps).
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Limites de durée de vie de la session](/docs/fr-CA/manage-users/sessions/session-lifetime-limits)

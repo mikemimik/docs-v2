@@ -1,0 +1,118 @@
+---
+description: Découvrez comment utiliser les connexions Passwordless avec le facteur d’authentification par courriel.
+title: Authentification Passwordless par courriel
+---
+
+Vous pouvez configurer une connexion <Tooltip tip="Passwordless : forme d’authentification qui ne repose pas sur un mot de passe comme premier facteur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Passwordless">Passwordless</Tooltip> pour envoyer un mot de passe à usage unique (OTP) à un utilisateur par courriel afin de finaliser l’authentification.
+
+Pour en savoir plus, consultez [Configurer le courriel ou le SMS pour l’authentification Passwordless](/docs/fr-CA/authenticate/login/auth0-universal-login/passwordless-login/email-or-sms).
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Lorsqu’un nouvel utilisateur reçoit un OTP et le saisit pour la première fois sur votre site Web, son profil utilisateur est créé dans la connexion `email` avant que l’utilisateur soit authentifié par Auth0.
+
+Si l’adresse courriel à laquelle l’OTP a été envoyé correspond à un utilisateur existant, Auth0 authentifie l’utilisateur :
+
+<div id="embedded-login">
+  ### Connexion intégrée
+</div>
+
+<Frame>![Schéma du processus de connexion intégrée par courriel Passwordless](/docs/images/cdy7uua7fh8z/3HMLxPTq9eCsq1eR21s0bL/ad401ee9fbe0716250d49ea04993a056/SMS_Email_Flow_Updated.png)</Frame>
+
+<div id="universal-login">
+  ### Universal Login
+</div>
+
+<Frame>![Schéma du processus d’authentification par courriel Passwordless avec Universal Login](/docs/images/cdy7uua7fh8z/5p3cKrJwmc7MxpQ7pbXsjC/285f3b54caba8a05075b6a0036990aaa/Screenshot_2024-10-29_at_11.54.03.png)</Frame>
+
+<div id="configure-the-connection">
+  ## Configurer la connexion
+</div>
+
+1. Accédez à [Auth0 Dashboard &gt; Authentication &gt; Passwordless](https://manage.auth0.com/#/connections/passwordless) et activez la bascule **Email**.
+2. Sélectionnez **Email** pour ouvrir la fenêtre de configuration, passez à la vue **Settings**, puis saisissez le texte des champs **From**, **Subject** et **Message** de votre courriel.
+
+   <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+     Vous devez remplacer la valeur du champ **From** par une adresse courriel qui n’utilise pas le domaine `auth0.com` pour qu’Auth0 puisse envoyer vos modèles de courriel personnalisés. Sinon, Auth0 enverra le modèle de courriel par défaut.
+   </Callout>
+3. Configurez **OTP Expiry** et **OTP Length.**
+
+   * Seul le dernier OTP (ou lien) émis sera accepté. Dès qu’un nouvel OTP est émis, tous les précédents sont invalidés. Une fois utilisé, le plus récent est lui aussi invalidé.
+   * Seulement trois tentatives infructueuses de saisie de l’OTP sont permises. Après cela, il faudra demander un nouveau code.
+   * L’OTP émis sera valide pendant trois minutes par défaut avant d’expirer.
+   * Si vous choisissez de prolonger le délai d’expiration de votre OTP, vous devriez aussi en augmenter la longueur. Sinon, une personne malveillante disposera de plus de temps pour tenter de deviner un code court.
+4. Déterminez si vous souhaitez **Disable Sign Ups**. Si vous activez ce paramètre, vous pouvez autoriser l’accès Passwordless uniquement aux utilisateurs existants, mais cela peut exposer votre application à des attaques d’énumération d’utilisateurs. Pour en savoir plus, consultez [Passwordless Connections Best Practices](/docs/fr-CA/authenticate/passwordless/best-practices).
+5. Sélectionnez **Save**.
+
+<div id="multi-language-support">
+  ### Prise en charge de plusieurs langues
+</div>
+
+La zone **Message** prend en charge plusieurs langues.
+
+Pour préciser une langue, appelez le [point de terminaison Get Code or Link de l’API d’authentification Auth0](https://auth0.com/docs/api/authentication#get-code-or-link) et définissez la valeur de l’en-tête `x-request-language`. Si cet en-tête n’est pas défini, la langue est extraite de l’en-tête `accept-language`, qui est automatiquement défini par le navigateur.
+
+<div id="message-syntax">
+  ### Syntaxe du message
+</div>
+
+La zone **Message** prend en charge la syntaxe Liquid. Vous pouvez utiliser cette syntaxe, combinée aux valeurs des paramètres, pour générer par programmation des éléments du message.
+
+Par exemple, vous pouvez utiliser le paramètre `request_language` pour changer la langue du message :
+
+```liquid lines
+{% if request_language contains 'dutch' %}
+   Hier is uw verificatie code: {{ code }}
+{% endif %}
+{% if request_language contains 'fr-FR' %}
+   Ceci est votre code: {{ code }}
+{% endif %}
+```
+
+Les paramètres suivants sont disponibles lors de la définition du modèle de message :
+
+| Paramètre          | Description                                                                                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `code`             | Le mot de passe à utiliser.                                                                                                                                                                      |
+| `link`             | Le lien de connexion généré.                                                                                                                                                                     |
+| `application.name` | Le nom de l’application avec laquelle l’utilisateur s’inscrit.                                                                                                                                   |
+| `request_language` | La langue demandée pour le contenu du message.                                                                                                                                                   |
+| `operation`        | Indique si le modèle a été déclenché par la mise à jour de l’adresse courriel d’un utilisateur au moyen de l’API. Lorsqu’il est déclenché, la valeur est `change_email`; sinon, elle est `null`. |
+
+Si l’utilisateur est connecté par l’intermédiaire d’une [organisation](/docs/fr-CA/manage-users/organizations/organizations-overview), les paramètres suivants sont également disponibles :
+
+* `organization.id`
+* `organization.display_name`
+* `organization.name`
+* `organization.metadata`
+* `organization.branding.logo_url`
+* `organization.branding.colors.primary`
+* `organization.branding.colors.page_background`
+
+Pour en savoir plus sur ces paramètres et leurs valeurs, consultez le point de terminaison [Get organization](https://auth0.com/docs/api/management/v2#!/Organizations/get_organizations_by_id) de la <Tooltip tip="Management API: Un produit qui permet aux clients d’effectuer des tâches administratives." cta="Consulter le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> d’Auth0.
+
+<div id="enable-applications">
+  ## Activer les applications
+</div>
+
+Passez à la vue **Applications** et activez les applications pour lesquelles vous souhaitez utiliser Passwordless Email.
+
+<div id="email-providers">
+  ## Fournisseurs de courriel
+</div>
+
+Par défaut, Auth0 envoie les courriels au moyen de son propre fournisseur SMTP. Le fournisseur de courriel intégré d’Auth0 est conçu uniquement pour les tests et ne permet pas de personnaliser les modèles de courriel.
+
+[Configurez votre propre fournisseur de courriel SMTP](/docs/fr-CA/customize/email/smtp-email-providers) pour gérer, surveiller et résoudre les problèmes liés à vos communications par courriel, ainsi que personnaliser les modèles de courriel.
+
+Auth0 prend en charge les fournisseurs de courriel suivants :
+
+* [Mandrill](/docs/fr-CA/customize/email/smtp-email-providers/configure-mandrill-as-external-smtp-email-provider)
+* [Amazon SES](/docs/fr-CA/customize/email/smtp-email-providers/configure-amazon-ses-as-external-smtp-email-provider)
+* [Azure Communication Services](/docs/fr-CA/customize/email/smtp-email-providers/configure-azure-comm-service-as-smtp-email-provider)
+* [SendGrid](/docs/fr-CA/customize/email/smtp-email-providers/configure-sendgrid-as-external-smtp-email-provider)
+* [SparkPost](/docs/fr-CA/customize/email/smtp-email-providers/configure-sparkpost-as-external-smtp-email-provider)
+* [Mailgun](/docs/fr-CA/customize/email/smtp-email-providers/configure-mailgun-as-external-smtp-email-provider)
+* [Fournisseur de courriel SMTP externe personnalisé](/docs/fr-CA/customize/email/smtp-email-providers/configure-custom-external-smtp-email-provider)

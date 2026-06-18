@@ -1,0 +1,252 @@
+---
+description: Étape 3 du tutoriel Amazon API Gateway
+title: Tutoriel AWS API Gateway Étape 3
+---
+
+<Warning>
+  Cette fonctionnalité utilise la délégation. Par défaut, cette fonctionnalité est désactivée pour les tenants qui n’utilisaient pas de module complémentaire au 8 juin 2017. Les tenants Legacy qui utilisent actuellement un module complémentaire nécessitant la délégation peuvent continuer à utiliser cette fonctionnalité. Si la fonctionnalité de délégation est modifiée ou retirée du service, les clients qui l’utilisent actuellement en seront avisés à l’avance et disposeront de suffisamment de temps pour migrer. De plus, notez que la délégation ne prend pas en charge l’utilisation de custom domains; toute fonctionnalité qui en dépend pourrait donc ne pas être entièrement fonctionnelle avec un custom domain.
+</Warning>
+
+<div id="step-3-build-the-application">
+  ## Étape 3 - Créer l’application
+</div>
+
+Dans cette étape, vous créerez une application à page unique sans serveur à l’aide du framework AngularJS, que vous hébergerez dans un bucket S3 d’AWS configuré comme site Web statique.
+
+<div id="step-1-set-up-your-sample-application">
+  ### Étape 1. Configurez votre application d’exemple
+</div>
+
+Pour démarrer simplement, [téléchargez un projet d’exemple](https://github.com/auth0/auth0-aws/tree/master/examples/api-gateway/client) propre à ce tutoriel. Connectez-vous pour que vos identifiants Auth0 soient préconfigurés.
+
+Copiez le contenu de ce projet de départ dans un dossier local nommé `pets`, que vous utiliserez pour le reste de ce tutoriel. Dans ce dossier, mettez à jour `auth0-variables.js` avec les valeurs `AUTH0_CLIENT_ID` et `AUTH0_CLIENT_ID` de votre application Auth0 (ces renseignements sont accessibles dans le [Dashboard de gestion](https://manage.auth0.com/#/applications) de l’application en question).
+
+<div id="aws-s3-bucket">
+  #### Bucket AWS S3
+</div>
+
+Assurez-vous d’avoir [créé le bucket AWS S3 configuré comme site Web statique](http://docs.aws.amazon.com/gettingstarted/latest/swh/website-hosting-intro.html). Pendant la configuration, copiez le contenu du dossier `pets` dans votre bucket S3 afin de fournir le contenu du site Web.
+
+Si vous utilisez un bucket existant, vous pouvez déplacer les fichiers à l’aide de l’AWS CLI en exécutant la commande suivante.
+
+```bash lines
+aws s3 cp --recursive --acl "public-read" ./ s3://{yourBucket}/
+```
+
+Avant de poursuivre, assurez-vous d’avoir au moins un utilisateur associé à votre connexion Username-Password-Authentication (ou à la Database Connection associée à l’Application que vous utilisez). Pour profiter pleinement des fonctionnalités de votre application d’exemple et de son intégration avec AWS, vous aurez besoin de cet utilisateur pour tester l’authentification et obtenir l’accès.
+
+Enfin, assurez-vous qu’Auth0 autorise l’authentification à partir de votre site Web en indiquant l’URL dans le champ **Allowed Origins** de la page Settings de votre Application. L’URL de votre site Web devrait ressembler à ceci :
+
+`http://your-bucket.s3-website-us-east-1.amazonaws.com`
+
+Si vous ne connaissez pas votre URL, vous pouvez la trouver dans l’onglet **Properties** de votre bucket S3.
+
+Avant d’aller plus loin, testez la connexion à votre application. Ouvrez `http://your-bucket-domain/index.html` dans votre navigateur. Après vous être connecté, une boîte d’alerte indiquant &quot;getPets not implemented&quot; devrait s’afficher :
+
+Vous devriez aussi voir la page de consultation des animaux de compagnie.
+
+<div id="use-delegation-to-get-an-aws-token">
+  ### Utilisez la délégation pour obtenir un jeton AWS
+</div>
+
+À ce stade, vous avez configuré l’authentification avec Auth0 et vous disposez d’un <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker d’informations de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OpenID">OpenID</Tooltip> <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker d’informations de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JWT">JWT</Tooltip>. Voici l’arborescence du code généré :
+
+<Frame>![AWS API Gateway - répertoire du projet](/docs/images/cdy7uua7fh8z/5fYL14NE1L9WuzUyA0xTky/35e78ca14e6d0c5b36582b5b74a6fc55/aws-api-gateway-project.png)</Frame>
+
+Vous pouvez utiliser la fonctionnalité de délégation d’Auth0 pour obtenir un <Tooltip tip="Jeton d’accès : information d’identification d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip> AWS basé sur le <Tooltip tip="Jeton d’identité : information d’identification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+token">jeton d’identité</Tooltip> Auth0. En arrière-plan, Auth0 authentifie votre jeton d’identité, puis utilise <Tooltip tip="Jeton d’identité : information d’identification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SAML">SAML</Tooltip> selon le module complémentaire que vous avez configuré.
+
+Mettez à jour `pets/login/login.js` comme suit pour obtenir un jeton de délégation AWS à partir du jeton d’identité après une connexion réussie avec `auth.signin`. Notez que vous considérez comme administrateur tout utilisateur qui ne s’est pas connecté au moyen d’une connexion sociale. Plus tard, nous coderons un deuxième rôle et montrerons de meilleures façons d’imposer la sélection du rôle.
+
+```js lines expandable
+auth.signin(params, function(profile, token) {
+  //Définir l'utilisateur comme administrateur s'il n'a pas utilisé une connexion sociale.
+  profile.isAdmin = !profile.identities[0].isSocial;
+  store.set('profile', profile);
+  store.set('token', token);
+
+  // obtenir le jeton de délégation à partir du jeton d'identité.
+  var options = getOptionsForRole(profile.isAdmin, token);
+
+  // À FAIRE : Étape 3 : Activer cette section une fois la délégation AWS configurée.
+  /*
+  auth.getToken(options)
+    .then(
+      function(delegation)  {
+        store.set('awstoken', delegation.Credentials);
+        $location.path("/");
+      },
+    function(err) {
+       console.log('échec de l\'acquisition du jeton de délégation', err);
+  });
+  */
+  // À FAIRE : Étape 3 : Supprimer cette redirection après avoir ajouté l'API d'obtention de jeton.
+  $location.path("/");
+
+}, function(error) {
+  console.log("Une erreur s'est produite lors de la connexion", error);
+});
+```
+
+<div id="modify-the-role-and-principal-strings">
+  #### Modifier les chaînes `role` et `principal`
+</div>
+
+Pour modifier les chaînes `role` et `principal` (qui correspondent aux deux dernières lignes de l’instruction `if` dans la fonction fournie), indiquez les valeurs appropriées dans [Rules](https://manage.auth0.com/#/rules):
+
+```javascript lines
+function (user, context, callback) {
+  if (context.clientID === 'CLIENT_ID' &&
+      context.protocol === 'delegation') {
+    // définir les paramètres AWS
+    context.addonConfiguration = context.addonConfiguration || {};
+    context.addonConfiguration.aws = context.addonConfiguration.aws || {};
+    context.addonConfiguration.aws.principal = 'arn:aws:iam::[omitted]:saml-provider/auth0-provider';
+    context.addonConfiguration.aws.role = 'arn:aws:iam::[omitted]:role/auth0-role';
+  }
+
+  callback(null, user, context);
+}
+```
+
+Assurez-vous de mettre à jour les valeurs ARN `role` et `[principal]` avec celles de votre intégration.
+
+Copiez les fichiers mis à jour dans votre bucket S3 pour votre site Web.
+
+Au besoin, vous pouvez définir un point d’arrêt dans le navigateur à `store.set('awstoken', delegation.Credentials);`. Lorsque vous vous déconnectez puis vous reconnectez, examinez `delegation.Credentials` lorsque vous arrivez au point d’arrêt. Vous verrez des valeurs familières comme AccessKeyId et SecretAccessKey :
+
+```js lines
+{
+    AccessKeyId: "ASIAJB...BNQ",
+    SecretAccessKey: "vS+b6...2Noav",
+    SessionToken: "AQoDYBqsivOV...DdQW0gsKr8rgU=",
+    Expiration: "2015-08-27T14:48:32.000Z"
+}
+```
+
+Si vous ne voyez pas ces valeurs, assurez-vous d’avoir activé le module complémentaire Amazon Web Services dans l’onglet Addons de votre Application Auth0.
+
+<div id="display-pets-with-the-aws-api-service">
+  ### Afficher les animaux de compagnie grâce au service d’API AWS
+</div>
+
+La première chose que vous ferez sera d’afficher les animaux de compagnie aux utilisateurs finaux.
+
+<div id="add-the-api-code-to-call-your-api">
+  #### Ajoutez le code de l’API pour appeler votre API
+</div>
+
+Pour ajouter le code de l’API nécessaire à l’ajout d’un appel à votre service, copiez le contenu de `apiGateway-js-sdk.zip` que vous avez téléchargé précédemment dans le répertoire `pets`. Le contenu devrait comprendre :
+
+* `apiClient.js`;
+* le dossier `lib`;
+* `README.md`.
+
+Pour examiner le téléchargement, consultez [Tutoriel AWS API Gateway, partie 2](/docs/fr-CA/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2#deploy-the-api).
+
+Comme il y a déjà un fichier `README.md` dans le répertoire `pets`, vous devrez renommer l’un des fichiers afin de conserver les deux dans le répertoire. Le fichier `README.md` d’API Gateway explique comment utiliser l’application d’API à partir de votre Application Auth0.
+
+Ouvrez le fichier `index.html` situé à la racine de votre dossier `pets` pour ajouter à `index.html` tous les scripts indiqués au début du fichier readme de l’API :
+
+```html lines
+<!-- scripts pour aws api gateway à inclure après avoir créé votre package depuis aws pour api gateway. -->
+<script type="text/javascript" src="/lib/axios/dist/axios.standalone.js"></script>
+<script type="text/javascript" src="/lib/CryptoJS/rollups/hmac-sha256.js"></script>
+<script type="text/javascript" src="/lib/CryptoJS/rollups/sha256.js"></script>
+<script type="text/javascript" src="/lib/CryptoJS/components/hmac.js"></script>
+<script type="text/javascript" src="/lib/CryptoJS/components/enc-base64.js"></script>
+<script type="text/javascript" src="/lib/moment/moment.js"></script>
+<script type="text/javascript" src="/lib/url-template/url-template.js"></script>
+<script type="text/javascript" src="/lib/apiGatewayCore/sigV4Client.js"></script>
+<script type="text/javascript" src="/lib/apiGatewayCore/apiGatewayClient.js"></script>
+<script type="text/javascript" src="/lib/apiGatewayCore/simpleHttpClient.js"></script>
+<script type="text/javascript" src="/lib/apiGatewayCore/utils.js"></script>
+<script type="text/javascript" src="/apigClient.js"></script>
+```
+
+Si vous ouvrez `apigClient.js`, vous verrez que la bibliothèque téléchargée a créé des wrappers comme `petsPost` et `petsGet` pour les méthodes de votre API. Vous n’avez pas besoin de modifier ce code généré.
+
+<div id="configure-the-getpets-method">
+  #### Configurer la méthode getPets
+</div>
+
+Ouvrez `home.js` dans le dossier `home`, puis mettez à jour le contenu de `getPets` avec une méthode permettant de récupérer les données des animaux de compagnie (assurez-vous de mettre à jour la région si vous n’utilisez pas `us-east-1`) :
+
+```javascript lines
+function getPets() {
+    // ceci n'est pas authentifié
+    var apigClient = apigClientFactory.newClient({
+        region: 'us-east-1' // La région où l'API est déployée
+    });
+
+    apigClient.petsGet({},{})
+      .then(function(response) {
+        console.log(response);
+        $scope.pets = response.data;
+        $scope.$apply();
+      }).catch(function (response) {
+        alert('pets get failed');
+        showError(response);
+    });
+}
+```
+
+Copiez le code mis à jour dans votre bucket S3. Actualisez la page pour voir deux animaux s’afficher (si vous avez exécuté le test décrit précédemment sur vos API, qui ont créé ces animaux de compagnie).
+
+<div id="update-pets-with-the-aws-api-service">
+  ### Mettre à jour les entrées de `pets` avec l’AWS API Service
+</div>
+
+Maintenant que vous avez une Auth0 Application fonctionnelle avec API Gateway, vous allez ajouter une méthode pour mettre à jour la table `pets`.
+
+Modifiez la logique de la méthode `putPets` pour mettre à jour les entrées de `pets` à l’aide de votre fonction d’API. Cette fonction servira à la fois à ajouter et à supprimer des entrées.
+
+```javascript lines
+function putPets(updatedPets) {
+    var body = {pets: updatedPets};
+
+    var apigClient = apigClientFactory.newClient({
+        region: 'us-east-1' // définissez ceci selon la région dans laquelle vous travaillez.
+    });
+
+    apigClient.petsPost({},body)
+      .then(function(response) {
+        console.log(response);
+       }).catch(function (response) {
+        alert('pets update failed');
+        showError(response);
+      });
+}
+```
+
+Copiez le code mis à jour dans votre bucket S3. Testez la méthode :
+
+1. Déconnectez-vous, puis reconnectez-vous.
+2. Entrez des valeurs pour `Pet Type` et `Pet Price`.
+3. Cliquez sur **Save** pour envoyer vos données.
+
+Vous devriez voir un message indiquant : &quot;We have a `<Pet Type>` for sale for `<Pet Price>`&quot;, avec un bouton **REMOVE** rouge à sa gauche.
+
+Pour renforcer la sécurité, ajoutez la fonction `getSecureApiClient` au début de la méthode `putPets` :
+
+```javascript lines
+function putPets(updatedPets) {
+     var apigClient = getSecureApiClient();
+}
+```
+
+Copiez le code dans votre bucket S3.
+
+La fonction `getSecureApiClient` qui vous est fournie récupère le token AWS à partir du local storage obtenu à l’aide de délégation vers l’API et utilise la key d’accès, le secret et le token de session :
+
+```javascript lines
+function getSecureApiClient() {
+    var awstoken = store.get('awstoken');
+
+    return apigClientFactory.newClient({
+        accessKey: awstoken.AccessKeyId,
+        secretKey: awstoken.SecretAccessKey,
+        sessionToken: awstoken.SessionToken,
+        region: 'us-east-1' // La région dans laquelle vous travaillez.
+    });
+  }
+```

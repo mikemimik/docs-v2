@@ -1,0 +1,205 @@
+---
+description: Autorización de usuarios y consideraciones de planificación relacionadas para tu implementación de IAM B2B.
+title: Autorización (B2B)
+validatedOn: 2026-02-03
+---
+
+Comencemos dando un paso atrás para hablar sobre el Control de Acceso. No existe una definición única y claramente delimitada de Control de Acceso en la industria, pero si dedicas algo de tiempo a buscar y leer, verás que la mayoría de las fuentes autorizadas coinciden en que es el concepto general que engloba la Autenticación, la Autorización, el Consentimiento y la Aplicación de Políticas para garantizar que solo las personas y los servicios adecuados tengan acceso a tus aplicaciones y API.
+
+A continuación, veamos más de cerca las diferencias entre Autenticación, Autorización, Consentimiento y Aplicación de Políticas. Tu tenant de Auth0 (tu <Tooltip tip="Servidor de Autorización: Servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funcionalidades disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Authorization+Server">Servidor de Autorización</Tooltip>) suele ser responsable de la Autenticación y el Consentimiento, y de parte o de la totalidad de la Autorización y la Aplicación de Políticas. Además, una Aplicación o API en sí misma casi siempre es la principal encargada de aplicar las políticas, especialmente cuando se requiere acceso contextual:
+
+* **Autenticación**: el proceso de determinar si un principal (un usuario o una aplicación) es quien o lo que dice ser.
+* **Autorización**: el proceso de determinar qué está permitido, en función del principal, de los permisos que se le han otorgado y/o del conjunto de criterios de acceso específicos del contexto.
+* **Consentimiento**: los permisos que el usuario (<Tooltip tip="Propietario del Recurso: Entidad (como un usuario o una aplicación) capaz de otorgar acceso a un recurso protegido." cta="Ver glosario" href="/docs/es/glossary?term=Resource+Owner">Propietario del Recurso</Tooltip>) ha concedido a una aplicación para actuar en su nombre. Por lo general, esto es un requisito de la autorización delegada. El usuario debe dar permiso al Cliente para acceder a sus datos en un sistema diferente.
+* **Aplicación de Políticas**: el acto de aplicar las políticas de la aplicación o API, rechazando o permitiendo el acceso en función de la información de autenticación y/o autorización de un usuario.
+
+En general, solemos agrupar los distintos tipos de control de acceso en tres categorías diferenciadas para que sea más fácil entender a) qué actor es responsable de almacenar la información, b) qué actor es responsable de tomar decisiones y c) cuál es responsable de aplicar las restricciones.
+
+* La primera categoría es aquella en la que el acceso se concede o se deniega a una aplicación o a una API en su totalidad. Tanto los datos necesarios para aplicar esto como el proceso de aplicación suelen definirse en el contexto del Servidor de Autorización. Por ejemplo, mediante el uso de [`app_metadata`](/docs/es/manage-users/user-accounts/metadata) asociado a un usuario y una [Action](/docs/es/customize/actions) definida en tu tenant de Auth0.
+* La segunda categoría es aquella en la que el acceso se concede o se deniega a un subconjunto específico de la funcionalidad de la aplicación o API. Los datos necesarios para aplicar esto suelen almacenarse en el Servidor de Autorización. Por ejemplo, usando `app_metadata` en un usuario de tu tenant de Auth0, mientras que el proceso de aplicación se lleva a cabo en la propia aplicación o API. En este escenario, los datos suelen comunicarse como uno o más claims personalizados en un token de [`id`](/docs/es/secure/tokens/id-tokens) o de [`access`](/docs/es/secure/tokens/access-tokens).
+* La tercera categoría es aquella en la que el acceso se concede o se deniega en función de aquello sobre lo que el principal (sujeto) puede operar dentro del contexto de una aplicación o API. Tanto los datos necesarios para aplicar esto como el proceso de aplicación suelen definirse en el contexto de la aplicación o API. En este escenario, los datos comunicados como uno o más claims personalizados en un token `id` o `access` pueden consumirse con o sin datos de una fuente externa que no sea Auth0.
+
+Además, los mecanismos de Control de Acceso Basado en Roles (RBAC) y Control de Acceso Basado en Atributos (ABAC) pueden aplicarse en cualquiera de las categorías de Control de Acceso descritas anteriormente. Sea cual sea tu caso de uso, hay una serie de aspectos que querrás tener en cuenta al revisar la funcionalidad y el flujo de trabajo que necesitas:
+
+* ¿Hay escenarios en los que deba rechazarse el acceso a una aplicación o API completa?
+* ¿Va a proporcionar APIs a las que puedan acceder aplicaciones de terceros?
+* ¿Sus propias aplicaciones también accederán a sus APIs?
+* ¿Su aplicación llamará a una API de terceros?
+* ¿Deben sus aplicaciones y/o APIs aplicar control de acceso en función de claims de usuario?
+* ¿Qué ocurre si necesito saber con qué organización está asociado un <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip> o un <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">ID token</Tooltip>?
+
+Auth0 admite restringir el acceso a aplicaciones o APIs en función de determinadas condiciones. En algunos casos, puede que quiera crear una Action que devuelva un `UnauthorizedError` cuando, por ejemplo, un usuario intente acceder a una aplicación o API en un momento no permitido (como se describe en este [ejemplo](/docs/es/manage-users/access-control/sample-use-cases-rules-with-authorization#allow-access-only-on-weekdays-for-a-specific-application)) o si el usuario no tiene el/los claim(s) correcto(s) en su `app_metadata`. En el caso de una aplicación que use [OpenID Connect (OIDC)](/docs/es/authenticate/protocols/openid-connect-protocol), esto impediría la emisión del [ID Token](/docs/es/secure/tokens/id-tokens) utilizado para autorizar el acceso. Del mismo modo, en el caso de una API, podría impedirse la emisión de cualquier OAuth2 [token de acceso](/docs/es/secure/tokens/access-tokens) (utilizado al llamar a la API), como se describe en este [ejemplo](/docs/es/manage-users/access-control/sample-use-cases-rules-with-authorization#deny-access-to-anyone-calling-an-api).
+
+<Info>
+  ### Buena práctica
+
+  En general, hemos comprobado que [OIDC](/docs/es/authenticate/protocols/openid-connect-protocol) es el protocolo estándar del sector más utilizado por los clientes de Auth0 para la autenticación en sus aplicaciones. También hemos observado que, aunque [OAuth2](/docs/es/authenticate/protocols/oauth) se creó como un protocolo de delegación, se utiliza habitualmente en aplicaciones propias cuando hay una API que no comparte sesión con la aplicación.
+</Info>
+
+Auth0 también puede proporcionar la información necesaria para que una aplicación pueda aplicar restricciones. Para la [integración a nivel de aplicación](#application-integration), Auth0 le permite añadir [claims personalizados](#id-token-claims) a un ID Token, que su aplicación puede verificar y usar posteriormente para aplicar políticas. En este caso, tendrá que decidir qué información necesita para que su aplicación pueda tomar decisiones de aplicación. Si necesita tomar decisiones en una API en lugar de en su aplicación, probablemente tendrá que usar un token de acceso en lugar de un ID token. Siga leyendo para obtener más información.
+
+<Warning>
+  Al decidir qué datos incluir en su ID token y/o token de acceso, tenga en cuenta el tamaño del token, especialmente si va a pasarlo en la URL. Aunque no esté pasando tokens en la URL, también tendrá que considerar la posibilidad de exponer PII (Personally Identifiable Information) sensibles. La información del token no está cifrada, por lo que, aunque en general no suele ser un problema de seguridad que se filtre un ID token, puede convertirse en un problema de privacidad según los datos que incluya el token.
+</Warning>
+
+Para la [integración a nivel de API](#api-integration), Auth0 admite tanto [claims personalizados](#access-token-claims) como la reconfiguración de [scope](#access-token-scopes), ambos dentro del contexto de un token de acceso. De nuevo, tendrá que decidir qué información será necesaria para que su API tome decisiones de acceso, y su API tendrá que aplicarlo validando el contenido del token de acceso.
+
+<Info>
+  ### Buena práctica
+
+  Al decidir si debe usar permisos mediante claims personalizados o scopes, debe asegurarse de entender la naturaleza y el propósito de los scopes. Hay una excelente [entrada de blog](https://auth0.com/blog/on-the-nature-of-oauth2-scopes/) sobre ello que es fácil de leer y ayuda a aclarar el tema.
+</Info>
+
+En escenarios con múltiples organizaciones, a menudo puede ser importante saber a qué organización se aplica un token de acceso (o incluso un ID token). Seguir las [mejores prácticas](#organization-data-in-an-access-token) puede ahorrarle tiempo y esfuerzo.
+
+<div id="application-integration">
+  ## Integración de aplicaciones
+</div>
+
+En este escenario, tu tenant de Auth0 proporciona un token como indicador de acceso autorizado a una aplicación. En el caso de las aplicaciones que utilizan [OpenID Connect (OIDC)](/docs/es/authenticate/protocols/openid-connect-protocol), el protocolo estándar del sector que suele usarse con más frecuencia en aplicaciones orientadas al cliente, se trataría de un ID Token expresado como un [JWT](/docs/es/secure/tokens/json-web-tokens).
+
+<div id="id-token-claims">
+  ### Claims del ID Token
+</div>
+
+Con la extensibilidad de Actions, Auth0 te permite [añadir fácilmente claims personalizados a un ID Token](/docs/es/get-started/apis/scopes/sample-use-cases-scopes-and-claims#add-custom-claims-to-a-token) en función de, por ejemplo, el contenido de los [metadatos](/docs/es/manage-users/user-accounts/metadata) de un usuario. Luego, tu aplicación puede verificar que el ID Token contenga los claims necesarios y, según corresponda, permitir o denegar el acceso a determinadas funcionalidades. Ten en cuenta que, aunque el proceso de añadir claims personalizados mediante Actions es sencillo, Actions es flexible y te permite escribir código personalizado que puede tener efectos negativos.
+
+<Info>
+  ### Mejores prácticas
+
+  Si estás pensando en añadir claims personalizados, te recomendamos almacenar en el [`app_metadata`](/docs/es/manage-users/user-accounts/metadata) del usuario cualquier dato de control de acceso que necesites incluir en los claims. En primer lugar, esto evita tener que llamar a una API externa para obtener los datos, lo que puede afectar negativamente al rendimiento y la escalabilidad del proceso de inicio de sesión. En segundo lugar, un usuario **no puede** modificar `app_metadata`, por lo que no puede eludir directamente ninguna restricción de control de acceso modificando sus propios metadatos. Recuerda también consultar nuestra guía de [mejores prácticas sobre metadatos](/docs/es/get-started/architecture-scenarios/business-to-business/profile-management#metadata).
+</Info>
+
+Si estás creando distintas instancias de tu aplicación para las organizaciones de tus clientes, una práctica habitual es crear un claim personalizado en tu ID Token para representar la organización del usuario. Por ejemplo:
+
+```js wrap lines
+context.idToken["http://yourdomain.com/claims/organization"] = "organization A";
+```
+
+<div id="id-token-scopes">
+  ### Scopes del ID Token
+</div>
+
+Los [OIDC Scopes](/docs/es/get-started/apis/scopes/openid-connect-scopes) se suelen usar para que una aplicación obtenga el consentimiento para acceder de forma autorizada a los datos de un usuario durante la autenticación. Cada uno de los scopes predefinidos devuelve el conjunto de claims estándar cuando corresponde, tal como se describe en la [especificación de OIDC](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims). Los scopes que solicita una aplicación dependen de los atributos del usuario que necesite. Una vez que el usuario autoriza los scopes solicitados, los claims se devuelven en el ID Token y también están disponibles a través del endpoint [/userinfo](https://auth0.com/docs/api/authentication/user-profile/get-user-info).
+
+<div id="api-integration">
+  ## Integración de API
+</div>
+
+En este escenario, tu tenant de Auth0 puede proporcionar un OAuth2 [token de acceso](/docs/es/secure/tokens/access-tokens), normalmente expresado como un [JWT](/docs/es/secure/tokens/json-web-tokens), que tu API puede usar para restringir el acceso a determinadas partes. Además, Auth0 ofrece soporte para lo que conceptualmente se describe como [aplicaciones propias y de terceros](/docs/es/get-started/applications/first-party-and-third-party-applications).
+
+Actuando como servidor de autorización, y con el consentimiento del usuario (el propietario del recurso), tu tenant de Auth0 puede utilizarse para proporcionar un token de acceso —normalmente expresado como un [JWT](/docs/es/secure/tokens/json-web-tokens)— a una aplicación (cliente) para que pueda acceder a recursos protegidos alojados en un <Tooltip tip="Servidor de recursos: servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip> en nombre del propietario del recurso. El token de acceso emitido suele enviarse como token Bearer en el encabezado HTTP Authorization de una solicitud a una API.
+
+Tanto si tienes una única API como un conjunto de [API de microservicios](/docs/es/get-started/apis/set-logical-api) relacionadas lógicamente, puedes aprovechar los tokens de acceso que proporciona Auth0 para proteger el acceso a tu servicio o servicios. Aunque es relativamente fácil configurar esto en el [Auth0 Dashboard](https://manage.auth0.com/) o mediante la [Auth0 Management API](https://auth0.com/docs/api/management/v2#!/Resource_Servers/post_resource_servers), es importante revisar los distintos escenarios de aplicación y diseños de API para determinar la mejor arquitectura para tu sistema.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los tokens de acceso OAuth2 están diseñados principalmente para proteger API públicas; cuando se expresan como JWT, un token de acceso es una entidad autocontenida que puede verificarse sin necesidad de hacer ninguna llamada adicional a una API de terceros. Si tus API no entran en esta categoría —es decir, si forman parte de la propia aplicación (es decir, solo esa aplicación las invoca) o están detrás de tu firewall—, protegerlas con tokens puede ser excesivo, y tu flujo actual basado en cookies (entre otros) probablemente sea suficiente.
+</Callout>
+
+OAuth2 fue diseñado específicamente pensando en el acceso de terceros. Por ejemplo, puede darse el caso de que un usuario (propietario del recurso) quiera utilizar una aplicación (un cliente) que no pertenece a la misma organización que el servicio que proporciona los datos del usuario (el servidor de recursos). En este caso, cuando la aplicación necesita acceder a datos del usuario, redirige a la organización donde residen esos datos, que a su vez autentica al usuario y luego le solicita que conceda a la aplicación permiso para acceder a ellos. Esta solicitud de permiso se denomina [consentimiento](/docs/es/get-started/applications/third-party-applications/user-consent-and-third-party-applications) y es una parte fundamental de lo que implica ofrecer soporte para [aplicaciones de terceros](/docs/es/get-started/apis/scopes/api-scopes#example-an-api-called-by-a-third-party-application). Si planeas integrar aplicaciones de terceros, es importante que las marques como de terceros desde el principio para que Auth0 gestione la solicitud de consentimiento del usuario.
+
+Por otro lado, si tu organización es propietaria de la(s) aplicación(es), de los propios datos del usuario y de la(s) API a través de las cuales se accede a esos datos, normalmente no se requiere consentimiento, ya que todas las interacciones son [propias](/docs/es/get-started/apis/scopes/api-scopes#example-an-api-called-by-a-first-party-application). Si solo estás creando aplicaciones propias, puedes asegurarte de no mostrar a tus usuarios pantallas de consentimiento innecesarias [permitiendo omitir el consentimiento del usuario](/docs/es/get-started/apis) como parte de cualquier definición de servicio de recursos.
+
+<Warning>
+  Aunque puedes configurar tus aplicaciones para que sean propias y posteriormente configurar tus API para permitir que los clientes propios omitan el consentimiento, si estás usando `localhost` Auth0 no puede verificar que la aplicación sea realmente una aplicación propia, por lo que tus usuarios tendrán que dar su consentimiento de todos modos. Para evitar esta limitación, al hacer pruebas en tu equipo local durante el desarrollo, crea un [nombre de host local ficticio y úsalo en su lugar](https://community.auth0.com/t/how-do-i-skip-the-consent-page-for-my-api-authorization-flow/6035).
+</Warning>
+
+Como alternativa, puede que tenga datos relacionados con un usuario para los que se ofrece [funcionalidad adicional](/docs/es/get-started/apis/scopes/api-scopes#example-an-api-called-by-a-back-end-service) y para los que no es posible obtener el consentimiento explícito del usuario (es decir, no hay ningún usuario autenticado que pueda otorgarlo). En este caso, se puede definir una [lista de aplicaciones para las que está habilitada la concesión Client Credentials](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow).
+
+<div id="access-token-claims">
+  ### Claims de los tokens de acceso
+</div>
+
+Al igual que ocurre con los tokens de ID, puedes [agregar claims personalizados a los tokens de acceso](/docs/es/get-started/apis/scopes/sample-use-cases-scopes-and-claims#add-custom-claims-to-a-token) mediante la extensibilidad de Auth0 Actions. Una vez agregados, tu API puede verificar que un token de acceso contenga los claims necesarios y permitir o impedir el acceso a determinadas funcionalidades, según corresponda.
+
+<Info>
+  ### Buena práctica
+
+  Si estás pensando en agregar claims personalizados, te recomendamos almacenar en el [`app_metadata`](/docs/es/manage-users/user-accounts/metadata) del usuario cualquier dato de control de acceso que necesites incluir en los claims. En primer lugar, esto evita tener que llamar a una API externa para obtener esos datos, lo que puede afectar negativamente al rendimiento y la escalabilidad. En segundo lugar, `app_metadata` **no puede** ser modificado por el usuario, por lo que este no puede eludir directamente ninguna restricción de control de acceso modificando sus propios metadatos. Recuerda también consultar nuestra guía de [prácticas recomendadas para metadatos](/docs/es/get-started/architecture-scenarios/business-to-business/profile-management#metadata).
+</Info>
+
+<div id="access-token-scopes">
+  ### Scopes del token de acceso
+</div>
+
+Los [OAuth2 Scopes](/docs/es/get-started/apis/scopes/api-scopes) suelen usarse como el mecanismo mediante el cual una API puede determinar qué acciones pueden realizarse en nombre de un usuario. Los scopes pueden agregarse para cada API a fin de [definir permisos de acceso específicos](/docs/es/get-started/apis/add-api-permissions) en el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o mediante la <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> de Auth0). Los scopes también pueden modificarse mediante la extensibilidad de Auth0 (por ejemplo, a través de una Action, como en este [ejemplo](/docs/es/get-started/architecture-scenarios/spa-api/part-2#create-a-rule-to-validate-token-scopes)). Los scopes que una aplicación solicita para acceder a una API deben depender de la funcionalidad para la que la aplicación necesita que el usuario le otorgue permiso. Una vez autorizados los scopes solicitados, se devolverán en el token de acceso, que posteriormente puede ser [verificado por esa API](/docs/es/secure/tokens/access-tokens/validate-access-tokens). Un buen ejemplo de esto es cuando inicia sesión en una aplicación que usa un proveedor social para autenticarse: la API del proveedor social requiere que la aplicación especifique si el usuario quiere que la aplicación publique contenido en su nombre. Esto permite al usuario aceptar o rechazar esta solicitud. Este ejemplo demuestra cómo el usuario delega permisos en la aplicación, lo cual es distinto de que la API restrinja el acceso según el rol del usuario, y debe gestionarse de otra manera.
+
+<Info>
+  ### Buena práctica
+
+  Aunque puede manipular por completo los scopes del token de acceso mediante la extensibilidad de Auth0, como buena práctica de seguridad solo debe eliminar los scopes que no estén autorizados y evitar agregar scopes que no se hayan solicitado.
+</Info>
+
+Aunque los scopes suelen usarse como una forma de aplicar permisos de acceso para un usuario, hay situaciones en las que [usarlos de esta manera puede resultar complicado](https://auth0.com/blog/on-the-nature-of-oauth2-scopes/). Por ello, le recomendamos usar los scopes para su propósito previsto (es decir, delegar permisos en una aplicación) y usar [claims personalizados](#access-token-claims) para escenarios de control de acceso basados en roles o de otro tipo.
+
+<div id="fine-grained-authorization-fga">
+  ## Autorización granular (FGA)
+</div>
+
+La [Autorización granular](https://docs.fga.dev/fga-concepts) te permite otorgar a usuarios individuales acceso a un recurso u objeto específico en función de lo siguiente:
+
+* El rol de un usuario dentro de una organización, como `editor` o `admin`
+* Un atributo del usuario o del objeto, como `manager` para un usuario o `marketing` para un objeto
+* La relación entre un usuario y un objeto; por ejemplo, un usuario con acceso de visualización a una carpeta principal también tiene acceso de visualización a la carpeta secundaria
+
+Con <Tooltip tip="Autorización granular (FGA): producto de Auth0 que permite a usuarios individuales acceder a objetos o recursos específicos." cta="Ver glosario" href="/docs/es/glossary?term=FGA">FGA</Tooltip>, puedes crear un modelo de autorización para definir qué relación quieres usar para determinar el acceso del usuario.
+
+<div id="role-based-access-control-rbac">
+  ## Control de acceso basado en roles (RBAC)
+</div>
+
+Auth0 ofrece compatibilidad nativa con el control de acceso basado en roles ([RBAC](/docs/es/manage-users/access-control/rbac)). RBAC consiste en asignar permisos a los usuarios según su rol dentro de una organización y permite un control de acceso más sencillo, ya que ofrece un enfoque más fácil de administrar y menos propenso a errores.
+
+La funcionalidad principal de RBAC puede utilizarse en muchos escenarios con múltiples organizaciones. Consulta [Datos de organización en un token de acceso](#organization-data-in-an-access-token) para obtener más información sobre cómo asegurarte de que tu configuración pueda satisfacer tus necesidades de RBAC.
+
+<div id="machine-to-machine-m2m-authorization">
+  ## Autorización de máquina a máquina (M2M)
+</div>
+
+Hay muchos escenarios en los que una aplicación sin ninguna sesión interactiva con el usuario necesita obtener un token de acceso para poder llamar a una API. En esos casos, debes autenticar al cliente en lugar de al usuario, y <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth">OAuth</Tooltip> 2 ofrece el tipo de concesión de [credenciales de cliente](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow) para facilitarlo. Algunos ejemplos habituales en los que esto es necesario son:
+
+* Una tarea cron u otro servicio que necesite comunicarse con tu API (p. ej., cuando hace falta generar un informe diario y enviárselo por correo electrónico a un administrador).
+* Una API independiente que admite acceso privilegiado (p. ej., la API no se expone directamente a los usuarios, sino únicamente a un backend).
+* En ciertas arquitecturas de microservicios, donde algunas capas de API necesitan comunicarse con otras capas de API sin la intervención de un usuario, o después de que haya expirado el token de un usuario.
+* Una API privilegiada que puede necesitar invocarse antes de que un usuario se haya autenticado (es decir, desde una Action o un script personalizado de base de datos en tu tenant de Auth0)
+
+<Info>
+  ### práctica recomendada
+
+  Tradicionalmente, se creaba una &quot;cuenta de servicio&quot; especial para estos escenarios: un usuario con nombre de usuario y contraseña configurado para servicios que admitían casos de uso no interactivos. Ese enfoque ya no se recomienda por muchas razones, y la práctica recomendada actual es usar [OAuth 2.0 Client Credentials Grant](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow) en estas situaciones.
+</Info>
+
+<div id="organization-data-in-an-access-token">
+  ## Datos de la organización en un token de acceso
+</div>
+
+Si en tu sistema tienes una API independiente de tu aplicación que da soporte a una aplicación con múltiples organizaciones, es importante restringir las operaciones únicamente a la organización para la que se generó el token. Para ello, el token de acceso debe incluir algún tipo de información que le indique a la API para qué organización se emitió. Esto puede hacerse de un par de formas distintas, según las respuestas a unas preguntas sencillas:
+
+1. ¿Los usuarios finales de esta organización podrían pertenecer a más de una organización, o cada usuario final está limitado a una organización específica?
+2. ¿Vas a permitir acceso de Machine-to-Machine (M2M) a tu API?
+3. Si vas a permitir acceso de Machine-to-Machine (M2M) a tu API, ¿tendrás desarrolladores que necesiten un único client ID y secreto para acceder a varias organizaciones (pero no a todas)?
+4. ¿Vas a permitir la creación de aplicaciones de terceros que requieran consentimiento?
+
+Si los usuarios finales están limitados a una sola organización **y** no vas a permitir acceso M2M a tu API o tendrás un <Tooltip tip="Client ID: Valor de identificación dado a tu recurso registrado por Auth0." cta="Ver glosario" href="/docs/es/glossary?term=client+ID">client ID</Tooltip>/secreto independiente para cada organización que necesite acceso **y** no vas a permitir aplicaciones de terceros que requieran consentimiento, entonces el enfoque más sencillo es simplemente crear un claim personalizado en el token de acceso [usando Actions para los tokens basados en usuarios](#access-token-claims) y [usando el hook de credenciales de cliente para llamadas M2M](#machine-to-machine-m2m-authorization). Puedes almacenar el nombre de la organización en los metadatos del cliente y extraerlo desde Actions o hooks para incluirlo en `access_token` como un claim personalizado. RBAC también funcionará de inmediato con este enfoque, siempre que cada usuario final solo pueda pertenecer a una organización.
+
+Si los usuarios finales pueden pertenecer a más de una organización o podrías darle a un mismo desarrollador un client ID y secreto para llamadas M2M a más de una organización, el mejor enfoque es crear una <Tooltip tip="Audience: Identificador único de la audiencia para un token emitido. Llamado aud en un token, su valor contiene el ID de una aplicación (Client ID) para un ID Token o de una API (API Identifier) para un Access Token." cta="Ver glosario" href="/docs/es/glossary?term=audience">audience</Tooltip> independiente (una instancia de API independiente en tu tenant de Auth0) para cada organización. Esto te da varias capacidades útiles:
+
+1. En primer lugar, te permite pasar la audience como un parámetro de primera clase a Auth0 sin tener que crear un parámetro personalizado. La ventaja es que Auth0 ayudará a validar la existencia de la audience y la pasará a tus Actions. También garantizará que un refresh token emitido solo funcione para la audience específica para la que se emitió originalmente.
+2. Te permite restringir las autorizaciones de cliente únicamente a organizaciones concretas de forma nativa. La alternativa es crear un hook de credenciales de cliente más complejo para intentar recuperar las restricciones desde otro lugar y, además, requerir una forma mucho más compleja y potencialmente problemática de indicarle a la llamada de credenciales de cliente para qué organización debe emitir el token de acceso.
+3. Esto también te permite usar la funcionalidad principal de RBAC con Auth0 y garantizar que los usuarios finales que tengan acceso a más de una organización puedan tener un rol diferente para cada organización.
+
+<div id="project-planning-guide">
+  ## Guía de planificación de proyectos
+</div>
+
+Ofrecemos una guía de planificación en formato PDF que puedes descargar y consultar para conocer en detalle nuestras estrategias recomendadas.
+
+[Guía de planificación de proyectos de B2B IAM](https://assets.ctfassets.net/cdy7uua7fh8z/63F0WOPJdVzsPMxV1Xvp8x/7a329487c5e890d8e820f6a48983b46a/B2B_Project_Planning.pdf)
+
+<div id="multiple-organization-architecture-multitenancy">
+  ## Arquitectura de múltiples organizaciones (multitenencia)
+</div>
+
+Muchas plataformas B2B implementan algún tipo de aislamiento y/o personalización de marca para las organizaciones de sus clientes, y esto puede añadir complejidad a cualquier sistema de Gestión de Identidades y Accesos (IAM). Si este es su caso, le recomendamos que dedique algo de tiempo a leer nuestra guía y nuestras recomendaciones de buenas prácticas para este tipo de entorno.
+
+[Arquitectura de múltiples organizaciones](/docs/es/get-started/architecture-scenarios/multiple-organization-architecture)

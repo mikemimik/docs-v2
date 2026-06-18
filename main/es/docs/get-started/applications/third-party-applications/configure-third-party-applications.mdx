@@ -1,0 +1,267 @@
+---
+title: Configurar aplicaciones de terceros
+description: "Cree y configure aplicaciones de terceros mediante el Auth0 Dashboard o la Management API."
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Crea aplicaciones de terceros para que desarrolladores externos, socios o agentes de IA accedan a tus API con controles de seguridad reforzados.
+
+<div id="prerequisites">
+  ## Requisitos previos
+</div>
+
+Antes de crear una aplicación de terceros, asegúrate de tener lo siguiente:
+
+* Un tenant de Auth0 con al menos una [API (servidor de recursos)](/docs/es/get-started/apis) configurada
+* Al menos una [conexión](/docs/es/authenticate/identity-providers) promovida al [nivel de dominio](/docs/es/authenticate/identity-providers/promote-connections-to-domain-level) (para flujos de cara al usuario)
+
+<div id="create-a-third-party-application">
+  ## Crear una aplicación de terceros
+</div>
+
+Cree una aplicación de terceros mediante Auth0 Dashboard o Management API.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    1. Vaya a **Applications &gt; Applications**.
+    2. Seleccione **Create Application**.
+    3. Introduzca un nombre para la aplicación y seleccione el tipo de aplicación:
+       * Regular Web App para clientes confidenciales del lado del servidor
+       * Single Page App para clientes públicos basados en navegador
+       * Native para clientes públicos móviles o de escritorio
+    4. Active el interruptor **This application is owned by a third party**.
+    5. Seleccione **Create**.
+
+    <Frame>![Cuadro de diálogo Create Application del Dashboard con la opción de terceros habilitada](/docs/images/third-party-applications/create-application-dialog.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Haga una solicitud `POST` al endpoint `/api/v2/clients` con el siguiente cuerpo de la solicitud:
+
+    <AuthCodeGroup>
+      ```bash cURL wrap lines
+      curl --request POST \
+        --url 'https://YOUR_DOMAIN/api/v2/clients' \
+        --header 'Authorization: Bearer YOUR_MANAGEMENT_API_TOKEN' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "name": "Partner Application",
+          "is_first_party": false,
+          "app_type": "regular_web",
+          "callbacks": ["https://partner.example.com/callback"],
+          "grant_types": ["authorization_code", "refresh_token"],
+          "token_endpoint_auth_method": "client_secret_post"
+        }'
+      ```
+    </AuthCodeGroup>
+
+    | **Parameter**                | **Type** | **Description**                                                                                                                                                                                                                                                                                                                               |
+    | ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `name`                       | String   | Obligatorio. El nombre de la aplicación.                                                                                                                                                                                                                                                                                                      |
+    | `is_first_party`             | Boolean  | Indica si la aplicación es first-party (`true`) o de terceros (`false`).                                                                                                                                                                                                                                                                      |
+    | `app_type`                   | String   | El tipo de aplicación (por ejemplo, `regular_web`, `native`, `spa`, `non_interactive`).                                                                                                                                                                                                                                                       |
+    | `callbacks`                  | Array    | Una lista de URL de callback permitidas para la redirección después de la autenticación.                                                                                                                                                                                                                                                      |
+    | `grant_types`                | Array    | Una lista de tipos de concesión de OAuth2 que este cliente puede usar. Las aplicaciones de terceros admiten `authorization_code`, `refresh_token` y `client_credentials`. Para obtener más información, consulte [Security Controls for Third-Party Applications](/docs/es/get-started/applications/third-party-applications/security-controls). |
+    | `token_endpoint_auth_method` | String   | El método de autenticación para el endpoint de token (por ejemplo, `client_secret_post`).                                                                                                                                                                                                                                                     |
+
+    Si la solicitud se realiza correctamente, Auth0 crea la aplicación con un prefijo `tpc_` en el Client ID, los tipos de concesión `authorization_code` y `refresh_token`, y establece `third_party_security_mode` en `strict`, lo que indica que los controles de seguridad reforzados están habilitados.
+
+    ```json wrap lines
+    {
+      "client_id": "tpc_aBcDeFgHiJkLmNoPqRsTuV",
+      "third_party_security_mode": "strict",
+      "is_first_party": false,
+      "name": "Partner Application",
+      "grant_types": ["authorization_code", "refresh_token"],
+      ...
+    }
+    ```
+
+    | **Parameter**               | **Type** | **Description**                                                                                                                                      |
+    | --------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `client_id`                 | String   | El identificador único de la aplicación, con el prefijo `tpc` para indicar que es una aplicación de terceros creada con el modo estricto habilitado. |
+    | `third_party_security_mode` | String   | Define el perfil de seguridad. Se establece en `strict` para aplicar controles de seguridad reforzados a aplicaciones de terceros.                   |
+    | `is_first_party`            | Boolean  | Debe establecerse en `false` al usar el modo de seguridad `strict` para identificar la aplicación como de terceros.                                  |
+    | `name`                      | String   | El nombre para mostrar de la aplicación.                                                                                                             |
+    | `grant_types`               | Array    | Los tipos de concesión de OAuth2 que esta aplicación está autorizada a usar (por ejemplo, `authorization_code`).                                     |
+  </Tab>
+</Tabs>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  La propiedad `third_party_security_mode` se establece al crear la aplicación y no puede cambiarse. Para usar un modo de seguridad diferente, cree una aplicación nueva.
+</Callout>
+
+<div id="configure-api-access-policies">
+  ## Configurar las políticas de acceso a la API
+</div>
+
+Las aplicaciones de terceros requieren autorizaciones de cliente explícitas para acceder a las API. Puedes configurar las políticas de acceso a la API de las siguientes maneras:
+
+* [Permisos por aplicación](#per-application-permissions): Aplica permisos granulares a cada aplicación de tu tenant.
+* [Permisos predeterminados para todas las aplicaciones de terceros](#default-permissions-for-all-third-party-applications): Aplica permisos predeterminados a todas las aplicaciones de terceros de tu tenant.
+
+Si existen tanto permisos por aplicación como permisos predeterminados para aplicaciones de terceros en la misma API, prevalecen los permisos por aplicación. Para obtener más información, consulta [Application Access to APIs: Client Grants](/docs/es/get-started/applications/application-access-to-apis-client-grants).
+
+<div id="per-application-permissions">
+  ### Permisos por aplicación
+</div>
+
+Para otorgar a una aplicación de terceros específica un acceso más amplio o más restringido que el predeterminado, crea una autorización de cliente para el `client_id` de esa aplicación:
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    1. Ve a **Applications &gt; APIs** y selecciona la API.
+    2. Ve a la pestaña **Settings**.
+    3. Desplázate hasta **Application Access Policy** y establece **User-Delegated Access** y **Client Access** en **Per-app authorization**.
+    4. Selecciona **Save**.
+
+    <Frame>![Configuración de la API en el Dashboard para la política de acceso de la aplicación](/docs/images/third-party-applications/application_access_policy.png)</Frame>
+
+    Al configurar permisos por aplicación, debes autorizar individualmente el acceso a la API para cada aplicación:
+
+    1. Ve a **Applications &gt; APIs** y selecciona la API.
+    2. Ve a la pestaña **Application Access**.
+    3. Desplázate hasta la aplicación, selecciona **Edit** y luego **Grant Access** para **User-Delegated Access** y/o **Client Access**. Después, selecciona los permisos que quieras.
+    4. Selecciona **Save**.
+
+    <Frame>![Configuración de la API en el Dashboard para otorgar acceso a la API a una aplicación](/docs/images/third-party-applications/grant-api-access.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    <AuthCodeGroup>
+      ```bash cURL wrap lines
+      curl --request POST \
+        --url 'https://YOUR_DOMAIN/api/v2/client-grants' \
+        --header 'Authorization: Bearer YOUR_MANAGEMENT_API_TOKEN' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "client_id": "tpc_aBcDeFgHiJkLmNoPqRsTuV",
+          "audience": "https://api.example.com",
+          "scope": ["read:items", "write:items", "delete:items"],
+          "subject_type": "user"
+        }'
+      ```
+
+      | **Parameter**  | **Type** | **Description**                                                                                                                                                                                                                                                                                                           |
+      | -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+      | `client_id`    | String   | Especifica la aplicación para la que quieres crear la autorización de cliente.                                                                                                                                                                                                                                            |
+      | `audience`     | String   | El identificador único (URI) de la API para la que se crea la autorización.                                                                                                                                                                                                                                               |
+      | `scope`        | Array    | Una lista de permisos (scopes) permitidos como parte de esta autorización.                                                                                                                                                                                                                                                |
+      | `subject_type` | String   | Define el tipo de acceso de la aplicación permitido para la API:<br /><ul><li>`user`: Se usa para el acceso delegado por el usuario, que corresponde a los flujos que generan un token asociado a un usuario final.</li><li>`client`: Se usa para el acceso de máquina a máquina, como Client Credentials Flow.</li></ul> |
+    </AuthCodeGroup>
+  </Tab>
+</Tabs>
+
+<div id="default-permissions-for-all-third-party-applications">
+  ### Permisos predeterminados para todas las aplicaciones de terceros
+</div>
+
+Los permisos predeterminados definen un conjunto básico de API y scopes disponibles para todas las aplicaciones de terceros. Esto es necesario para el [registro dinámico de clientes](/docs/es/get-started/applications/dynamic-client-registration), en el que no se puede configurar el acceso de cada aplicación de forma individual.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    1. Vaya a **Applications &gt; APIs** y seleccione la API.
+    2. Abra la pestaña **Settings**.
+    3. Desplácese hasta **Default Permissions for Third Party Apps**.
+    4. Seleccione **Authorized** para **User-Delegated Access** o **Client Access**.
+    5. Seleccione los scopes que desea conceder y, a continuación, haga clic en **Save**.
+
+    <Frame>![Configuración de la API en el Dashboard con permisos predeterminados para aplicaciones de terceros](/docs/images/third-party-applications/default-permissions-settings.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Haga una solicitud `POST` al endpoint `/api/v2/client-grants` con el siguiente cuerpo de la solicitud:
+
+    <AuthCodeGroup>
+      ```bash cURL wrap lines
+      curl --request POST \
+        --url 'https://YOUR_DOMAIN/api/v2/client-grants' \
+        --header 'Authorization: Bearer YOUR_MANAGEMENT_API_TOKEN' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "default_for": "third_party_clients",
+          "audience": "https://api.example.com",
+          "scope": ["read:items", "write:items"],
+          "subject_type": "user"
+        }'
+      ```
+    </AuthCodeGroup>
+
+    | **Parámetro**  | **Tipo** | **Descripción**                                                                                                                                                                                                                                                                                                       |
+    | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `default_for`  | String   | Especifica si esta concesión se aplica automáticamente a determinados tipos de aplicaciones. Establézcalo en `third_party_clients` para garantizar que todas las aplicaciones de terceros tengan acceso a esta API de forma predeterminada.                                                                           |
+    | `audience`     | String   | El identificador único (URI) de la API para la que se crea la concesión.                                                                                                                                                                                                                                              |
+    | `scope`        | Array    | Una lista de permisos (scopes) permitidos como parte de esta concesión.                                                                                                                                                                                                                                               |
+    | `subject_type` | String   | Define el tipo de acceso de la aplicación permitido para la API:<br /><ul><li>`user`: Se usa para el acceso delegado por el usuario, que corresponde a flujos que generan un token asociado a un usuario final.</li><li>`client`: Se usa para el acceso de máquina a máquina, como Client Credentials Flow.</li></ul> |
+  </Tab>
+</Tabs>
+
+<div id="configure-connections">
+  ## Configurar conexiones
+</div>
+
+Las aplicaciones de terceros solo pueden autenticar usuarios mediante conexiones a nivel de dominio. Una vez que se promueve una conexión al nivel de dominio, queda disponible para todas las aplicaciones de terceros del tenant.
+
+Para promover una conexión:
+
+1. Ve a **Auth0 Dashboard &gt; Authentication** y selecciona el tipo de conexión (Database, Social, Enterprise).
+2. Selecciona la conexión que quieres usar con aplicaciones de terceros.
+3. Activa el interruptor **Promote Connection to Domain Level**.
+
+Para obtener más información, consulta [Promover conexiones al nivel de dominio](/docs/es/authenticate/identity-providers/promote-connections-to-domain-level).
+
+<div id="configure-open-redirect-protection">
+  ## Configurar la protección contra redirecciones abiertas
+</div>
+
+Las aplicaciones de terceros con controles de seguridad reforzados tienen habilitada de forma predeterminada la **Protección contra redirecciones abiertas**. Cuando está habilitada, Auth0 no hace lo siguiente:
+
+* Redirigir a la URL de callback de la aplicación en caso de errores de autenticación
+* Exponer `application.callback_domain` en las plantillas de correo electrónico
+
+Desactiva la **Protección contra redirecciones abiertas** solo en aplicaciones de terceros cuyos URI de callback configurados sean de confianza. Para obtener más información, consulta [Protección contra redirecciones](/docs/es/get-started/applications/third-party-applications/security-controls#redirect-protection).
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    1. Ve a **Applications &gt; Applications** y selecciona la aplicación de terceros.
+    2. Ve a la pestaña **Settings** y desplázate hasta **Open Redirect Protection**.
+    3. Activa o desactiva la opción.
+    4. Selecciona **Save**.
+
+    <Frame>![Interruptor de Open Redirect Protection en el Dashboard](/docs/images/third-party-applications/open-redirect-protection.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Configura la propiedad `redirection_policy` al crear o actualizar la aplicación:
+
+    ```bash
+    curl --request PATCH \
+      --url 'https://{yourDomain}/api/v2/clients/{CLIENT_ID}' \
+      --header 'Authorization: Bearer {YOUR_MANAGEMENT_API_TOKEN}' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "redirection_policy": "allow_always"
+      }'
+    ```
+
+    Establécela en `open_redirect_protection` para habilitarla (valor predeterminado) o en `allow_always` para deshabilitarla.
+  </Tab>
+</Tabs>
+
+<div id="dynamic-client-registration">
+  ## Registro dinámico de clientes
+</div>
+
+Todos los [clientes registrados dinámicamente](/docs/es/get-started/applications/dynamic-client-registration) son aplicaciones de terceros. Antes de habilitar DCR, configura los [permisos predeterminados de la API](#default-permissions-for-all-third-party-applications) para que los clientes registrados dinámicamente puedan acceder a tus APIs.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications)
+* [Controles de seguridad para aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/security-controls)
+* [Consentimiento del usuario y aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/user-consent-and-third-party-applications)
+* [Registro dinámico de clientes](/docs/es/get-started/applications/dynamic-client-registration)
+* [Promover conexiones al nivel de dominio](/docs/es/authenticate/identity-providers/promote-connections-to-domain-level)

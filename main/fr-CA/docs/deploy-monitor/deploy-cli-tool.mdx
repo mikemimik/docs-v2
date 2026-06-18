@@ -1,0 +1,106 @@
+---
+title: Auth0 Deploy CLI
+description: Découvrez Auth0 Deploy CLI et son fonctionnement.
+sidebarTitle: Aperçu
+---
+
+<Card title="Avant de commencer">
+  Configurez un [tenant Auth0](https://manage.auth0.com/).
+</Card>
+
+Auth0 Deploy CLI est un outil qui vous aide à gérer la configuration de votre tenant Auth0. Il s’intègre à vos flux de travail de développement en tant que CLI autonome ou module Node.js.
+
+Types de ressources pris en charge : `actions`, `branding`, `client grants`, `clients (applications)`, `connections`, `custom domains`, `email templates`, `emails`, `grants`, `guardian`, `hook secrets`, `log streams`, `migrations`, `organizations`, `pages`, `prompts`, `resource servers (APIs)`, `roles`, `tenant settings`, `themes`.
+
+<div id="highlights">
+  ## Points saillants
+</div>
+
+* **Pensé pour plusieurs environnements :** Conçu pour vous aider à tester les intégrations Auth0 de vos applications, des branches de fonctionnalité jusqu’à la production.
+* **Remplacement de mots-clés :** Configurations de ressources partagées entre tous les environnements avec remplacement dynamique de mots-clés.
+* **Polyvalent :** Intégrez-le à vos flux de travail CI/CD, soit comme CLI, soit comme module Node.js.
+
+<div id="get-started">
+  ## Pour commencer
+</div>
+
+Ce guide vous aidera à mettre en œuvre l’outil Deploy CLI comme CLI autonome. Vous devez suivre trois étapes principales avant de pouvoir exécuter le Deploy CLI :
+
+1. [Créer une Application Auth0 dédiée](#create-a-dedicated-auth0-application)
+2. [Configurer le Deploy CLI](#configure-the-deploy-cli)
+3. [Exécuter le Deploy CLI](#call-the-deploy-cli)
+
+<Warning>
+  Cet outil peut avoir un effet destructeur sur votre tenant Auth0. Nous vous recommandons de bien vous familiariser avec la [configuration AUTH0&#95;ALLOW&#95;DELETE](/docs/fr-CA/deploy-monitor/deploy-cli-tool/configure-the-deploy-cli#auth0_allow_delete) et d’effectuer des tests sur des tenants de développement avant de l’utiliser en production.
+</Warning>
+
+<div id="install-the-deploy-cli">
+  ### Installer le Deploy CLI
+</div>
+
+Pour l’utiliser comme outil en ligne de commande autonome :
+
+`npm install -g auth0-deploy-cli`
+
+<div id="create-a-dedicated-auth0-application">
+  ### Créer une application Auth0 dédiée
+</div>
+
+Pour que le Deploy CLI puisse appeler la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, il faut créer une application Auth0 dédiée afin d’effectuer des appels au nom de l’outil :
+
+1. Accédez à **Auth0 Dashboard &gt; Applications &gt; Applications**.
+2. Sélectionnez **+ Create Application**.
+
+   1. Donnez-lui un nom explicite (par exemple, « Deploy CLI »).
+   2. Sélectionnez **Machine to Machine Applications** comme **Application Type**.
+   3. Sélectionnez **Create**.
+3. Passez à la vue **Authorize Machine to Machine Application** :
+
+   1. Sélectionnez **Auth0 Management API**.
+   2. Sélectionnez les permissions appropriées pour les ressources que vous souhaitez gérer. Consultez la section [Client Scopes](#client-scopes) pour en savoir plus.
+   3. Sélectionnez **Authorize**.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Le client du Deploy CLI ne peut pas être configuré directement afin d’[éviter des modifications potentiellement destructrices](/docs/fr-CA/deploy-monitor/deploy-cli-tool/resource-specific-documentation#client-grants).
+</Callout>
+
+<div id="client-scopes">
+  #### Portées du client
+</div>
+
+L’application visée doit se voir accorder des portées afin de permettre au Deploy CLI d’exécuter des opérations de Management.
+
+Le principe du moindre privilège est respecté; l’outil n’utilisera donc que les autorisations qui lui ont été accordées. Vous devrez sélectionner `read:clients`, mais il est recommandé de sélectionner les autorisations `read:*`, `create:*` et `update:*` pour tous les types de ressources relevant de Management. Pour permettre les suppressions, vous devez aussi accorder les portées `delete:*`.
+
+<div id="configure-the-deploy-cli">
+  ### Configurer le Deploy CLI
+</div>
+
+Vous pouvez configurer le Deploy CLI de deux façons :
+
+1. Utilisez le fichier de configuration (`config.json`).
+2. Définissez des variables d’environnement.
+
+Le choix de l’une ou de l’autre, ou des deux, dépend de votre cas d’utilisation et de vos préférences. Pour en savoir plus, consultez [Configurer le Deploy CLI](/docs/fr-CA/deploy-monitor/deploy-cli-tool/configure-the-deploy-cli).
+
+Pour cet exemple, définissez les variables d’environnement suivantes :
+
+* `AUTH0_DOMAIN`
+* `AUTH0_CLIENT_ID`
+* `AUTH0_CLIENT_SECRET`
+
+Vous trouverez ces valeurs dans l’onglet **Settings** de l’application Auth0 dédiée que vous avez créée précédemment.
+
+<div id="call-the-deploy-cli">
+  ### Exécuter le Deploy CLI
+</div>
+
+La commande `export` du Deploy CLI peut être exécutée à l’aide de la commande suivante :
+
+`a0deploy export --format=yaml --output_folder=local`
+
+Une fois le processus terminé, examinez les fichiers de configuration des ressources générés dans le répertoire local. Exécutez ensuite la commande `import` pour transférer la configuration de votre machine locale vers votre tenant Auth0 :
+
+`a0deploy import --config_file=config.json --input_file local/tenant.yaml`
+
+Pour obtenir la liste complète des flags et des options, consultez [Utiliser comme CLI](/docs/fr-CA/deploy-monitor/deploy-cli-tool/use-as-a-cli).

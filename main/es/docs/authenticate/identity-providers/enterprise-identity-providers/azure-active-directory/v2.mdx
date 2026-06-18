@@ -1,0 +1,198 @@
+---
+description: Aprende a conectar tu aplicación a Microsoft Azure Active Directory mediante una conexión empresarial.
+title: Conecta tu aplicación a Microsoft Azure Active Directory
+---
+
+<Card title="Información general">
+  Conceptos clave
+
+  * Sigue los pasos para registrar tu aplicación en Azure AD y conectarla a tu instancia de Auth0.
+  * Prueba la conexión antes de pasar tu configuración a producción.
+  * Revisa los consejos de resolución de problemas.
+</Card>
+
+<Warning>
+  **Importante:** Atributos extendidos en conexiones de Azure Active Directory (v1) Dado que Microsoft está descontinuando y retirando Azure AD Graph API, las conexiones que usan la API de identidad de Azure Active Directory (v1) ya no pueden habilitar por primera vez Get extended profile, Get user groups ni Get nested groups (`options.ext_profile`, `options.ext_groups`, `options.ext_nested_groups`). En las conexiones v1 existentes, estas opciones solo se mantienen si ya estaban habilitadas, pero dejarán de funcionar por completo una vez que se complete el retiro de Microsoft Graph API en 2025. Los atributos extendidos siguen siendo compatibles con las conexiones que usan la API de identidad de Microsoft Identity Platform (v2), que se basa en Microsoft Graph y requiere los Delegated permissions `User.Read` y `Directory.Read.All`.
+</Warning>
+
+Puedes integrarte con Microsoft Azure Active Directory (AD) si quieres permitir que los usuarios:
+
+* De tu empresa usen tu aplicación con un Azure AD controlado por ti o por tu organización.
+* De los Azure AD de otras empresas usen tu aplicación. (Te recomendamos configurar los directorios externos como conexiones distintas).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los claims devueltos por la conexión empresarial de Azure AD son estáticos; los claims personalizados u opcionales no aparecerán en los perfiles de usuario. Si necesitas incluir claims personalizados u opcionales en los perfiles de usuario, usa una conexión SAML u OIDC en su lugar.
+</Callout>
+
+<div id="steps">
+  ## Pasos
+</div>
+
+Para conectar tu aplicación con Azure AD, debes:
+
+1. [Registrar tu aplicación en Azure AD](#register-your-app-with-azure-ad)
+2. [Crear una conexión empresarial en Auth0](#create-an-enterprise-connection-in-auth0)
+3. [Habilitar la conexión empresarial para tu aplicación de Auth0](#enable-the-enterprise-connection-for-your-auth0-application)
+4. [Probar la conexión](#test-the-connection)
+
+<div id="register-your-app-with-azure-ad">
+  ### Registra tu aplicación con Azure AD
+</div>
+
+Para registrar tu aplicación con Azure AD, consulta la [Quickstart: Register an application with the Microsoft identity platform](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app) de Microsoft.
+
+<Warning>
+  Si tienes más de un directorio de Azure AD, asegúrate de estar en el directorio correcto al registrar la aplicación que quieres usar con Auth0.
+</Warning>
+
+Durante el registro, configura las siguientes opciones:
+
+| Opción                          | Configuración                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tipos de cuenta compatibles** | Para habilitar el aprovisionamiento de usuarios basado en SCIM desde este directorio, selecciona **Accounts in this organizational directory only (Single tenant)**. Para permitir usuarios de organizaciones externas (como otros directorios de Azure AD), elige la opción multitenant adecuada. Las opciones multitenant incluyen la siguiente: **Accounts in any organizational directory (Any Azure AD directory - Multitenant)**. |
+| **Redirect URI**                | Selecciona **Web** como tipo de **Redirect URI** e introduce tu URL de devolución de llamada: `https://{yourDomain}/login/callback`.                                                                                                                                                                                                                                                                                                    |
+
+<Card title="Encuentra tu nombre de dominio de Auth0 para redirecciones">
+  Si tu nombre de dominio de Auth0 no aparece arriba y no estás usando nuestra función de [dominios personalizados](/docs/es/customize/custom-domains), tu nombre de dominio se forma concatenando el nombre de tu tenant, tu subdominio regional y `auth0.com`, separados por el símbolo de punto (`.`).
+
+  Por ejemplo, si el nombre de tu tenant es `exampleco-enterprises` y tu tenant está en la región de EE. UU., tu nombre de dominio de Auth0 sería `exampleco-enterprises.us.auth0.com` y tu **Redirect URI** sería `https://exampleco-enterprises.us.auth0.com/login/callback`.
+
+  Sin embargo, si tu tenant está en la región de EE. UU. y se creó antes de junio de 2020, entonces tu nombre de dominio de Auth0 sería `exampleco-enterprises.auth0.com` y tu **Redirect URI** sería `https://exampleco-enterprises.auth0.com/login/callback`.
+
+  Si estás usando [dominios personalizados](/docs/es/customize/custom-domains), tu **Redirect URI** sería `https://<YOUR CUSTOM DOMAIN>/login/callback`.
+</Card>
+
+Durante este proceso, Microsoft genera un **ID de la aplicación (cliente)** para tu aplicación; puedes encontrarlo en la pantalla de **Información general** de la aplicación. **Toma nota de este valor.**
+
+<div id="create-a-client-secret">
+  #### Crear un secreto de cliente
+</div>
+
+Para crear un <Tooltip tip="Secreto de cliente: secreto que utiliza un cliente (aplicación) para autenticarse con el servidor de autorización; solo el cliente y el servidor de autorización deben conocerlo, y debe ser lo suficientemente aleatorio para que no pueda adivinarse." cta="Ver glosario" href="/docs/es/glossary?term=client+secret">secreto de cliente</Tooltip>, consulta [Add and manage application credentials in Microsoft Entra ID - Add a Client Secret de Microsoft](https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-credentials?source=recommendations\&tabs=client-secret).
+
+Una vez generado, **anota este valor**.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si configuras un secreto con vencimiento, asegúrate de **anotar la fecha de vencimiento**; tendrás que renovar la clave antes de ese día para evitar una interrupción del servicio.
+</Callout>
+
+<div id="add-permissions">
+  #### Agregar permisos
+</div>
+
+Para agregar permisos, consulta la [Quickstart: Configure a client application to access web APIs - Add permissions to access web APIs](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-configure-app-access-web-apis#add-permissions-to-access-web-apis) de Microsoft.
+
+Mientras configuras los permisos, ten en cuenta lo siguiente:
+
+Si quieres habilitar atributos extendidos (como **Extended Profile** o **Security Groups**), tendrás que configurar los siguientes permisos para la **Microsoft Graph API**.
+
+| Delegated permissions                 | Descripción                                                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Users &gt; User.Read**              | Para que tu aplicación pueda iniciar sesión de los usuarios y leer los perfiles de los usuarios que hayan iniciado sesión. |
+| **Directory &gt; Directory.Read.All** | Para que tu aplicación pueda leer datos del directorio en nombre del usuario que haya iniciado sesión.                     |
+
+<div id="create-an-enterprise-connection-in-auth0">
+  ### Crear una conexión empresarial en Auth0
+</div>
+
+Crea y configura una conexión empresarial de Azure AD en Auth0. Asegúrate de tener el **ID de la aplicación (cliente)** y el **secreto de cliente** generados al configurar tu aplicación en el portal de Microsoft Azure.
+
+1. Ve a [Auth0 Dashboard &gt; Authentication &gt; Enterprise](https://manage.auth0.com/#/connections/enterprise), busca **Microsoft Azure AD** y selecciona `+`.
+
+   <Frame>![Dashboard - Conexiones - Empresarial](/docs/images/cdy7uua7fh8z/1fSTcrZpkgkPR64NnI1lr8/b3454e60a4463e99353603fd11a71983/Enterprise_Connections_-_EN.png)</Frame>
+2. Introduce los datos de tu conexión y selecciona **Crear**:
+
+| Campo                              | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Connection name**                | Identificador lógico de tu conexión; debe ser único dentro de tu tenant. Una vez establecido, este nombre no se puede cambiar.                                                                                                                                                                                                                                                                                                                  |
+| **Microsoft Azure AD Domain**      | El nombre de tu dominio de Azure AD. Puedes encontrarlo en la página de Información general del directorio de Azure AD en el portal de Microsoft Azure.                                                                                                                                                                                                                                                                                         |
+| **Client ID**                      | Identificador único de tu aplicación registrada en Azure AD. Introduce el valor guardado del **ID de la aplicación (cliente)** de la aplicación que acabas de registrar en Azure AD.                                                                                                                                                                                                                                                            |
+| **Client Secret**                  | Cadena que se usa para obtener acceso a tu aplicación registrada en Azure AD. Introduce el valor guardado del **secreto de cliente** de la aplicación que acabas de registrar en Azure AD.                                                                                                                                                                                                                                                      |
+| **User ID Attribute Type**         | Atributo del token de identidad que se asignará a la propiedad `user_id` en Auth0. Las opciones corresponden a los dos tipos de ID admitidos que se describen en la documentación de Microsoft: [ID token claims reference - Microsoft identity platform](https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference#use-claims-to-reliably-identify-a-user).                                                          |
+| **Use common endpoint**            | (Opcional) Cuando está habilitado, tu aplicación aceptará dinámicamente usuarios de nuevos directorios. Normalmente se habilita si seleccionaste una opción multi-tenant en los tipos de cuenta compatibles para la aplicación que acabas de registrar en Azure AD. Auth0 redirige a los usuarios al endpoint de login común de Azure, y Azure realiza Home Realm Discovery según el dominio de la dirección de correo electrónico del usuario. |
+| **API de identidad**                   | API que Auth0 usa para interactuar con los endpoints de Azure AD. Consulta las diferencias de comportamiento en el documento de Microsoft [Why update to Microsoft identity platform (v2.0)](https://docs.microsoft.com/en-us/azure/active-directory/develop/azure-ad-endpoint-comparison).                                                                                                                                                     |
+| **Attributes**                     | Atributos básicos del usuario que inició sesión a los que tu aplicación puede acceder. Indica cuánta información quieres almacenar en el perfil de usuario de Auth0.                                                                                                                                                                                                                                                                            |
+| **Atributos extendidos** (opcional) | Atributos extendidos del usuario que inició sesión a los que tu aplicación puede acceder.                                                                                                                                                                                                                                                                                                                                                       |
+| **Auth0 APIs** (opcional)          | Cuando se selecciona, indica que se requiere la capacidad de hacer llamadas a la API de Azure AD, lo que nos permite buscar usuarios en Azure AD Graph aunque nunca hayan iniciado sesión en Auth0.                                                                                                                                                                                                                                             |
+| **Email Verification**             | Elige cómo Auth0 establece el campo `email_verified` en el perfil de usuario. Para obtener más información, consulta [Email Verification for Azure AD and ADFS](/docs/es/authenticate/identity-providers/enterprise-identity-providers/azuread-adfs-email-verification).                                                                                                                                                                           |
+| **Purpose**                        | Habilita la conexión para authentication, Connected Accounts for Token Vault o ambas. Para obtener más información, consulta [User authentication vs Connected Accounts](/docs/es/secure/tokens/token-vault/connected-accounts-for-token-vault#user-authentication-vs-connected-accounts).                                                                                                                                                         |
+
+3. En la vista de **Aprovisionamiento**, puedes configurar cómo se crean y actualizan los perfiles de usuario en Auth0.
+
+| Campo                                          | Descripción                                                                                                                                                                                                                   |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sync user profile attributes at each login** | Cuando está habilitado, Auth0 sincroniza automáticamente los datos del perfil de usuario en cada login, lo que garantiza que los cambios realizados en el origen de la conexión se actualicen automáticamente en Auth0.       |
+| **Sync user profiles using SCIM**              | Cuando está habilitado, Auth0 permite sincronizar los datos del perfil de usuario mediante SCIM. Para obtener más información, consulta [configurar SCIM entrante](/docs/es/authenticate/protocols/scim/configure-inbound-scim). |
+
+4. En la vista **Login Experience**, puedes configurar cómo los usuarios inician sesión con esta conexión.
+
+| Campo                                        | Descripción                                                                                                                                                                                                                                                            |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Home Realm Discovery**                     | Compara el dominio del correo electrónico del usuario con los dominios proporcionados del proveedor de identidad. Para obtener más información, consulte [Configurar Identifier First Authentication](/docs/es/authenticate/login/auth0-universal-login/identifier-first) |
+| **Mostrar botón de conexión**                | Esta opción muestra las siguientes opciones para personalizar el botón de conexión de su aplicación.                                                                                                                                                                   |
+| **Nombre para mostrar del botón** (Opcional) | Texto que se usa para personalizar el botón de inicio de sesión de Universal Login. Si se configura, el botón mostrará: «Continuar con &#123;Nombre para mostrar del botón&#125;».                                                                                     |
+| **URL del logotipo del botón** (Opcional)    | URL de la imagen que se usa para personalizar el botón de inicio de sesión de Universal Login. Si se configura, el botón de inicio de sesión de Universal Login mostrará la imagen como un cuadrado de 20 px por 20 px.                                                |
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los campos opcionales están disponibles solo con Universal Login. Los clientes que usan Classic Login no verán el botón Add, el nombre para mostrar del botón ni la URL del logotipo del botón.
+</Callout>
+
+5. Si tiene los permisos administrativos adecuados en Azure AD para otorgar consentimiento a la aplicación y permitir que los usuarios inicien sesión, haga clic en **Continuar**.
+   Se le pedirá que [inicie sesión en su cuenta de Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#requesting-consent-for-an-entire-tenant) y otorgue el consentimiento. De lo contrario, proporcione la URL indicada a su administrador para que pueda otorgarlo.
+
+<div id="enable-the-enterprise-connection-for-your-auth0-application">
+  ### Habilita la conexión empresarial para tu aplicación de Auth0
+</div>
+
+Para usar tu nueva conexión empresarial de Azure AD, primero debes [habilitar la conexión](/docs/es/authenticate/identity-providers/enterprise-identity-providers/enable-enterprise-connections) en tus aplicaciones de Auth0.
+
+<div id="test-the-connection">
+  ### Prueba la conexión
+</div>
+
+Ahora ya puedes [probar la conexión](/docs/es/authenticate/identity-providers/enterprise-identity-providers/test-enterprise-connections).
+
+<div id="troubleshooting">
+  ## Resolución de problemas
+</div>
+
+Aquí tienes algunos consejos para la resolución de problemas:
+
+**Registré mi aplicación en Azure AD, pero cuando vuelvo a Registros de aplicaciones de Azure Active Directory, no veo mi aplicación.**
+
+Es posible que hayas registrado tu aplicación por error en el directorio de Azure AD equivocado (o que ni siquiera hayas creado un directorio de Azure AD antes de registrar la aplicación). Lo más sencillo suele ser volver a registrar la aplicación en Azure AD. Asegúrate de estar en el directorio correcto al registrarla. Si necesitas crear un directorio de Azure AD, sigue la guía de Microsoft [Quickstart: Crear un nuevo tenant en Azure Active Directory - Crear un nuevo tenant para tu organización](https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-access-create-new-tenant#create-a-new-tenant-for-your-organization).
+
+**Recibo el siguiente mensaje de error: &quot;No se puede conceder acceso a este servicio porque el listado del servicio no está configurado correctamente por el publicador&quot;.**
+
+Para solucionarlo, intenta cambiar los **tipos de cuenta compatibles** de la aplicación que registraste en Azure AD. Asegúrate de haber elegido una opción multitenant adecuada en la configuración de autenticación de la aplicación de Azure AD. Entre las opciones multitenant se incluye la siguiente: **Accounts in any organizational directory (Any Azure AD directory - Multitenant)**.
+
+**Cuando los usuarios intentan iniciar sesión, recibimos el siguiente mensaje de error: &quot;invalid&#95;request; failed to obtain <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip>&quot;.**
+
+La causa más probable de este error es que el **secreto de cliente** de Azure AD no es válido o ha vencido. Para solucionarlo, genera un nuevo **secreto de cliente** para tu aplicación en Azure AD y luego actualiza el **secreto de cliente** en la conexión empresarial configurada con Auth0.
+
+<div id="signing-key-rollover-in-azure-ad">
+  ## Rotación de la clave de firma en Azure AD
+</div>
+
+El <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+provider">proveedor de identidad</Tooltip> utiliza las claves de firma para firmar el token de autenticación que emite, y la aplicación que lo consume (Auth0 en este caso) para validar la autenticidad del token generado.
+
+Por motivos de seguridad, la clave de firma de Azure AD [rota periódicamente](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-signing-key-rollover). Si esto ocurre, **no necesitas hacer nada**. Auth0 usará la nueva clave automáticamente.
+
+<div id="remove-unverified-label">
+  ## Quitar la etiqueta «no verificado»
+</div>
+
+Si usas un <Tooltip tip="Dominio personalizado: dominio de terceros con un nombre especializado o personalizado." cta="Ver glosario" href="/docs/es/glossary?term=custom+domain">dominio personalizado</Tooltip>, la solicitud de consentimiento de la aplicación para el login de Azure AD puede mostrar tu dominio como «no verificado». Para quitar la etiqueta «no verificado»:
+
+1. Verifica el dominio de la aplicación de Auth0: [Agrega tu nombre de dominio personalizado mediante el portal de Azure Active Directory](https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/add-custom-domain#add-your-custom-domain-name-to-azure-ad).
+2. Asigna el dominio verificado a la aplicación de Auth0: [Cómo: configurar el dominio del publicador de una aplicación](https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-configure-publisher-domain#configure-publisher-domain-using-the-azure-portal).
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+* [Integra Auth0 con una de nuestras bibliotecas](/docs/es/libraries)
+* [Integra Auth0 con nuestra Authentication API](https://auth0.com/docs/api/authentication)
+* [Obtén más información sobre el flujo de autenticación](/docs/es/get-started/authentication-and-authorization-flow)
+* [Pasa parámetros adicionales al proveedor de identidad](/docs/es/authenticate/identity-providers/pass-parameters-to-idps)
+* [Vuelve a solicitar permisos a los usuarios](/docs/es/authenticate/identity-providers/social-identity-providers/reprompt-permissions)

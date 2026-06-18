@@ -1,0 +1,256 @@
+---
+description: Comprobaciones operativas que deben realizarse antes del lanzamiento de tu implementación de B2B IAM.
+title: Preparación operativa (B2B)
+---
+
+<div id="status">
+  ## Estado
+</div>
+
+Debe asegurarse de que su equipo de operaciones sepa cómo monitorear el estado del servicio de Auth0 y que haya configurado algún medio para suscribirse a las actualizaciones de estado de Auth0.
+
+El [panel de estado](https://status.auth0.com/) de Auth0, junto con el [panel de disponibilidad](http://uptime.auth0.com/) de Auth0, muestra el estado actual e histórico del servicio de Auth0 en un formato legible para las personas. Si se activa alguna alerta de monitoreo, el primer paso en la resolución de problemas para su equipo de operaciones debe ser revisar el panel de estado para comprobar si hay una interrupción en curso. La página de estado de Public Cloud también ofrece una opción para suscribirse a las notificaciones de interrupciones. Además, le recomendamos comprobar el estado de cualquier [servicio externo](/docs/es/deploy-monitor/monitor/check-external-services-status) de terceros del que dependa, como los proveedores sociales. Tener esta información a mano puede ayudar a descartar rápidamente posibles causas al resolver un problema y debería figurar al principio de una lista de verificación de resolución de problemas tanto para desarrolladores como para el personal de soporte.
+
+<Info>
+  ### Práctica recomendada
+
+  La información sobre cómo comprobar el estado de Auth0, así como el de cualquier servicio del que dependa (como los proveedores sociales), debería figurar al principio de una lista de verificación de resolución de problemas tanto para los desarrolladores como para el personal de soporte. También le recomendamos suscribirse a través de la página de estado de Auth0 para recibir notificaciones sobre cualquier actualización de estado.
+</Info>
+
+En caso de una interrupción del servicio de Public Cloud, Auth0 realiza un análisis de causa raíz (RCA) y publica los resultados en la página de estado de Auth0. Auth0 lleva a cabo una investigación exhaustiva después de una interrupción —incluida la determinación de la causa raíz, los factores que contribuyeron al incidente y cómo evitar que el problema vuelva a producirse— y, por ello, un documento de RCA puede tardar varias semanas en publicarse.
+
+<div id="email-provider-setup">
+  ## Configuración del proveedor de correo electrónico
+</div>
+
+Debes asegurarte de haber configurado tu propio proveedor de correo electrónico para admitir volúmenes de envío de nivel de producción para los correos que puedan enviarse a los clientes con fines como el registro, la validación del correo electrónico, la recuperación de cuentas y similares.
+
+Auth0 envía [correos electrónicos](/docs/es/customize/email) a los usuarios para eventos como mensajes de bienvenida de registro, validación del correo electrónico, contraseñas comprometidas y restablecimiento de contraseña. Puedes personalizar las plantillas de correo electrónico para cada tipo de evento, y también es posible realizar una personalización avanzada del manejo del correo electrónico. Auth0 proporciona un proveedor de correo electrónico de prueba con capacidad limitada para pruebas básicas, pero debes configurar tu propio proveedor de correo electrónico para usarlo en producción, y la personalización de las plantillas de correo electrónico no funcionará hasta que hayas configurado tu propio proveedor.
+
+<Info>
+  ### Práctica recomendada
+
+  El proveedor de correo electrónico predeterminado de Auth0 no admite el envío de volúmenes de correo electrónico de producción ni la personalización de las plantillas de correo electrónico. Por lo tanto, debes configurar tu propio proveedor de correo electrónico antes de pasar a producción.
+</Info>
+
+<div id="infrastructure">
+  ## Infraestructura
+</div>
+
+<div id="firewalls">
+  ### Firewalls
+</div>
+
+Si el código personalizado que se ejecuta en Auth0 (como en una Action, Rule, Hook o scripts de base de datos personalizada) debe llamar a un servicio dentro de su red, o si configura un proveedor SMTP local en Auth0, es posible que deba configurar su firewall para permitir el [tráfico entrante desde Auth0](/docs/es/secure/security-guidance/data-security/allowlist). Las direcciones IP que debe permitir en el firewall son específicas de cada región y figuran en las pantallas de configuración de Rules, Hooks, scripts de base de datos personalizada y proveedor de correo electrónico en su <Tooltip tip="Auth0 Dashboard: el principal producto de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+dashboard">Auth0 Dashboard</Tooltip>.
+
+<div id="ntp">
+  ## NTP
+</div>
+
+Si su entorno de alojamiento no lo gestiona automáticamente, debería contar con scripts que reinicien NTP (Network Time Protocol) automáticamente si falla, así como con alertas que notifiquen a alguien si NTP deja de ejecutarse. Las transacciones de autenticación dependen de que la hora del sistema sea precisa, porque los <Tooltip tip="Token de seguridad: Artefacto firmado digitalmente que se utiliza para demostrar que el usuario fue autenticado correctamente." cta="Ver glosario" href="/docs/es/glossary?term=security+tokens">tokens de seguridad</Tooltip> pueden considerarse expirados al recibirse si hay discrepancias horarias entre los sistemas de envío y recepción.
+
+<div id="loadbalancer-timeouts-checked">
+  ## Tiempos de espera del LoadBalancer verificados
+</div>
+
+Si usa el Conector AD/LDAP, debería revisar la configuración del equilibrador de carga en su entorno para comprobar si cierra conexiones inactivas de larga duración. Si es así, puede modificar la [configuración de la conexión AD/LDAP de Auth0](/docs/es/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/ad-ldap-connector-to-auth0) para usar la configuración `LDAP_HEARTBEAT_SECONDS` y enviar mensajes de heartbeat periódicos que mantengan la conexión abierta.
+
+<div id="loadbalancer-configuration">
+  ## Configuración del equilibrador de carga
+</div>
+
+Si su aplicación conserva el estado en el servidor y, por ello, depende de la persistencia de sesión del equilibrador de carga para dirigir a los usuarios a un servidor concreto, conviene comprobar que todas las configuraciones del equilibrador de carga sean correctas. Basta con que un equilibrador de carga del grupo no esté sincronizado para provocar errores intermitentes difíciles de diagnosticar. Una revisión rápida de la configuración del equilibrador de carga puede evitar este tipo de problemas desde el principio.
+
+<div id="logs">
+  ## Logs
+</div>
+
+Debe comprobar que haya configurado la capacidad de capturar datos de registro, que los registros estén cubiertos por su política de retención de datos y que disponga de mecanismos para aplicar los límites de retención de datos de registro. También debe asegurarse de que sus equipos de desarrollo, soporte y seguridad sepan cómo acceder a los datos de registro para tareas de troubleshooting y análisis forense. Exportar archivos de registro a servicios que ofrezcan análisis exhaustivos puede ayudarle a identificar patrones, como tendencias de uso y errores.
+
+Auth0 ofrece amplias capacidades de registro de eventos, así como de análisis de registros para identificar anomalías en los eventos (consulte la [documentación sobre registros](/docs/es/deploy-monitor/logs) para obtener más información). El período estándar de retención de registros de Auth0 viene determinado por el nivel de suscripción: el más corto es de 2 días y el más largo, de solo 30 días. Recurrir al equipo de soporte de Auth0 para integrarse con servicios externos de registro le permitirá conservar los registros fuera de ese período y también agregarlos en toda su organización.
+
+<Info>
+  ### Práctica recomendada
+
+  Debe aprovechar una de las soluciones de flujo de registros para enviar datos de registro a un servicio externo de análisis de registros. Esto permitirá conservar los datos durante más tiempo y contar con análisis avanzados sobre los datos de registro.
+</Info>
+
+Debe revisar el [período de retención](/docs/es/deploy-monitor/logs/log-data-retention) de los datos de registro correspondiente a su nivel de suscripción e implementar una extensión de exportación de datos de registro para enviar esos datos a un servicio externo de análisis de registros. Puede usar una de nuestras [soluciones de log streaming](https://marketplace.auth0.com/features/log-streaming) en Auth0 Marketplace.
+
+Los equipos de desarrollo pueden usar archivos de registro para troubleshooting y para detectar errores intermitentes que pueden ser difíciles de encontrar mediante pruebas de QA. Es probable que los equipos de seguridad también necesiten datos de registro en caso de que alguna vez se requieran datos forenses. Exportar archivos de registro a servicios que ofrezcan análisis exhaustivos puede ayudarle a detectar patrones, como tendencias de uso y triggers de <Tooltip tip="Protección contra ataques: Funcionalidades que Auth0 proporciona para detectar y mitigar ataques, incluida la protección contra ataques de fuerza bruta, la limitación de IP sospechosas, la detección de contraseñas vulneradas, la detección de bots y la autenticación multifactor adaptativa." cta="Ver glosario" href="/docs/es/glossary?term=attack+protection">protección contra ataques</Tooltip>.
+
+<div id="rate-limits-and-other-errors">
+  ### Límites de frecuencia y otros errores
+</div>
+
+Auth0 proporciona un código de error único para los errores que se notifican cuando se [supera el límite de frecuencia](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy). Debes configurar un análisis automático de los registros para detectar errores de límite de frecuencia, de modo que puedas abordar de forma proactiva la actividad que alcanza los límites de frecuencia antes de que cause demasiados problemas a tus usuarios. Auth0 también publica códigos de error para otros tipos de errores, y te resultará útil analizar los registros en busca de [errores de autenticación](/docs/es/libraries/common-auth0-library-authentication-errors), así como de errores en las llamadas a la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="View Glossary" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> de Auth0 (los códigos de error de la Management API se muestran debajo de cada llamada en el [Management API Explorer](https://auth0.com/docs/api/management/v2)).
+
+<Info>
+  ### Práctica recomendada
+
+  Llamar a la Management API para recuperar información del perfil de usuario desde una Rule es una causa habitual de errores de límite de frecuencia, porque esas llamadas a la API pueden ejecutarse en cada inicio de sesión, así como durante las comprobaciones periódicas de la sesión.
+</Info>
+
+<div id="monitoring">
+  ## Monitoreo
+</div>
+
+Asegúrese de configurar un monitoreo proactivo del servicio de Auth0, así como de la autenticación de extremo a extremo a través de su aplicación.
+
+Debe establecer mecanismos para [monitorear implementaciones de Auth0](/docs/es/deploy-monitor/monitor), de modo que su equipo de soporte u operaciones reciba a tiempo la información necesaria para gestionar proactivamente las interrupciones del servicio. Auth0 proporciona endpoints de monitoreo que pueden incorporarse a su infraestructura de monitoreo. Estos endpoints están diseñados para ofrecer una respuesta apta para ser consumida por servicios de monitoreo. Tenga en cuenta que solo proporcionan datos sobre Auth0. Para un monitoreo completo de extremo a extremo, esencial para comprobar si los usuarios pueden iniciar sesión, le recomendamos configurar [monitoreo de transacciones sintéticas](/docs/es/deploy-monitor/monitor/monitor-applications). Esto aportará mayor granularidad a su monitoreo y le permitirá detectar interrupciones no relacionadas con Auth0, así como degradaciones del rendimiento, para que pueda responder de forma más proactiva.
+
+<Info>
+  ### Práctica recomendada
+
+  Debe configurar la capacidad de enviar transacciones sintéticas de inicio de sesión para facilitar el monitoreo de extremo a extremo de la autenticación. Puede hacerlo con una aplicación sencilla que use la [concesión de contraseña del propietario del recurso](/docs/es/get-started/authentication-and-authorization-flow/resource-owner-password-flow/call-your-api-using-resource-owner-password-flow) en combinación con un usuario de prueba sin privilegios, y no olvide tampoco las [políticas de límite de frecuencia de Auth0](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy).
+</Info>
+
+<div id="auth0-notifications">
+  ## Notificaciones de Auth0
+</div>
+
+Debes asegurarte de que tu equipo haga monitoreo de todos los siguientes canales de comunicación de Auth0 para mantenerse al tanto de anuncios y cambios importantes.
+
+Hay varios tipos de notificaciones de Auth0 a los que debes prestar atención, ya que contienen información importante que podría afectar a tu tenant o tenants y a tu proyecto.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Auth0 envía notificaciones proactivas de seguridad y otros anuncios operativos a los administradores del Dashboard. Debes asegurarte de que las personas que necesitan recibir estos mensajes sean administradores del Dashboard.
+</Callout>
+
+<div id="dashboard-notifications">
+  ### Notificaciones del Dashboard
+</div>
+
+De vez en cuando, Auth0 puede enviar un anuncio importante relacionado con su tenant. Estos anuncios sobre su servicio se enviarán a su Auth0 Dashboard y, según la gravedad del anuncio, también por correo electrónico a los administradores registrados del Dashboard de Auth0. Le recomendamos que adquiera el hábito de iniciar sesión regularmente en el Dashboard y revisar el icono de campana en la parte superior por si hubiera avisos importantes. Además, debe revisar con prontitud los correos electrónicos de Auth0, ya que pueden contener información importante sobre cambios o acciones que deba realizar.
+
+<div id="auth0-security-bulletins">
+  ### Boletines de seguridad de Auth0
+</div>
+
+Auth0 realiza periódicamente diversas pruebas relacionadas con la seguridad y, si detecta algún problema, identificará y notificará de forma proactiva a los clientes que necesiten hacer cambios de seguridad. Sin embargo, debido a la naturaleza extensible del producto Auth0, es posible que no pueda identificar a todos los clientes afectados, por lo que debería consultar con regularidad los [boletines de seguridad](/docs/es/secure) de Auth0. Debe asegurarse de que figure un contacto de seguridad de su organización en Support Center.
+
+<Info>
+  ### Práctica recomendada
+
+  Como práctica recomendada, revise periódicamente la página de Auth0 [Security Bulletins](/docs/es/secure/security-guidance/security-bulletins) y adopte las medidas recomendadas si se ve afectado por algún boletín de seguridad.
+</Info>
+
+<div id="change-log">
+  ### Registro de cambios
+</div>
+
+Auth0 proporciona información sobre los cambios en el servicio en el [registro de cambios](https://auth0.com/changelog) de Auth0. Conviene revisar periódicamente los registros de cambios de Auth0 para mantenerse al tanto de las novedades. A los equipos de soporte que investigan un problema puede resultarles útil consultar el registro de cambios para determinar si los cambios recientes podrían estar relacionados, especialmente si se trata de cambios incompatibles. Los equipos de desarrollo también querrán revisar los registros de cambios para identificar nuevas funcionalidades que puedan resultar útiles.
+
+Además, deberías consultar periódicamente la [página de Migración de Auth0](/docs/es/troubleshoot/product-lifecycle/deprecations-and-migrations) para informarte sobre próximas obsolescencias que podrían requerir cambios por parte de tu equipo.
+
+<div id="automated-deployment-version-control">
+  ## Despliegue automatizado y control de versiones
+</div>
+
+Aunque no es obligatorio, te recomendamos configurar un despliegue automatizado con control de versiones. Usar automatización para desplegar o revertir cambios en los entornos de desarrollo, pruebas y producción te permite responder con más eficiencia a los problemas después del lanzamiento.
+
+Además de adoptar prácticas recomendadas para la gestión de cambios y [QA](/docs/es/get-started/architecture-scenarios/business-to-consumer/quality-assurance), los clientes con implementaciones exitosas también integran la gestión de recursos de Auth0 como parte de un proceso de despliegue automatizado. Como se explica en la sección Architecture, en [soporte para SDLC](/docs/es/get-started/architecture-scenarios/business-to-consumer/architecture#sdlc-support), debes configurar tenants de Auth0 independientes para los entornos de desarrollo, pruebas y producción, de modo que la configuración del tenant sea la misma en cada entorno. Usar automatización de despliegue ayuda a garantizar que la configuración del tenant sea coherente entre entornos, lo que reduce errores y otros problemas.
+
+<Info>
+  ### Práctica recomendada
+
+  Independientemente de cómo configures la automatización de despliegue, te recomendamos realizar pruebas unitarias de tus reglas, scripts de Custom DB y hooks antes del despliegue, y ejecutar también algunas pruebas de integración en tu tenant después del despliegue. Para obtener más información al respecto, consulta la guía de [Quality Assurance](/docs/es/get-started/architecture-scenarios/business-to-consumer/quality-assurance).
+</Info>
+
+Auth0 ofrece soporte para los siguientes enfoques de automatización de despliegue, que pueden usarse conjuntamente si así lo deseas:
+
+* La [herramienta Auth0 Deploy CLI](/docs/es/deploy-monitor/deploy-cli-tool) proporciona un script fácil de usar que se integra con tu pipeline actual de Continuous Integration/Continuous Deployment (CI/CD).
+* Auth0 [Source Control Extensions](/docs/es/customize/extensions) ofrece un proceso básico de automatización fácil de configurar y con muy poco mantenimiento si no tienes un pipeline de CI/CD, o en casos en los que no puedes integrarte directamente con uno.
+* Si tu flujo de trabajo de desarrollo aprovecha [Terraform](https://www.terraform.io/), [Auth0 Terraform Provider](/docs/es/deploy-monitor/auth0-terraform-provider) te ayuda a gestionar las configuraciones de tu tenant de Auth0.
+
+<Warning>
+  Ten en cuenta que tanto la herramienta Deploy CLI como las extensiones de control de código fuente pueden provocar cambios destructivos; los cambios manuales realizados directamente en el Dashboard entre despliegues automatizados podrían perderse. Por este motivo, si usas cualquiera de las dos, **todos** los cambios deben desplegarse desde el subsistema de control de código fuente al que hace referencia la herramienta, y no hacerse manualmente.
+</Warning>
+
+Cada entorno también puede necesitar cierta configuración específica; por ejemplo, la <Tooltip tip="ID de cliente: valor de identificación que Auth0 asigna a tu recurso registrado." cta="Ver glosario" href="/docs/es/glossary?term=Client+ID">ID de cliente</Tooltip> y los <Tooltip tip="Secreto de cliente: secreto que usa un cliente (aplicación) para autenticarse con el servidor de autorización; solo deberían conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio como para que no pueda adivinarse." cta="Ver glosario" href="/docs/es/glossary?term=Client+Secrets">Secretos de cliente</Tooltip> de la aplicación serán diferentes entre los tenants de Auth0, así que te conviene contar con alguna forma de hacer referencia a esto dinámicamente en lugar de usar valores codificados. Auth0 ofrece soporte para gestionar información de configuración específica del entorno mediante uno de estos dos enfoques:
+
+* Usa [Variables específicas del tenant](#tenant-specific-variables)
+* Usa [reemplazo de palabras clave](/docs/es/deploy-monitor/deploy-cli-tool/configure-the-deploy-cli) si utilizas la herramienta Auth0 Deploy CLI
+
+<div id="tenant-specific-variables">
+  ## Variables específicas del tenant
+</div>
+
+Auth0 te permite configurar variables que están disponibles dentro de la [extensibilidad](/docs/es/customize/extensions); puedes considerarlas variables de entorno para tu tenant de Auth0. En lugar de codificar de forma fija referencias que cambian al mover código entre los entornos de desarrollo, pruebas y producción, puedes usar un nombre de variable configurado en el tenant y al que haga referencia el código de extensibilidad personalizado. Esto facilita que el mismo código personalizado funcione sin cambios en distintos tenants, ya que puede hacer referencia a variables que se rellenarán con valores específicos del tenant en tiempo de ejecución:
+
+* Para usar variables en Actions, consulta [Write Your First Action](/docs/es/customize/actions/write-your-first-action) para aprender a configurar secrets en el editor
+* Para usar variables en Rules, consulta cómo [configurar valores](/docs/es/customize/rules/configuration)
+* Para usar variables en Hooks, consulta cómo configurar [secrets](/docs/es/customize/hooks/hook-secrets) en el editor
+* Para usar variables en Custom DB Scripts, consulta los [parámetros de configuración](/docs/es/authenticate/database-connections/custom-db/create-db-connection#step-3-add-configuration-parametersn#step-3-add-configuration-parameters)
+
+<Info>
+  ### Práctica recomendada
+
+  Se recomienda usar variables para almacenar valores específicos del tenant, así como cualquier dato sensible que no deba exponerse en tu código personalizado. Si tu código personalizado está alojado en GitHub/Gitlab/Bitbucket/VSTS, usar una variable específica del tenant evita exponer valores sensibles a través de tu repositorio.
+</Info>
+
+<div id="backup-restore">
+  ## Copia de seguridad / Restauración
+</div>
+
+Debe contar con un plan y un mecanismo para cubrir cualquier necesidad de copia de seguridad/restauración de su proyecto. Esto puede hacerse mediante la Auth0 Management API para los datos, así como con las capacidades de despliegue automatizado descritas en la sección de despliegue automatizado para la configuración de Auth0.
+
+Como se indica en la [Data Tenant Restore policy](/docs/es/troubleshoot/customer-support/operational-policies) y la [Data Transfer policy](/docs/es/troubleshoot/customer-support/operational-policies/data-export-and-transfer-policy), Auth0 no restaura tenants eliminados ni transfiere datos entre tenants. Auth0 proporciona la Auth0 Management API para ofrecer a los clientes una capacidad totalmente flexible para hacer copias de seguridad, restaurar y mover datos según sea necesario. Los clientes pueden escribir scripts para recuperar datos de Auth0 con fines de copia de seguridad y, del mismo modo, escribir scripts para usar la capacidad de despliegue automatizado a fin de restaurar cualquier aspecto de su configuración de Auth0.
+
+<div id="versions-up-to-date">
+  ## Versiones actualizadas
+</div>
+
+Debes verificar de nuevo que todas las tecnologías de la pila de tu aplicación, así como las versiones de los navegadores que usan tus usuarios, estén actualizadas, ya que esto afectará la capacidad de Auth0 para brindar soporte si surge algún problema.
+
+* Comprueba que estés usando la versión compatible más reciente de Node.js en la [configuración de Auth0 Dashboard](/docs/es/get-started/tenant-settings).
+* Comprueba que estés usando una versión de SDK/Libraries compatible con Auth0, según la [Matriz de soporte de Auth0](/docs/es/troubleshoot/customer-support/product-support-matrix).
+
+<div id="certificate-rollover-plan">
+  ## Plan de rotación de certificados
+</div>
+
+Los certificados pueden usarse en implementaciones de identidad. Para evitar que el vencimiento de un certificado te tome por sorpresa, debes tener una lista de los certificados de tu entorno junto con sus fechas de vencimiento, cómo se te notificará cuando este se aproxime y cómo funciona el proceso de rotación de certificados.
+
+<div id="saml-connections">
+  ### Conexiones SAML
+</div>
+
+Para las conexiones de <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip>, obtienes un certificado del <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=IdP">IdP</Tooltip> y lo cargas en una conexión SAML para ese IdP en tu Auth0 Dashboard. Cuando uno de estos certificados está próximo a vencer, Auth0 enviará un correo electrónico a los administradores del Dashboard para advertirles del próximo vencimiento. Puedes obtener el nuevo certificado y cargarlo desde la pantalla de configuración de la conexión.
+
+<div id="ws-fed-connections">
+  ### Conexiones WS-Fed
+</div>
+
+Para las conexiones de <Tooltip tip="Web Service Federation (WS-Fed): Protocolo para gestionar identidades de usuario entre dominios." cta="Ver glosario" href="/docs/es/glossary?term=Web+Service+Federation">Web Service Federation</Tooltip> (WS-Fed), si se configuran especificando una URL de ADFS, cualquier cambio se aplicará en la actualización diaria. Puede forzar una actualización manualmente visitando la página de configuración de la conexión en el Auth0 Dashboard y haciendo clic en Guardar. Si se cambia un certificado en el IdP remoto, Auth0 puede actualizarse mediante esos mecanismos o cargando un nuevo archivo de metadatos en la misma pantalla de configuración de la conexión.
+
+<div id="disaster-recovery-business-continuity-plan-in-place">
+  ## Plan de recuperación ante desastres / continuidad del negocio establecido
+</div>
+
+Aunque no es un requisito absoluto antes del lanzamiento, conviene contar con un plan de recuperación ante desastres para garantizar la continuidad del negocio frente a distintos tipos de desastres, incluidas las interrupciones del sistema y los desastres naturales que afecten a una región en la que se encuentre personal clave.
+
+<div id="processes-documented">
+  ## Procesos documentados
+</div>
+
+Otro aspecto que, aunque no es un requisito indispensable, también se recomienda, es asegurarse de que todos los procesos relacionados con Auth0 estén documentados. Esto puede incluir lo siguiente:
+
+* Gestión de cambios de la configuración
+* Despliegue de cambios nuevos y de cualquier mecanismo de despliegue automático utilizado, así como cómo revertir a una versión anterior si se detectan problemas
+* Procesos de rotación de certificados, si los hubiera
+* Incorporación o eliminación de nuevos proveedores de identidad, si corresponde
+* Cambios en la estructura del perfil del usuario en Auth0 o en los directorios de los que Auth0 obtiene información
+* Incorporación o eliminación de aplicaciones o API
+* Captura y exportación de registros
+* Proceso de copia de seguridad y restauración que se haya implementado
+* Administración de usuarios (contraseña olvidada, teléfono perdido)
+* Análisis de causa raíz después de un incidente
+
+<div id="project-planning-guide">
+  ## Guía de planificación del proyecto
+</div>
+
+Ofrecemos una guía de planificación en formato PDF que puedes descargar y consultar para obtener más detalles sobre las estrategias que recomendamos.
+
+[Guía de planificación del proyecto de B2B IAM](https://assets.ctfassets.net/cdy7uua7fh8z/63F0WOPJdVzsPMxV1Xvp8x/7a329487c5e890d8e820f6a48983b46a/B2B_Project_Planning.pdf)

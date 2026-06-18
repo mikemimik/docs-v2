@@ -1,0 +1,90 @@
+---
+description: Describe cómo analizar y validar un JSON Web Token (JWT).
+title: Validar JSON Web Tokens
+---
+
+<Card title="Descripción general">
+  Conceptos clave
+
+  * Lee sobre los JSON Web Tokens (JWT) que Auth0 usa para los tokens de acceso, de ID, de actualización y de cierre de sesión.
+  * Revisa los algoritmos de firma para entender qué es una firma en un token.
+  * Valida los JWT para asegurarte de que nadie los haya manipulado.
+  * Usa los SDK de Auth0, middleware o una de las bibliotecas de terceros en [JWT.io](https://jwt.io/?_gl=1*arqbp6*rollup_ga*MTI5MzkwNDYxOC4xNjQ0MjUyMTYx*rollup_ga_F1G3E656YZ*MTY1MDA0NDA3Ni4xMjkuMS4xNjUwMDQ0MDg1LjUx&_ga=2.167965921.1971874740.1649687281-1293904618.1644252161#libraries-io) para validar JWT.
+</Card>
+
+Auth0 usa <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de token de acceso) que se usa para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JSON+Web+Token+%28JWT%29">JSON Web Token (JWT)</Tooltip> para la transmisión segura de datos, la autenticación y la autorización. Los tokens deben analizarse y validarse en aplicaciones web tradicionales, nativas y de una sola página para asegurarse de que el token no esté comprometido y de que la firma sea auténtica. Los tokens deben verificarse para reducir los riesgos de seguridad si el token, por ejemplo, ha sido manipulado, utilizado indebidamente o ha expirado. La validación de <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de token de acceso) que se usa para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> comprueba la estructura, los claims y la firma para minimizar el riesgo.
+
+﻿
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para inspeccionar visualmente un JWT, visita [JWT.io](https://jwt.io/) o usa la [extensión JWT Debugger para Chrome](https://chrome.google.com/webstore/detail/jwt-debugger/ppmmlchacdbknfphdeafcbmklcghghmd?hl=en)).
+</Callout>
+
+La firma del token JWT se genera mediante un <Tooltip tip="Signing Algorithm: Algoritmo usado para firmar digitalmente tokens y garantizar que el token no haya sido manipulado." cta="Ver glosario" href="/docs/es/glossary?term=Signing+Algorithm">algoritmo de firma</Tooltip>. Aunque los tokens pueden usar varios <Tooltip tip="Signing Algorithm: Algoritmo usado para firmar digitalmente tokens y garantizar que el token no haya sido manipulado." cta="Ver glosario" href="/docs/es/glossary?term=signing+algorithms">algoritmos de firma</Tooltip>, Auth0 admite RS256, cifrado RSA con función hash SHA-256, o HS256, código de autenticación de mensajes HMAC (MAC) con SHA-256. Para obtener más información sobre el algoritmo recomendado por Auth0, lee [Algoritmos de firma](/docs/es/get-started/applications/signing-algorithms).
+
+Al validar un JWT, por lo general, el valor hash actual y el valor hash original se analizan, o se decodifican, y luego se comparan para verificar que la firma del token sea auténtica. Todos nuestros [quickstarts de API de backend](/docs/es/quickstart/backend) usan SDK que realizan por ti la validación y el análisis de JWT.
+
+<div id="parse-and-validate">
+  ## Analizar y validar
+</div>
+
+Si no utiliza uno de nuestros SDKs que realizan por usted la validación y el análisis de JWT, puede analizar y validar un JWT de las siguientes maneras:
+
+* Usar cualquier middleware existente para su framework web.
+* Elegir una biblioteca de terceros de JWT.io.
+* Implementar manualmente las comprobaciones descritas en la [especificación RFC 7519 &gt; 7.2 Validating a JWT](https://tools.ietf.org/html/rfc7519#section-7.2).
+
+Le recomendamos encarecidamente que utilice middleware o una de las bibliotecas de terceros de código abierto disponibles para analizar y validar JWT. En [JWT.io](https://jwt.io/#libraries-io), puede encontrar bibliotecas para varias plataformas y lenguajes, como .NET, Python, Java, Ruby, Objective-C, Swift y PHP.
+
+<div id="middleware">
+  ## Middleware
+</div>
+
+Muchos frameworks web, como [ASP.NET Core](/docs/es/quickstart/backend/aspnet-core-webapi), incluyen middleware para JWT que se encarga de validar los JWT. Por lo general, esta suele ser la mejor opción, ya que el middleware se integra bien con los mecanismos generales de autenticación del framework.
+
+<div id="third-party-libraries">
+  ## Bibliotecas de terceros
+</div>
+
+Si eliges una biblioteca de terceros, asegúrate de que admita el algoritmo de firma que seleccionaste al registrar tu aplicación o API en Auth0. Además, ten en cuenta que no todas las bibliotecas validan todos los claims de JWT. En JWT.io, puedes ver qué validaciones admite cada biblioteca (busca las marcas de verificación verdes).
+
+La mayoría de las bibliotecas de terceros implementan un método para verificar un JWT e incluyen varios argumentos que te permiten personalizar la verificación. Por ejemplo, si usas Node.js y la [biblioteca node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken), llamarías al método [jwt.verify()](https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback). Este método admite un argumento `algorithms` para personalizar los algoritmos permitidos (asegúrate de deshabilitar `none`), un argumento `secretOrPublicKey` que debes completar con el secreto o la clave pública RSA (según el algoritmo de firma seleccionado), y otros argumentos de entrada que te permiten personalizar la validación de claims. Si el análisis falla, la biblioteca devuelve un [error JsonWebTokenError](https://github.com/auth0/node-jsonwebtoken#jsonwebtokenerror) con el mensaje `jwt malformed`, después de lo cual **debes** rechazar la solicitud asociada.
+
+Recomendaciones generales para usar bibliotecas de terceros:
+
+* Para obtener claims de un JWT, usa el método `verify()` para validar los claims y la firma. Evita usar el método `decode()` para validar un token, especialmente si proviene de un <Tooltip tip="Cliente público: Cliente (aplicación) que no puede almacenar credenciales de forma segura. Algunos ejemplos incluyen una aplicación nativa de escritorio o móvil y una aplicación web del lado del cliente basada en JavaScript (como una aplicación de una sola página (SPA))." cta="Ver glosario" href="/docs/es/glossary?term=public+client">cliente público</Tooltip>.
+* Sigue cuidadosamente todas las instrucciones sobre cómo usar la biblioteca elegida. La biblioteca podría depender de valores o configuraciones predeterminados que podrían generar riesgos de seguridad.
+
+<div id="manually-implement-checks">
+  ## Implementa verificaciones manualmente
+</div>
+
+Desaconsejamos validar manualmente los JWT, ya que es fácil hacerlo de forma incorrecta y pasar por alto detalles importantes que pueden derivar en graves vulnerabilidades de seguridad. La mayoría de las bibliotecas JWT se encargan de la validación por ti. Visita JWT.io para encontrar una biblioteca JWT para tu plataforma y lenguaje de programación.
+
+Para obtener instrucciones sobre cómo validar manualmente un JWT, consulta [RFC 7519](https://tools.ietf.org/html/rfc7519#section-7.2). Todos los JWT emitidos por Auth0 tienen una JSON Web Signature (JWS), lo que significa que están firmados en lugar de cifrados.
+
+<div id="verify-rs256-signed-tokens">
+  ## Verificar tokens firmados con RS256
+</div>
+
+Para verificar visualmente tokens firmados con RS256:
+
+1. Ve a [Dashboard &gt; Applications](https://manage.auth0.com/#/applications).
+2. Ve a la vista **Settings** y abre **Advanced Settings**.
+3. Ve a la vista **Certificates**, busca el campo **Signed Certificate** y copia la **Public Key**.
+4. Ve al sitio web de [JWT.io](https://jwt.io/), busca el menú desplegable **Algorithm** y selecciona **RS256**.
+5. Busca la sección **Verify Signature** y pega la Public Key que copiaste anteriormente en lugar del contenido del campo que comienza con `-----BEGIN PUBLIC KEY-----`.
+
+Para verificar la firma de un token de una de tus aplicaciones:
+
+Te recomendamos obtener la Public Key del JWKS de tu tenant aquí:
+`https://{yourDomain}/.well-known/jwks.json`
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Claims de JSON Web Token](/docs/es/secure/tokens/json-web-tokens/json-web-token-claims)
+* [Validar tokens de ID](/docs/es/secure/tokens/id-tokens/validate-id-tokens)
+* [Validar tokens de acceso](/docs/es/secure/tokens/access-tokens/validate-access-tokens)
+* [Prácticas recomendadas para tokens](/docs/es/secure/tokens/token-best-practices)

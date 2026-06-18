@@ -1,0 +1,579 @@
+---
+title: 'API de Flask'
+description: 'Esta guía muestra cómo integrar Auth0 con cualquier API de Python nueva o existente creada con Flask.'
+---
+
+import {HowToSchema} from "/snippets/HowToSchema.jsx";
+
+<HowToSchema />
+
+<Note>
+  **Requisitos previos:** Antes de empezar, asegúrate de tener instalado lo siguiente:
+
+  * **Python 3.9** o superior
+  * **pip** o el gestor de paquetes Poetry
+  * **[jq](https://jqlang.org/)**: necesario para la configuración de Auth0 CLI
+  * Tu editor de código preferido
+
+  **Compatibilidad de versiones de Flask:** Esta guía de inicio rápido requiere **Flask 3.0** o superior para ofrecer compatibilidad nativa con async.
+</Note>
+
+<div id="get-started">
+  ## Primeros pasos
+</div>
+
+Esta guía muestra cómo integrar Auth0 con cualquier API de Python nueva o existente desarrollada con [Flask](https://flask.palletsprojects.com/).
+
+<Steps>
+  <Step title="Crear un nuevo proyecto de Flask" stepNumber={1}>
+    Crea un nuevo directorio para tu API de Flask:
+
+    ```bash
+    mkdir flask-auth0-api
+    cd flask-auth0-api
+    ```
+
+    Crea un entorno virtual y actívalo:
+
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # En Windows: venv\Scripts\activate
+    ```
+  </Step>
+
+  <Step title="Instalar dependencias" stepNumber={2}>
+    Crea un archivo `requirements.txt` con las siguientes dependencias:
+
+    ```txt requirements.txt
+    flask>=3.0
+    auth0-api-python
+    python-dotenv
+    ```
+
+    Instala las dependencias:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+  </Step>
+
+  <Step title="Configura tu Auth0 API" stepNumber={3}>
+    A continuación, debes crear una nueva API en tu tenant de Auth0 y configurar tu aplicación.
+
+    Puedes hacerlo automáticamente ejecutando un comando de la CLI o manualmente desde el Dashboard:
+
+    <Tabs>
+      <Tab title="Dashboard">
+        1. Ve a [Auth0 Dashboard](https://manage.auth0.com/) → **Applications** → **APIs**
+        2. Haz clic en **Create API**
+        3. Introduce los datos de tu API:
+           * **Name**: `My Flask API`
+           * **Identifier**: `https://my-flask-api` (esta será tu audiencia)
+           * **Signing Algorithm**: **RS256**
+        4. Haz clic en **Create**
+        5. Copia tu **Domain** desde el Dashboard (está en **Applications** → **Applications** → **&#91;Your App&#93;** → **Settings**)
+        6. Copia el **Identifier** que acabas de crear (esta es tu audiencia)
+
+        <Info>
+          Tu **Domain** no debe incluir `https://`; usa solo el nombre de dominio (por ejemplo, `your-tenant.auth0.com`).
+
+          La **Audience** (API Identifier) es un identificador único de tu API y puede ser cualquier URI válida.
+        </Info>
+      </Tab>
+
+      <Tab title="CLI">
+        Ejecuta el siguiente comando de shell en el directorio raíz de tu proyecto para crear una API de Auth0 y generar un archivo `.env`:
+
+        <CodeGroup>
+          ```shellscript Mac
+          AUTH0_API_NAME="My Flask API" && AUTH0_API_IDENTIFIER="https://my-flask-api" && brew tap auth0/auth0-cli && brew install auth0 && auth0 login --no-input && auth0 apis create --name "${AUTH0_API_NAME}" --identifier "${AUTH0_API_IDENTIFIER}" --signing-alg RS256 --json > auth0-api-details.json && DOMAIN=$(auth0 tenants list --json | jq -r '.[] | select(.active == true) | .name') && AUDIENCE=$(jq -r '.identifier' auth0-api-details.json) && echo "AUTH0_DOMAIN=${DOMAIN}" > .env && echo "AUTH0_AUDIENCE=${AUDIENCE}" >> .env && rm auth0-api-details.json && echo ".env file created with your Auth0 API details:" && cat .env
+          ```
+
+          ```shellscript Windows
+          $ApiName = "My Flask API"; $ApiIdentifier = "https://my-flask-api"; winget install Auth0.CLI; auth0 login --no-input; auth0 apis create -n "$ApiName" -i "$ApiIdentifier" --signing-alg RS256 --json | Set-Content -Path auth0-api-details.json; $Domain = (auth0 tenants list --json | ConvertFrom-Json | Where-Object { $_.active -eq $true }).name; $Audience = (Get-Content -Raw auth0-api-details.json | ConvertFrom-Json).identifier; Set-Content -Path .env -Value "AUTH0_DOMAIN=$Domain"; Add-Content -Path .env -Value "AUTH0_AUDIENCE=$Audience"; Remove-Item auth0-api-details.json; Write-Output ".env file created with your Auth0 API details:"; Get-Content .env
+          ```
+        </CodeGroup>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Definir permisos de API" stepNumber={4}>
+    Configura permisos (scopes) para tu API y controla el acceso a recursos específicos:
+
+    1. En el [Auth0 Dashboard](https://manage.auth0.com/), ve a **Applications** → **APIs**
+    2. Selecciona tu API (`My Flask API`)
+    3. Ve a la pestaña **Permissions**
+    4. Haz clic en **Add Permission**
+    5. Agrega el siguiente permiso:
+       * **Permission (Scope)**: `read:messages`
+       * **Description**: `Read messages`
+    6. Haz clic en **Add**
+
+    <Info>
+      Los permisos definen qué acciones se pueden realizar en tu API. Puedes agregar varios permisos, como `write:messages`, `delete:messages`, etc. El endpoint `/api/private-scoped` de este Quickstart requiere el permiso `read:messages`.
+    </Info>
+  </Step>
+
+  <Step title="Configurar el cliente de Auth0" stepNumber={5}>
+    <Note>
+      Si usaste el método de **CLI** en el Paso 3, el archivo `.env` se creó automáticamente. Ve directamente a crear el archivo `app.py` más abajo.
+    </Note>
+
+    Si usaste el método de **Dashboard**, crea un archivo `.env` en la raíz de tu proyecto para guardar la configuración de Auth0:
+
+    ```bash .env
+    AUTH0_DOMAIN=your-tenant.us.auth0.com
+    AUTH0_AUDIENCE=https://my-flask-api
+    ```
+
+    <Warning>
+      Reemplaza `your-tenant.us.auth0.com` por tu dominio de Auth0 real y actualiza `API_IDENTIFIER` para que coincida con el identificador de tu API en el Dashboard.
+    </Warning>
+
+    Crea un archivo `app.py` y configura la API del cliente de Auth0:
+
+    ```python app.py
+    import os
+    import asyncio
+    from flask import Flask, request, jsonify, g
+    from functools import wraps
+    from dotenv import load_dotenv
+    from auth0_api_python import ApiClient, ApiClientOptions
+    from auth0_api_python.errors import BaseAuthError
+
+    # Cargar variables de entorno
+    load_dotenv()
+
+    app = Flask(__name__)
+
+    # Inicializar el cliente de la API de Auth0 (singleton - creado una sola vez)
+    api_client = ApiClient(ApiClientOptions(
+        domain=os.getenv("AUTH0_DOMAIN"),
+        audience=os.getenv("AUTH0_AUDIENCE")
+    ))
+    ```
+  </Step>
+
+  <Step title="Crear rutas protegidas" stepNumber={5}>
+    Añade un decorador para proteger las rutas y crea endpoints públicos y privados:
+
+    ```python app.py
+    # Decorador de autenticación
+    def require_auth(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            auth_header = request.headers.get("Authorization", "")
+            
+            if not auth_header.startswith("Bearer "):
+                return jsonify({"error": "Missing or invalid authorization header"}), 401
+            
+            token = auth_header.split(" ")[1]
+            
+            try:
+                claims = asyncio.run(api_client.verify_access_token(token))
+                g.user_claims = claims
+                return f(*args, **kwargs)
+            except BaseAuthError as e:
+                return (
+                    jsonify({"error": str(e)}),
+                    e.get_status_code(),
+                    e.get_headers()
+                )
+        
+        return decorated_function
+
+
+    # Endpoint público - no requiere autenticación
+    @app.route("/api/public", methods=["GET"])
+    def public():
+        return jsonify({"message": "This endpoint is public"})
+
+
+    # Endpoint protegido - requiere autenticación
+    @app.route("/api/private", methods=["GET"])
+    @require_auth
+    def private():
+        return jsonify({
+            "message": "This endpoint requires authentication",
+            "user": g.user_claims.get("sub")
+        })
+
+
+    # Endpoint protegido con validación de permisos
+    @app.route("/api/private-scoped", methods=["GET"])
+    @require_auth
+    def private_scoped():
+        scopes = g.user_claims.get("scope", "").split()
+        
+        if "read:messages" not in scopes:
+            return jsonify({"error": "Insufficient permissions"}), 403
+        
+        return jsonify({
+            "message": "Private scoped endpoint - read:messages permission granted",
+            "user": g.user_claims.get("sub")
+        })
+
+
+    if __name__ == "__main__":
+        app.run(debug=True, port=5000)
+    ```
+  </Step>
+
+  <Step title="Ejecuta tu API" stepNumber={6}>
+    Inicia la aplicación Flask:
+
+    ```bash
+    python app.py
+    ```
+
+    Tu API ya está en ejecución en `http://localhost:5000`.
+  </Step>
+</Steps>
+
+<Check>
+  **Verificación**
+
+  Ahora deberías tener una API de Flask protegida por Auth0, completamente funcional, ejecutándose en tu localhost con tres endpoints:
+
+  * `/api/public` - Accesible sin autenticación
+  * `/api/private` - Requiere un token de acceso de Auth0 válido
+  * `/api/private-scoped` - Requiere autenticación y el permiso `read:messages`
+</Check>
+
+<div id="test-your-api">
+  ## Prueba tu API
+</div>
+
+Para probar tus endpoints protegidos, necesitas un token de acceso.
+
+<div id="get-a-test-token">
+  ### Obtén un token de prueba
+</div>
+
+1. Ve al [Auth0 Dashboard](https://manage.auth0.com/)
+2. Ve a **Applications → APIs**
+3. Selecciona tu API
+4. Ve a la pestaña **Test**
+5. Copia el token de acceso
+
+<div id="make-a-request">
+  ### Haz una solicitud
+</div>
+
+Prueba el endpoint público (no se requiere token):
+
+```bash
+curl http://localhost:5000/api/public
+```
+
+Prueba el endpoint protegido (requiere token):
+
+```bash
+curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  http://localhost:5000/api/private
+```
+
+Reemplaza `YOUR_ACCESS_TOKEN` por el token que copiaste del Auth0 Dashboard.
+
+<div id="advanced-usage">
+  ## Uso avanzado
+</div>
+
+<Accordion title="Validación de claims personalizados">
+  Exige que determinados claims estén presentes en el token de acceso:
+
+  ```python
+  try:
+      claims = await api_client.verify_access_token(
+          access_token=token,
+          required_claims=["email_verified", "org_id"]
+      )
+  except BaseAuthError as e:
+      return jsonify({"error": "Faltan claims obligatorios"}), 401
+  ```
+</Accordion>
+
+<Accordion title="Autenticación DPoP">
+  Para una seguridad reforzada, habilita DPoP (Demonstrating Proof-of-Possession). DPoP mejora OAuth 2.0 al vincular los tokens de acceso a claves criptográficas.
+
+  ```python
+  import asyncio
+
+
+  # Configura la API del cliente con DPoP habilitado (modo Allowed)
+  api_client = ApiClient(ApiClientOptions(
+      domain=os.getenv("AUTH0_DOMAIN"),
+      audience=os.getenv("AUTH0_AUDIENCE"),
+      dpop_enabled=True,   # Predeterminado: habilita la compatibilidad con DPoP
+      dpop_required=False  # Predeterminado: permite tokens Bearer y DPoP
+  ))
+
+  # Para el modo Required (solo DPoP, rechaza tokens Bearer)
+  # dpop_required=True
+
+  # Decorador compatible con DPoP
+  def require_auth_dpop(f):
+      @wraps(f)
+      def decorated_function(*args, **kwargs):
+          headers = {
+              "authorization": request.headers.get("Authorization", ""),
+              "dpop": request.headers.get("DPoP", "")  # encabezado de prueba DPoP
+          }
+          
+          try:
+              # verify_request() detecta automáticamente el esquema Bearer o DPoP
+              claims = asyncio.run(api_client.verify_request(
+                  headers=headers,
+                  http_method=request.method,
+                  http_url=request.url
+              ))
+              g.user_claims = claims
+              return f(*args, **kwargs)
+          except BaseAuthError as e:
+              return jsonify({"error": str(e)}), e.get_status_code(), e.get_headers()
+      
+      return decorated_function
+
+  @app.route("/api/dpop-protected")
+  @require_auth_dpop
+  def dpop_protected():
+      return jsonify({
+          "message": "Autenticación correcta con DPoP o Bearer",
+          "user": g.user_claims.get("sub")
+      })
+  ```
+
+  <Info>
+    El método `verify_request()` detecta automáticamente si la solicitud usa autenticación Bearer o DPoP. Cuando se usa DPoP, valida tanto el token de acceso como la prueba DPoP de acuerdo con la RFC 9449.
+  </Info>
+</Accordion>
+
+<Accordion title="Autorización basada en scopes">
+  Crea un decorador para comprobar scopes específicos:
+
+  ```python
+  def require_scope(required_scope):
+      def decorator(f):
+          @wraps(f)
+          async def wrapper(*args, **kwargs):
+              if not hasattr(g, "user_claims"):
+                  return jsonify({"error": "No autorizado"}), 401
+              
+              scopes = g.user_claims.get("scope", "").split()
+              
+              if required_scope not in scopes:
+                  return jsonify({"error": "Permisos insuficientes"}), 403
+              
+              return await f(*args, **kwargs)
+          return wrapper
+      return decorator
+
+
+  @app.route("/api/admin")
+  @require_auth
+  @require_scope("admin:write")
+  async def admin_endpoint():
+      return jsonify({"message": "Acceso de Admin concedido"})
+  ```
+</Accordion>
+
+<Accordion title="Manejo de errores: prácticas recomendadas">
+  Implementa un manejo integral de errores con tipos de error específicos:
+
+  ```python
+  from auth0_api_python.errors import (
+      BaseAuthError,
+      VerifyAccessTokenError,
+      GetTokenByExchangeProfileError,
+      ApiError
+  )
+
+  @app.errorhandler(BaseAuthError)
+  def handle_auth_error(error):
+      """Maneja todos los errores de autenticación de Auth0"""
+      return jsonify({
+          "error": error.get_error_code(),
+          "error_description": str(error)
+      }), error.get_status_code(), error.get_headers()
+
+
+  @app.errorhandler(VerifyAccessTokenError)
+  def handle_token_verification_error(error):
+      """Maneja específicamente los fallos en la verificación de tokens"""
+      app.logger.warning(f"Token verification failed: {str(error)}")
+      return jsonify({
+          "error": "invalid_token",
+          "error_description": str(error)
+      }), 401, error.get_headers()
+
+
+  @app.errorhandler(ApiError)
+  def handle_api_error(error):
+      """Maneja errores de la Auth0 API (red, límites de frecuencia, etc.)"""
+      app.logger.error(f"Auth0 API error: {error.code} - {error.message}")
+      return jsonify({
+          "error": error.code,
+          "error_description": error.message
+      }), error.status_code or 500
+
+
+  @app.errorhandler(Exception)
+  def handle_generic_error(error):
+      """Captura cualquier error inesperado"""
+      app.logger.error(f"Unexpected error: {str(error)}", exc_info=True)
+      return jsonify({"error": "Internal server error"}), 500
+  ```
+
+  <Info>
+    Todos los errores de autenticación heredan de `BaseAuthError`, que proporciona métodos como `get_status_code()`, `get_headers()` y `get_error_code()` para generar respuestas HTTP adecuadas con encabezados WWW-Authenticate.
+  </Info>
+</Accordion>
+
+<Accordion title="Uso del middleware Before-Request">
+  Para aplicaciones en las que la mayoría de los endpoints requieren autenticación, usa `before_request` de Flask para validar tokens de forma global:
+
+  ```python
+  from flask import g
+
+  PUBLIC_ROUTES = ["/api/public", "/health"]
+
+  @app.before_request
+  async def verify_token():
+      # Omitir la autenticación en las rutas públicas
+      if request.path in PUBLIC_ROUTES:
+          return
+      
+      auth_header = request.headers.get("Authorization", "")
+      
+      if not auth_header.startswith("Bearer "):
+          return jsonify({"error": "Missing authorization"}), 401
+      
+      token = auth_header.split(" ")[1]
+      
+      try:
+          claims = await api_client.verify_access_token(token)
+          g.user_claims = claims
+      except BaseAuthError as e:
+          return jsonify({"error": str(e)}), e.get_status_code(), e.get_headers()
+
+
+  @app.route("/api/protected-data")
+  async def protected_data():
+      # Claims disponibles automáticamente a través de g.user_claims
+      return jsonify({"user_id": g.user_claims["sub"]})
+  ```
+</Accordion>
+
+<div id="common-issues">
+  ## Problemas comunes
+</div>
+
+<AccordionGroup>
+  <Accordion title="401 No autorizado - Audiencia no válida">
+    **Síntoma**: Recibes errores 401 incluso con tokens que parecen válidos
+
+    **Causa**: La audiencia de tu token no coincide con la audiencia configurada en tu API del cliente
+
+    **Solución**:
+
+    1. Verifica que `AUTH0_AUDIENCE` en tu archivo `.env` coincida exactamente con el identificador de tu Auth0 API
+    2. La audiencia distingue entre mayúsculas y minúsculas
+    3. Asegúrate de que la audiencia tenga formato de URL o URN (por ejemplo, `https://my-api` y no `my-api`)
+  </Accordion>
+
+  <Accordion title="401 No autorizado - Emisor no válido">
+    **Síntoma**: La validación del token falla porque el emisor no coincide
+
+    **Causa**: La configuración del dominio no coincide con el emisor del token
+
+    **Solución**:
+
+    1. Verifica que `AUTH0_DOMAIN` sea correcto (por ejemplo, `tenant.us.auth0.com`)
+    2. No incluyas `https://` en el dominio
+    3. No incluyas una barra diagonal al final
+  </Accordion>
+
+  <Accordion title="No se encontraron valores de configuración">
+    **Síntoma**: Valores `None` o errores de variables de entorno
+
+    **Causa**: Las variables de entorno no se cargaron o no se encontró el archivo `.env`
+
+    **Solución**:
+
+    1. Asegúrate de que el archivo `.env` exista en la raíz de tu proyecto
+    2. Verifica que se llame a `load_dotenv()` antes de acceder a `os.getenv()`
+    3. Comprueba que los nombres de las variables coincidan exactamente (distinguen entre mayúsculas y minúsculas)
+  </Accordion>
+
+  <Accordion title="Errores de compatibilidad async en Flask">
+    **Síntoma**: `RuntimeError: This event loop is already running` u otros errores async similares
+
+    **Causa**: Usar rutas async sin Flask 3.0+ o mezclar sync y async de forma incorrecta
+
+    **Solución**:
+
+    1. Actualiza a Flask 3.0 o superior: `pip install --upgrade flask`
+    2. Asegúrate de que todos los controladores de ruta que usan `api_client` estén declarados como `async def`
+    3. No uses `asyncio.run()` dentro de los controladores de ruta
+  </Accordion>
+
+  <Accordion title="Errores de token expirado">
+    **Síntoma**: `VerifyAccessTokenError: Token is expired`
+
+    **Causa**: El token de acceso ya superó su tiempo de expiración
+
+    **Solución**:
+
+    1. Solicita un token nuevo desde la pestaña Test del Auth0 Dashboard
+    2. Implementa la renovación de tokens en tu aplicación cliente
+    3. Los tokens del Dashboard normalmente son válidos durante 24 horas
+  </Accordion>
+
+  <Accordion title="Falta el encabezado Authorization">
+    **Síntoma**: Error `Missing or invalid authorization header`
+
+    **Causa**: La solicitud no incluye el encabezado `Authorization` o usa un formato incorrecto
+
+    **Solución**:
+
+    1. Asegúrate de que el encabezado se llame `Authorization` (A mayúscula)
+    2. Usa este formato: `Authorization: Bearer YOUR_TOKEN`
+    3. No incluyas comillas alrededor del token
+  </Accordion>
+</AccordionGroup>
+
+<div id="additional-resources">
+  ## Recursos adicionales
+</div>
+
+<CardGroup cols={3}>
+  <Card title="Documentación del SDK" icon="github" href="https://github.com/auth0/auth0-api-python">
+    Documentación completa del SDK y referencia de la API
+  </Card>
+
+  <Card title="Documentación de Flask" icon="code" href="https://flask.palletsprojects.com/">
+    Documentación oficial del framework Flask
+  </Card>
+
+  <Card title="Auth0 Dashboard" icon="gauge" href="https://manage.auth0.com/">
+    Administra tu tenant de Auth0 y tus API
+  </Card>
+
+  <Card title="Guía de autenticación para API" icon="shield" href="https://auth0.com/docs/secure/tokens/access-tokens">
+    Más información sobre los tokens de acceso y la seguridad de las API
+  </Card>
+
+  <Card title="Documentación de DPoP" icon="lock" href="https://auth0.com/docs/secure/sender-constraining/demonstrating-proof-of-possession-dpop">
+    Más información sobre la seguridad de prueba de posesión
+  </Card>
+
+  <Card title="Foro de la comunidad" icon="comments" href="https://community.auth0.com/">
+    Obtén ayuda de la Auth0 Community
+  </Card>
+</CardGroup>
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+Consulta el [repositorio de ejemplos de la API de Auth0 para Python](https://github.com/auth0-samples/auth0-python-api-samples) para ver ejemplos completos y funcionales en Flask.

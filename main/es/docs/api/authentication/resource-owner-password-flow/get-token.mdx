@@ -1,0 +1,137 @@
+---
+title: "Obtener token"
+description: "Autentica a un usuario con sus credenciales mediante el flujo de contraseña del propietario del recurso para aplicaciones de confianza que no pueden usar redirecciones."
+---
+
+import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
+
+<div id="endpoint">
+  ## Endpoint
+</div>
+
+`POST /oauth/token`
+
+<Note>
+  Este flujo solo debe usarse desde aplicaciones de alta confianza que **no pueden hacer redirecciones**. Si puedes usar flujos basados en redirecciones desde tu aplicación, te recomendamos usar en su lugar el [flujo de código de autorización](#regular-web-app-login-flow).
+</Note>
+
+Este es la concesión de OAuth 2.0 que usan las aplicaciones de alta confianza para acceder a una API. En este flujo, se pide al usuario final que introduzca sus credenciales (nombre de usuario/contraseña), normalmente mediante un formulario interactivo en el agente de usuario (navegador). Esta información se envía al backend y, desde allí, a Auth0. Por lo tanto, es imprescindible que la aplicación sea completamente de confianza para manejar esta información.
+
+<div id="request-headers">
+  ### Encabezados de la solicitud
+</div>
+
+| Parameter             | Description                                                                                                                                                                  |
+| :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth0-forwarded-for` | Dirección IP del usuario final como valor de cadena. Establece este parámetro si quieres que la protección contra fuerza bruta funcione en escenarios del lado del servidor. |
+
+<div id="responses">
+  ### Respuestas
+</div>
+
+<div id="200">
+  #### 200
+</div>
+
+Una solicitud correcta devuelve el token de acceso.
+
+```json
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+  "access_token":"eyJz93a...k4laUWw",
+  "token_type":"Bearer",
+  "expires_in":86400
+}
+```
+
+<div id="remarks">
+  ### Observaciones
+</div>
+
+* Los scopes emitidos para la aplicación pueden diferir de los scopes solicitados. En este caso, se incluirá un parámetro `scope` en el JSON de respuesta.
+* Si no solicitas scopes específicos, se devolverán todos los scopes definidos para la audiencia debido a la confianza implícita en la aplicación en esta concesión.
+* Para agregar compatibilidad con realm, establece `grant_type` en `http://auth0.com/oauth/grant-type/password-realm` y `realm` en el realm al que pertenece el usuario. Esto se corresponde con una conexión en Auth0.
+* Además del nombre de usuario y la contraseña, Auth0 puede requerir que el usuario final proporcione un factor adicional como prueba de identidad. La solicitud puede devolver un error `mfa_required` junto con un `mfa_token` para la autenticación multifactor.
+
+<div id="learn-more">
+  ### Más información
+</div>
+
+* [Llamar a las API desde aplicaciones de alta confianza](https://auth0.com/docs/get-started/authentication-and-authorization-flow/resource-owner-password-flow)
+* [Ejecutar la concesión de contraseña del propietario del recurso](https://auth0.com/docs/get-started/authentication-and-authorization-flow/resource-owner-password-flow/call-your-api-using-resource-owner-password-flow)
+* [Autenticación multifactor y contraseña del propietario del recurso](https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa)
+
+<div id="headers">
+  ## Encabezados
+</div>
+
+<ParamField header="DPoP" type="string">
+  Una prueba DPoP para la solicitud. Es opcional y solo se requiere si tu aplicación utiliza Demonstrating Proof-of-Possession.
+</ParamField>
+
+<div id="body-parameters">
+  ## Parámetros del cuerpo
+</div>
+
+<ParamField body="grant_type" type="string" required>
+  Indica el flujo que estás usando. Para contraseña del propietario del recurso, usa `password`.
+</ParamField>
+
+<ParamField body="username" type="string" required>
+  Identificador del propietario del recurso, como un nombre de usuario o una dirección de correo electrónico.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Secreto del propietario del recurso.
+</ParamField>
+
+<ParamField body="audience" type="string">
+  El identificador único de la API de destino a la que quieres acceder.
+</ParamField>
+
+<ParamField body="resource" type="string">
+  El identificador de la API de destino (servidor de recursos) a la que quieres acceder. Debe coincidir con un identificador de API registrado en tu tenant de Auth0. Se usa como alternativa a `audience` cuando el [perfil de compatibilidad del parámetro resource](https://auth0.com/docs/get-started/tenant-settings#settings-advanced) del tenant está configurado en `compatibility`.
+</ParamField>
+
+<ParamField body="scope" type="string">
+  Valor de cadena con los diferentes scopes que solicita la aplicación.
+</ParamField>
+
+<ParamField body="client_id" type="string" required>
+  El Client ID de tu aplicación.
+</ParamField>
+
+<ParamField body="client_secret" type="string">
+  El Client Secret de tu aplicación.
+</ParamField>
+
+<ParamField body="realm" type="string">
+  Valor de cadena del realm al que pertenece el usuario.
+</ParamField>
+
+<div id="response-schema">
+  ## Esquema de respuesta
+</div>
+
+<ResponseSchema>
+  <ResponseField name="access_token" type="string">
+    El token de acceso.
+  </ResponseField>
+
+  <ResponseField name="token_type" type="string">
+    El tipo de token. Normalmente, `Bearer`.
+  </ResponseField>
+
+  <ResponseField name="expires_in" type="integer">
+    La vigencia del token de acceso en segundos.
+  </ResponseField>
+</ResponseSchema>
+
+<div id="response-messages">
+  ## Mensajes de respuesta
+</div>
+
+| Estado | Descripción                  |
+| ------ | ---------------------------- |
+| 200    | Devuelve el token de acceso. |

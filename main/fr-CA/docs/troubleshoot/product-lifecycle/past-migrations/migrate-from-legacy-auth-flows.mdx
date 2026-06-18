@@ -1,0 +1,60 @@
+---
+description: Décrit comment migrer depuis les flux d’authentification hérités.
+title: Migrer depuis les flux d’authentification hérités
+---
+
+Si vous utilisez une version de Lock antérieure à 11 et une version d’Auth0.js antérieure à 9, il se peut que vous utilisiez des flux d’authentification hérités désormais obsolètes. Auth0 recommande de migrer le code des anciennes versions d’Auth0.js et de Lock vers les API conformes à OIDC.
+
+<div id="renew-tokens">
+  ## Renouveler les jetons
+</div>
+
+Les applications Legacy utilisaient <Tooltip tip="Jeton d’actualisation : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Refresh+Tokens">jetons d’actualisation</Tooltip> et la fonction `refreshToken()` pour obtenir de nouveaux jetons lorsqu’ils expiraient (vous en trouverez un exemple ci-dessous).
+
+Dans auth0.js v9 et Lock 11, vous devez utiliser l’[authentification silencieuse](/docs/fr-CA/authenticate/login/configure-silent-authentication) et `checkSession()` (vous en trouverez un exemple ci-dessous).
+
+<div id="call-apis">
+  ## Appeler des API
+</div>
+
+Les applications Legacy utilisaient un <Tooltip tip="ID Token : jeton destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">ID token</Tooltip> pour appeler des API. C’est une mauvaise pratique, et nous vous recommandons d’utiliser uniquement des <Tooltip tip="jeton d’accès : jeton d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip>.
+
+Pour appeler une API, vous devrez préciser l’identifiant de l’API comme paramètre `audience` lors de l’initialisation d’auth0.js ou de Lock.
+
+Si vous précisez une <Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Appelée aud dans un jeton, sa valeur contient l’ID soit d’une application (Client ID) pour un ID Token, soit d’une API (API Identifier) pour un jeton d’accès." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip>, le flux OIDC sera alors déclenché et les données de profil utilisateur renvoyées par Auth0 dans les ID tokens ou depuis `/userinfo` seront conformes à OIDC. Si votre application utilise une claim non standard du profil utilisateur, cela ne fonctionnera plus.
+
+Consultez la section **Calling an API** de nos Quickstarts pour SPA pour en savoir plus sur la façon d’appeler des API à partir d’une SPA. Vous devrez aussi migrer l’implémentation de votre backend API afin d’utiliser des jetons d’accès. Consultez les Quickstarts d’API pour savoir comment faire.
+
+<div id="user-profiles">
+  ## Profils utilisateur
+</div>
+
+Les flux d’authentification hérités qui permettent aux ID Tokens et au endpoint `/userinfo` d’inclure le profil utilisateur complet sont en voie d’être abandonnés. Assurez-vous que la bascule `Legacy User Profile` est désactivée une fois la migration vers les nouvelles API conformes à OIDC terminée.
+
+Lorsque vous utilisez les flux d’authentification hérités, l’intégralité du profil utilisateur est renvoyée dans les ID Tokens et par `/userinfo`, comme illustré ci-dessous.
+
+Le nouveau profil utilisateur est conforme à la spécification OIDC, ce qui permet à certaines [claims standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims) d’être incluses dans la réponse.
+
+Le contenu varie selon les scopes demandés. Vous devrez ajuster les scopes demandés lors de la configuration d’auth0.js ou de Lock afin que toutes les claims dont vous avez besoin soient disponibles dans votre application. Notez que vous pouvez ajouter des claims personnalisées pour renvoyer toutes les données souhaitées (par exemple, les métadonnées utilisateur).
+
+Une autre façon d’obtenir le profil utilisateur complet consiste à utiliser la <Tooltip tip="Management API : Un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> (au lieu d’obtenir le profil par le flux d’authentification), comme décrit dans la section suivante.
+
+<div id="user-profile-with-management-api">
+  ## Profil utilisateur avec Management API
+</div>
+
+Dans les anciens flows, la Management API prenait en charge l’authentification avec un ID Token. Cette approche est désormais dépréciée, et vous devez maintenant l’appeler avec un jeton d’accès.
+
+Pour obtenir un jeton d’accès, vous devez en demander un à Auth0 en utilisant l’audience `https://{yourDomain}/api/v2/`. Auth0 ne prend actuellement pas en charge la spécification de deux audiences lors de l’authentification; vous devrez donc continuer à utiliser l’audience d’API de votre application lorsque vous initialisez Lock ou auth0.js. Une fois l’utilisateur authentifié, vous pouvez utiliser `checkSession` pour récupérer un `access_token` de la Management API, puis appeler l’endpoint `getUser()`.
+
+Vous pouvez demander les scopes suivants :
+
+* `read:current_user`
+* `update:current_user_identities`
+* `create:current_user_metadata`
+* `update:current_user_metadata`
+* `delete:current_user_metadata`
+* `create:current_user_device_credentials`
+* `delete:current_user_device_credentials`
+
+Il se peut que vous obteniez une erreur `consent_required` lors de l’appel à `checkSession()`. Si c’est le cas, assurez-vous que **Allow Skipping User Consent** est activé pour la Management API et que vous n’exécutez pas l’application à partir de localhost.

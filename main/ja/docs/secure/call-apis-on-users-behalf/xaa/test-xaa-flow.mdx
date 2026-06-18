@@ -1,0 +1,92 @@
+---
+description: エンドツーエンドでXAAフローをテストする方法を学びます。
+sidebarTitle: XAAフローをテストする
+title: Cross App Access（XAA）フローをテストする
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<ReleaseStageNotice feature="Cross App Access (XAA)" stage="beta" contact="Auth0 Support" terms="true" />
+
+エンドツーエンドの XAA フローをテストするには、Auth0 テナントが Requesting App から送信される JWT-Bearer リクエストを受け入れられることを確認する必要があります。これは Auth0 で標準対応されています。
+
+エンドツーエンドの XAA フローをテストする前に、次の点を確認してください。
+
+* [Okta で Requesting App を登録する](/docs/ja/secure/call-apis-on-users-behalf/xaa/set-up-xaa-test-environment#register-the-requesting-app-in-okta) で説明されているように、**Redirect URI** フィールドを、Okta テナント内で Requesting App として動作するテスト用アプリケーションの callback URL に更新します。
+* Okta の担当者に次の情報を提供します。
+  * Auth0 テナントの issuer URL。Resource App は Okta Integration Network (OIN) で issuer URL に関連付けられているため、Requesting App は ID-JAG をリクエストする際にその URL を参照できます。
+  * OIN 内の各 Requesting App に対応する Auth0 `client_id`。
+
+Auth0 テナント内で issuer URL とクライアント ID を取得するには、**アプリケーション** に移動し、対象のアプリケーションを選択してから **設定** を選択します。
+
+| **Field**   | **Instructions**                                   | **Example**                                                                                 |
+| ----------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Issuer URL  | Auth0 ドメインをコピーし、先頭に `https://` を付け、末尾にスラッシュを追加します。 | `https://tenant.region.auth0.com/` または、お客様がカスタムドメインを使用している場合は `https://custom-domain.com/`。 |
+| `client_id` | アプリケーションのクライアント IDをコピーします。                       | `ovBLQycaVq6I0Xyuhq84pwDVyJeXWLyx`                                                          |
+
+<div id="exchange-the-id-token-for-an-id-jag">
+  ### ID トークンを ID-JAG に交換する
+</div>
+
+まず、Okta のテスト テナントを使って Requesting App にログインする必要があります。ログインに成功して同意すると、Okta は認可コードを付与して、ブラウザーを Requesting App にリダイレクトします。続いて、Requesting App はその認可コードを Okta のアクセストークンと ID トークンに安全に交換します。
+
+Okta の ID トークンを ID-JAG に交換するには、Requesting App は次のパラメータを指定して、Okta テスト テナントの `/token` endpoint に [トークン交換リクエスト](https://www.ietf.org/archive/id/draft-parecki-oauth-identity-assertion-authz-grant-05.html#name-token-exchange) を送信します。
+
+```
+POST /oauth2/v1/token HTTP/1.1
+Host: {{YOUR_TENANT}}.okta.com
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn:ietf:params:oauth:grant-type:token-exchange
+&requested_token_type=urn:ietf:params:oauth:token-type:id-jag
+&audience={{YOUR_AUTH0_TENANT_ISSUER_URL}}
+&resource={{YOUR_AUTH0_TENANT_API_AUDIENCE}}
+&subject_token={{OKTA_ID_TOKEN}}
+&subject_token_type=urn:ietf:params:oauth:token-type:id_token
+&client_id={{REQUESTING_APP_CLIENT_ID_IN_OKTA}}
+&client_secret={{REQUESTING_APP_CLIENT_SECRET_IN_OKTA}}
+```
+
+| **パラメーター**             | **説明**                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grant_type`           | グラントタイプです。トークン交換のグラントタイプ `urn:ietf:params:oauth:grant-type:token-exchange` に設定します。                                                                                                                                                                                                                                                                                           |
+| `requested_token_type` | クライアントが認可サーバーから受け取りたいトークンの種類です。Identity Assertion Authorization Grant、つまり ID-JAG `urn:ietf:params:oauth:token-type:id-jag` に設定します。                                                                                                                                                                                                                                           |
+| `audience`             | 最終的なトークンの想定受信者です。Auth0 テナントの issuer URL、またはその特定の URL に認可サーバーがある Resource App に設定します。                                                                                                                                                                                                                                                                                             |
+| `resource`             | 任意です。クライアントがアクセスしたい Resource App の API です。認可サーバーが最終的なアクセストークンを発行する際、このリソースをトークンの `aud` クレームに含めます。これは、Resource App の API がバリデーションに使用します。`resource` パラメーターを指定しない場合、次にアクセストークンを取得するリクエストでは、テナントに設定したデフォルトの audience が使用されます。Auth0 テナント内の有効な API audience と一致しない `resource` を指定しても、トークン交換リクエストは失敗せず、ID-JAG は返されます。ただし、その ID-JAG を使ってアクセストークンを取得する後続のリクエストは、Auth0 テナントによって拒否されます。 |
+| `subject_token`        | クライアントが交換するトークンです。XAA では、サブジェクトトークンはユーザーの本人確認を行うための「証明」または「アサーション」です。IdP がユーザーの本人確認に使用する Okta の ID トークンに設定します。                                                                                                                                                                                                                                                               |
+| `subject_token_type`   | `subject_token` パラメーターで渡すトークンの種類です。XAA では、認可サーバーに ID トークンを提示することを示します。                                                                                                                                                                                                                                                                                                       |
+| `client_id`            | トークン交換リクエストを行う enterprise IdP 内の Requesting App のクライアント ID です。                                                                                                                                                                                                                                                                                                               |
+| `client_secret`        | その Requesting App が enterprise IdP に対して自身を認証するために使用するクライアントシークレットです。                                                                                                                                                                                                                                                                                                         |
+
+XAA Beta では、Okta の `/token` エンドポイントにスコープを渡すことはサポートされていません。Requesting App が ID-JAG を受け取った後、次の Auth0 の `/token` エンドポイントへのリクエストでスコープを設定できます。
+
+本番環境では、Requesting App はお客様の Okta テナントの `/token` エンドポイントにトークン交換リクエストを送信します。
+
+<div id="send-id-jag-to-auth0s-token-endpoint">
+  ### Auth0 の /token エンドポイントに ID-JAG を送信する
+</div>
+
+Requesting App が ID-JAG を取得したら、Auth0 テナントの `/token` エンドポイントに [アクセストークンリクエスト](https://www.ietf.org/archive/id/draft-parecki-oauth-identity-assertion-authz-grant-05.html#name-access-token-request) を送信します。
+
+```
+POST https://{{YOUR_AUTH0_TENANT_DOMAIN}}/oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
+&client_id={{REQUESTING_APP_CLIENT_ID_IN_AUTH0}}
+&client_secret={{REQUESTING_APP_CLIENT_SECRET_IN_AUTH0}}
+&scope=scope1%20scope2%20
+&assertion={{ID_JAG}}
+```
+
+| **パラメーター**      | **説明**                                                             |
+| --------------- | ------------------------------------------------------------------ |
+| `grant_type`    | グラントタイプ。リクエストの主要な認証情報として JSON Web トークン (JWT) が送信されることを認可サーバーに示します。 |
+| `client_id`     | API 呼び出しを行う、Resource App の認可サーバー内の Requesting App のクライアント ID。     |
+| `client_secret` | API 呼び出しを行う、Resource App の認可サーバー内の Requesting App のクライアントシークレット。 |
+| `scope`         | Requesting App がアクセストークンに対して要求する権限のセット。                            |
+| `assertion`     | ID アサーションのベアラーとして機能する ID-JAG または JSON Web トークン (JWT)。              |
+
+Auth0 認可サーバーは、ユーザーの ID を確認するために ID-JAG を検証した後、Auth0 テナントの対象 API audience を利用するためのアクセストークンを発行します。このアクセストークンには、RBAC と Auth0 テナントで設定されたその他のポリシーによって許可された、要求済みのスコープも含まれます。
+
+Auth0 認可サーバーは、ID-JAG のトークン交換に対する応答としてリフレッシュトークンを発行しません。そのため、Requesting App が XAA を介して新しいアクセストークンを取得するには、enterprise IdP から新しい ID-JAG を取得し、該当するアクセス制御を受ける必要があります。

@@ -1,0 +1,138 @@
+---
+title: "トークンを取得"
+description: "Custom Token Exchange grant を使用して、既存のIDトークンをAuth0トークンに交換します。"
+---
+
+import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
+
+<div id="endpoint">
+  ## エンドポイント
+</div>
+
+`POST /oauth/token`
+
+Custom Token Exchange (CTE) は、アプリケーションが `/oauth/token` エンドポイント を呼び出して、既存のIDトークンをAuth0トークンに交換するための仕組みであり、[RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693) の仕様に準拠しています。この機能は、同じユーザーに代わって別のaudienceへアクセスするために既存のAuth0トークンを交換する場合や、外部IDプロバイダーとの統合、Auth0プラットフォームへのシームレスなユーザー移行など、高度な統合要件に対応するうえで重要です。交換プロセスは完全に管理可能で、開発者は関連するユースケース専用のAuth0 Actionで実行されるカスタムロジックを使用して、その詳細を制御できます。
+
+<Note>
+  Custom Token Exchange は現在Early Accessとして提供されています。この機能を使用することで、[Okta’s Master Subscription Agreement](https://www.okta.com/legal/) に定める該当のFree Trial条項に同意したものとみなされます。ユーザーの `subject_token` を安全に検証する責任はお客様にあります。詳細は [User Guide](https://auth0.com/docs/authenticate/custom-token-exchange) を参照してください。
+</Note>
+
+<div id="remarks">
+  ### 注記
+</div>
+
+* アプリケーションに発行されるスコープは、要求したスコープと異なる場合があります。この場合、レスポンス JSON に `scope` パラメーターが含まれます。スコープは、[アプリケーション向け API access policies](https://auth0.com/docs/ja-jp/get-started/apis/api-access-policies-for-applications) で説明されているとおりに絞り込まれます。
+
+* `subject_token_type` は、既存の Custom Token Exchange Profile および関連付けられた [Action](https://auth0.com/docs/customize/actions) に対応している必要があります。
+
+* Client Secret を安全に保持できない非機密アプリケーション (たとえばネイティブアプリ) の場合、このエンドポイントでは Client Secret なしでの送信がサポートされています。ただし、アプリケーション自体の `tokenEndpointAuthMethod` プロパティが `none` に設定されている必要があります。これは、UI (**Dashboard &gt; Applications &gt; Application Settings**) または Management API で設定できます。
+
+* [アプリケーションで Custom Token Exchange を有効にする](https://auth0.com//docs/authenticate/custom-token-exchange/configure-custom-token-exchange#enable-custom-token-exchange-for-your-application)必要があります。詳しくは、[Custom Token Exchange のドキュメント](https://auth0.com/docs/authenticate/custom-token-exchange)を参照してください。
+
+* `actor_token` と `actor_token_type` は、両方とも存在するか、両方とも存在しない必要があります。どちらか一方だけを指定すると、コード `invalid_request` の `400` エラーが返されます。
+
+* `actor_token` が存在する場合、リフレッシュトークンは発行されません。`offline_access` スコープはレスポンスから除外されます。
+
+* MFA は、`setActor()` で actor が設定されたトランザクションとは互換性がありません。MFA が必要で、かつ Custom Token Exchange Action で actor が設定されている場合、リクエストは次の `400` エラーを返します: `MFA is not supported using actor_token with the requested token exchange profile.`
+
+* Action が `setActor()` を呼び出すと、発行されたアクセストークンと ID トークンには、[委任チェーン](/docs/ja/secure/call-apis-on-users-behalf/on-behalf-of-token-exchange#the-act-claim) を表す `act` クレームが含まれます。`act` クレームは userinfo レスポンスにも含まれます。
+
+<div id="headers">
+  ## ヘッダー
+</div>
+
+<ParamField header="DPoP" type="string">
+  リクエストの DPoP プルーフです。これは任意で、アプリケーションで Demonstrating Proof-of-Possession を使用している場合にのみ必要です。
+</ParamField>
+
+<ParamField header="auth0-forwarded-for" type="string">
+  エンドユーザーの IP を文字列で指定します。サーバーサイドのシナリオで Suspicious IP Throttling 保護を有効にしたい場合は、これを設定してください。
+</ParamField>
+
+<div id="body-parameters">
+  ## Body Parameters
+</div>
+
+<ParamField body="grant_type" type="string" required>
+  使用するフローを示します。Custom Token Exchange の場合は、`urn:ietf:params:oauth:grant-type:token-exchange` を使用します。
+
+  使用可能な値: `urn:ietf:params:oauth:grant-type:token-exchange`
+</ParamField>
+
+<ParamField body="subject_token_type" type="string" required>
+  subject token の種類です。Custom Token Exchange では、`http://acme.com/legacy-token` や `urn:acme:legacy-token` のように、自身が所有する名前空間配下の任意の URI を使用できます。次の名前空間は予約されているため、使用できません: `http://auth0.com`, `https://auth0.com`, `http://okta.com`, `https://okta.com`, `urn:ietf`, `urn:auth0`, `urn:okta`.
+</ParamField>
+
+<ParamField body="subject_token" type="string" required>
+  subject token です。このトークンは、action で検証し、ユーザーの識別に使用する必要があります。
+</ParamField>
+
+<ParamField body="client_id" type="string" required>
+  アプリケーションの Client ID です。他の grant type と同様に、HTTP Basic Auth を使用して Authorization ヘッダーで client ID を渡すこともできます。
+</ParamField>
+
+<ParamField body="client_secret" type="string">
+  (任意) アプリケーションの Client Secret です。他の grant type と同様に、HTTP Basic Auth を使用して Authorization ヘッダーで client secret を渡すこともできます。また、[Auth0 Authentication API reference docs](https://auth0.com/docs/api/authentication#authentication-methods) で説明されているとおり、ほかの方法も利用できます。Custom Token Exchange はパブリックなアプリケーションでも使用できるため、追加のセキュリティ対策の実装については [Attack Protection](https://auth0.com/docs/authenticate/custom-token-exchange/cte-attack-protection) を参照してください。
+</ParamField>
+
+<ParamField body="audience" type="string">
+  (任意) アクセス先の対象 API を一意に識別する子です。指定しない場合は、[Tenant Settings](https://auth0.com/docs/get-started/tenant-settings) で設定されたデフォルトのテナント audience が使用されます。
+</ParamField>
+
+<ParamField body="resource" type="string">
+  (任意) アクセス先の対象 API (resource server) の識別子です。Auth0 テナントに登録されている API Identifier と一致している必要があります。テナントの [Resource Parameter Compatibility Profile](https://auth0.com/docs/get-started/tenant-settings#settings-advanced) が `compatibility` に設定されている場合、`audience` の代わりに使用されます。
+</ParamField>
+
+<ParamField body="scope" type="string">
+  (任意) OAuth2 のスコープパラメーターです。
+</ParamField>
+
+<ParamField body="organization" type="string">
+  (任意) リクエストに関連付ける organization またはその識別子です。あるいは、[Use Organization Names in Authentication API](https://auth0.com/docs/manage-users/organizations/configure-organizations/use-org-name-authentication-api) が設定されている場合は、organization 名を指定することもできます。
+</ParamField>
+
+<ParamField body="actor_token" type="string">
+  (任意) subject user に代わって委任を行う actor を識別するトークンです。`actor_token_type` とあわせて指定する必要があります。指定した場合、リフレッシュトークン は発行されません。
+</ParamField>
+
+<ParamField body="actor_token_type" type="string">
+  (任意) actor token の種類です。`actor_token` とあわせて指定する必要があります。Auth0 ID トークン の場合は、サーバー側での自動検証 (署名、有効期限、issuer、ユーザー検索) のために `urn:ietf:params:oauth:token-type:id_token` を使用します。それ以外の値については、`subject_token_type` と同じ名前空間の制限に従ってください。
+</ParamField>
+
+<div id="response-schema">
+  ## レスポンススキーマ
+</div>
+
+<ResponseSchema>
+  <ResponseField name="access_token" type="string">
+    アクセストークン。
+  </ResponseField>
+
+  <ResponseField name="refresh_token" type="string">
+    リフレッシュトークン。
+  </ResponseField>
+
+  <ResponseField name="id_token" type="string">
+    ID トークン。
+  </ResponseField>
+
+  <ResponseField name="token_type" type="string">
+    トークンタイプ。
+  </ResponseField>
+
+  <ResponseField name="issued_token_type" type="string">
+    発行されたトークンタイプ。
+  </ResponseField>
+
+  <ResponseField name="expires_in" type="integer">
+    アクセストークンの有効期間 (秒) 。
+  </ResponseField>
+</ResponseSchema>
+
+<div id="response-messages">
+  ## レスポンスメッセージ
+</div>
+
+| ステータス | 説明        |
+| ----- | --------- |
+| 200   | 正常に応答しました |

@@ -1,0 +1,45 @@
+---
+description: Découvrez comment le flux hybride fonctionne pour offrir un accès optimal au jeton d’ID, tout en tirant parti du flux de code d’autorisation pour récupérer de façon sécuritaire les jetons d’accès et d’actualisation.
+sidebarTitle: Vue d’ensemble
+title: Flux hybride
+---
+
+Les applications qui peuvent stocker de façon sécuritaire des [identifiants du client](/docs/fr-CA/secure/application-credentials) peuvent tirer avantage du flux hybride (défini dans la [spécification OpenID Connect, section 3.3](https://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth)). Le flux hybride permet à votre application d’accéder immédiatement à un <Tooltip tip="Jeton d’ID : information d’identification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton d’ID</Tooltip>, tout en assurant la récupération sécuritaire des <Tooltip tip="Jeton d’ID : information d’identification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> et des <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+tokens">jetons d’actualisation</Tooltip>. Cela peut être utile lorsque votre application doit accéder immédiatement à des renseignements sur l’utilisateur, mais doit effectuer un certain traitement avant d’obtenir un accès prolongé à des ressources protégées.
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Le flux hybride combine des étapes du [Implicit Flow with Form Post](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post) et de l’[flux de code d’autorisation](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow) :
+
+1. L’utilisateur sélectionne **Login** dans l’application.
+2. L’application redirige l’utilisateur vers l’Auth0 Authorization Server ([endpoint `/authorize`](https://auth0.com/docs/api/authentication#authorization-code-flow)), en transmettant le paramètre `response_type`, qui indique le type de credential demandé (ID token et authorization code), ainsi que le paramètre `response_mode` défini à `form_post` pour assurer la sécurité.
+3. L’Auth0 Authorization Server redirige l’utilisateur vers l’écran de login et d’autorisation.
+4. L’utilisateur s’authentifie à l’aide de l’une des options de login configurées et peut voir un consent prompt énumérant les permissions qu’Auth0 accordera à l’application.
+5. L’Auth0 Authorization Server redirige ensuite l’utilisateur vers l’application avec un authorization code à usage unique, ainsi qu’un ID token, un jeton d’accès ou les deux, selon le `response_type` fourni.
+6. L’application envoie l’authorization code, le client ID de l’application et les credentials de l’application, comme le Client Secret ou le Private Key JWT, à l’Auth0 Authorization Server ([endpoint `/oauth/token`](https://auth0.com/docs/api/authentication?http#authorization-code-flow43)).
+7. L’Auth0 Authorization Server vérifie l’authorization code, le client ID de l’application et les credentials de l’application.
+8. L’Auth0 Authorization Server répond avec un deuxième ID token et un jeton d’accès (et, au besoin, un jeton d’actualisation).
+9. L’application peut utiliser le deuxième jeton d’accès pour appeler une API afin d’accéder à des renseignements sur l’utilisateur.
+10. L’API répond avec les données demandées.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si votre application a seulement besoin d’utiliser flux hybride pour l’ouverture de session, vous n’aurez besoin ni d’un jeton d’actualisation ni d’un Access Token, seulement d’un jeton d’ID avec des claims.
+</Callout>
+
+<div id="how-to-implement-it">
+  ## Comment l’implémenter
+</div>
+
+Vous pouvez suivre notre tutoriel pour utiliser l’Authentication API afin d’[appeler votre API à l’aide du flux hybride](/docs/fr-CA/get-started/authentication-and-authorization-flow/hybrid-flow/call-api-hybrid-flow).
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Auth0 Rules](/docs/fr-CA/customize/rules)
+* [Auth0 Hooks](/docs/fr-CA/customize/hooks)
+* [Jetons](/docs/fr-CA/secure/tokens)
+* [Meilleures pratiques relatives aux jetons](/docs/fr-CA/secure/tokens/token-best-practices)
+* [Quel flux OAuth 2.0 devrais-je utiliser ?](/docs/fr-CA/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use)
+* [Identifiants d’application](/docs/fr-CA/secure/application-credentials)

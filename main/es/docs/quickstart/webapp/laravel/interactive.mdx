@@ -1,0 +1,415 @@
+---
+title: Añade el inicio de sesión a tu aplicación Laravel
+sidebarTitle: Laravel
+description: Esta guía muestra cómo integrar Auth0 en una aplicación Laravel nueva o existente con el SDK de Auth0 para Laravel.
+mode: wide
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {CreateInteractiveApp} from "/snippets/recipe.jsx";
+import {QuickstartButtons} from "/snippets/QuickstartButtons.jsx";
+
+<QuickstartButtons githubLink="https://github.com/auth0-samples/laravel/tree/7.x/sample" />
+
+export const envSnippet = `AUTH0_DOMAIN={yourDomain}
+AUTH0_CLIENT_ID={yourClientId}
+AUTH0_CLIENT_SECRET={yourClientSecret}`;
+
+<Accordion title="Usa IA para integrar Auth0" icon="microchip-ai" iconType="solid" defaultOpen>
+  Si usas un asistente de programación con IA como Claude Code, Cursor o GitHub Copilot, puedes agregar la autenticación con Auth0 automáticamente en cuestión de minutos usando [agent skills](https://agentskills.io/home).
+
+  **Instala:**
+
+  ```bash
+  npx skills add auth0/agent-skills --skill auth0-quickstart --skill auth0-laravel
+  ```
+
+  **Luego pídele a tu asistente de IA:**
+
+  ```text
+  Add Auth0 authentication to my Laravel app
+  ```
+
+  Tu asistente de IA creará automáticamente tu aplicación de Auth0, obtendrá las credenciales, instalará `auth0/login`, configurará las variables de entorno y registrará las rutas de autenticación. [Documentación completa de agent skills →](/docs/es/quickstart/agent-skills)
+</Accordion>
+
+<Note>
+  **Requisitos previos:** Antes de comenzar, asegúrate de tener instalado lo siguiente:
+
+  * **[PHP](https://www.php.net/downloads.php)** 8.2 o una versión posterior
+  * **[Composer](https://getcomposer.org/download/)** 2.x
+  * **[Laravel](https://laravel.com/docs/installation)** 11, 12 o 13
+
+  Verifica la instalación: `php --version && composer --version`
+</Note>
+
+<div id="get-started">
+  ## Primeros pasos
+</div>
+
+Este Quickstart muestra cómo añadir la autenticación de Auth0 a una aplicación de Laravel. Configurarás un inicio de sesión seguro, el cierre de sesión, rutas protegidas y acceso al perfil del usuario mediante el [SDK de Auth0 para Laravel](https://github.com/auth0/laravel-auth0).
+
+<Steps>
+  <Step title="Crear un nuevo proyecto de Laravel" stepNumber={1}>
+    Si ya tienes una aplicación de Laravel, pasa al Paso 2.
+
+    Crea un nuevo proyecto de Laravel:
+
+    ```bash
+    composer create-project laravel/laravel auth0-laravel-app
+    ```
+
+    Abre el directorio del proyecto:
+
+    ```bash
+    cd auth0-laravel-app
+    ```
+  </Step>
+
+  <Step title="Instalar el SDK de Auth0 para Laravel" stepNumber={2}>
+    Ejecuta el siguiente comando en el directorio de tu proyecto para instalar el [SDK de Auth0 para Laravel](https://github.com/auth0/laravel-auth0):
+
+    ```bash
+    composer require auth0/login:^7 --update-with-all-dependencies
+    ```
+
+    Luego, publica el archivo de configuración del SDK:
+
+    ```bash
+    php artisan vendor:publish --tag auth0
+    ```
+  </Step>
+
+  <Step title="Configurar las credenciales de Auth0" stepNumber={3}>
+    Necesitas crear una aplicación de Auth0 y agregar tus credenciales al proyecto. Elige uno de los siguientes métodos:
+
+    <Tabs>
+      <Tab title="Configuración rápida (recomendada)">
+        Crea una Auth0 App y copia las credenciales precompletadas de `.env` con los valores de configuración correctos.
+
+        <CreateInteractiveApp placeholderText="Laravel" appType="regular_web" allowedCallbackUrls={["http://localhost:8000/callback"]} allowedLogoutUrls={["http://localhost:8000"]} />
+
+        Agrega estos valores al archivo `.env` de tu proyecto:
+
+        <AuthCodeBlock children={envSnippet} language="shellscript" filename=".env" />
+      </Tab>
+
+      <Tab title="CLI">
+        Instala [Auth0 CLI](https://github.com/auth0/auth0-cli#installation) e inicia sesión en tu cuenta:
+
+        <CodeGroup>
+          ```bash Mac
+          brew tap auth0/auth0-cli && brew install auth0
+          auth0 login
+          ```
+
+          ```powershell Windows
+          scoop bucket add auth0 https://github.com/auth0/scoop-auth0-cli.git
+          scoop install auth0
+          auth0 login
+          ```
+        </CodeGroup>
+
+        Crea una aplicación y una API en Auth0, y guarda las credenciales en archivos JSON que el SDK lee automáticamente:
+
+        ```bash
+        auth0 apps create \
+          --name "My Laravel Application" \
+          --type "regular" \
+          --auth-method "post" \
+          --callbacks "http://localhost:8000/callback" \
+          --logout-urls "http://localhost:8000" \
+          --reveal-secrets \
+          --no-input \
+          --json > .auth0.app.json
+
+        auth0 apis create \
+          --name "My Laravel Application's API" \
+          --identifier "https://github.com/auth0/laravel-auth0" \
+          --offline-access \
+          --no-input \
+          --json > .auth0.api.json
+        ```
+
+        <Note>
+          Estos archivos contienen tus credenciales. Agrégalos a `.gitignore` para que no se incluyan en el control de versiones:
+
+          ```bash
+          echo ".auth0.*.json" >> .gitignore
+          ```
+        </Note>
+      </Tab>
+
+      <Tab title="Dashboard">
+        1. Ve al [Auth0 Dashboard](https://manage.auth0.com/) → **Applications &gt; Applications**
+        2. Haz clic en **Create Application**, ingresa un nombre, selecciona **Regular Web Application** y haz clic en **Create**
+        3. Ve a la pestaña **Settings** y copia el **Domain**, el **Client ID** y el **Client Secret**
+
+        Configura las siguientes URL en la pestaña **Settings** de tu aplicación:
+
+        | Campo                 | Valor                            |
+        | --------------------- | -------------------------------- |
+        | Allowed Callback URLs | `http://localhost:8000/callback` |
+        | Allowed Logout URLs   | `http://localhost:8000`          |
+
+        Haz clic en **Save Changes**.
+
+        Luego agrega tus credenciales al archivo `.env` de tu proyecto:
+
+        ```bash .env
+        AUTH0_DOMAIN=YOUR_AUTH0_DOMAIN
+        AUTH0_CLIENT_ID=YOUR_AUTH0_CLIENT_ID
+        AUTH0_CLIENT_SECRET=YOUR_AUTH0_CLIENT_SECRET
+        ```
+
+        <Warning>
+          Nunca subas tu `AUTH0_CLIENT_SECRET` al control de versiones. Guárdalo en `.env` y asegúrate de que `.env` esté en tu `.gitignore`.
+        </Warning>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Agregar rutas de autenticación" stepNumber={4}>
+    El SDK de Auth0 registra automáticamente las siguientes rutas para tu aplicación; no se requiere ninguna configuración adicional de rutas:
+
+    | Ruta        | Propósito                                                   |
+    | ----------- | ----------------------------------------------------------- |
+    | `/login`    | Inicia el flujo de inicio de sesión de Auth0                |
+    | `/logout`   | Cierra la sesión del usuario y redirige a Auth0             |
+    | `/callback` | Gestiona la devolución de llamada de autenticación de Auth0 |
+
+    <Note>
+      Si tu aplicación usa Laravel Breeze, Fortify o Jetstream, las rutas `/login`, `/logout` y `/callback` del SDK pueden entrar en conflicto con las rutas registradas por esos paquetes. Consulta el [SDK README](https://github.com/auth0/laravel-auth0) para obtener instrucciones sobre cómo registrar las rutas manualmente.
+    </Note>
+
+    Actualiza `routes/web.php` para agregar tu ruta principal:
+
+    ```php routes/web.php lines
+    <?php
+
+    use Illuminate\Support\Facades\Route;
+
+    Route::get('/', function () {
+        if (! auth()->check()) {
+            return response('You are not logged in. <a href="/login">Log in</a>');
+        }
+
+        $user = auth()->user();
+        $name = $user->name ?? 'User';
+        $email = $user->email ?? '';
+
+        return response("Hello {$name}! Your email address is {$email}.");
+    });
+    ```
+  </Step>
+
+  <Step title="Protege las rutas con middleware" stepNumber={5}>
+    Usa el middleware `auth` de Laravel para exigir autenticación en cualquier ruta. También puedes exigir [permisos](https://auth0.com/docs/manage-users/access-control/rbac) específicos con el middleware `can`:
+
+    ```php routes/web.php lines
+    <?php
+
+    use Illuminate\Support\Facades\Route;
+
+    // Requiere cualquier usuario autenticado
+    Route::get('/private', function () {
+        return response('Welcome! You are logged in.');
+    })->middleware('auth');
+
+    // Requiere autenticación Y el permiso 'read:messages'
+    Route::get('/scope', function () {
+        return response('You have the read:messages permission.');
+    })->middleware('auth')->can('read:messages');
+    ```
+
+    <Info>
+      Los permisos se definen en la configuración de tu Auth0 API y se asignan a los usuarios mediante roles. Consulta [Control de acceso basado en roles](https://auth0.com/docs/manage-users/access-control/rbac) para más detalles.
+    </Info>
+  </Step>
+
+  <Step title="Ejecuta tu aplicación" stepNumber={6}>
+    ```bash
+    php artisan serve
+    ```
+
+    <Info>
+      Tu aplicación se ejecuta en [http://localhost:8000](http://localhost:8000). Si el puerto 8000 ya está en uso, ejecuta `php artisan serve --port=8001` y actualiza las **Allowed Callback URLs** y **Allowed Logout URLs** de tu aplicación de Auth0 para que usen el nuevo puerto.
+    </Info>
+  </Step>
+</Steps>
+
+<Check>
+  **Comprobación**
+
+  Abre [http://localhost:8000](http://localhost:8000) en tu navegador. Prueba estas rutas para comprobar la integración:
+
+  * [http://localhost:8000/login](http://localhost:8000/login) — inicia el flujo de inicio de sesión de Auth0
+  * [http://localhost:8000/private](http://localhost:8000/private) — redirige al inicio de sesión si no has iniciado sesión; muestra un mensaje de bienvenida cuando sí la has iniciado
+  * [http://localhost:8000/logout](http://localhost:8000/logout) — cierra la sesión y vuelve a la página de inicio
+</Check>
+
+***
+
+<div id="troubleshooting">
+  ## Solución de problemas
+</div>
+
+<AccordionGroup>
+  <Accordion title="Error: la URL de devolución de llamada no coincide">
+    **Causa:** La URL de devolución de llamada enviada a Auth0 no coincide con ninguna URL de la lista **Allowed Callback URLs** de tu aplicación.
+
+    **Solución:**
+
+    1. Ve al [Auth0 Dashboard](https://manage.auth0.com/) → **Applications &gt; Applications** → tu aplicación → **Settings**
+    2. Agrega `http://localhost:8000/callback` a **Allowed Callback URLs**
+    3. Haz clic en **Save Changes**
+
+    Asegúrate de que no haya barras diagonales finales y de que el puerto coincida con el de tu servidor en ejecución.
+  </Accordion>
+
+  <Accordion title="Error de state no válido / CSRF después del inicio de sesión">
+    **Causa:** Hay un error de configuración en la sesión o la cookie: la sesión de Laravel no está conservando el state entre la redirección de inicio de sesión y la devolución de llamada.
+
+    **Solución:**
+
+    1. Asegúrate de que `SESSION_DRIVER` en `.env` esté configurado como `file`, `database` o `redis` (no `array`)
+    2. Limpia la configuración y la caché:
+
+    ```bash
+    php artisan config:clear && php artisan cache:clear
+    ```
+
+    3. Reinicia tu servidor de desarrollo
+  </Accordion>
+
+  <Accordion title="AUTH0_DOMAIN no está configurado o las credenciales no se cargan">
+    **Causa:** El SDK no puede encontrar tus credenciales de Auth0.
+
+    **Solución:** Asegúrate de que exista una de las siguientes opciones en la raíz del proyecto:
+
+    * Un archivo `.env` con `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` y `AUTH0_CLIENT_SECRET`
+    * Un archivo `.auth0.app.json` generado por Auth0 CLI
+
+    Después de actualizar `.env`, limpia la caché de configuración:
+
+    ```bash
+    php artisan config:clear
+    ```
+  </Accordion>
+
+  <Accordion title="404 en /login, /logout o /callback">
+    **Causa:** Las rutas del SDK no están registradas, normalmente porque el proveedor de servicios no se cargó.
+
+    **Solución:**
+
+    1. Confirma que ejecutaste `php artisan vendor:publish --tag auth0`
+    2. Verifica que el descubrimiento automático de paquetes esté habilitado (revisa `composer.json` para `"dont-discover": []`)
+    3. Ejecuta `php artisan route:list | grep auth0` para confirmar que las rutas estén registradas
+    4. Si faltan rutas, registra manualmente el proveedor de servicios. En Laravel 11+, agrégalo a `bootstrap/providers.php`:
+
+    ```php bootstrap/providers.php
+    return [
+        App\Providers\AppServiceProvider::class,
+        Auth0\Laravel\Auth0ServiceProvider::class,
+    ];
+    ```
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="advanced-usage">
+  ## Uso avanzado
+</div>
+
+<AccordionGroup>
+  <Accordion title="Management API — actualizar los metadatos del usuario">
+    Puedes actualizar la información del usuario con la [Auth0 Management API](https://github.com/auth0/laravel-auth0/blob/main/docs/Management.md). Se puede acceder a todos los endpoints de la Management API mediante el método `Auth0::management()` del SDK.
+
+    **Antes de hacer llamadas a la Management API**, autoriza tu aplicación para acceder a la Management API:
+
+    1. Ve al [Auth0 Dashboard](https://manage.auth0.com/) → **Applications &gt; APIs** → **Auth0 Management API**
+    2. Selecciona la pestaña **Machine to Machine Applications**
+    3. Autoriza tu aplicación de Laravel y concédele los scopes `read:users` y `update:users`
+
+    ```php routes/web.php lines
+    <?php
+
+    use Auth0\Laravel\Facade\Auth0;
+    use Illuminate\Support\Facades\Route;
+
+    Route::get('/colors', function () {
+        $colors = ['red', 'blue', 'green', 'black', 'white', 'yellow', 'purple', 'orange'];
+
+        $users = Auth0::management()->users();
+
+        // Actualiza los metadatos del usuario autenticado con un color favorito aleatorio
+        $users->update(
+            id: auth()->id(),
+            body: [
+                'user_metadata' => [
+                    'color' => $colors[random_int(0, count($colors) - 1)],
+                ],
+            ]
+        );
+
+        // Recupera y muestra los metadatos actualizados
+        $metadata = Auth0::json($users->get(auth()->id()));
+        $color = $metadata['user_metadata']['color'] ?? 'unknown';
+        $name = auth()->user()->name;
+
+        return response("Hello {$name}! Your favorite color is {$color}.");
+    })->middleware('auth');
+    ```
+
+    En la [documentación del SDK](https://github.com/auth0/laravel-auth0/blob/main/docs/Management.md) encontrarás una referencia completa de todos los métodos de la Management API.
+  </Accordion>
+
+  <Accordion title="Modelos y repositorios de usuario personalizados">
+    El SDK admite modelos y repositorios de usuario personalizados, lo que te permite almacenar y recuperar usuarios desde tu propia base de datos sin dejar de usar Auth0 como proveedor de identidad.
+
+    Consulta [User Repositories and Models](https://github.com/auth0/laravel-auth0/blob/main/docs/Users.md) para ver la guía completa de implementación.
+  </Accordion>
+
+  <Accordion title="Escuchar los eventos del SDK">
+    El SDK emite eventos en puntos clave del ciclo de vida de la autenticación —durante el inicio de sesión, el cierre de sesión, la renovación del token y más—, lo que te permite personalizar por completo el comportamiento sin modificar el código base del SDK.
+
+    Consulta [Hooking Events](https://github.com/auth0/laravel-auth0/blob/main/docs/Events.md) para ver la lista completa de eventos y ejemplos de implementación.
+  </Accordion>
+
+  <Accordion title="Role-Based Access Control (RBAC)">
+    Usa Auth0 RBAC para asignar permisos a los usuarios mediante roles y luego aplicarlos en Laravel con el middleware `can`:
+
+    ```php routes/web.php
+    <?php
+
+    use Illuminate\Support\Facades\Route;
+
+    Route::get('/admin', function () {
+        return response('Admin area.');
+    })->middleware('auth')->can('admin:dashboard');
+    ```
+
+    Para configurar RBAC:
+
+    1. Ve al [Auth0 Dashboard](https://manage.auth0.com/) → **Applications &gt; APIs** → tu API → **Permissions**
+    2. Agrega los permisos que necesita tu aplicación (por ejemplo, `admin:dashboard`, `read:messages`)
+    3. Ve a **User Management &gt; Roles**, crea un rol y asígnale permisos
+    4. Asigna el rol a los usuarios desde la página de su perfil
+
+    Consulta [Role-Based Access Control](https://auth0.com/docs/manage-users/access-control/rbac) para ver la guía completa.
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+Ahora que la autenticación ya funciona en tu aplicación de Laravel, explora más funciones de Auth0:
+
+* [Auth0 Dashboard](https://manage.auth0.com/) — Configura y administra tu tenant de Auth0 y tus aplicaciones
+* [laravel-auth0 SDK](https://github.com/auth0/laravel-auth0) — Documentación completa del SDK e integraciones avanzadas
+* [Role-Based Access Control](https://auth0.com/docs/manage-users/access-control/rbac) — Asigna permisos a los usuarios mediante roles
+* [Auth0 Marketplace](https://marketplace.auth0.com/) — Descubre integraciones para ampliar la funcionalidad de Auth0
