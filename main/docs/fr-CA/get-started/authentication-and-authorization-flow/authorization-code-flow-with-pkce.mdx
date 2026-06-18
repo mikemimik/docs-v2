@@ -1,0 +1,86 @@
+---
+description: Découvrez comment fonctionne le flux de code d’autorisation avec Proof Key for Code Exchange (PKCE) et pourquoi vous devriez l’utiliser pour les applications natives et mobiles.
+title: Flux de code d’autorisation avec Proof Key for Code Exchange (PKCE)
+---
+
+<Card title="Aperçu">
+  Concepts clés
+
+  * Découvrez le type d’octroi OAuth 2.0 appelé flux de code d’autorisation avec Proof Key for Code Exchange (PKCE).
+  * Utilisez ce type d’octroi pour les applications qui ne peuvent pas stocker de secret client, comme les applications natives ou monopages.
+  * Passez en revue différentes méthodes de mise en œuvre avec les SDK Auth0.
+</Card>
+
+Lorsque des <Tooltip tip="Client public : client (application) qui ne peut pas conserver ses informations d’authentification de façon sécurisée. Par exemple, une application native de bureau ou mobile, ou une application Web côté client basée sur JavaScript (comme une application monopage (SPA))." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=public+clients">clients publics</Tooltip> (p. ex., des applications natives et monopages) demandent des <Tooltip tip="Client public : client (application) qui ne peut pas conserver ses informations d’authentification de façon sécurisée. Par exemple, une application native de bureau ou mobile, ou une application Web côté client basée sur JavaScript (comme une application monopage (SPA))." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip>, cela soulève des enjeux de sécurité supplémentaires qui ne sont pas atténués par le seul flux de code d’autorisation. Cela s’explique par les raisons suivantes :
+
+**Applications natives**
+
+* Ne peuvent pas stocker de façon sécurisée un <Tooltip tip="Secret client : secret utilisé par un client (application) pour s’authentifier auprès du serveur d’autorisation; il ne devrait être connu que du client et du serveur d’autorisation, et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Client+Secret">Secret client</Tooltip>. La décompilation de l’application révélera le <Tooltip tip="Secret client : secret utilisé par un client (application) pour s’authentifier auprès du serveur d’autorisation; il ne devrait être connu que du client et du serveur d’autorisation, et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Client+Secret">Secret client</Tooltip>, qui est lié à l’application et identique pour tous les utilisateurs et tous les appareils.
+* Sont vulnérables aux attaques d’interception et d’injection de code d’autorisation. Sans secret client, un attaquant qui intercepte le code d’autorisation peut l’échanger contre des jetons.
+* Peuvent utiliser un schéma d’URI personnalisé pour capter les redirections (p. ex., MyApp://), ce qui pourrait permettre à des applications malveillantes de recevoir un <Tooltip tip="Code d’autorisation : chaîne aléatoire générée par le serveur d’autorisation et renvoyée à l’application dans le cadre de la réponse d’autorisation lors de l’utilisation du flux de code d’autorisation (avec ou sans PKCE)." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Code">code d’autorisation</Tooltip> de votre <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">serveur d’autorisation</Tooltip>. En raison de ce risque, **Auth0 déconseille fortement l’utilisation de schémas d’URI personnalisés**. Pour en savoir plus, consultez [Measures Against Application Impersonation](/docs/fr-CA/secure/security-guidance/measures-against-app-impersonation.mdx).
+
+**Applications monopages**
+
+* Ne peuvent pas stocker de façon sécurisée un secret client, car l’intégralité de leur code source est accessible dans le navigateur.
+
+Dans ces situations, <Tooltip tip="OAuth 2.0 : cadre d’autorisation qui définit les protocoles et les workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> fournit une version du flux de code d’autorisation qui utilise une Proof Key for Code Exchange (PKCE) (définie dans [OAuth 2.0 RFC 7636](https://tools.ietf.org/html/rfc7636)).
+
+Le flux de code d’autorisation avec PKCE introduit un secret créé par l’application appelante que le <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+server">serveur d’autorisation</Tooltip> peut vérifier; ce secret s’appelle le Code Verifier. De plus, l’application appelante crée à partir du Code Verifier une valeur transformée appelée Code Challenge, puis envoie cette valeur par HTTPS pour obtenir un code d’autorisation. Ainsi, un attaquant malveillant ne peut intercepter que le code d’autorisation, sans pouvoir l’échanger contre un jeton sans le Code Verifier.
+
+<div id="how-it-works">
+  ## Comment ça fonctionne
+</div>
+
+Comme le flux de code d’autorisation avec PKCE repose sur le [flux de code d’autorisation standard](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow), les étapes sont très semblables.
+
+<Frame>![Flows - Code d’autorisation avec PKCE - Diagramme de la séquence d’autorisation](/docs/images/cdy7uua7fh8z/3pstjSYx3YNSiJQnwKZvm5/33c941faf2e0c434a9ab1f0f3a06e13a/auth-sequence-auth-code-pkce.png)</Frame>
+
+1. L’utilisateur clique sur **Login** dans l’application.
+2. Le SDK d’Auth0 crée un `code_verifier` aléatoire sur le plan cryptographique, puis génère un `code_challenge` à partir de celui-ci.
+3. Le SDK d’Auth0 redirige l’utilisateur vers le serveur d’autorisation Auth0 ([point de terminaison `/authorize`](https://auth0.com/docs/api/authentication#authorization-code-grant-pkce-)) avec le `code_challenge`.
+4. Votre serveur d’autorisation Auth0 redirige l’utilisateur vers l’écran de connexion et d’autorisation.
+5. L’utilisateur s’authentifie à l’aide de l’une des options de connexion configurées et peut voir une page de consentement énumérant les permissions qu’Auth0 accordera à l’application.
+6. Votre serveur d’autorisation Auth0 stocke le `code_challenge` et redirige l’utilisateur vers l’application avec un `code` d’autorisation, valable pour une seule utilisation.
+7. Le SDK d’Auth0 envoie ce `code` et le `code_verifier` (créé à l’étape 2) au serveur d’autorisation Auth0 `(`[`/oauth/token` endpoint](https://auth0.com/docs/api/authentication?http#authorization-code-flow-with-pkce44)).
+8. Votre serveur d’autorisation Auth0 vérifie le `code_challenge` et le `code_verifier`.
+9. Votre serveur d’autorisation Auth0 renvoie un jeton d’identité et un jeton d’accès (et, au besoin, un jeton d’actualisation).
+10. Votre application peut utiliser le jeton d’accès pour appeler une API afin d’accéder à des renseignements sur l’utilisateur.
+11. L’API renvoie les données demandées.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si la [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation) est activée, un nouveau jeton d’actualisation est généré à chaque demande et émis avec le jeton d’accès. Lorsqu’un jeton d’actualisation est échangé, le jeton d’actualisation précédent est invalidé, mais l’information sur cette relation est conservée par le serveur d’autorisation.
+</Callout>
+
+<div id="how-to-implement-it">
+  ## Comment l’implémenter
+</div>
+
+La façon la plus simple d’implémenter le flux de code d’autorisation avec PKCE est de [suivre nos Quickstarts Native](/docs/fr-CA/quickstart/native) ou de [suivre nos Quickstarts pour SPA](/docs/fr-CA/quickstart/spa).
+
+Selon votre type d’application, vous pouvez aussi utiliser nos SDK mobiles ou pour applications monopages :
+
+**Mobile**
+
+* [Auth0 Swift SDK](/docs/fr-CA/libraries/auth0-swift)
+* [Auth0 Android SDK](/docs/fr-CA/libraries/auth0-android)
+
+**Monopage**
+
+* [Auth0 Single-Page App SDK](/docs/fr-CA/libraries/auth0-single-page-app-sdk)
+* [Auth0 React SDK](/docs/fr-CA/libraries/auth0-react)
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Les récentes avancées en matière de contrôles de confidentialité dans les navigateurs nuisent à l’expérience utilisateur en empêchant l’accès aux cookies tiers; par conséquent, les flux basés sur le navigateur doivent utiliser la [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation), qui offre une façon sécurisée d’utiliser des jetons d’actualisation dans les SPA tout en permettant aux utilisateurs finaux d’accéder aux ressources de façon fluide, sans les interruptions de l’UX causées par des technologies de confidentialité des navigateurs comme ITP.
+</Callout>
+
+Vous pouvez suivre nos tutoriels pour utiliser nos endpoints d’API afin d’[ajouter la fonctionnalité de connexion à l’aide du flux de code d’autorisation avec PKCE](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce) ou d’[appeler votre API à l’aide du flux de code d’autorisation avec PKCE](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce).
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Auth0 Rules](/docs/fr-CA/customize/rules)
+* [Auth0 Hooks](/docs/fr-CA/customize/hooks)
+* [Jetons](/docs/fr-CA/secure/tokens)
+* [Bonnes pratiques relatives aux jetons](/docs/fr-CA/secure/tokens/token-best-practices)
+* [Quel flux OAuth 2.0 dois-je utiliser ?](/docs/fr-CA/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use)

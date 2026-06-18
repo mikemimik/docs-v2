@@ -1,0 +1,157 @@
+---
+title: Inicio de sesión único
+description: Aprende qué es el inicio de sesión único (SSO) y cómo funciona.
+---
+
+<Tooltip tip="Inicio de sesión único (SSO): servicio que, tras iniciar sesión en una aplicación, conecta automáticamente a ese usuario con otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=Single+Sign-on">Inicio de sesión único</Tooltip> (SSO) se produce cuando un usuario inicia sesión en una aplicación y luego accede automáticamente a otras aplicaciones, independientemente de la plataforma, la tecnología o el dominio que utilice. El usuario inicia sesión una sola vez; de ahí el nombre de esta funcionalidad (inicio de sesión único).
+
+Por ejemplo, si inicias sesión en un servicio de Google como Gmail, quedas autenticado automáticamente en YouTube, AdSense, Google Analytics y otras aplicaciones de Google. Del mismo modo, si cierras sesión en Gmail o en otras aplicaciones de Google, tu sesión se cierra automáticamente en todas las aplicaciones; esto se conoce como cierre de sesión único.
+
+El SSO proporciona una experiencia fluida a los usuarios al utilizar tus aplicaciones y servicios. En lugar de tener que recordar credenciales distintas para cada aplicación o servicio, los usuarios pueden simplemente iniciar sesión una vez y acceder a todo tu conjunto de aplicaciones.
+
+Cada vez que los usuarios acceden a un dominio que requiere autenticación, se les redirige al dominio de autenticación, donde es posible que se les pida que inicien sesión. Si el usuario ya inició sesión en el dominio de autenticación, se le puede redirigir de inmediato al dominio original sin que tenga que volver a iniciar sesión.
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+El inicio de sesión único y el cierre de sesión único son posibles gracias al uso de [sesiones](/docs/es/manage-users/sessions). Puede haber hasta tres sesiones diferentes para un usuario con SSO:
+
+* Sesión local mantenida por la aplicación
+* Sesión del <Tooltip tip="Servidor de autorización: Servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funcionalidades disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Authorization+Server">servidor de autorización</Tooltip>, si SSO está habilitado
+* Sesión del <Tooltip tip="Proveedor de identidad (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=Identity+Provider+%28IdP%29">Proveedor de identidad (IdP)</Tooltip>, si el usuario eligió iniciar sesión mediante un <Tooltip tip="Proveedor de identidad (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=Identity+Provider">Proveedor de identidad</Tooltip> (como Google, Facebook o un proveedor de identidad <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip> empresarial)
+
+Con SSO, un dominio central realiza la autenticación y luego comparte la sesión con otros dominios. La manera en que se comparte la sesión puede variar según los protocolos de SSO, pero el concepto general es el mismo.
+
+Por ejemplo, el dominio de autenticación puede generar un [JSON Web Token (JWT)](/docs/es/secure/tokens/json-web-tokens) firmado (cifrado mediante JSON Web Encryption (JWE)), que contiene toda la información necesaria para identificar al usuario ante cualquier otro dominio que requiera autenticación. Este token se envía al cliente, pero, como está firmado, el cliente no puede modificarlo de ninguna manera. El token puede devolverse al dominio original mediante una redirección y ser utilizado por el dominio de autenticación y por cualquier otro dominio para identificar al usuario.
+
+<div id="sso-with-universal-login">
+  ## SSO con Universal Login
+</div>
+
+La forma más sencilla y segura de implementar el inicio de sesión único (SSO) con Auth0 es usar [Universal Login](/docs/es/authenticate/login/auth0-universal-login) para la autenticación. De hecho, actualmente el SSO solo es posible en plataformas nativas (como iOS o Android) si la aplicación usa <Tooltip tip="Universal Login: Su aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Universal+Login">Universal Login</Tooltip>. Las guías de inicio rápido de [Swift](/docs/es/quickstart/native/ios-swift) y [Android](/docs/es/quickstart/native/ios-swift) incluyen algunos ejemplos de uso de Universal Login.
+
+Si no puede usar Universal Login con su aplicación, consulte lo siguiente para obtener más información sobre la autenticación integrada:
+
+* [Lock](/docs/es/libraries/lock/lock-api-reference)
+* [Auth0.js](/docs/es/libraries/auth0js)
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si usa [Passwordless](/docs/es/authenticate/passwordless/passwordless-with-universal-login) con inicio de sesión único, los parámetros de conexión `sms` y `email` no aprovechan la sesión existente de Auth0, y se le pedirá al usuario que inicie sesión.
+</Callout>
+
+<div id="sso-on-first-login">
+  ### SSO en el primer inicio de sesión
+</div>
+
+En el caso del SSO con Auth0, el **Servicio central** es el <Tooltip tip="Servidor de autorización: Servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funciones disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Authorization+Server">servidor de autorización</Tooltip> de Auth0.
+
+Veamos un ejemplo del flujo de SSO cuando un usuario inicia sesión por primera vez:
+
+1. Tu aplicación redirige al usuario a la página de inicio de sesión.
+2. Auth0 comprueba si ya existe una cookie de SSO.
+3. Como es la primera vez que el usuario visita la página de inicio de sesión y no hay ninguna cookie de SSO, se le pedirá que inicie sesión con una de las conexiones que hayas configurado.
+
+   <Frame>![Ejemplo de pantalla de inicio de sesión de la aplicación de hojas de hora](/docs/images/cdy7uua7fh8z/6m01sxT4xI0oUC6ox3vb4Z/ca72f1208d952a9a43f24f425d360e48/Screenshot_2024-07-11_at_11.57.33.png)</Frame>
+4. Una vez que el usuario haya iniciado sesión, Auth0 establecerá una cookie de SSO y lo redirigirá a tu aplicación, devolviendo un token de ID que contiene información de identidad del usuario.
+
+<div id="sso-on-subsequent-logins">
+  ### SSO en los inicios de sesión posteriores
+</div>
+
+Veamos un ejemplo del flujo de SSO cuando un usuario vuelve a tu sitio web en una visita posterior:
+
+1. Tu aplicación redirige al usuario a la página de inicio de sesión.
+2. Auth0 comprueba si existe una cookie de SSO.
+3. Auth0 encuentra la cookie de SSO y, si es necesario, la actualiza. No se muestra ninguna pantalla de inicio de sesión.
+4. Auth0 redirige al usuario a tu aplicación y devuelve un token de ID que contiene información de identidad del usuario.
+
+<div id="check-users-sso-status">
+  ### Comprobar el estado de SSO del usuario
+</div>
+
+Puedes comprobar el estado de SSO de un usuario desde una aplicación llamando al método `checkSession` del SDK `auth0.js`, que intentará [autenticar silenciosamente](/docs/es/authenticate/login/configure-silent-authentication) al usuario en un iframe. Que la autenticación tenga éxito o no indicará si el usuario tiene una cookie de SSO activa.
+
+<div id="protocols">
+  ## Protocolos
+</div>
+
+<div id="saml-and-ws-federation">
+  ### SAML y WS-Federation
+</div>
+
+Security Assertion Markup Language (SAML) y Web Services Federation (<Tooltip tip="Web Service Federation (WS-Fed): Protocolo para gestionar identidades de usuario entre dominios." cta="Ver glosario" href="/docs/es/glossary?term=WS-Fed">WS-Fed</Tooltip>) son [protocolos](/docs/es/authenticate/protocols) ampliamente utilizados en implementaciones de SSO. Tanto SAML como WS-Fed intercambian datos de autorización y autenticación en formato XML; las principales partes de este intercambio son el usuario, el proveedor de identidad y el proveedor de servicios.
+
+Con SAML o WS-Fed:
+
+1. Un usuario solicita un recurso al proveedor de servicios.
+2. El proveedor de servicios consulta con el proveedor de identidad para comprobar si el usuario debe tener acceso al recurso.
+3. El proveedor de identidad verifica la identidad del usuario y, si es válida, le indica al proveedor de servicios que el usuario debe tener acceso.
+
+<div id="openid-connect">
+  ### OpenID Connect
+</div>
+
+<Tooltip tip="OpenID: Estándar abierto de autenticación que permite a las aplicaciones verificar la identidad de los usuarios sin recopilar ni almacenar información de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) es un protocolo de autenticación que se usa comúnmente en implementaciones de SSO para consumidores. El protocolo OIDC gestiona la autenticación mediante <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JSON+Web+Tokens">JSON Web Tokens</Tooltip> y un proveedor de identidad central.
+
+Con OIDC:
+
+1. Un usuario solicita acceso a una aplicación.
+2. La aplicación redirige al usuario al proveedor de identidad para la autenticación.
+3. El proveedor de identidad verifica al usuario y, si la verificación es correcta, le pide que autorice a la aplicación a acceder a sus datos.
+4. Si se concede el acceso, el proveedor de identidad genera un token de ID, que contiene información de identidad del usuario que la aplicación puede utilizar.
+5. El proveedor de identidad redirige de vuelta al usuario a la aplicación.
+
+<div id="adldap">
+  ### AD/LDAP
+</div>
+
+Lightweight Directory Access Protocol (LDAP) es un protocolo de aplicación que se utiliza para acceder a un directorio de credenciales que puede compartirse entre varias aplicaciones; se usa habitualmente en intranets. Cuando se combina con Active Directory (AD), LDAP proporciona una ubicación centralizada para la identidad del usuario, por lo que la aplicación realiza una solicitud de autenticación al servidor LDAP/AD. El protocolo LDAP intercambia información en el formato LDAP Data Interchange Format (LDIF).
+
+<div id="service-provider-initiated-sso">
+  ## SSO iniciado por el proveedor de servicios
+</div>
+
+Para el [SSO iniciado por el proveedor de servicios](/docs/es/authenticate/single-sign-on/inbound-single-sign-on), Auth0 es el proveedor de servicios (SP) de SSO.
+
+Cuando un usuario inicia sesión en una aplicación:
+
+1. La aplicación le presenta al usuario uno o más proveedores de identidad externos.
+2. El usuario selecciona un proveedor de identidad con el que autenticarse e inicia sesión.
+3. Tras una autenticación correcta, el usuario vuelve a la aplicación.
+
+En Auth0, el SSO iniciado por el SP se gestiona mediante conexiones.
+
+<div id="identity-provider-initiated-sso">
+  ## SSO iniciado por el proveedor de identidad
+</div>
+
+Para el [SSO iniciado por el proveedor de identidad](/docs/es/authenticate/single-sign-on/outbound-single-sign-on), un proveedor de identidad (IdP) de terceros actúa como proveedor de SSO.
+
+Cuando un usuario inicia sesión en una aplicación:
+
+1. La aplicación redirige al usuario a un proveedor de identidad.
+2. El proveedor de identidad de terceros realiza la autenticación y autorización.
+3. Tras autenticarse correctamente, el usuario vuelve a la aplicación.
+
+Al planificar una implementación de SSO iniciado por el IdP, puede optar por usar la [SSO Dashboard Extension](/docs/es/customize/extensions/single-sign-on-dashboard-extension/create-sso-dashboard-application), que le permite crear un Dashboard con varias aplicaciones empresariales que pueden habilitarse para SSO. Este Dashboard se presenta luego a sus usuarios para que inicien sesión.
+
+<div id="use-cases">
+  ## Casos de uso
+</div>
+
+<div id="business-to-business">
+  ### Entre empresas
+</div>
+
+Para escenarios entre empresas (B2B), SSO puede simplificar la preparación de tu aplicación para el uso empresarial. Con Auth0, tus aplicaciones pueden admitir escenarios comunes de federación empresarial, como Active Directory (AD), Lightweight Directory Access Protocol (LDAP), Ping o Security Assertion Markup Language (SAML). Esto permite que tus partners y clientes empresariales inicien sesión con las tecnologías de identidad empresarial que prefieran.
+
+* [Caso de estudio: O&#39;Reilly](https://auth0.com/case-studies/oreilly)
+
+<div id="business-to-consumer-ciam">
+  ### Business to Consumer CIAM
+</div>
+
+En escenarios de Business to Consumer (B2C) o Customer Identity Access Management (CIAM), el SSO puede ofrecer acceso sin fricciones a tus aplicaciones o servicios. Puedes permitir que los clientes se autentiquen con proveedores de identidad social populares, como Google, Facebook, LinkedIn, X y Microsoft, en lugar de pedirles que creen otra cuenta.
+
+* [Caso de estudio: Giving Compass](https://auth0.com/case-studies/giving-compass)

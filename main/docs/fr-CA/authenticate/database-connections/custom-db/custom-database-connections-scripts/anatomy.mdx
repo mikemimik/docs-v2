@@ -1,0 +1,46 @@
+---
+description: Découvrez les pratiques exemplaires pour l’anatomie d’une connexion de base de données personnalisée.
+title: Pratiques exemplaires pour l’anatomie d’une connexion de base de données personnalisée
+---
+
+Vous utilisez généralement une connexion de base de données personnalisée pour donner accès à votre propre magasin d’identités hérité aux fins de l’authentification (parfois appelée **legacy authentication**) ou pour [effectuer l’importation d’utilisateurs par migration automatique](/docs/fr-CA/manage-users/user-migration/configure-automatic-migration-from-your-database) (souvent appelée migration **trickle** ou **lazy**). Vous pouvez aussi utiliser des connexions de base de données personnalisées pour servir de proxy d’accès à un tenant Auth0 dans des scénarios où vous utilisez une architecture Auth0 multi-tenant. Pour en savoir plus, consultez [Multi-Tenant Applications Best Practices](/docs/fr-CA/get-started/auth0-overview/create-tenants/multi-tenant-apps-best-practices).
+
+Vous créez et configurez généralement des connexions de base de données personnalisées à l’aide de l’<Tooltip tip="Auth0 Dashboard : le produit principal d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Vous créez une connexion de base de données, puis activez la bascule **Use my own database** pour permettre la modification des scripts d’action de base de données. Une connexion de base de données personnalisée peut aussi être créée et configurée au moyen du <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> d’Auth0, de l’[endpoint Create a connection](https://auth0.com/docs/api/management/v2#!/Connections/post_connections) et de la stratégie `auth0`.
+
+<Frame>![Auth0 Dashboard Authentication Database Connection Custom Database Settings Use Own Database Enabled](/docs/images/cdy7uua7fh8z/11HPAdVwJMmnWbzMVjHCJ8/f75ff47f613a41778f266643f29ab2b1/2025-02-27_17-25-36.png)</Frame>
+
+Comme illustré ci-dessous, vous utilisez des connexions de base de données personnalisées dans le cadre d’un flux de connexion afin d’obtenir les renseignements d’identité de l’utilisateur à partir de votre propre magasin d’identités hérité, à des fins d’authentification ou d’importation d’utilisateurs.
+
+<Frame>![Flux de connexion de base de données personnalisée](/docs/images/cdy7uua7fh8z/1H2Ky1WyPlZ9zHZrEVlFhP/4e4856395fac6d6339c883c35d4b4ac0/custom-database-connections.png)</Frame>
+
+En plus des éléments communs à tous les types de connexions de base de données, une connexion de base de données personnalisée vous permet de configurer des scripts d’action, c’est-à-dire du code personnalisé utilisé pour interagir avec des magasins d’identités hérités. Les scripts que vous choisissez de configurer dépendent du fait que vous créez une connexion pour la **legacy authentication** ou pour la migration automatique.
+
+Les scripts d’action peuvent être implémentés sous forme de fonctions anonymes; toutefois, les fonctions anonymes compliquent le débogage lorsqu’il faut interpréter la pile d’appels générée à la suite d’erreurs exceptionnelles. Par souci de commodité, nous vous recommandons d’attribuer un nom de fonction à chaque script d’action. Pour voir quelques noms recommandés, consultez [Custom Database Action Script Execution Best Practices](/docs/fr-CA/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution).
+
+Dans un scénario de **legacy authentication**, aucun nouvel enregistrement d’utilisateur n’est créé; l’utilisateur reste dans le magasin d’identités hérité et Auth0 utilise l’identité qui s’y trouve pour authentifier l’utilisateur. Les connexions de base de données personnalisées sont aussi utilisées en dehors du flux de <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, pour vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip>. Par exemple, le script d’action `changePassword` d’une connexion est appelé lorsqu’un changement de mot de passe est effectué pour un utilisateur qui se trouve dans un magasin d’identités hérité.
+
+<div id="automatic-migration">
+  ## Migration automatique
+</div>
+
+Pendant la migration automatique, Auth0 crée un nouvel utilisateur dans un magasin d’identités (base de données) géré par Auth0. Auth0 utilise l’identité du magasin d’identités géré par Auth0 lorsqu’il authentifie l’utilisateur. Pour que cela se produise, Auth0 doit d’abord authentifier l’utilisateur auprès du magasin d’identités hérité, et ce n’est que si cette étape réussit que le nouvel utilisateur sera créé dans la base de données gérée par Auth0. Auth0 crée le nouvel utilisateur en utilisant le même identifiant et le même mot de passe que ceux fournis pendant l’authentification.
+
+Dans un scénario de migration automatique, la création de l’utilisateur se produit généralement après l’exécution du script d’action Login. Nous vous recommandons de ne pas tenter de supprimer des utilisateurs d’un magasin d’identités hérité au moyen d’une opération en ligne dans le script Login, mais plutôt dans le cadre d’un processus distinct. Cela évite la suppression accidentelle d’utilisateurs en cas d’erreur pendant la migration.
+
+Avec la migration automatique, les utilisateurs demeurent dans le magasin d’identités hérité et peuvent être supprimés ou archivés au besoin. Il peut arriver qu’un utilisateur soit supprimé d’Auth0, mais demeure dans le magasin de données hérité. Dans ce cas, une tentative de login effectuée par l’utilisateur supprimé pourrait entraîner l’exécution du script Login ou Get User, et l’utilisateur pourrait de nouveau être migré à partir du magasin d’identités hérité.
+
+Nous vous recommandons de marquer les identités d’utilisateur du magasin hérité comme migrées avant la fin de l’exécution des scripts Login ou Get User, et avant toute suppression éventuelle dans le magasin hérité, afin d’empêcher la recréation involontaire d’utilisateurs supprimés intentionnellement.
+
+<div id="size">
+  ## Taille
+</div>
+
+Nous recommandons que la taille totale de tout script d’action ne dépasse pas 100 KB. Plus cette taille est élevée, plus le processus d’empaquetage et de transport utilisé par la plateforme Auth0 ajoute de la latence, ce qui aura une incidence sur les performances de votre système. Notez que la limite de 100 KB n’inclut aucun module `npm` pouvant être référencé dans une instruction `require`.
+
+<div id="learn-more">
+  ## Pour en savoir plus
+</div>
+
+* [Bonnes pratiques de sécurité pour les connexions de base de données personnalisées](/docs/fr-CA/authenticate/database-connections/custom-db/custom-database-connections-scripts/connection-security)
+* [Bonnes pratiques d’exécution des scripts d’action de base de données personnalisée](/docs/fr-CA/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution)
+* [Bonnes pratiques relatives à l’environnement des scripts d’action de base de données personnalisée](/docs/fr-CA/authenticate/database-connections/custom-db/custom-database-connections-scripts/environment)

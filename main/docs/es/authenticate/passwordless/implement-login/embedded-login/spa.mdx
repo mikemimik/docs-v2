@@ -1,0 +1,78 @@
+---
+description: Describe cómo implementar la autenticación Passwordless con inicio de sesión integrado en aplicaciones de una sola página (SPA).
+title: Autenticación Passwordless con inicio de sesión integrado para SPA
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<Warning>
+  El inicio de sesión integrado para aplicaciones web utiliza [autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication), a menos que [configure un dominio personalizado](/docs/es/customize/custom-domains) para su tenant. La autenticación de origen cruzado utiliza cookies de terceros para permitir transacciones de autenticación seguras entre distintos orígenes.
+</Warning>
+
+<div id="using-auth0s-sdks-to-implement-embedded-login">
+  ## Uso de los SDK de Auth0 para implementar inicio de sesión integrado
+</div>
+
+Puedes implementar el inicio de sesión <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/docs/es/glossary?term=Passwordless">Passwordless</Tooltip> usando el widget Lock de Auth0 o, si necesitas un control total de la experiencia del usuario, puedes implementarlo con Auth0.js:
+
+* [Lock for Web](/docs/es/libraries/lock)
+* [Referencia de Auth0.js](/docs/es/libraries/auth0js)
+
+<div id="configure-cross-origin-resource-sharing-cors">
+  ### Configurar el uso compartido de recursos de origen cruzado (CORS)
+</div>
+
+Por motivos de seguridad, la URL de origen de tu aplicación debe figurar como una URL autorizada. Si aún no la has agregado a las **Allowed Callback URLS** de tu aplicación, tendrás que añadirla a la lista de **Allowed Origins (CORS)**.
+
+1. Ve a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y selecciona el nombre de tu aplicación para ver su configuración.
+2. Busca **Allowed Origins (CORS)**, introduce la [URL de origen](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin) de tu aplicación y selecciona **Save Changes**.
+
+<div id="customize-mfa">
+  ## Personalizar MFA
+</div>
+
+<ReleaseStageNotice feature="MFA personalizable con los flujos de concesión de contraseña del propietario del recurso, Embedded o de token de actualización" stage="ea" terms="true" contact="equipo de soporte de Auth0" />
+
+Personaliza la <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuarios que utiliza un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> con flujos embedded. Usa la API de MFA para permitir que los usuarios se registren y completen desafíos con los factores que prefieran y que sean compatibles con tu aplicación.
+
+Al usar [Lock for Web](/docs/es/libraries/lock#2-authenticating-and-getting-user-info), el endpoint `oauth/token` devuelve el error `mfa_required` e incluye el `mfa_token` que necesitas para usar la API de MFA, así como el parámetro `mfa_requirements` con una lista de autenticadores que tu aplicación admite actualmente:
+
+```json lines
+{
+  "error": "mfa_required",
+  "error_description": "Multifactor authentication required",
+  "mfa_token": "Fe26...Ha",
+  "mfa_requirements": {
+    "challenge": [
+      { "type": "otp" },
+      { "type": "push-notification" },
+      { "type": "phone" },
+      { "type": "recovery-code" }
+      { "type": "email"} //solo puede funcionar con challenge
+    ]
+  }
+}
+```
+
+Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](https://auth0.com/docs/api/authentication/muti-factor-authentication/list-authenticators), enumerar todos los factores que el usuario ha registrado y hacer coincidir el mismo `type` que admite tu aplicación. También debes obtener el `authenticator_type` correspondiente para emitir desafíos:
+
+```json lines
+[
+  {
+    "type": "recovery-code",
+    "id": "recovery-code|dev_qpOkGUOxBpw6R16t",
+    "authenticator_type": "recovery-code",
+    "active": true
+  },
+  {
+    "type": "otp",
+    "id": "totp|dev_6NWz8awwC8brh2dN",
+    "authenticator_type": "otp",
+    "active": true
+  }
+]
+```
+
+Aplica la verificación de MFA llamando al endpoint [`request/mfa/challenge`](https://auth0.com/docs/api/authentication/muti-factor-authentication/request-mfa-challenge).
+
+Personaliza aún más tu flujo de MFA con Auth0 Actions. Para obtener más información, consulta [Actions Triggers: post-challenge - objeto de API](/docs/es/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-api-object).

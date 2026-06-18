@@ -1,0 +1,578 @@
+---
+title: Añade el inicio de sesión a tu aplicación .NET MAUI
+sidebarTitle: MAUI
+description: Esta guía muestra cómo integrar Auth0 en una aplicación .NET MAUI con el SDK Auth0.OidcClient.MAUI.
+'og:title': 'Auth0 .NET MAUI SDK Quickstart: Añade el inicio de sesión a tu aplicación .NET MAUI'
+'twitter:title': 'Auth0 .NET MAUI SDK Quickstart: Añade el inicio de sesión a tu aplicación .NET MAUI'
+mode: wide
+---
+
+import {HowToSchema} from "/snippets/HowToSchema.jsx";
+
+<HowToSchema />
+
+<Accordion title="Usa IA para integrar Auth0" icon="microchip-ai" iconType="solid" defaultOpen>
+  Si usas un asistente de programación con IA como Claude Code, Cursor o GitHub Copilot, puedes añadir la autenticación con Auth0 automáticamente en cuestión de minutos usando [agent skills](https://agentskills.io/home).
+
+  **Instala:**
+
+  ```bash
+  npx skills add auth0/agent-skills --skill auth0-quickstart --skill auth0-maui
+  ```
+
+  **Luego pídele a tu asistente de IA:**
+
+  ```text
+  Add Auth0 authentication to my .NET MAUI app
+  ```
+
+  Tu asistente de IA creará automáticamente tu aplicación de Auth0, obtendrá las credenciales, instalará el SDK Auth0 OidcClient MAUI, configurará las URL de devolución de llamada e implementará los flujos de inicio y cierre de sesión. [Documentación completa de agent skills →](/docs/es/quickstart/agent-skills)
+</Accordion>
+
+En esta guía se muestra cómo integrar Auth0 con una aplicación .NET MAUI mediante el [SDK Auth0.OidcClient.MAUI](https://github.com/auth0/auth0-oidc-client-net). Al final, tu aplicación admitirá el inicio de sesión, el cierre de sesión y la visualización de la información del perfil de usuario en **Android**, **iOS**, **macOS** y **Windows** desde una única base de código.
+
+Esta guía usa `Auth0.OidcClient.MAUI` versión **1.x**.
+
+<Note>
+  ## Requisitos previos
+
+  * **.NET 8 o .NET 9 SDK** instalado ([descargar](https://dotnet.microsoft.com/download))
+  * **Carga de trabajo de MAUI** instalada
+  * Una **cuenta de Auth0** ([regístrate gratis](https://auth0.com/signup))
+  * **Visual Studio 2022** (17.8+), **JetBrains Rider** o **VS Code** con la extensión de .NET MAUI
+</Note>
+
+Verifica tu entorno:
+
+```shellscript
+dotnet --version        # Debe ser 8.x o 9.x
+dotnet workload list    # Debe incluir maui
+```
+
+Si falta la carga de trabajo de MAUI, instálala:
+
+```shellscript
+dotnet workload install maui
+```
+
+<div id="get-started">
+  ## Primeros pasos
+</div>
+
+<Steps>
+  <Step title="Configura tu aplicación de Auth0" stepNumber={1}>
+    Configura tu aplicación de Auth0 para obtener las credenciales que necesita tu aplicación MAUI.
+
+    1. Ve a **[Auth0 Dashboard](https://manage.auth0.com/dashboard/) &gt; Applications &gt; Applications**
+    2. Selecciona **Create Application**
+    3. Introduce un nombre para tu aplicación (por ejemplo, &quot;My MAUI App&quot;), selecciona **Native** como tipo de aplicación y luego **Create**
+    4. Ve a la pestaña **Settings** de la página **Application Details**
+    5. Toma nota de los valores de **Domain** y **Client ID**; los necesitarás más adelante
+
+    En la pestaña **Settings**, desplázate hasta **Application URIs** y configura las siguientes URL. Las aplicaciones de .NET MAUI usan un esquema de URI personalizado (por ejemplo, `myapp://callback`) en lugar de una URL HTTP.
+
+    **Allowed Callback URLs:**
+
+    ```text
+    myapp://callback
+    ```
+
+    **Allowed Logout URLs:**
+
+    ```text
+    myapp://callback
+    ```
+
+    <Tip>
+      Elige un esquema único para tu app. Un nombre de dominio invertido funciona bien; por ejemplo, `com.mycompany.myapp://callback`.
+    </Tip>
+
+    Selecciona **Guardar cambios**.
+
+    <Check>
+      Tienes una aplicación nativa en Auth0 con tu **dominio** y **ID de cliente** a mano, y las URL de callback y de cierre de sesión configuradas.
+    </Check>
+  </Step>
+
+  <Step title="Crea tu proyecto de MAUI" stepNumber={2}>
+    Si ya tienes un proyecto de .NET MAUI, ve al paso 3. Si no, crea uno con la CLI de .NET:
+
+    ```shellscript
+    dotnet new maui -n MyMauiApp
+    cd MyMauiApp
+    ```
+  </Step>
+
+  <Step title="Instala el SDK de Auth0 para MAUI" stepNumber={3}>
+    Agrega el paquete NuGet `Auth0.OidcClient.MAUI` a tu proyecto:
+
+    ```shellscript
+    dotnet add package Auth0.OidcClient.MAUI
+    ```
+
+    <Check>
+      Ejecuta `dotnet restore` para confirmar que el paquete se ha instalado sin errores.
+    </Check>
+  </Step>
+
+  <Step title="Configurar la gestión de callbacks específica de la plataforma" stepNumber={4}>
+    Las aplicaciones .NET MAUI deben registrar un manejador de devolución de llamada en cada plataforma para que el navegador del sistema pueda redirigir de vuelta a tu aplicación después de la autenticación. Sigue las instrucciones correspondientes a cada plataforma de destino.
+
+    <Tabs>
+      <Tab title="Android">
+        Crea un archivo nuevo en `Platforms/Android/WebAuthenticatorActivity.cs`:
+
+        ```csharp Platforms/Android/WebAuthenticatorActivity.cs lines
+        using Android.App;
+        using Android.Content;
+        using Android.Content.PM;
+
+        namespace MyMauiApp.Platforms.Android;
+
+        [Activity(NoHistory = true, LaunchMode = LaunchMode.SingleTop, Exported = true)]
+        [IntentFilter(new[] { Intent.ActionView },
+                      Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+                      DataScheme = CALLBACK_SCHEME)]
+        public class WebAuthenticatorActivity : Microsoft.Maui.Authentication.WebAuthenticatorCallbackActivity
+        {
+            const string CALLBACK_SCHEME = "myapp";
+        }
+        ```
+
+        Reemplaza `myapp` por el esquema de URI que configuraste en el paso 1.
+
+        <Note>
+          El valor de `CALLBACK_SCHEME` debe coincidir exactamente con el esquema de tu `RedirectUri` y con **Allowed Callback URLs** en Auth0.
+        </Note>
+      </Tab>
+
+      <Tab title="Windows">
+        El flujo de devolución de llamada de Auth0 en Windows se basa en la activación del protocolo URI, lo que requiere que tu aplicación esté **empaquetada** (MSIX). La plantilla predeterminada de .NET MAUI crea una aplicación empaquetada, así que no necesitas hacer cambios si usaste `dotnet new maui` o la plantilla MAUI de Visual Studio.
+
+        <Info>
+          Si tu `.csproj` contiene `<WindowsPackageType>None</WindowsPackageType>`, tu aplicación está **sin empaquetar** y la activación del protocolo no funcionará. Elimina esa línea o cámbiala a `<WindowsPackageType>MSIX</WindowsPackageType>` para usar una aplicación empaquetada. Para obtener más información, consulta la [documentación sobre empaquetado de Windows en .NET MAUI](https://learn.microsoft.com/en-us/dotnet/maui/windows/deployment-overview).
+        </Info>
+
+        Se requieren dos cambios: registrar el protocolo URI y controlar la activación del protocolo.
+
+        **1. Registra el protocolo** en `Platforms/Windows/Package.appxmanifest`. Agrega el bloque `<Extensions>` dentro del elemento `<Application>` existente:
+
+        ```xml Platforms/Windows/Package.appxmanifest lines
+        <Applications>
+          <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
+            <Extensions>
+              <uap:Extension Category="windows.protocol">
+                <uap:Protocol Name="myapp"/>
+              </uap:Extension>
+            </Extensions>
+          </Application>
+        </Applications>
+        ```
+
+        **2. Controla la activación** en `Platforms/Windows/App.xaml.cs`. Agrega la llamada a `CheckRedirectionActivation` como la **primera línea** del constructor:
+
+        ```csharp Platforms/Windows/App.xaml.cs lines
+        public App()
+        {
+            if (Auth0.OidcClient.Platforms.Windows.Activator.Default.CheckRedirectionActivation())
+                return;
+
+            this.InitializeComponent();
+        }
+        ```
+      </Tab>
+
+      <Tab title="iOS / macOS">
+        No se requiere ninguna configuración específica de la plataforma. El SDK usa `ASWebAuthenticationSession` automáticamente a través de `WebAuthenticator` de MAUI.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Agregar inicio y cierre de sesión" stepNumber={5}>
+    Necesitas crear o modificar tres archivos: un ViewModel con la lógica de inicio y cierre de sesión, una página XAML para la interfaz de usuario y un archivo de code-behind para conectarlos.
+
+    <Tabs>
+      <Tab title="MainPageViewModel.cs">
+        Crea el ViewModel en `ViewModels/MainPageViewModel.cs`:
+
+        ```csharp ViewModels/MainPageViewModel.cs lines
+        using System.ComponentModel;
+        using System.Runtime.CompilerServices;
+        using System.Windows.Input;
+        using Auth0.OidcClient;
+
+        namespace MyMauiApp.ViewModels;
+
+        public class MainPageViewModel : INotifyPropertyChanged
+        {
+            private readonly Auth0Client _client;
+            private string _name;
+            private string _email;
+            private bool _isAuthenticated;
+
+            public event PropertyChangedEventHandler PropertyChanged;
+
+            public string Name
+            {
+                get => _name;
+                set { _name = value; OnPropertyChanged(); }
+            }
+
+            public string Email
+            {
+                get => _email;
+                set { _email = value; OnPropertyChanged(); }
+            }
+
+            public bool IsAuthenticated
+            {
+                get => _isAuthenticated;
+                set
+                {
+                    _isAuthenticated = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsNotAuthenticated));
+                }
+            }
+
+            public bool IsNotAuthenticated => !IsAuthenticated;
+
+            public ICommand LoginCommand { get; }
+            public ICommand LogoutCommand { get; }
+
+            public MainPageViewModel(Auth0Client client)
+            {
+                _client = client;
+                LoginCommand = new Command(async () => await LoginAsync());
+                LogoutCommand = new Command(async () => await LogoutAsync());
+            }
+
+            private async Task LoginAsync()
+            {
+                var loginResult = await _client.LoginAsync();
+
+                if (loginResult.IsError)
+                {
+                    if (loginResult.Error == "UserCancel")
+                        return; // El usuario cerró el navegador; no es un error
+
+                    await Shell.Current.DisplayAlert("Login failed", loginResult.Error, "OK");
+                    return;
+                }
+
+                // Lee las claims del perfil del usuario desde el token de identidad
+                Name = loginResult.User.FindFirst(c => c.Type == "name")?.Value;
+                Email = loginResult.User.FindFirst(c => c.Type == "email")?.Value;
+                IsAuthenticated = true;
+            }
+
+            private async Task LogoutAsync()
+            {
+                await _client.LogoutAsync();
+
+                Name = null;
+                Email = null;
+                IsAuthenticated = false;
+            }
+
+            private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+        ```
+      </Tab>
+
+      <Tab title="MainPage.xaml">
+        Configura la interfaz de usuario en `MainPage.xaml`:
+
+        ```xml MainPage.xaml lines
+        <?xml version="1.0" encoding="utf-8" ?>
+        <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                     x:Class="MyMauiApp.MainPage">
+
+            <VerticalStackLayout Spacing="20" Padding="30" VerticalOptions="Center">
+
+                <!-- Se muestra cuando la sesión está cerrada -->
+                <Button Text="Log In"
+                        Command="{Binding LoginCommand}"
+                        IsVisible="{Binding IsNotAuthenticated}" />
+
+                <!-- Se muestra cuando la sesión está iniciada -->
+                <Label Text="{Binding Name, StringFormat='Welcome, {0}!'}"
+                       IsVisible="{Binding IsAuthenticated}"
+                       FontSize="24"
+                       HorizontalOptions="Center" />
+
+                <Label Text="{Binding Email}"
+                       IsVisible="{Binding IsAuthenticated}"
+                       HorizontalOptions="Center" />
+
+                <Button Text="Log Out"
+                        Command="{Binding LogoutCommand}"
+                        IsVisible="{Binding IsAuthenticated}" />
+
+            </VerticalStackLayout>
+        </ContentPage>
+        ```
+      </Tab>
+
+      <Tab title="MainPage.xaml.cs">
+        Establece el BindingContext en `MainPage.xaml.cs`:
+
+        ```csharp MainPage.xaml.cs lines
+        namespace MyMauiApp;
+
+        public partial class MainPage : ContentPage
+        {
+            public MainPage(MainPageViewModel viewModel)
+            {
+                InitializeComponent();
+                BindingContext = viewModel;
+            }
+        }
+        ```
+      </Tab>
+    </Tabs>
+
+    <Check>
+      Tu proyecto ahora tiene un ViewModel con comandos de inicio y cierre de sesión, una página XAML enlazada a datos y el code-behind conectado.
+    </Check>
+  </Step>
+
+  <Step title="Registra los servicios y crea una instancia del cliente de Auth0" stepNumber={6}>
+    Ahora registra `Auth0Client`, el ViewModel y la página mediante inyección de dependencias en `MauiProgram.cs`. Esto lo conecta todo, de modo que el cliente de Auth0 se inyecta en el ViewModel y el ViewModel se inyecta en la página:
+
+    ```csharp MauiProgram.cs lines
+    using Auth0.OidcClient;
+    using MyMauiApp.ViewModels;
+
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            // Configura el cliente Auth0 con tus credenciales del Paso 1
+            builder.Services.AddSingleton(new Auth0Client(new Auth0ClientOptions
+            {
+                Domain = "{yourDomain}",
+                ClientId = "{yourClientId}",
+                RedirectUri = "myapp://callback",
+                PostLogoutRedirectUri = "myapp://callback"
+            }));
+
+            // Registra la página y el ViewModel creados en el Paso 5
+            builder.Services.AddTransient<MainPage>();
+            builder.Services.AddTransient<MainPageViewModel>();
+
+            return builder.Build();
+        }
+    }
+    ```
+
+    Reemplaza `{yourDomain}` y `{yourClientId}` por los valores de la configuración de tu aplicación de Auth0 (Paso 1).
+    `RedirectUri` y `PostLogoutRedirectUri` son **obligatorios** para las aplicaciones MAUI. Usa la misma URL de devolución de llamada que ingresaste en el Auth0 Dashboard.
+  </Step>
+
+  <Step title="Inicia tu aplicación" stepNumber={7}>
+    Compila y ejecuta tu aplicación .NET MAUI
+
+    **Flujo esperado:**
+
+    1. La aplicación se inicia y muestra el botón **Iniciar sesión**
+    2. Toca **Iniciar sesión** → se abre el navegador del sistema con Auth0 Universal Login
+    3. Completa la autenticación (regístrate o inicia sesión)
+    4. El navegador te redirige a la aplicación
+    5. La aplicación muestra tu nombre y correo electrónico con un botón **Cerrar sesión**
+  </Step>
+</Steps>
+
+<Check>
+  Ahora ya tienes una experiencia de inicio de sesión con Auth0 totalmente funcional en tu aplicación .NET MAUI.
+</Check>
+
+***
+
+<div id="troubleshooting">
+  ## Solución de problemas
+</div>
+
+<AccordionGroup>
+  <Accordion title="La URL de devolución de llamada no coincide">
+    **Síntoma**: El navegador muestra &quot;Callback URL mismatch. The provided redirect&#95;uri is not in the list of allowed callback URLs.&quot;
+
+    **Solución:**
+
+    1. Confirma que el **ID de cliente** de tu código coincida con la aplicación que configuraste en el Auth0 Dashboard
+    2. Borra el campo **Allowed Callback URLs** y vuelve a escribir `myapp://callback` manualmente; al copiar y pegar suelen introducirse espacios finales o saltos de línea invisibles
+    3. Asegúrate de que coincida exactamente: sin barra final, solo en minúsculas y sin espacios en blanco
+    4. Selecciona **Save Changes** en el Dashboard y verifica que el valor se haya guardado
+    5. Revisa la barra de direcciones del navegador para ver el parámetro de consulta `redirect_uri` y comprobar qué está enviando realmente tu aplicación
+  </Accordion>
+
+  <Accordion title="Android: la aplicación no vuelve desde el navegador">
+    **Síntoma**: El navegador se abre para iniciar sesión, pero nunca redirige de vuelta a la aplicación.
+
+    **Solución:**
+
+    1. Verifica que `DataScheme` en `WebAuthenticatorActivity.cs` coincida con el esquema de tu `RedirectUri`
+    2. Asegúrate de que la Activity tenga `Exported = true`
+    3. Confirma que **Allowed Callback URLs** en el Auth0 Dashboard coincidan exactamente
+  </Accordion>
+
+  <Accordion title="Windows: el inicio de sesión parece quedarse bloqueado">
+    **Síntoma**: El navegador se abre, pero en lugar de reanudarse se abre una segunda instancia de la aplicación.
+
+    **Solución:** Asegúrate de llamar a `Auth0.OidcClient.Platforms.Windows.Activator.Default.CheckRedirectionActivation()` como la **primerísima línea** del constructor de `App` en `Platforms/Windows/App.xaml.cs`, y de que el nombre del protocolo en `Package.appxmanifest` coincida con el esquema del URI de devolución de llamada.
+  </Accordion>
+
+  <Accordion title="Windows: la activación del protocolo no funciona">
+    **Síntoma**: Después de iniciar sesión, el navegador muestra un error o no ocurre nada; la aplicación nunca recibe la devolución de llamada.
+
+    **Solución:** Tu aplicación debe ser una aplicación **empaquetada** (MSIX). Revisa tu archivo `.csproj` para comprobar si tiene un elemento `<WindowsPackageType>`:
+
+    * Si está configurado como `None`, la activación del protocolo no está disponible. Elimina la línea o cámbiala a `<WindowsPackageType>MSIX</WindowsPackageType>`.
+    * Si el elemento no está presente, tu aplicación ya está empaquetada de forma predeterminada; verifica que `Package.appxmanifest` contenga la extensión `<uap:Protocol>` del Paso 4.
+  </Accordion>
+
+  <Accordion title="Faltan claims en el perfil de usuario">
+    **Síntoma**: Los claims `name`, `email` o `picture` no están presentes en `loginResult.User`.
+
+    **Solución:** Verifica que `openid profile email` estén incluidos en `Auth0ClientOptions.Scope`. Si has personalizado el scope, asegúrate de que `openid` esté siempre presente.
+  </Accordion>
+</AccordionGroup>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+Ahora tienes una integración de Auth0 funcional en tu aplicación .NET MAUI. Explora estos temas para ampliar la implementación:
+
+<Accordion title="Tokens de actualización">
+  El SDK de Auth0 para MAUI admite tokens de actualización para renovar sesiones de forma silenciosa sin volver a pedirle al usuario que interactúe.
+
+  ### Habilitar tokens de actualización
+
+  Agrega `offline_access` a la propiedad `Scope`:
+
+  ```csharp expandable lines
+  builder.Services.AddSingleton(new Auth0Client(new Auth0ClientOptions
+  {
+      Domain = "{yourDomain}",
+      ClientId = "{yourClientId}",
+      RedirectUri = "myapp://callback",
+      PostLogoutRedirectUri = "myapp://callback",
+      Scope = "openid profile email offline_access"
+  }));
+  ```
+
+  ### Usar tokens de actualización
+
+  Después del login, almacena el token de actualización y úsalo para renovar la sesión de forma silenciosa:
+
+  ```csharp expandable lines
+  // Después del login
+  var refreshToken = loginResult.RefreshToken;
+
+  // Más tarde, renovar la sesión
+  var refreshResult = await _client.RefreshTokenAsync(refreshToken);
+
+  if (!refreshResult.IsError)
+  {
+      var newAccessToken = refreshResult.AccessToken;
+      var newIdToken = refreshResult.IdentityToken;
+  }
+  ```
+
+  <Info>
+    Si `RefreshToken` es `null` después del login, asegúrate de que **Allow Offline Access** esté habilitado en la configuración de tu API en el Auth0 Dashboard (cuando uses un parámetro `audience`).
+  </Info>
+</Accordion>
+
+<Accordion title="Llamar a una API protegida">
+  Para obtener un token de acceso con el scope de tu API, configura `Scope` y pasa un parámetro `audience` a `LoginAsync()`:
+
+  ```csharp expandable lines
+  var loginResult = await _client.LoginAsync(new
+  {
+      audience = "https://myapi.example.com"
+  });
+
+  // El token de acceso ahora tiene el scope de tu API
+  var accessToken = loginResult.AccessToken;
+
+  var httpClient = new HttpClient();
+  httpClient.DefaultRequestHeaders.Authorization =
+      new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+  var response = await httpClient.GetAsync("https://myapi.example.com/posts");
+  ```
+</Accordion>
+
+<Accordion title="Organizations (B2B/empresarial)">
+  Autentica a los usuarios dentro de una organización de Auth0 específica:
+
+  ```csharp expandable lines
+  var loginResult = await _client.LoginAsync(new
+  {
+      organization = "org_abc123"
+  });
+  ```
+
+  Para obtener más información, consulta [Organizations](/docs/es/manage-users/organizations).
+</Accordion>
+
+<Accordion title="Forzar la reautenticación">
+  Usa `MaxAge` para forzar la reautenticación después de un tiempo determinado:
+
+  ```csharp expandable lines
+  new Auth0ClientOptions
+  {
+      Domain = "{yourDomain}",
+      ClientId = "{yourClientId}",
+      RedirectUri = "myapp://callback",
+      PostLogoutRedirectUri = "myapp://callback",
+      MaxAge = TimeSpan.FromMinutes(30)
+  }
+  ```
+</Accordion>
+
+<Accordion title="Personalizar Universal Login">
+  Adapta la página de login de Auth0 para que refleje tu marca, incluidos los colores, los logotipos y el texto.
+
+  Para obtener más información, consulta [Customize Universal Login](/docs/es/customize/universal-login-pages).
+</Accordion>
+
+***
+
+<div id="additional-resources">
+  ## Recursos adicionales
+</div>
+
+<CardGroup cols={3}>
+  <Card title="Repositorio del SDK" icon="github" href="https://github.com/auth0/auth0-oidc-client-net">
+    Código fuente, ejemplos y referencia de la API
+  </Card>
+
+  <Card title="Prácticas recomendadas para tokens" icon="key" href="/docs/es/secure/tokens/token-best-practices">
+    Prácticas recomendadas de seguridad para tokens
+  </Card>
+
+  <Card title="Flujo PKCE" icon="shield" href="/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce">
+    Cómo las aplicaciones nativas se autentican de forma segura
+  </Card>
+
+  <Card title="Foro de la comunidad" icon="comments" href="https://community.auth0.com/">
+    Obtén ayuda de la comunidad de Auth0
+  </Card>
+</CardGroup>

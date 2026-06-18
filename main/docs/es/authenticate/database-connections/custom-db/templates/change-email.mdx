@@ -1,0 +1,139 @@
+---
+description: Describe el script de acción de base de datos personalizada para cambiar el correo electrónico de un usuario.
+title: Plantilla del script Cambiar correo electrónico
+---
+
+El script de cambiar correo electrónico implementa la función definida cuando cambia la dirección de correo electrónico de un usuario o el estado de verificación de dicha dirección. Recomendamos llamar a esta función `changeEmail`.
+
+Este script solo se utiliza en un [escenario de autenticación heredada](/docs/es/authenticate/database-connections/custom-db/overview-custom-db-connections), y es necesario si quieres actualizar la dirección de correo electrónico de un usuario (y/o el estado de verificación de esa dirección) en Auth0 y en tu base de datos externa en una misma operación.
+
+El script de cambiar correo electrónico no se puede configurar a través del <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Para gestionar este script, debes usar el endpoint [Create a connection](https://auth0.com/docs/api/management/v2#!/Connections/post_connections) o [actualizar una conexión](https://auth0.com/docs/api/management/v2#!/Connections/patch_connections_by_id) de Auth0 <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>, o [Auth0 Deploy CLI](/docs/es/deploy-monitor/deploy-cli-tool).
+
+<Warning>
+  Si gestionas los scripts de acción de base de datos de una conexión de base de datos personalizada a través del Auth0 Dashboard, el script de cambiar correo electrónico se eliminará automáticamente al guardar.
+
+  Para evitar que el script de cambiar correo electrónico se elimine accidentalmente, utiliza Auth0 Management API o Auth0 Deploy CLI al gestionar la conexión.
+
+  Si cambias manualmente el correo electrónico de un usuario en tu base de datos personalizada, debes actualizar el usuario por separado; Auth0 no detectará el cambio automáticamente.
+</Warning>
+
+<div id="changeemail-function">
+  ## Función ChangeEmail
+</div>
+
+La función changeEmail debe:
+
+* Actualizar la dirección de correo electrónico del usuario en la base de datos externa.
+* Devolver un error si la operación falla o si se produce algún error.
+
+<div id="definition">
+  ### Definición
+</div>
+
+La función `changeEmail` acepta cuatro parámetros y devuelve una función de `devolución de llamada`:
+
+```js lines
+changeEmail(email, newEmail, verified, callback): function
+```
+
+| Parámetro  | Tipo     | Descripción                                                                                                     |
+| ---------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `email`    | String   | Dirección de correo electrónico actual del usuario.                                                             |
+| `newEmail` | String   | Valor que se establecerá como la nueva dirección de correo electrónico del usuario en la base de datos externa. |
+| `verified` | Boolean  | Estado de verificación de la nueva dirección de correo electrónico.                                             |
+| `callback` | Function | Se utiliza para pasar datos de error mediante el pipeline.                                                      |
+
+<div id="example">
+  ### Ejemplo
+</div>
+
+Este es un ejemplo en pseudo-JavaScript de cómo podrías implementar la función `changeEmail`:
+
+```javascript lines expandable
+function (email, newEmail, verified, callback) {
+  // Preparar la llamada a la API
+  let options = {
+    url: "https://example.com/api/users",
+    action: "PATCH",
+    body: {
+      email: email,
+      new_email: newEmail,
+      email_verified: verified
+    }
+  };
+
+  // Llamar a la API
+  send(options, err => {
+    // Devolver el valor `false` en la devolución de llamada si la operación falló
+    if (err && err.id == "FAIL_CHANGE_EMAIL") {
+      return callback(null, false);
+    } else if (err) {
+      // Devolver error en la devolución de llamada si ocurrió un error no especificado
+      return callback(new Error("My custom error message."));
+    }
+
+    // Devolver el valor `true` en la devolución de llamada si la operación fue exitosa
+    return callback(null, true);
+  });
+}
+```
+
+<div id="callback-function">
+  ## Función de devolución de llamada
+</div>
+
+La función de devolución de llamada `callback` acepta dos parámetros y devuelve una función.
+
+<div id="definition">
+  ### Definición
+</div>
+
+```js lines
+callback(error, operationResult): function
+```
+
+| Parámetro         | Tipo    | Obligatorio | Descripción                                                          |
+| ----------------- | ------- | ----------- | -------------------------------------------------------------------- |
+| `error`           | Object  | Obligatorio | Contiene datos del error.                                            |
+| `operationResult` | Boolean | Opcional    | Indica el resultado de la operación de cambio de correo electrónico. |
+
+<div id="return-a-success">
+  ### Devolver un resultado exitoso
+</div>
+
+Si la operación de cambio de correo electrónico se realizó correctamente, devuelve la función de devolución de llamada `callback` y pasa un valor `null` como parámetro `error` y un valor `true` como parámetro `operationResult`:
+
+```js lines
+return callback(null, true);
+```
+
+<div id="return-a-failure">
+  ### Indicar un fallo
+</div>
+
+Si la operación de cambio de correo electrónico falla, devuelve la función de devolución de llamada `callback` y pasa `null` como valor del parámetro `error` y `false` como valor del parámetro `operationResult`:
+
+```js lines
+return callback(null, false);
+```
+
+<div id="return-an-error">
+  ### Devolver un error
+</div>
+
+Si se produjo un error, devuelve la función de devolución de llamada `callback` y pasa la información relevante sobre el error como parámetro `error`:
+
+```js lines
+return callback(new Error("My custom error message."));
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Plantillas de script de Change Password](/docs/es/authenticate/database-connections/custom-db/templates/change-password)
+* [Plantillas de script de Create](/docs/es/authenticate/database-connections/custom-db/templates/create)
+* [Plantillas de script de Delete](/docs/es/authenticate/database-connections/custom-db/templates/delete)
+* [Plantillas de script de Get User](/docs/es/authenticate/database-connections/custom-db/templates/get-user)
+* [Plantillas de script de Login](/docs/es/authenticate/database-connections/custom-db/templates/login)
+* [Plantillas de script de Verify](/docs/es/authenticate/database-connections/custom-db/templates/verify)

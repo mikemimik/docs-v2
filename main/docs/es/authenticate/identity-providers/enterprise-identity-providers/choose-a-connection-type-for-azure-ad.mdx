@@ -1,0 +1,104 @@
+---
+description: Compara los tipos de conexión de Microsoft Azure AD disponibles en Auth0 y luego elige el que coincida con tu modelo de tenant y los atributos de usuario.
+title: Elige un tipo de conexión para Azure AD
+---
+
+Puedes conectar tu instancia de Auth0 a Microsoft Azure Active Directory de tres maneras. Revisa las opciones para determinar cuál es la mejor para tu caso.
+
+Auth0 recomienda comenzar con la conexión nativa de Microsoft Azure AD. Si necesitas una personalización más avanzada, revisa la configuración de la conexión <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin usar una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip>. Además, si tu organización tiene restricciones adicionales sobre los flujos de código de <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth">OAuth</Tooltip>, revisa la configuración de Enterprise OIDC.
+
+La siguiente tabla muestra las principales diferencias entre estos tipos de conexión. Revisa estas capacidades para determinar el tipo de conexión más adecuado para tu organización.
+
+| Tipo de conexión                                                                  | Azure AD “Nativa”                        | Enterprise OIDC                                                     | SAML             |
+| --------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------- | ---------------- |
+| **Protocolo**                                                                     | flujo de código de autorización de OAuth | flujo implícito de OAuth O flujo de código de autorización de OAuth | SAML             |
+| **¿Puede recibir claims opcionales de Azure AD?**                                 | No                                       | Sí                                                                  | Sí               |
+| **Compatibilidad con cierre de sesión federado (“cierre de sesión único” o SLO)** | Sí                                       | No                                                                  | Sí               |
+| **Recibir grupos de AD**                                                          | Sí, nombres descriptivos                 | Sí, ID de objeto                                                    | Sí, ID de objeto |
+| **Recibir perfil extendido**                                                      | Sí                                       | No                                                                  | No               |
+
+<div id="microsoft-azure-ad">
+  ## Microsoft Azure AD
+</div>
+
+El primer tipo de conexión es la conexión de **Microsoft Azure AD** en [Auth0 Dashboard &gt; Authentication &gt; empresarial](https://manage.auth0.com/dashboard/#/connections/enterprise).
+
+Este tipo de conexión usa el flujo de código de autorización de OAuth. La conexión de Microsoft Azure AD acepta claims de un `id_token` y consulta directamente la Microsoft Graph API. Si está configurada, la consulta busca grupos e información adicional del perfil. Microsoft Azure AD ignora cualquier claim personalizada incluida en el `id_token`.
+
+### Funciones y consideraciones de la conexión
+
+Como este tipo de conexión es el flujo de trabajo nativo, es totalmente compatible con las funciones ampliadas de AD. La conexión de Azure AD asigna atributos de perfil directamente a tus perfiles de usuario de Auth0 desde la Microsoft Graph API.
+
+La siguiente tabla compara los atributos de Graph de Azure AD entre los distintos tipos de conexión:
+
+| Atributo de Graph   | Atributo del perfil de Auth0 | Tipo de dato | claim opcional equivalente para OIDC o SAML |
+| ------------------- | ---------------------------- | ------------ | ------------------------------------------- |
+| `businessPhones`    | `phone`                      | arreglo      | N/A                                         |
+| `givenName`         | `given_name`                 | string       | `given_name`                                |
+| `jobTitle`          | `job_title`                  | string       | N/A                                         |
+| `mobilePhone`       | `mobile`                     | string       | N/A                                         |
+| `preferredLanguage` | `preferred_language`         | string       | `xms_pl`                                    |
+| `surname`           | `family_name`                | string       | `family_name`                               |
+| `userPrincipalName` | `upn`                        | string       | `upn`                                       |
+
+Debes [habilitar el permiso para consultar la Microsoft Graph API](/docs/es/authenticate/identity-providers/enterprise-identity-providers/azure-active-directory/v2#add-permissions) para recibir los siguientes atributos de perfil ampliados:
+
+* `businessPhones`
+* `jobTitle`
+* `mobilePhone`
+
+<div id="group-configuration">
+  ### Configuración de grupos
+</div>
+
+Si [habilita el permiso para consultar Microsoft Graph API](/docs/es/authenticate/identity-providers/enterprise-identity-providers/azure-active-directory/v2#add-permissions), Auth0 recupera automáticamente los grupos del usuario y los asigna al atributo `groups` del perfil de Auth0. Auth0 asigna estos &quot;nombres descriptivos&quot; de grupo y no necesita configurar una claim personalizada, ya que estos grupos se asignan directamente desde Microsoft Graph API.
+
+<div id="saml">
+  ## SAML
+</div>
+
+El tipo de conexión SAML utiliza el protocolo SAML y admite el mapeo de atributos y todas las características estándar de SAML.
+
+<div id="connection-features-and-considerations">
+  ### Características y consideraciones de la conexión
+</div>
+
+El tipo de conexión SAML es el más flexible de los tipos de conexión disponibles porque admite claims opcionales y [cierres de sesión federados](https://docs.microsoft.com/en-us/azure/active-directory/develop/single-sign-out-saml-protocol). Si necesitas ambas funcionalidades, SAML es el único tipo de conexión que admite ambas al mismo tiempo.
+
+<div id="group-configuration">
+  ### Configuración de grupos
+</div>
+
+Para que Auth0 acepte información de grupos con el tipo de conexión SAML, debes configurar Azure AD con atributos opcionales en la respuesta SAML. Auth0 asignará después los grupos al atributo `group_ids` del perfil de Auth0 del usuario.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los tipos de conexión SAML y OIDC usan identificadores de objeto en lugar de nombres descriptivos para los grupos. Es posible que puedas incluir nombres descriptivos en una respuesta SAML si has importado grupos desde AD local. Para obtener más información sobre los claims de grupo, consulta [la documentación de Microsoft.](https://docs.microsoft.com/en-us/azure/active-directory/hybrid/how-to-connect-fed-group-claims)
+</Callout>
+
+<div id="enterprise-oidc">
+  ## Enterprise OIDC
+</div>
+
+El tipo Enterprise Open ID Connect puede usar flujos de OAuth Implicit o de código de autorización. Esta conexión asigna claims personalizados del `id_token` al perfil de usuario de Auth0. Para obtener más información sobre los flujos de autenticación, consulta la [documentación sobre flujos de autenticación y autorización](/docs/es/get-started/authentication-and-authorization-flow).
+
+<div id="connection-features-and-considerations">
+  ### Características y consideraciones de la conexión
+</div>
+
+Si no puede proporcionar <Tooltip tip="Secreto de cliente: Secret usado por un cliente (aplicación) para autenticarse con el servidor de autorización; solo el cliente y el servidor de autorización deben conocerlo, y debe ser lo suficientemente aleatorio como para que no se pueda adivinar." cta="Ver glosario" href="/docs/es/glossary?term=client+secrets">secretos de cliente</Tooltip> en su flujo de inicio de sesión debido a normativas o protocolos de privacidad, puede que el flujo implícito que ofrece la conexión OIDC sea la mejor opción. Si necesita claims personalizadas pero no quiere configurar las funciones adicionales de SAML, la conexión OIDC puede reducir la complejidad.
+
+<div id="group-configuration">
+  ### Configuración de grupos
+</div>
+
+Para que Auth0 acepte información de grupos con el tipo de conexión OIDC, debes configurar Azure AD con un claim opcional para añadir `groups` al `id_token` de tu solicitud. Luego, Auth0 asigna estos grupos al atributo `group_ids` del perfil de Auth0 del usuario.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los tipos de conexión SAML y OIDC usan identificadores de objeto en lugar de nombres descriptivos para los grupos. Es posible que puedas incluir nombres descriptivos en una respuesta SAML si has importado grupos desde AD local. Para obtener más información sobre los claims de grupos, consulta [la documentación de Microsoft.](https://docs.microsoft.com/en-us/azure/active-directory/hybrid/how-to-connect-fed-group-claims)
+</Callout>
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Conecta tu aplicación con Microsoft Azure Active Directory](/docs/es/authenticate/identity-providers/enterprise-identity-providers/azure-active-directory/v2)

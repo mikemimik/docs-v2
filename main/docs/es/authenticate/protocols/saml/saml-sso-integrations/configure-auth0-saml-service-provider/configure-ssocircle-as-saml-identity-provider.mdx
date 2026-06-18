@@ -1,0 +1,114 @@
+---
+description: Aprende a configurar una aplicación para usar Auth0 con inicio de sesión único (SSO) de SAML, autenticando a los usuarios mediante SSOCircle.
+title: Configurar SSOCircle como proveedor de identidad SAML
+---
+
+Configura SSOCircle como <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+provider">proveedor de identidad</Tooltip> siguiendo estos pasos:
+
+1. Obtener los metadatos de SSOCircle.
+2. Configurar la conexión empresarial en Auth0.
+3. Configurar SSOCircle como proveedor de identidad.
+4. Probar la conexión.
+
+<div id="prerequisite">
+  ## Requisito previo
+</div>
+
+Debes tener una cuenta en [SSOCircle](https://idp.ssocircle.com/).
+
+<div id="obtain-ssocircle-metadata">
+  ## Obtener los metadatos de SSOCircle
+</div>
+
+1. Ve a [la página de IdP de SSOCircle](https://idp.ssocircle.com/) para consultar los metadatos necesarios para la integración. Se mostrará un archivo XML.
+2. En esta página, deberás guardar los siguientes atributos:
+
+   1. La URL de ubicación del atributo `SingleSignOnService` con tipo `HTTP-Redirect`.
+   2. La URL de ubicación del atributo `SingleLogoutService` con tipo `HTTP-Redirect`.
+3. [Descarga](http://www.ssocircle.com/en/idp-tips-tricks/public-idp-configuration) y guarda el certificado de CA de SSOCircle.
+
+<div id="configure-enterprise-connection-in-auth0">
+  ## Configurar la conexión empresarial en Auth0
+</div>
+
+1. Ve a [Dashboard &gt; Autenticación &gt; Empresarial &gt; SAMLP](https://manage.auth0.com/#/connections) y haz clic en el icono de **más** para ir a la página que te permite crear una nueva conexión.
+2. Proporciona los parámetros de configuración correspondientes para esta conexión. Los únicos campos obligatorios son los siguientes:
+
+| Configuración             | Descripción                                                                                                                                                                             | Ejemplo                                                                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Nombre de la conexión     | Nombre de la conexión de Auth0.                                                                                                                                                         | `myoktaconnection`                                                                                                                  |
+| URL de inicio de sesión   | URL de Okta a la que se envían las solicitudes de inicio de sesión de los usuarios.<br /><br />Este es el valor de **Identity Provider Single Sign-On URL** que anotaste anteriormente. | `https://my_okta_tenant_name.okta.com/app/` `my_okta_tenant_namemy_okta_saml_app_integration_name/` `dakflkbzevu5i5zBi939/sso/saml` |
+| Certificado de firma X509 | Certificado de firma con clave pública del tenant de Okta.<br /><br />Sube el **X509 Certificate** que descargaste anteriormente.                                                       | `myOktaTenantSigningCertificate.pem`                                                                                                |
+
+3. Al configurar las asignaciones, usa el siguiente JSON para asignar correctamente los atributos SAML de SSO Circle:
+
+   ```json lines
+   {
+         "email": "EmailAddress",
+         "given_name": "FirstName",
+         "family_name": "LastName"
+       }
+   ```
+
+4. Haz clic en **Guardar**. En la siguiente ventana, se te ofrecerán dos opciones:
+
+   1. Si eres administrador del dominio, haz clic en **Continuar** para ver instrucciones adicionales sobre la configuración del proveedor de identidad SAML.
+   2. Si no es así, puedes proporcionarle la URL indicada al administrador del dominio para que complete la configuración.
+
+Puedes acceder a los metadatos de una conexión <Tooltip tip="Security Assertion Markup Language (SAML): protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin necesidad de contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip> de Auth0 mediante una URL con el siguiente formato:
+`https://{yourDomain}/samlp/metadata?connection={yourConnectionName}`.
+
+Tendrás que proporcionar estos metadatos a SSOCircle en el siguiente paso.
+
+<div id="configure-ssocircle-as-identity-provider">
+  ## Configurar SSOCircle como proveedor de identidad
+</div>
+
+1. Inicie sesión en su cuenta de [SSOCircle](http://ssocircle.com). Se le dirigirá a su perfil de usuario y, a la izquierda, verá una barra de navegación.
+2. Haga clic en **Manage Metadata**.
+3. Seleccione **Add New Service Provider** y proporcione la siguiente información para configurar el nuevo proveedor de servicios que, en este caso, es Auth0:
+
+| Configuración                                | Descripción                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| **FQDN del ServiceProvider**                 | `auth0.com`                                                                       |
+| **Atributos que se enviarán en la aserción** | Marque la casilla `EmailAddress`                                                  |
+| **Inserte su información de metadatos:**     | Pegue los metadatos XML que descargó después de configurar su Conexión de Auth0. |
+
+4. Haga clic en **Submit**.
+
+<div id="test-connection">
+  ## Probar la conexión
+</div>
+
+<div id="create-auth0-application">
+  ### Crear una aplicación de Auth0
+</div>
+
+1. Vaya a la página **Applications** del [Auth0 Dashboard](https://manage.auth0.com/#) y haga clic en **+ New Application**.
+2. Proporcione información básica sobre la nueva aplicación. Elija **Regular Web Applications** como tipo de aplicación.
+3. Haga clic en **Create** para finalizar la configuración e iniciar el proceso de creación de la aplicación. Se le redirigirá a la página de detalles de la aplicación.
+4. Haga clic en **Settings**.
+5. En el campo **Allowed Callback URL**, introduzca la lista de URL de devolución de llamada permitidas, es decir, aquellas a las que se redirigirá a los usuarios después de la autenticación. Las URL que introduzca aquí deben coincidir con la **URL de devolución de llamada** del código HTML que creará en un paso posterior. Normalmente, introduciría una URL de su aplicación, pero para simplificar este ejemplo, se enviará a los usuarios a la herramienta JWT de Auth0.
+6. Haga clic en **SAVE CHANGES**.
+7. Vuelva a la parte superior de **Settings** y haga clic en **Connections**.
+8. Desplácese hasta la sección **Enterprise**. Busque la fila correspondiente a la conexión SAML que creó anteriormente y active el interruptor para habilitarla.
+
+<div id="test-enterprise-connection">
+  ### Probar la conexión empresarial
+</div>
+
+1. Para probar su conexión, siga los pasos de [Probar conexiones empresariales](/docs/es/authenticate/identity-providers/enterprise-identity-providers/test-enterprise-connections).
+2. Durante este proceso, se le pedirá que inicie sesión y dé su consentimiento.
+3. Además, si ve un mensaje que dice: &quot;Su sesión ha expirado&quot;, haga clic en el enlace **Volver a la página de inicio de sesión** que aparece debajo del mensaje.
+
+Si no puede iniciar sesión en su aplicación en el primer intento, borre el historial y las cookies de su navegador antes de volver a intentarlo. Es posible que el navegador no esté cargando la versión más reciente de su HTML.
+
+Al solucionar problemas de <Tooltip tip="Inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=SSO">SSO</Tooltip>, suele ser útil capturar un rastreo HTTP de la interacción. Hay muchas herramientas que pueden capturar el tráfico HTTP de su navegador para analizarlo (busque &quot;HTTP Trace&quot; para encontrar una adecuada para sus necesidades). Una vez que tenga un rastreador HTTP, capture la secuencia de inicio de sesión de principio a fin y analice el rastreo para revisar la secuencia de solicitudes `GET` y detectar dónde se produce el error. Debería ver:
+
+* Una redirección de su sitio original al IdP
+* Un envío de credenciales (si se le pidió que iniciara sesión)
+* Una redirección a la URL de devolución de llamada.
+
+Asegúrese de que su navegador tenga habilitadas las cookies y JavaScript.
+
+Compruebe que la URL de devolución de llamada especificada en el HTML también figure en el campo **Allowed Callback URLs** de la pestaña **Settings** de la aplicación de Auth0.

@@ -1,0 +1,56 @@
+---
+title: Échange de jetons personnalisé
+description: L’échange de jetons personnalisé permet aux applications d’échanger leurs jetons existants contre des jetons Auth0.
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<ReleaseStageNotice feature="Custom Token Exchange (CTE)" stage="ea" plans="B2C Professional, B2B Professional, and Enterprise" terms="true" />
+
+L’échange de jetons personnalisé permet aux applications d’échanger leurs jetons existants contre des jetons Auth0 lorsqu’elles appellent le point de terminaison `/oauth/token`, comme défini dans la [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693). Voici quelques cas d’utilisation courants de l’échange de jetons personnalisé :
+
+* Obtenir des jetons Auth0 pour une autre <Tooltip tip="Audience : Identifiant unique de l’audience d’un jeton émis. Nommée aud dans un jeton, sa valeur contient l’ID d’une application (ID client) pour un jeton d’identité ou d’une API (identifiant d’API) pour un jeton d’accès." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip>
+* S’intégrer à un <Tooltip tip="Fournisseur d’identité (IdP) : Service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> externe
+* Migrer vers Auth0
+* Autorisation déléguée : un principal (comme un service, un agent IA ou un agent de soutien) agit au nom d’un utilisateur
+
+Pour en savoir plus, consultez [Exemples de cas d’utilisation et échantillons de code](/docs/fr-CA/authenticate/custom-token-exchange/cte-example-use-cases).
+
+Chaque requête d’échange de jetons personnalisé est associée à un [profil d’échange de jetons personnalisé](/docs/fr-CA/authenticate/custom-token-exchange/configure-custom-token-exchange#create-custom-token-exchange-profile), régi par une [Action](/docs/fr-CA/customize/actions), où vous pouvez :
+
+* Écrire du code personnalisé pour décoder et valider les `subject_tokens` transmis au point de terminaison `/oauth/token`
+* Autoriser l’accès et définir l’utilisateur pour poursuivre la transaction.
+
+Vous pouvez [configurer plusieurs profils d’échange de jetons personnalisé](/docs/fr-CA/authenticate/custom-token-exchange/configure-custom-token-exchange#create-custom-token-exchange-profile) pour une application. Une fois que le serveur d’autorisation Auth0 a validé la requête d’échange de jetons personnalisé et l’a associée à un profil d’échange de jetons personnalisé existant, le [déclencheur d’échange de jetons personnalisé](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger) exécute l’unique Action associée à ce profil. L’application peut ensuite tirer parti de l’échange de jetons personnalisé pour authentifier l’utilisateur et obtenir des jetons Auth0 d’accès, d’identité et d’actualisation pour celui-ci.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  L’échange de jetons personnalisé vous offre plus de souplesse pour définir l’utilisateur associé à la transaction, en contrepartie de la responsabilité supplémentaire de valider de façon sécuritaire le jeton de sujet correspondant qui identifie cet utilisateur pour la transaction.
+
+  N’oubliez pas que les jetons de sujet et d’acteur utilisés avec l’échange de jetons personnalisé peuvent être dans n’importe quel format ou de n’importe quel type, pourvu que le code de votre Action puisse les interpréter. **Vous devez mettre en œuvre une validation robuste des jetons que vous recevez et acceptez.** Sinon, vous vous exposez à différents vecteurs d’attaque, comme l’usurpation ou les attaques par rejeu, ce qui pourrait permettre à des acteurs malveillants de s’authentifier avec l’ID utilisateur d’une autre personne ou d’agir en son nom de façon non autorisée.
+
+  Pour en savoir plus sur les différentes façons de mettre en œuvre une validation sécuritaire de vos jetons de sujet, lisez et appliquez les recommandations incluses dans [Exemples de cas d’utilisation et échantillons de code](/docs/fr-CA/authenticate/custom-token-exchange/cte-example-use-cases). Assurez-vous aussi de tenir compte des capacités de [protection contre les attaques](/docs/fr-CA/authenticate/custom-token-exchange/cte-attack-protection) et de les appliquer.
+</Callout>
+
+<div id="tenant-logs">
+  ## Journaux du tenant
+</div>
+
+Chaque transaction de échange de jetons personnalisé génère un journal d’événements du tenant :
+
+* Transactions réussies : journaux `secte`
+* Transactions échouées : journaux `fecte`
+
+Lorsqu’un acteur est défini à l’aide de `setActor()`, la propriété `actor` (contenant `sub` et tout `actor` imbriqué) est incluse dans les entrées de journal `secte` à des fins d’audit.
+
+Utilisez les journaux du tenant pour vous aider à résoudre tout problème rencontré lors de votre échange de jetons.
+
+<div id="limitations">
+  ## Limites
+</div>
+
+L’échange de jetons personnalisé ne prend pas en charge les éléments suivants :
+
+* les méthodes de l’API MFA `api.authentication.challengeWith()` et `api.authentication.EnrollWith()`
+* les connexions DB personnalisées avec le mode d’importation `ON` ne sont pas prises en charge pour les opérations `setUserByConnection()`
+* les clients tiers et les clients non conformes à OIDC
+* l’API cible doit avoir l’option **Allow Skipping User Consent** activée, puisqu’il est impossible de recueillir le consentement dans un flux non interactif.

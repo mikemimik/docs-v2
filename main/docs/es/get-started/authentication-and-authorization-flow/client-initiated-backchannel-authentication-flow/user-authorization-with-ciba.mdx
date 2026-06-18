@@ -1,0 +1,463 @@
+---
+description: Aprende a usar Rich Authorization Requests con el flujo Client-Initiated Backchannel.
+title: Autorización de usuarios con CIBA
+validatedOn: 2026-02-20
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para usar las funciones de Client-Initiated Backchannel Authentication (CIBA), debes tener un plan Enterprise o un add-on adecuado. Consulta [Auth0 Pricing](https://auth0.com/pricing/) para más información.
+</Callout>
+
+[Client-Initiated Backchannel Authentication (CIBA)](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow) es una especificación de <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> que permite que una aplicación cliente inicie un proceso de autenticación o un <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=authorization+flow">flujo de autorización</Tooltip> sin requerir interacción directa del usuario en la aplicación de origen. [Rich Authorization Requests (RAR)](/docs/es/get-started/apis/configure-rich-authorization-requests) es una extensión de OAuth 2.0 que permite a las aplicaciones cliente solicitar permisos más complejos que los scopes estándar de OAuth 2.0 en una solicitud de autorización.
+
+Puedes usar CIBA con RAR para pasar datos de <Tooltip tip="Fine-grained Authorization (FGA): Producto de Auth0 que permite a usuarios individuales acceder a objetos o recursos específicos." cta="Ver glosario" href="/docs/es/glossary?term=fine-grained+authorization">autorización granular</Tooltip> al <Tooltip tip="Fine-grained Authorization (FGA): Producto de Auth0 que permite a usuarios individuales acceder a objetos o recursos específicos." cta="Ver glosario" href="/docs/es/glossary?term=authorization+server">servidor de autorización</Tooltip> en una solicitud de backchannel. El parámetro `authorization_details` contiene detalles sobre la solicitud que puedes personalizar en una solicitud de consentimiento para mostrárselos al usuario.
+
+Puedes autorizar a los usuarios con CIBA mediante los siguientes canales de notificación:
+
+* [Notificaciones push móviles](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/mobile-push-notifications-with-ciba) con la aplicación Auth0 Guardian y una aplicación personalizada integrada con el Guardian SDK.
+* [Notificaciones por correo electrónico](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba), que requieren configurar una solicitud de consentimiento personalizada.
+
+<div id="common-use-cases">
+  ## Casos de uso comunes
+</div>
+
+Usa RAR con el flujo CIBA para casos de uso que requieran un control más detallado sobre el acceso a los recursos. Entre los casos de uso comunes se incluyen:
+
+1. Una aplicación de pagos pide al usuario que confirme una transferencia de dinero. `authorization_details` se puede personalizar para mostrar los detalles de la transacción.
+2. Un agente de IA muestra al usuario los detalles de una cita médica reprogramada. `authorization_details` se puede personalizar para mostrar la nueva fecha y hora.
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+El flujo de autorización del usuario con CIBA es similar al flujo de autenticación del usuario con CIBA, donde la compatibilidad con RAR permite que los clientes pasen `authorization_details` al servidor de autorización a través del endpoint `/bc-authorize`.
+
+El siguiente diagrama de secuencia explica el flujo completo de autorización del usuario con CIBA de principio a fin:
+
+<Frame>![](/docs/images/ciba/user_authorization_with_ciba_diagram.png)</Frame>
+
+En las siguientes secciones se explica paso a paso cómo funciona la autorización del usuario con CIBA.
+
+* [Requisitos previos](#prerequisites)
+* [Paso 1: La aplicación cliente inicia una solicitud de CIBA](#step-1%3A-client-application-initiates-a-ciba-request)
+* [Paso 2: El tenant de Auth0 confirma la solicitud de CIBA](#step-2%3A-auth0-tenant-acknowledges-the-ciba-request)
+* [Paso 3: La aplicación cliente consulta si hay alguna respuesta](#step-3%3A-client-application-polls-for-a-response)
+* [Paso 4: El dispositivo de autenticación recibe la notificación push](#step-4%3A-authentication-device-receives-the-notification)
+* [Paso 5: El dispositivo de autenticación recupera los detalles del consentimiento](#step-5%3A-authentication-device-retrieves-the-consent-details)
+* [Paso 6: El dispositivo de autenticación muestra al usuario los detalles del consentimiento](#step-6%3A-authentication-device-presents-the-consent-details-to-the-user)
+* [Paso 7: El dispositivo de autenticación envía la respuesta del usuario de vuelta a Auth0](#step-7%3A-authentication-device-sends-the-user-response-back-to-auth0)
+* [Paso 8: Auth0 recibe la respuesta del usuario una vez completado el flujo](#step-8%3A-auth0-receives-user-response-after-the-flow-completes)
+* [Paso 9: Auth0 devuelve el token de acceso a la aplicación cliente](#step-9%3A-auth0-returns-access-token-to-client-application)
+
+<div id="prerequisites">
+  ## Requisitos previos
+</div>
+
+Para iniciar una solicitud de CIBA con Auth0, debes:
+
+* [Configurar Client-Initiated Backchannel Authentication](/docs/es/get-started/applications/configure-client-initiated-backchannel-authentication) para tu tenant y tu aplicación, incluido tu [canal de notificación](/docs/es/get-started/applications/configure-client-initiated-backchannel-authentication#configure-notification-channel).
+* [Configurar Rich Authorization Requests](/docs/es/get-started/apis/configure-rich-authorization-requests) para tu <Tooltip tip="Resource Server: Servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip>, lo que incluye registrar tus tipos de `authorization_details`.
+* Si utilizas notificaciones por email con CIBA y RAR, [configura una solicitud de consentimiento personalizada](/docs/es/get-started/apis/configure-rich-authorization-requests#set-customized-consent-prompt).
+
+<div id="step-1-client-application-initiates-a-ciba-request">
+  ## Paso 1: La aplicación cliente inicia una solicitud CIBA
+</div>
+
+Usa las [API de User Search](/docs/es/manage-users/user-search) para encontrar al usuario autorizador para el que quieras iniciar una solicitud CIBA y obtener su ID de usuario.
+
+Una vez que tengas un ID de usuario del usuario autorizador, usa la [Authentication API](https://auth0.com/docs/api/authentication/login/start-back-channel-login) para enviar una solicitud CIBA con `authorization_details` al endpoint `/bc-authorize`:
+
+```bash lines
+curl --location 'https://{YOUR_DOMAIN}.auth0.com/bc-authorize' \
+  --request POST \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'client_id={YOUR_CLIENT_ID}' \
+  --data-urlencode 'client_secret={YOUR_CLIENT_SECRET}' \
+  --data-urlencode 'login_hint={ "format": "iss_sub", "iss": "https://{YOUR_DOMAIN}.auth0.com/", "sub":"{USER_ID}"}' \
+  --data-urlencode 'audience=https://api.example.com' \
+  --data-urlencode 'binding_message=Confirm payment of 2500' \
+  --data-urlencode 'authorization_details=[{
+      "type": "money_transfer", 
+      "instructedAmount": {
+        "amount": 2500, 
+        "currency": "USD"
+      }, 
+      "sourceAccount": "xxxxxxxxxxx1234", 
+      "destinationAccount": "xxxxxxxxxxx9876", 
+      "beneficiary": "Hanna Herwitz", 
+      "subject": "A Lannister Always Pays His Debts"
+    }]'
+```
+
+| Parámetros              | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenant`                | Nombre del tenant que se pasa dentro de la estructura `login_hint`. También puede ser un dominio personalizado. Si se usa el formato `iss_sub`, el nombre del tenant se pasa en el claim `iss`.<br /><br />**Ejemplo**: `login_hint={"format": "iss_sub", "iss": "https://{YOUR_DOMAIN}.auth0.com/", "sub":"{USER_ID"}`                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `client_id`             | Identificador de la aplicación cliente.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `client_secret`         | Método de autenticación del cliente que se usa para la autenticación del usuario con CIBA, como secreto de cliente, clave privada JWT o autenticación mTLS. Si usas clave privada JWT o mTLS, no necesitas incluir el secreto de cliente.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `scope`                 | Debe incluir `openid`.<br /><br />De forma opcional, el scope puede incluir `offline_access` para solicitar un token de actualización. Sin embargo, para la autorización puntual de una transacción con el flujo CIBA, no se necesita un token de actualización y no tiene ningún significado en este contexto.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `user_id`               | ID de usuario del usuario autorizador que se pasa dentro de la estructura `login_hint`. Si se usa el formato `iss_sub`, el ID de usuario se pasa en el claim `sub`.<br /><br />**Ejemplo**: `login_hint={"format": "iss_sub", "iss": "https://{YOUR_DOMAIN}.auth0.com/", "sub":"{USER_ID}"}`<br /><br />El ID de usuario puede tener un formato distinto según el proveedor externo.                                                                                                                                                                                                                                                                                                                                                              |
+| `requested_expiry`      | La expiración solicitada del flujo CIBA debe estar entre 1 y 259200 segundos (72 horas), y el valor predeterminado es 300 segundos. Incluye el parámetro `requested_expiry` para establecer una expiración personalizada para el flujo CIBA.<br /><br />El parámetro `requested_expiry` ayuda a determinar qué canal de notificación usa CIBA:<ul><li>Si estableces `requested_expiry` en un valor de 300 segundos o menos, CIBA usa el canal de notificaciones push móviles, si está habilitado. Si no has configurado MFA para tu tenant, la solicitud de CIBA falla.</li><li>Si estableces `requested_expiry` en un valor entre 301 y 259200 segundos, CIBA usa el canal de notificación por correo electrónico, si está habilitado.</li></ul> |
+| `binding_message`       | Mensaje legible por personas que se usa para vincular el flujo CIBA entre el dispositivo de autenticación y el de consumo. El mensaje de vinculación es obligatorio y puede tener hasta 64 caracteres. Usa solo caracteres alfanuméricos y `+-_.,:#`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `audience`              | Identificador único de la audiencia del token emitido.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `authorization_details` | Un arreglo JSON opcional de objetos que describe los permisos que se autorizarán. Debes registrar el valor `type` de cada objeto en el servidor de recursos mediante el parámetro `authorization_details` del servidor de recursos. Para obtener más información, consulta [Configurar Rich Authorization Requests](/docs/es/get-started/apis/configure-rich-authorization-requests).                                                                                                                                                                                                                                                                                                                                                                |
+
+<div id="step-2-auth0-tenant-acknowledges-the-ciba-request">
+  ## Paso 2: El tenant de Auth0 confirma la solicitud de CIBA
+</div>
+
+Si el tenant de Auth0 recibe correctamente la solicitud `POST`, deberías recibir una respuesta con un `auth-req-id` que haga referencia a la solicitud:
+
+```json lines
+{
+    "auth_req_id": "eyJh...",
+    "expires_in": 300,
+    "interval": 5
+}
+```
+
+El valor de `auth_req_id` se pasa al endpoint `/token` para consultar si se ha completado el CIBA flow.
+
+<div id="step-3-client-application-polls-for-a-response">
+  ## Paso 3: La aplicación cliente consulta periódicamente si hay una respuesta
+</div>
+
+Usa la [Authentication API](https://auth0.com/docs/api/authentication/login/start-back-channel-login) para llamar al endpoint `/token` con el tipo de concesión `urn:openid:params:grant-type:ciba` y el `auth_req_id` que recibiste del endpoint `/bc-authorize`:
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash lines
+    curl --location 'https://{YOUR_DOMAIN}.auth0.com/oauth/token' \
+      --header 'Content-Type: application/x-www-form-urlencoded' \
+      --data-urlencode 'client_id={YOUR_CLIENT_ID}' \
+      --data-urlencode 'client_secret={YOUR_CLIENT_SECRET}' \
+      --data-urlencode 'auth_req_id={AUTH_REQ_ID}' \
+      --data-urlencode 'grant_type=urn:openid:params:grant-type:ciba'
+    ```
+  </Tab>
+
+  <Tab title="C#">
+    ```csharp lines
+    var token = await authenticationApiClient.GetTokenAsync(
+                new ClientInitiatedBackchannelAuthorizationTokenRequest()
+                {
+                    AuthRequestId = response.AuthRequestId,
+                    ClientId = "your-client-id",
+                    ClientSecret = "your-client-secret"
+                }
+            );
+    ```
+  </Tab>
+
+  <Tab title="Go">
+    ```go lines
+    token, err := authAPI.OAuth.LoginWithGrant(context.Background(),
+    			"urn:openid:params:grant-type:ciba",
+    			url.Values{
+    				"auth_req_id":   []string{resp.AuthReqID},
+    				"client_id":     []string{clientID},
+    				"client_secret": []string{clientSecret},
+    			},
+    			oauth.IDTokenValidationOptions{})
+    ```
+  </Tab>
+
+  <Tab title="Java">
+    ```java lines
+    Request<BackChannelTokenResponse> tokenRequest = auth.getBackChannelLoginStatus(authReqId, "grant-type");
+
+    BackChannelTokenResponse tokenResponse = tokenRequest.execute().getBody();
+    ```
+  </Tab>
+</Tabs>
+
+Hasta que el usuario autorizador apruebe la transacción, deberías seguir recibiendo la siguiente respuesta:
+
+```json lines
+{
+    "error": "authorization_pending",
+    "error_description": "La autorización del usuario final está pendiente"
+}
+```
+
+Hay un intervalo de espera de aproximadamente cinco segundos para el sondeo. Si realiza sondeos con demasiada frecuencia, recibirá la siguiente respuesta, donde la descripción varía según el intervalo de retroceso:
+
+```json lines
+{
+"error": "slow_down",
+"error_description": "You are polling faster than allowed. Try again in 10 seconds."
+"interval": 10
+}
+```
+
+Para resolver el error, espera hasta el siguiente intervalo (en segundos) antes de consultar el endpoint `/token`.
+
+<div id="step-4-authentication-device-receives-the-notification">
+  ## Paso 4: El dispositivo de autenticación recibe la notificación
+</div>
+
+Según el canal de notificación, Auth0 envía una notificación al dispositivo de autenticación:
+
+* [Notificación push en el móvil](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/mobile-push-notifications-with-ciba#step-4%3A-mobile-application-receives-the-push-notification): Auth0 la envía a la aplicación Auth0 Guardian o a una aplicación móvil personalizada integrada con el Auth0 Guardian SDK.
+* [Notificación por correo electrónico](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba#step-4%3A-auth0-sends-a-link-to-the-user’s-email-address): Auth0 la envía a la dirección de correo electrónico verificada del usuario.
+
+<div id="step-5-authentication-device-retrieves-the-consent-details">
+  ## Paso 5: El dispositivo de autenticación recupera los detalles del consentimiento
+</div>
+
+El dispositivo de autenticación recupera los detalles del consentimiento, es decir, el contenido de `binding_message`, desde Auth0 Consent API:
+
+* [Notificación push móvil](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/mobile-push-notifications-with-ciba#step-5%3A-mobile-application-retrieves-the-consent-details): La aplicación Auth0 Guardian o una aplicación personalizada integrada con Guardian SDK llama a Auth0 Consent API para recuperar los detalles del consentimiento.
+* [Notificación por correo electrónico](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba#step-5%3A-user-authenticates-in-the-browser): Cuando el usuario hace clic en el enlace de verificación, se le redirige al navegador, que recupera los detalles del consentimiento desde Auth0 Consent API.
+
+<div id="step-6-authentication-device-presents-the-consent-details-to-the-user">
+  ## Paso 6: El dispositivo de autenticación presenta al usuario los detalles del consentimiento
+</div>
+
+Auth0 Consent API responde al dispositivo de autenticación con los detalles del consentimiento, incluidos `binding_message`, `scope`, `audience` y `authorization_details`, si están configurados. Los scopes devueltos a la aplicación móvil se filtran según su política de RBAC. Para obtener más información, consulta [Control de acceso basado en roles](/docs/es/manage-users/access-control/rbac).
+
+La siguiente muestra de código es una respuesta de ejemplo de Auth0 Consent API:
+
+```json lines
+{
+  "id": "cns_2309dsfsd098",
+  "requested_details": {
+    "audience": "https://api.example.com",
+    "scope": ["read:profile", "write:profile"],
+    "binding_message": "abc123",
+    "authorization_details": [
+      {
+        "type": "money_transfer",
+        "instructedAmount": {
+          "amount": 2500,
+          "currency": "USD"
+        },
+        "sourceAccount": "xxxxxxxxxxx1234",
+        "destinationAccount": "xxxxxxxxxxx9876",
+        "beneficiary": "Hanna Herwitz",
+        "subject": "A Lannister Always Pays His Debts"
+      }
+    ]
+  },
+  "created_at": 1632739200,
+  "expires_at": 1632739200
+}
+```
+
+El dispositivo de autenticación muestra al usuario los detalles del consentimiento con `authorization_details`:
+
+* [Notificación push móvil](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/mobile-push-notifications-with-ciba#step-6%3A-mobile-application-presents-the-consent-details-to-the-user): La aplicación Auth0 Guardian renderiza `authorization_details` en una pantalla de consentimiento mediante una notificación push.
+* [Notificación por correo electrónico](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba#step-6%3A-browser-sends-the-user-response-back-to-auth0): El navegador renderiza `authorization_details` en una pantalla de consentimiento personalizada. Para saber cómo personalizar la pantalla de consentimiento, consulta [Configurar la solicitud de consentimiento personalizado](/docs/es/get-started/apis/configure-rich-authorization-requests#set-customized-consent-prompt).
+
+En este punto, el usuario puede aceptar o rechazar la solicitud de autorización.
+
+<div id="step-7-authentication-device-sends-the-user-response-back-to-auth0">
+  ## Paso 7: El dispositivo de autenticación envía la respuesta del usuario a Auth0
+</div>
+
+Después de que el usuario acepta o rechaza la solicitud de autorización, el dispositivo de autenticación envía la respuesta del usuario a Auth0:
+
+* [Notificación push móvil](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/mobile-push-notifications-with-ciba#step-7%3A-mobile-application-sends-the-user-response-back-to-auth0): La aplicación Auth0 Guardian o una aplicación personalizada integrada con el Auth0 Guardian SDK envía la respuesta del usuario a Auth0.
+* [Notificación por correo electrónico](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba#step-6%3A-browser-sends-the-user-response-back-to-auth0): El navegador envía la respuesta del usuario a Auth0.
+
+<div id="step-8-auth0-receives-user-response-after-the-flow-completes">
+  ## Paso 8: Auth0 recibe la respuesta del usuario después de que finaliza el flujo
+</div>
+
+La aplicación cliente da por concluido el `sondeo` al recibir una respuesta del endpoint `/token`. En un flujo CIBA siempre se requiere una respuesta del usuario autorizador, ya sea de aprobación o de rechazo, y no se comprueban las concesiones existentes. Esto significa que Auth0 trata cada solicitud CIBA como una nueva autorización para el usuario autorizador.
+
+<div id="step-9-auth0-returns-access-token-to-client-application">
+  ## Paso 9: Auth0 devuelve el token de acceso a la aplicación cliente
+</div>
+
+Si el usuario rechaza la solicitud push, Auth0 devuelve a la aplicación cliente una respuesta de error como la siguiente:
+
+```json lines
+{
+    "error": "access_denied",
+    "error_description": "El usuario final denegó la solicitud de autorización o ha caducado"
+}
+```
+
+Si el usuario aprueba la solicitud push, Auth0 devuelve un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip> con `authorization_details` como los siguientes a la aplicación cliente:
+
+```json lines
+{
+  "id_token": "...",
+  "access_token": "...",
+  "expires_in": "...",
+  "scope": "{SCOPES}",
+  "authorization_details": [{
+      "type": "money_transfer", 
+      "instructedAmount": {
+        "amount": 2500, 
+        "currency": "USD"
+      }, 
+      "sourceAccount": "xxxxxxxxxxx1234", 
+      "destinationAccount": "xxxxxxxxxxx9876", 
+      "beneficiary": "Hanna Herwitz", 
+      "subject": "A Lannister Always Pays His Debts"
+    }]
+}
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El `refresh_token` solo estará presente si se incluyó el scope `offline_access` en la solicitud inicial a `/bc-authorize`.
+</Callout>
+
+<div id="query-authorization_details">
+  ## Consultar authorization_details
+</div>
+
+En tiempo de compilación, puedes consultar el tipo y los objetos de `authorization_details` en los detalles del consentimiento de forma fuertemente tipada, igual que consultarías JSON dinámicamente:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift lines
+    let requestedDetails: ConsentRequestedDetails = payload.requestedDetails
+    let myAuthorizationDetailsTypes = requestedDetails.authorizationDetails[0].objectValue!;
+    let type = myAuthorizationDetailsTypes["type"]?.stringValue // Tu valor de tipo prerregistrado
+    let stringProperty = myAuthorizationDetailsTypes["string_property"]?.stringValue
+    let boolProperty = myAuthorizationDetailsTypes["bool_property"]?.boolValue
+    let numericProperty = myAuthorizationDetailsTypes["numeric_property"]?.doubleValue
+    let nestedObjectProperty = myAuthorizationDetailsTypes["nested_property"]?.objectValue
+    let nestedArrayProperty = myAuthorizationDetailsTypes["nested_array_property"]?.arrayValue
+    ```
+  </Tab>
+
+  <Tab title="Android">
+    ```kotlin lines
+    RichConsentRequestedDetails requestedDetails = consentDetails.getRequestedDetails();
+    Map<String, Object> authorizationDetails = requestedDetails.getAuthorizationDetails().get(0);
+    String type = (String) myAuthorizationDetailsTypes.get("type");
+    String stringProperty = (String) myAuthorizationDetailsTypes.get("string_property");
+    boolean booleanProperty = (boolean) myAuthorizationDetailsTypes.get("boolean_property");
+    int numericProperty = (int) myAuthorizationDetailsTypes.get("numeric_property");
+    Object nestedObjectProperty = myAuthorizationDetailsTypes.get("nested_property");
+    List<Object> nestedArrayProperty = (List<Object>) myAuthorizationDetailsTypes.get("nested_array_property");
+    ```
+  </Tab>
+</Tabs>
+
+Si defines un tipo personalizado para representar tu objeto, puedes usar la función `filterAuthorizationDetailsByType()` para devolver todos los objetos `authorization_details` que coincidan con el tipo deseado.
+
+El siguiente ejemplo de código consulta `authorization_details` con el tipo `payment`:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift lines
+    // Debe implementar AuthorizationDetailsType 
+    struct Payment : AuthorizationDetailsType { 
+    static let type = "payment"; 
+    let amount: Double; 
+    let currency: String; 
+    } 
+
+    ... 
+
+    let requestedDetails: ConsentRequestedDetails = payload.requestedDetails 
+    let payments = requestedDetails.filterAuthorizationDetailsByType(Payment.self) 
+    let firstPayment = payments.first!
+    let type: String = firstPayment.type // "payment" 
+    let amount: Double = firstPayment.amount 
+    let currency: String = firstPayment.currency
+    ```
+  </Tab>
+
+  <Tab title="Android">
+    ```kotlin lines expandable
+    @AuthorizatioDetailsType("payment")
+    class Payment {
+        private String type;
+        private int amount;
+        private String currency;
+
+        public Payment(String type, int amount, String currency) {
+            this.type = type;
+            this.amount = amount;
+            this.currency = currency;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public int getAmount() {
+            return amount;
+        }
+
+        public String getCurrency() {
+            return currency;
+        }
+    }
+
+    ...
+
+    RichConsentRequestedDetails requestedDetails = consentDetails.getRequestedDetails();
+    List<Payment> payments = requestedDetails.filterAuthorizationDetailsByType(Payment.class);
+    Payment firstPayment = payments.get(0);
+    String type = firstPayment.getType();
+    int amount = firstPayment.getAmount();
+    String currency = firstPayment.getCurrency();
+    ```
+  </Tab>
+</Tabs>
+
+`filterAuthorizationDetailsByType()` solo devuelve objetos que coinciden con el tipo de `authorization_details` especificado. Por lo tanto, tu aplicación móvil debe presentar al usuario todos los `authorization_details` relevantes para el consentimiento, independientemente de su tipo, para garantizar una comprensión completa de la solicitud.
+
+También puedes consultar los `authorization_details` cuando el agente de IA o la aplicación sondeen el endpoint `/oauth/token` para obtener una respuesta:
+
+```bash lines
+curl --request POST \
+  --url "https://{YOUR_DOMAIN}.auth0.com/oauth/token" \
+  --header "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=urn:openid:params:grant-type:ciba" \
+  --data-urlencode "client_id={YOUR_CLIENT_ID}" \
+  --data-urlencode "client_secret={YOUR_CLIENT_SECRET}" \
+  --data-urlencode "auth_req_id={AUTH_REQ_ID}"
+```
+
+| Parámetros      | Descripción                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `grant_type`    | Establézcalo como el tipo de concesión de CIBA: `urn:openid:params:grant-type:ciba`                           |
+| `client_id`     | Establézcalo como el ID de cliente de la aplicación.                                                          |
+| `client_secret` | Establézcalo como el secreto de cliente de la aplicación.                                                     |
+| `auth_req_id`   | Lo devuelve el tenant de Auth0 cuando acusa recibo de la solicitud CIBA. Hace referencia a la solicitud CIBA. |
+
+Cuando el usuario autorizador aprueba la solicitud, Auth0 recibe la respuesta del usuario y el flujo de CIBA se completa, devolviendo un token de acceso y el arreglo `authorization_details`:
+
+```json lines
+{ 
+  "access_token": "ey...ZQ", 
+  "expires_in": 86400, 
+  "authorization_details": [{ 
+    "type": "money_transfer", 
+    "instructedAmount": {
+      "amount": 2500, 
+      "currency": "USD"
+    }, 
+    "sourceAccount": "xxxxxxxxxxx1234", 
+    "destinationAccount": "xxxxxxxxxxx9876", 
+    "beneficiary": "Hanna Herwitz", 
+    "subject": "A Lannister Always Pays His Debts" 
+  }], 
+  "token_type": "Bearer" 
+}
+```
+
+<div id="limitations">
+  ## Limitaciones
+</div>
+
+Auth0 no admite:
+
+* Modificar RAR en Actions para flujos CIBA.
+* Publicar tipos de RAR para que los clientes puedan descubrirlos, lo que significa que debes registrar previamente los clientes con los tipos de `authorization_details` que pueden enviar.
+* Validar objetos RAR más allá de comprobar que tengan una propiedad `type` que coincida con los tipos permitidos para la API. Tu servidor de recursos es responsable de validar en detalle el contenido de `authorization_details`. Para obtener más información, consulta [Configurar RAR](/docs/es/get-started/apis/configure-rich-authorization-requests).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar Rich Authorization Requests (RAR)](/docs/es/get-started/apis/configure-rich-authorization-requests)
+* [Flujo de código de autorización con Rich Authorization Requests (RAR)](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-rar)
+* [Configurar Client-Initiated Backchannel Authentication](/docs/es/get-started/applications/configure-client-initiated-backchannel-authentication)

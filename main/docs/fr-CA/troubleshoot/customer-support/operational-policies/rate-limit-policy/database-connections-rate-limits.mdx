@@ -1,0 +1,225 @@
+---
+description: Décrit la politique de limitation du débit d’Auth0.
+title: Politique de limitation du débit
+---
+
+Auth0 limite l’utilisation de ses services afin d’assurer des performances optimales et de se protéger contre les <Tooltip tip="Acteurs malveillants : entité (une personne ou un groupe) qui représente une menace pour l’entreprise ou l’environnement avec l’intention de causer du tort." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=bad+actors">acteurs malveillants</Tooltip>, les erreurs techniques ou un trafic légitime excessif. Nous vous recommandons de consulter la façon dont Auth0 applique ces limites afin de configurer votre application pour offrir la meilleure expérience utilisateur possible.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Pour connaître les limites de débit associées à votre compte, consultez [Configurations des limites de débit](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-configurations), qui présente une matrice de toutes les politiques de limitation du débit.
+</Callout>
+
+<div id="introduction-to-rate-limits">
+  ## Introduction aux limites de débit
+</div>
+
+Auth0 impose des limites afin de protéger les services contre un trop grand nombre de requêtes et de prévenir les interruptions ou la dégradation du service pour les clients.
+
+Auth0 surveille et, dans bien des cas, applique différents types de limites, notamment :
+
+* Requêtes visant des environnements (Private Cloud seulement)
+* Requêtes aux tenants par API ou point de terminaison d&#39;API
+* Autres limites
+
+<div id="environment-request-limits-private-cloud-only">
+  ### Limites de requêtes par environnement (Private Cloud seulement)
+</div>
+
+Dans Private Cloud, les limites de requêtes par environnement sont basées sur le niveau de performance de Private Cloud. Pour en savoir plus, consultez [Private Cloud on AWS](/docs/fr-CA/deploy-monitor/deploy-private-cloud/private-cloud-on-aws) ou [Private Cloud on Azure](/docs/fr-CA/deploy-monitor/deploy-private-cloud/private-cloud-on-azure).
+
+À l’heure actuelle, les limites de requêtes par environnement de Private Cloud représentent la charge maximale sous laquelle le produit Auth0 respecte les SLA. Toutefois, pour l’instant, Auth0 n’applique ces limites et n’avise les clients que lorsqu’elles sont dépassées pour un tenant précis dans l’environnement. Dans la plupart des cas d’utilisation de Private Cloud, où les clients maintiennent un seul tenant de production, cela ne pose pas de problème; toutefois, les cas d’utilisation qui provisionnent plus d’un tenant de production devraient tenir compte de la charge prévue de l’ensemble des tenants de l’environnement et mettre en place une surveillance supplémentaire au besoin.
+
+| Feature                                   | Authentication API                                                                                                                                                                                                                                                                                                                             | All Other APIs (including Management API)                                                                                                                                                                                                                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tenant Rate Limits                        | Tous les tenants puisent dans une limite globale partagée à l’échelle de l’environnement pour l’API, mais la limite de requêtes de l’environnement constitue un plafond strict. Si la limite de l’environnement est dépassée en raison de la charge combinée de plusieurs tenants, les requêtes excédentaires feront l’objet d’une limitation. | Les limites de requêtes des tenants sont appliquées indépendamment, et la limite de requêtes de l’environnement agit comme un seuil indiquant une dégradation potentielle des performances et un impact possible sur le SLA, mais n’entraîne **pas** directement de limitation des requêtes au niveau du tenant.                      |
+| Environment Rate Limit Exceeded (Example) | Avec une limite d’environnement de 1500 rps, un tenant 1 à 1400 rps et un tenant 2 à 900 rps (pour un total de 2300 rps) entraîneront la limitation de 800 requêtes.                                                                                                                                                                           | Avec une limite d’environnement de 1500 rps, un tenant 1 à 1400 rps et un tenant 2 à 900 rps (pour un total de 2300 rps) **n’entraîneront pas** de limitation des requêtes pour les tenants individuels, mais l’environnement dans son ensemble pourrait subir une dégradation des performances et d’éventuels problèmes liés au SLA. |
+
+<Warning>
+  Le dépassement d’une limite de requêtes par environnement invalide le service level agreement (SLA).
+</Warning>
+
+Pour en savoir plus sur les considérations liées aux tests de charge dans Private Cloud, consultez [Private Cloud on AWS](/docs/fr-CA/deploy-monitor/deploy-private-cloud/private-cloud-on-aws) et [Private Cloud on Azure](/docs/fr-CA/deploy-monitor/deploy-private-cloud/private-cloud-on-azure).
+
+<div id="tenant-request-limits">
+  ### Limites de requêtes par tenant
+</div>
+
+Auth0 limite le nombre de requêtes pouvant être effectuées pour un tenant.  Ces limites sont configurées selon l’API, puis en fonction de points de terminaison précis pour chaque API.
+
+<div id="api-rate-limits">
+  #### Limites de débit de l’API
+</div>
+
+Auth0 limite le nombre de requêtes à une API précise, peu importe le point de terminaison d’API.  Les limites de l’API peuvent varier selon :
+
+* API
+
+  * Authentification
+  * Management
+* Type de tenant (Production ou développement/staging)
+* Niveau d’abonnement (Free, Essential, Professional, Enterprise Public ou Private)
+
+Par exemple, un tenant gratuit hors production pourrait avoir des limites différentes de celles d’un tenant de production avec un abonnement payant. Pour connaître les configurations précises des limites de débit, consultez [Configurations des limites de débit](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-configurations).
+
+<div id="user-requests">
+  ### Requêtes des utilisateurs
+</div>
+
+Une seule requête d’un utilisateur final (p. ex., Login ou Signup) entraîne généralement plusieurs requêtes vers les points de terminaison de l’Authentication API. Le ratio réel entre les requêtes des utilisateurs finaux et celles adressées à l’Authentication API dépend de quelques facteurs :
+
+* Entité authentifiée (p. ex., machine ou application mobile ou de bureau d’utilisateur final)
+* Expérience d’authentification (p. ex., nouveau <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, pour vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> ou Classic Login)
+* Flux d’authentification (p. ex., Login, Signup ou Change Password)
+* Type de flux d’authentification (p. ex., Login avec nom d’utilisateur / mot de passe; Login avec Social login; Login lorsqu’un Authentication Token existe déjà)
+
+Les clients qui utilisent Extensibility peuvent ajouter encore plus de requêtes, non seulement à l’Authentication API, mais aussi à la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, selon la Configuration d’Extensibility.
+Consultez [cas d’utilisation de la limite de débit](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-use-cases) pour savoir comment estimer l’incidence de votre configuration Auth0 sur votre utilisation de l’API.
+
+<div id="endpoint-rate-limits">
+  #### Limites de débit des points de terminaison
+</div>
+
+Auth0 limite le nombre de requêtes envoyées aux points de terminaison d’API et, dans certains cas, le nombre d’opérations sur ces points de terminaison.  Les limites des points de terminaison d’API varient également selon :
+
+* l’API
+* le type de tenant
+* le niveau d’abonnement
+
+Par exemple, les limites d’un tenant gratuit hors production diffèrent de celles d’un tenant de production avec un abonnement payant.
+
+<div id="tenant-request-limits-order">
+  ### Ordre d’application des limites de requêtes du tenant
+</div>
+
+Lorsque des requêtes sont adressées à votre tenant, Auth0 les évalue d’abord en fonction de la limite globale de l’API, puis en fonction de la limite de débit de certains points de terminaison d’API.
+
+<div id="miscellaneous-limits">
+  ### Limites diverses
+</div>
+
+<div id="database-login-limits">
+  #### Limites de connexion des connexions de base de données
+</div>
+
+Pour les connexions de base de données, Auth0 limite certains types de tentatives de connexion répétées selon le compte utilisateur et l’adresse IP. Pour protéger le bon fonctionnement général du système, Auth0 applique des limites de débit par utilisateur/mot de passe afin d’atténuer la charge. Le haut degré de personnalisation d’Auth0 peut nous exposer à un risque de dégradation du service. Les causes peuvent inclure :
+
+* Des tests de charge intensifs
+* Des tests d’évaluation comparative
+* Du code inefficace qui amène les utilisateurs à se connecter plusieurs fois
+
+Les requêtes sont soumises à des limites, comme indiqué dans les politiques propres aux API Auth0.
+
+De plus, il existe une limite de débit des connexions pour un même utilisateur : si une adresse IP effectue 20 tentatives de connexion en une minute sur le même compte utilisateur, la limite de débit entre en vigueur. Par la suite, Auth0 n’autorise que 10 tentatives par minute pour cet utilisateur. Toute combinaison de tentatives de connexion réussies et échouées compte dans cette limite.
+
+<Card title="Limites qui protègent les utilisateurs">
+  La [protection contre les attaques par force brute](/docs/fr-CA/secure/attack-protection/brute-force-protection) d’Auth0 et la [limitation du débit des adresses IP suspectes](/docs/fr-CA/secure/attack-protection/suspicious-ip-throttling) peuvent aussi limiter les connexions et les inscriptions, mais elles sont indépendantes des limites de débit. Pour en savoir plus sur la façon dont Auth0 détecte et gère les anomalies potentiellement malveillantes, consultez [Attack Protection](/docs/fr-CA/secure/attack-protection).
+</Card>
+
+<div id="sms-message-limits-for-multi-factor-authentication-end-users-only">
+  #### Limites des messages SMS pour l’authentification multifacteur (utilisateurs finaux uniquement)
+</div>
+
+Si vous essayez d’envoyer plus de 10 messages SMS à votre appareil en une heure, vous recevrez un message d’erreur indiquant que la limite de débit a été dépassée.
+
+Si vous dépassez votre limite de messages, vous devrez attendre au moins une heure après la première demande de message avant de pouvoir en demander un autre. Une tentative supplémentaire vous sera accordée après chaque heure additionnelle écoulée.
+
+<div id="native-social-login-limits">
+  #### Limites de la connexion sociale native
+</div>
+
+Les limites appliquées aux requêtes du flux de connexion sociale native sont définies en fonction du corps des requêtes selon les critères initiaux suivants :
+
+| Type de requête      | Corps                                                |
+| -------------------- | ---------------------------------------------------- |
+| `grant_type`         | `urn:ietf:params:oauth:grant-type:token-exchange`    |
+| `subject_token_type` | `http://auth0.com/oauth/token-type/apple-authz-code` |
+
+<div id="public-performance-burst">
+  #### Public Performance Burst
+</div>
+
+L’offre Public Performance Burst est un add-on offert avec les abonnements Enterprise qui améliore un déploiement Public Cloud existant. Cette offre permet une augmentation dynamique de la limite de requêtes de l’Authentication API jusqu’à un multiple de la limite de requêtes Enterprise par défaut de 100 RPS, pendant un maximum de 48 heures par mois.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Cet add-on étend uniquement les limites de requêtes de l’Authentication API et ne s’applique PAS à la Management API ni aux autres points de terminaison soumis à des limites de débit en dehors du périmètre de l’Authentication API.
+</Callout>
+
+À l’heure actuelle, il existe trois modificateurs Public Performance Burst (2x, 3x et 4x) permettant respectivement 200, 300 et 400 RPS pour l’Authentication API, pendant un maximum de 48 heures par mois. Les 48 heures sont comptabilisées et déduites du quota mensuel autorisé par intervalles de 5 minutes, ce qui permet d’utiliser l’API au niveau du multiplicateur pendant 576 intervalles de 5 minutes chaque mois.
+
+Lorsque le volume de requêtes adressées à l’Authentication API dépasse la valeur par défaut de 100 RPS, un intervalle de 5 minutes est déduit de l’allocation mensuelle, et le trafic est autorisé selon le débit associé au multiplicateur. Le trafic peut demeurer dans la plage du multiplicateur pendant l’intégralité des 5 minutes consécutives à partir de ce moment, sans entraîner de déductions supplémentaires.
+
+Il est possible de surveiller les événements de déduction d’intervalle au moyen des [journaux du tenant](/docs/fr-CA/deploy-monitor/logs/log-event-type-codes). Chaque déduction génère un type d’événement de journal de tenant `appi` associé contenant des renseignements sur l’allocation déjà consommée et celle qui reste.
+
+Pour en savoir plus, consultez la section Authentication API dans [Rate Limits - Enterprise](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-configurations/enterprise-public).
+
+<div id="private-performance-burst">
+  #### Performance Burst privé
+</div>
+
+L’offre Performance Burst privé (actuellement offerte sur AWS pour les niveaux 30x et 60x) comprend une capacité de performance en rafale (de pointe) pouvant atteindre 30x (3 000 RPS) ou 60x (6 000 RPS) pendant un maximum de 80 heures par mois. La capacité de performance de base, qui correspond à la moitié de la capacité de performance en rafale, est disponible pendant le reste du mois.
+
+Autrement dit, le Performance Burst privé 30x comprend :
+
+* Capacité de base : 1 500 RPS pour tout le mois
+* Capacité en rafale/de pointe : 3 000 RPS pendant un maximum de 80 heures par mois
+
+Si les transactions d’authentification dépassent la limite de base des requêtes d’API, une heure est déduite de l’allocation mensuelle. Le trafic peut alors demeurer à un niveau élevé pendant l’heure complète qui suit. Des déductions supplémentaires sont effectuées de la même façon chaque fois que le seuil est de nouveau franchi.
+
+Une fois l’allocation de 80 heures épuisée, le trafic d’authentification sera limité à la capacité de base jusqu’à ce que la nouvelle allocation mensuelle entre en vigueur.
+
+<div id="extensibility-concurrency-limits">
+  #### Limites de concurrence de l’extensibilité
+</div>
+
+Afin d’assurer la disponibilité du système et une utilisation équitable de ses ressources, Auth0 limite le nombre de requêtes simultanées en cours pour l’ensemble des produits d’extensibilité : Actions, Hooks, Rules, Custom Database Connections, Extensions et les connexions Custom OAuth2. Les tenants qui dépassent leurs limites de requêtes simultanées doivent s’attendre à recevoir des erreurs pour toute nouvelle requête jusqu’à ce que les requêtes en cours soient terminées. Les limites de concurrence sont définies ci-dessous :
+
+| Abonnement                                                              | Limite de concurrence (par tenant) |
+| ----------------------------------------------------------------------- | ---------------------------------- |
+| Public Cloud                                                            | 250                                |
+| Tier Dev Private Cloud                                                  | 100                                |
+| Private Cloud Basic 100 RPS (1x)                                        | 200                                |
+| Private Cloud Performance 500 RPS (5x)                                  | 400                                |
+| Private Cloud Performance 1500 RPS (15x)                                | 1200                               |
+| Private Cloud Performance 3000 RPS (30x) and 3000 RPS Burst (30x Burst) | 1200                               |
+| Private Cloud Performance 6000 RPS (60x) and 6000 RPS Burst (60x Burst) | 1200                               |
+
+La concurrence peut être calculée en multipliant le nombre de RPS prévu par la latence de chaque requête. Par exemple, un tenant auquel sont associées deux Actions post-login, qui prennent chacune 250 ms, avec un total de 400 RPS de connexions, a une concurrence prévue de (2 * (400 requests / 1 second) * (.25 seconds / 1 request)) = 200.
+
+Pour vous assurer que votre tenant n’est pas touché par ces limites de concurrence, veillez à ce que toute logique d’extensibilité susceptible de s’exécuter longtemps, comme les appels à des API externes, ait des délais d’expiration raisonnables.
+
+<div id="rate-limit-algorithm">
+  ## Algorithme de limite de débit
+</div>
+
+Auth0 définit des limites de débit et des limites de rafale pour ses API. Alors que la limite de débit correspond au volume maximal de trafic soutenu que le système autorise de façon continue, la limite de rafale correspond au volume maximal de trafic à court terme que le système autorise pendant un intervalle de temps. Les limites de débit et les limites de rafale d’Auth0 fonctionnent ensemble pour offrir un meilleur contrôle des volumes de trafic dynamiques.
+
+Les limites de débit d’Auth0 utilisent un algorithme du seau à jetons comprenant les configurations suivantes :
+
+* **Clés de limite :**
+
+  * En règle générale, une clé de limite de débit repose sur deux facteurs principaux :
+
+    * API et point de terminaison
+    * Type de tenant
+  * Dans certains cas, des facteurs supplémentaires comprennent :
+
+    * IP source
+    * ID utilisateur cible
+* **Valeurs de limite :**
+
+  * **Taille du seau :** Le nombre maximal de requêtes qu’une API ou un point de terminaison reçoit en général, ou qu’elle reçoit d’un utilisateur précis ou d’une adresse IP précise, avant l’ajout de nouvelles requêtes.
+  * **Taux de remplissage :** La cadence à laquelle de nouvelles requêtes sont ajoutées au seau.
+
+À partir de ces deux nombres, Auth0 calcule la limite de rafale et la limite de débit soutenue :
+
+* **Limite de rafale :**  Égale à la taille du seau.
+* **Limite de débit soutenue :** Taux de remplissage en requêtes par minute ou par seconde.
+
+Si la limite de débit soutenue est calculée en requêtes par seconde, de nouvelles requêtes sont ajoutées à la milliseconde. Si la limite de débit soutenue est calculée en requêtes par minute, de nouvelles requêtes sont ajoutées chaque seconde.
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Politique sur les limites d’entités](/docs/fr-CA/troubleshoot/customer-support/operational-policies/entity-limit-policy)
+* [Cas d’utilisation de la limite de débit](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-use-cases)

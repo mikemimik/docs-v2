@@ -1,0 +1,62 @@
+---
+description: Découvrez le déclencheur d’échange de jeton personnalisé, qui s’exécute lorsque le serveur d’autorisation Auth0 reçoit une requête d’échange de jeton personnalisé pour connecter un utilisateur.
+sidebarTitle: Vue d’ensemble
+title: déclencheur d’échange de jeton personnalisé
+---
+
+<Warning>
+  L’échange de jeton personnalisé (CTE) est actuellement offert en accès anticipé à tous les clients Auth0 B2C Professional, B2B Professional et Enterprise. En utilisant cette fonctionnalité, vous acceptez les conditions applicables de l’essai gratuit figurant dans le [Contrat-cadre d’abonnement d’Okta](https://www.okta.com/legal/). Pour en savoir plus sur le cycle de publication des produits d’Auth0, consultez [Étapes de publication des produits](/docs/fr-CA/troubleshoot/product-lifecycle/product-release-stages). Pour en savoir plus sur les types d’abonnement, consultez la page [Tarification](https://auth0.com/pricing) d’Auth0.
+</Warning>
+
+Une fois que le serveur d’autorisation Auth0 a validé la requête d’échange de jeton personnalisé et établi sa correspondance avec un [profil d’échange de jeton personnalisé](/docs/fr-CA/authenticate/custom-token-exchange/configure-custom-token-exchange#create-custom-token-exchange-profile) existant, le déclencheur `custom-token-exchange` exécute l’unique Action associée à ce profil. Si l’Action s’exécute correctement et définit un utilisateur pour la transaction, les Actions `post-login` ainsi que le reste du pipeline Auth0 sont ensuite exécutés pour cet utilisateur connecté.
+
+<Frame>![](/docs/images/custom-token-exchange/cte_trigger_flow.png)</Frame>
+
+Les Actions de ce flux sont bloquantes (synchrones), ce qui signifie qu’elles s’exécutent dans le cadre du processus du déclencheur et empêchent le reste du pipeline Auth0 de s’exécuter tant que l’Action n’est pas terminée.
+
+<div id="custom-token-exchange-vs-post-login-actions">
+  ## Échange de jeton personnalisé vs Actions Post Login
+</div>
+
+Le Déclencheur des Actions Post Login s’exécute après l’Action Échange de jeton personnalisé, pour l’utilisateur que vous avez défini pour la transaction. Pour d’autres cas d’utilisation, comme l’ajout de claims personnalisés aux jetons d’accès, utilisez le [Déclencheur d’Action Post Login](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger).
+
+L’Échange de jeton personnalisé utilise le grant type d’échange de jeton; dans le Déclencheur d’Action Post Login, `event.transaction.protocol` est alors défini à `oauth2-token-exchange`. L’Échange de jeton personnalisé et Native Social Login utilisent tous deux le grant type d’échange de jeton. Pour les distinguer, utilisez la valeur de `subject_token_type`, qui doit correspondre à l’un de vos profils d’échange de jeton personnalisé.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  L’accès anticipé à l’Échange de jeton personnalisé ne prend pas en charge `api.authentication.challengeWith()` ni `api.authentication.enrollWith()`. Si vous utilisez ces méthodes avec vos Actions Post-Login, la transaction échouera avec une erreur non récupérable. Assurez-vous donc d’ignorer ces deux méthodes lorsque `event.transaction.protocol==oauth2-token-exchange`, selon la valeur de `subject_token_type`.
+</Callout>
+
+<div id="actor-support-for-delegation">
+  ## Prise en charge de l’acteur pour la délégation
+</div>
+
+Le déclencheur `custom-token-exchange` prend en charge les scénarios d’autorisation déléguée. L’Action peut appeler [`api.authentication.setActor()`](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object#api-authentication-setactor-actor) pour inclure une claim `act` dans les tokens émis, afin d’identifier le principal qui agit au nom de l’utilisateur sujet.
+
+`setActor()` peut être appelé, que la requête inclue ou non un `actor_token`. Le paramètre `actor_token` est l’une des façons dont l’application appelante peut transmettre des renseignements sur l’acteur à l’Action, mais l’identité de l’acteur peut aussi être intégrée au `subject_token` lui-même ou obtenue par d’autres moyens personnalisés dans le code de l’Action.
+
+Lorsque la requête inclut `actor_token` et `actor_token_type`, ces valeurs sont accessibles dans [`event.transaction`](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-event-object#event-transaction). Si `actor_token_type` est `urn:ietf:params:oauth:token-type:id_token` et que le token est un ID token Auth0 valide provenant du même tenant, le serveur valide automatiquement le token et renseigne `event.transaction.actor_token_user` avec le profil utilisateur de l’acteur.
+
+La claim `act` définie par `setActor()` est aussi accessible dans les Actions post-login par l’entremise de [`event.transaction.actor`](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object#event-transaction).
+
+<div id="triggers">
+  ## Déclencheurs
+</div>
+
+<div id="custom-token-exchange">
+  ### Échange de jeton personnalisé
+</div>
+
+Le déclencheur `custom-token-exchange` constitue la première étape du pipeline d’Auth0. Cette fonction est exécutée une fois que la requête d’échange de jeton personnalisé reçue a été validée et correctement associée à un profil existant.
+
+<div id="references">
+  ### Références
+</div>
+
+* [Objet Event](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-event-object) : Fournit des renseignements contextuels sur une demande de Token Exchange, y compris le subject&#95;token, l’adresse IP, le client, et plus encore.
+* [Objet API](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object) : Fournit des méthodes à utiliser avec votre Action de Token Exchange qui vous permettent de définir l’utilisateur, de définir l’acteur pour la délégation, de rejeter la transaction, de définir les métadonnées utilisateur et d’accéder au cache d’Actions, entre autres.
+
+<div id="common-use-cases">
+  ## Cas d’utilisation courants
+</div>
+
+Pour en savoir plus sur les cas d’utilisation courants de l’échange de jeton personnalisé, consultez [Exemples de cas d’utilisation](/docs/fr-CA/authenticate/custom-token-exchange/cte-example-use-cases).

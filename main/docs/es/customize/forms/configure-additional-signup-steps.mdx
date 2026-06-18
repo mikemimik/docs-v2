@@ -1,0 +1,174 @@
+---
+description: Aprende a configurar pasos adicionales de registro con Forms for Actions
+title: 'Casos de uso: Configurar pasos adicionales de registro con Forms'
+---
+
+<Card title="Antes de empezar">
+  1. Crea una [Machine-to-Machine Application](/docs/es/get-started/auth0-overview/create-applications/machine-to-machine-apps) con los siguientes scopes habilitados:
+
+  * `read:users`
+  * `update:users`
+  * `create:users`
+  * `read:users_app_metadata`
+  * `update:users_app_metadata`
+  * `create:users_app_metadata`
+
+  2. Agrega una [conexión de Vault](/docs/es/customize/forms/vault) con las credenciales de la aplicación M2M.
+</Card>
+
+Forms for Actions te permite crear pasos adicionales en tus flujos de registro o de inicio de sesión y hacerlos obligatorios antes de permitir que los usuarios accedan a tu aplicación.
+
+<Frame>![Dashboard > Actions > Forms > Caso de uso: formulario de registro personalizado](/docs/images/cdy7uua7fh8z/ZOQNi6SrEC9OREcBbdiJ3/d79f84fb61acd5473bdf932527e26d58/custom-signup-form.png)</Frame>
+
+En las siguientes secciones se explica cómo crear formularios con pasos adicionales de registro mediante nodos y flujos, así como los pasos para agregar tu formulario a una Action de [Post Login](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger).
+
+<div id="create-a-form-from-scratch">
+  ## Crear un formulario desde cero
+</div>
+
+Sigue estos pasos para crear un formulario y recopilar información:
+
+1. Abre el editor de formularios seleccionando **Auth0 Dashboard &gt; Actions &gt; Forms.**
+2. Selecciona **Create Form** &gt; **Start from scratch**.
+
+De forma predeterminada, un formulario nuevo contiene un nodo Start, un nodo Step y un nodo de pantalla final.
+
+<Frame>![Dashboard > Forms > Use Cases > Form](/docs/images/cdy7uua7fh8z/2TZ9jSjgEcARFpULI6hz4R/a4319a1bd482f2ee5cc23100fdb2f42c/New-form-Forms-for-action-use-case.png)</Frame>
+
+<div id="configure-the-step-node">
+  ### Configura el nodo Step
+</div>
+
+El nodo Step es la interfaz gráfica que ven los usuarios. Agrega [Fields](/docs/es/customize/forms/nodes-and-components) al nodo Step para recopilar el nombre completo y el cargo del usuario siguiendo estos pasos:
+
+1. Arrastra un campo de **Rich text** desde el **menú Components** al nodo **Step**.
+
+   * **Rich text**: Introduce un mensaje personalizado.
+   * Selecciona **Save**.
+2. Arrastra un campo de **Text** al nodo **Step**.
+
+   * **ID**: Introduce `full_name`.
+   * **Label**: Introduce `Full name`.
+   * **Label**: Activa la casilla de verificación.
+   * **Required**: Activa la casilla de verificación.
+   * Selecciona **Save**.
+3. Arrastra un campo de **Text** al nodo **Step**.
+
+   * **ID**: Introduce `job_title`.
+   * **Label**: Introduce `Job title.`
+   * **Label**: Activa la casilla de verificación.
+   * **Required**: Activa la casilla de verificación.
+   * Selecciona **Save**.
+4. Selecciona **Publish** para guardar.
+
+<Frame>![Dashboard > Actions > Forms > Caso de uso Custom Signup Steps, nodo Step](/docs/images/cdy7uua7fh8z/6Kcn0ai9fsVsqHwZpTGByG/37cbf4ffee63a7010926b15f06dd20ac/custom-signup-step-node.png)</Frame>
+
+<div id="configure-the-flow-node">
+  ### Configura el nodo **Flow**
+</div>
+
+Agrega un nodo **Flow** después del nodo **Step** para actualizar `user_metadata` y reanudar el flujo de autenticación siguiendo estos pasos:
+
+1. Selecciona **Flow** en la parte inferior del editor de formularios.
+2. Elimina el vínculo existente entre los nodos **Step** y **Ending Screen**.
+3. Selecciona el nuevo **Flow** &gt; **Click to add a flow** &gt; **Create a new flow.**
+
+   * Ingresa `Update user_metadata` en el campo **Name**.
+   * Selecciona **Create**.
+   * Selecciona **Save**.
+4. Vincula el nodo **Flow** a los nodos **Step** y **Ending Screen**, como se muestra en la imagen a continuación.
+5. Selecciona **Publish** para guardar.
+
+<Frame>![Dashboard > Actions > Forms > Flujo Update User metadata del caso de uso Custom Signup Step](/docs/images/cdy7uua7fh8z/4nTdYdA2Hu5vK65smkdvJg/db3294ebc25a7c2636be96362a3ea56e/custom-signup-step-flow.png)</Frame>
+
+Agrega una acción Auth0 Update user al flujo siguiendo estos pasos:
+
+1. Selecciona **Flow** **Update user&#95;metadata** &gt; **Edit flow** para abrir el editor de **Flow** en una pestaña nueva.
+2. Debajo de StartAction, selecciona el icono **+** para agregar una acción **Update user**. Completa los siguientes campos y luego selecciona **Save** para continuar.
+
+   * **Connection**: En el menú desplegable, selecciona la conexión de Vault de tu aplicación M2M.
+
+   * **User ID**: Ingresa `{{context.user.user_id}}`.
+
+   * **Body**: Copia y pega el siguiente código para actualizar `user_metadata` con las propiedades `full_name` y `job_title`.
+
+     ```json lines
+     {
+       "user_metadata": {
+         "full_name": "{{fields.full_name}}",
+         "job_title": "{{fields.job_title}}"
+       }
+     }
+     ```
+
+   * Selecciona **Save**.
+3. Selecciona **Publish** para guardar.
+
+<div id="retrieve-your-form-render-code">
+  ## Obtén el código de renderizado de tu formulario
+</div>
+
+Obtén el código de renderizado de tu formulario para mostrarlo con una Action personalizada de Post Login siguiendo estos pasos:
+
+* En el editor de formularios, selecciona **`<> Render`**.
+* Selecciona **Copiar**.
+
+<Frame>![Dashboard > Actions > Forms > Form > Embed](/docs/images/cdy7uua7fh8z/2EIUzc539sq9lwoTKbjoJv/496a864c0fc44a782c9cadca119dbfb0/embed.png)</Frame>
+
+<div id="create-a-post-login-action">
+  ## Crear una Action de Post Login
+</div>
+
+Sigue estos pasos para crear una Action de post-login que muestre tu formulario:
+
+1. Ve a **Auth0 Dashboard &gt; Actions &gt; Flows &gt; Login.**
+2. Selecciona el ícono **+** y luego **Build from scratch**:
+
+   * **Nombre**: Ingresa `Render Additional Signup Form`.
+   * **Disparador**: Selecciona `Login / Post Login`.
+   * **Runtime**: Selecciona la versión recomendada.
+3. Selecciona **Create**.
+
+Para configurar la Action de post-login:
+
+1. Elimina el código existente del editor de código.
+2. Pega el código de renderizado del formulario en el editor de código.
+3. Edita el código para definir la lógica condicional que mostrará el formulario.
+
+   ```javascript lines
+   /**
+   * @param {Event} event - Detalles sobre el usuario y el contexto en el que está iniciando sesión.
+   * @param {PostLoginAPI} api - Interfaz cuyos métodos pueden usarse para cambiar el comportamiento del inicio de sesión.
+   */
+   exports.onExecutePostLogin = async (event, api) => {
+     const FORM_ID = 'REPLACE_WITH_YOUR_FORM_ID';
+
+     if (
+       !event.user.user_metadata.full_name &&
+       !event.user.user_metadata.job_title
+     ) {
+       api.prompt.render(FORM_ID);
+     }
+   }
+
+   exports.onContinuePostLogin = async (event, api) => { }
+   ```
+
+   <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+     El código de ejemplo anterior mostrará el formulario cuando al usuario le falten las propiedades full&#95;name y job&#95;title en los metadatos del usuario.
+   </Callout>
+4. Selecciona **Deploy.**
+5. Arrastra y suelta la Action **Render Additional Signup Form** en el flujo **Login**.
+
+   <Frame>![Dashboard > Forms > Use Cases Custom Signup Steps Login Flow](/docs/images/cdy7uua7fh8z/1WBOicIOcH98hKj6Lq9HF2/4951e30a0cc08c7c5daa0116eaa17e11/Screenshot_2024-03-01_at_15.48.00.png)</Frame>
+6. Selecciona **Apply**.
+
+<div id="test-implementation">
+  ### Probar la implementación
+</div>
+
+Prueba la implementación siguiendo estos pasos:
+
+* Regístrate en una aplicación con un usuario nuevo.
+* La Action de post-login del flujo de Login mostrará el formulario y solicitará la información.
+* Selecciona **<Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> &gt; User Management &gt; Users,** localiza al nuevo usuario y verifica que sus atributos `full_name` y `job_title` incluyan la información del paso adicional de registro.

@@ -1,0 +1,92 @@
+---
+title: "Verificar con código de recuperación"
+description: "Verifica el MFA con un código de recuperación cuando el dispositivo registrado del usuario no esté disponible."
+---
+
+import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
+
+<div id="endpoint">
+  ## Endpoint
+</div>
+
+`POST /oauth/token`
+
+Verifica la autenticación multifactor (MFA) mediante un código de recuperación. Algunos proveedores de autenticación multifactor (MFA), como Guardian, permiten usar un código de recuperación para iniciar sesión. Usa este método para autenticarte cuando el dispositivo registrado del usuario no esté disponible, o cuando el usuario no pueda recibir ni aceptar el desafío debido a problemas de conectividad.
+
+Para verificar la MFA mediante un código de recuperación, tu aplicación debe pedirle al usuario ese código y luego hacer una solicitud a `/oauth/token` con `grant_type=http://auth0.com/oauth/grant-type/mfa-recovery-code`. Incluye el código de recuperación proporcionado y el `mfa_token` del error `mfa_required`. Si se acepta el código de recuperación, la respuesta será la misma que para los tipos de concesión `password` o `http://auth0.com/oauth/grant-type/password-realm`. También puede incluir un campo `recovery_code`, que la aplicación debe mostrar al usuario final para que lo guarde de forma segura y pueda usarlo en el futuro.
+
+<div id="headers">
+  ## Encabezados
+</div>
+
+<ParamField header="DPoP" type="string">
+  Una prueba DPoP para la solicitud. Es opcional y solo se requiere si la aplicación usa Demonstrating Proof-of-Possession.
+</ParamField>
+
+<div id="body-parameters">
+  ## Parámetros del cuerpo
+</div>
+
+<ParamField body="grant_type" type="string" required>
+  Indica el flujo que estás utilizando. Para el código de recuperación, usa `http://auth0.com/oauth/grant-type/mfa-recovery-code`.
+
+  Valores permitidos: `http://auth0.com/oauth/grant-type/mfa-recovery-code`
+</ParamField>
+
+<ParamField body="client_id" type="string" required>
+  El Client ID de tu aplicación.
+</ParamField>
+
+<ParamField body="client_assertion" type="string">
+  Un JWT que contiene una aserción firmada con las credenciales de tu aplicación.
+</ParamField>
+
+<ParamField body="client_assertion_type" type="string">
+  El valor es `urn:ietf:params:oauth:client-assertion-type:jwt-bearer`.
+
+  Valores permitidos: `urn:ietf:params:oauth:client-assertion-type:jwt-bearer`
+</ParamField>
+
+<ParamField body="client_secret" type="string">
+  El Client Secret de tu aplicación.
+</ParamField>
+
+<ParamField body="mfa_token" type="string" required>
+  El `mfa_token` que recibiste en el error `mfa_required`.
+</ParamField>
+
+<ParamField body="recovery_code" type="string" required>
+  Código de recuperación proporcionado por el usuario final.
+</ParamField>
+
+<div id="response-schema">
+  ## Esquema de la respuesta
+</div>
+
+<ResponseSchema>
+  <ResponseField name="access_token" type="string">
+    El token de acceso de una verificación correcta.
+  </ResponseField>
+
+  <ResponseField name="token_type" type="string">
+    El tipo de token emitido.
+  </ResponseField>
+
+  <ResponseField name="expires_in" type="integer">
+    La vigencia del token de acceso en segundos.
+  </ResponseField>
+
+  <ResponseField name="recovery_code" type="string">
+    Un nuevo código de recuperación que debe almacenarse de forma segura para usarlo en el futuro.
+  </ResponseField>
+</ResponseSchema>
+
+<div id="response-messages">
+  ## Mensajes de respuesta
+</div>
+
+| Estado | Descripción                                                         |
+| ------ | ------------------------------------------------------------------- |
+| 200    | Respuesta correcta para la verificación del código de recuperación. |
+| 400    | Solicitud incorrecta debido a parámetros faltantes o no válidos.    |
+| 401    | No autorizado: `mfa_token` o `recovery_code` no válidos.            |

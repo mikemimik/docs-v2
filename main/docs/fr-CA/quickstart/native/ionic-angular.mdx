@@ -1,0 +1,740 @@
+---
+title: Ajouter la connexion à votre application Ionic Angular avec Capacitor
+sidebarTitle: Ionic et Capacitor (Angular)
+description: Ce guide montre comment intégrer Auth0 à une application Ionic Angular et Capacitor à l’aide de l’Auth0 Angular SDK.
+mode: wide
+---
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {CreateInteractiveApp} from "/snippets/recipe.jsx";
+
+import {HowToSchema} from "/snippets/HowToSchema.jsx";
+
+<HowToSchema />
+
+<Accordion title="Utiliser l’IA pour intégrer Auth0" icon="microchip-ai" iconType="solid" defaultOpen>
+  Si vous utilisez un assistant IA de codage comme Claude Code, Cursor ou GitHub Copilot, vous pouvez ajouter l’authentification Auth0 automatiquement en quelques minutes à l’aide d’[agent skills](https://agentskills.io/home).
+
+  Commencez par installer les Agent Skills Auth0 :
+
+  ```bash
+  npx skills add auth0/agent-skills --skill auth0-quickstart --skill auth0-ionic-angular
+  ```
+
+  Ensuite, demandez à votre assistant IA :
+
+  ```text
+  Add Auth0 authentication to my Ionic Angular app
+  ```
+
+  Votre assistant IA créera automatiquement votre application Auth0, récupérera les informations d’identification, installera le Auth0 Angular SDK et les plugins Capacitor, configurera les liens profonds et mettra en place les flux de connexion/logout avec l’intégration au navigateur natif. Pour en savoir plus, consultez [Auth0 agent skills](/docs/fr-CA/quickstart/agent-skills).
+</Accordion>
+
+<div id="get-started">
+  ## Pour commencer
+</div>
+
+Ce guide Quickstart montre comment ajouter l’authentification Auth0 à une application Ionic Angular avec Capacitor. Vous créerez une application adaptée aux appareils mobiles avec des fonctionnalités de connexion, de logout et de profil utilisateur à l’aide du SDK Auth0 Angular et des plugins de navigateur natifs de Capacitor.
+
+export const localEnvSnippet = `export const environment = {
+  production: false,
+  auth0: {
+    domain: {yourDomain},
+    clientId: {yourClientId}
+  }
+};`;
+
+<Steps>
+  <Step title="Créer un nouveau projet" stepNumber={1}>
+    Créer un nouveau projet Ionic Angular avec Capacitor
+
+    ```shellscript
+    npx ionic start auth0-ionic-angular tabs --type=angular-standalone --capacitor
+    ```
+
+    Ouvrir le projet
+
+    ```shellscript
+    cd auth0-ionic-angular
+    ```
+
+    <Warning>
+      Assurez-vous d’utiliser le package `@ionic/cli` (et non le package `ionic`, désormais obsolète). Si des erreurs liées à `--npm-client` s’affichent pendant la création du projet, mettez votre CLI à jour :
+
+      ```shellscript
+      npm uninstall -g ionic
+      npm i -g @ionic/cli
+      ```
+    </Warning>
+  </Step>
+
+  <Step title="Installez le SDK Auth0 Angular et les plugins Capacitor" stepNumber={2}>
+    Installez l’Auth0 Angular SDK ainsi que les plugins Browser et App de Capacitor :
+
+    ```shellscript
+    npm install @auth0/auth0-angular @capacitor/browser @capacitor/app
+    ```
+
+    * [`@capacitor/browser`](https://capacitorjs.com/docs/apis/browser) - ouvre la page de connexion Auth0 dans le navigateur système de l’appareil ([SFSafariViewController](https://developer.apple.com/documentation/safariservices/sfsafariviewcontroller) sur iOS, [Chrome Custom Tabs](https://developer.chrome.com/docs/android/custom-tabs) sur Android)
+    * [`@capacitor/app`](https://capacitorjs.com/docs/apis/app) - gère les URL de rappel par lien profond d’Auth0 après l’authentification
+
+    <Info>
+      Le plugin Browser de Capacitor sur iOS utilise `SFSafariViewController`, qui, sur iOS 11 et versions ultérieures, ne partage pas les cookies avec Safari. Cela signifie que le [SSO](https://auth0.com/docs/sso) ne fonctionnera pas sur ces appareils. Si vous avez besoin du SSO, utilisez un plugin compatible qui utilise [ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession).
+    </Info>
+  </Step>
+
+  <Step title="Configurez votre Auth0 App" stepNumber={3}>
+    Ensuite, vous devez créer une nouvelle application sur votre tenant Auth0 et ajouter les variables d&#39;environnement à votre projet.
+
+    Vous avez trois options pour configurer votre application Auth0 : utiliser l&#39;outil Quick Setup (recommandé), exécuter une commande CLI ou configurer manuellement via le Dashboard :
+
+    <Tabs>
+      <Tab title="Configuration rapide (recommandée)">
+        Créez une Auth0 App de type Native et copiez le fichier d’environnement prérempli avec les valeurs de configuration appropriées.
+
+        <CreateInteractiveApp placeholderText="Ionic Angular" appType="native" allowedOriginUrls={["capacitor://localhost", "http://localhost"]} />
+
+        <AuthCodeBlock children={localEnvSnippet} language="typescript" filename="src/environments/environment.ts" />
+
+        Après avoir créé votre application, mettez à jour les **Allowed Callback URLs** et les **Allowed Logout URLs** dans l’onglet **Settings** du [Auth0 Dashboard](https://manage.auth0.com/dashboard/). Remplacez `YOUR_PACKAGE_ID` par le `appId` de votre fichier `capacitor.config.ts` (par défaut : `io.ionic.starter`) :
+
+        **Allowed Callback URLs** et **Allowed Logout URLs** :
+
+        ```text
+        YOUR_PACKAGE_ID://{yourDomain}/capacitor/YOUR_PACKAGE_ID/callback
+        ```
+      </Tab>
+
+      <Tab title="CLI">
+        Exécutez la commande suivante dans le répertoire racine de votre projet pour créer une application Auth0 de type Native et générer un fichier d’environnement. Mettez `PACKAGE_ID` à jour si votre `capacitor.config.ts` utilise un `appId` différent :
+
+        <AuthCodeGroup>
+          ```shellscript Mac
+          AUTH0_APP_NAME="My Ionic Angular App" && PACKAGE_ID="io.ionic.starter" && brew tap auth0/auth0-cli && brew install auth0 && auth0 login --no-input && DOMAIN=$(auth0 tenants list --json | jq -r '.[] | select(.active == true) | .name') && CALLBACK_URL="${PACKAGE_ID}://${DOMAIN}/capacitor/${PACKAGE_ID}/callback" && auth0 apps create -n "${AUTH0_APP_NAME}" -t native -c "${CALLBACK_URL}" -l "${CALLBACK_URL}" -o "capacitor://localhost,http://localhost" --json --metadata created_by="quickstart-docs-cli" > auth0-app-details.json && CLIENT_ID=$(jq -r '.client_id' auth0-app-details.json) && mkdir -p src/environments && echo "export const environment = { production: false, auth0: { domain: '${DOMAIN}', clientId: '${CLIENT_ID}' } };" > src/environments/environment.ts && rm auth0-app-details.json && echo "Environment file created at src/environments/environment.ts with your Auth0 details:" && cat src/environments/environment.ts
+          ```
+
+          ```shellscript Windows
+          $AppName = "My Ionic Angular App"; $PackageId = "io.ionic.starter"; winget install Auth0.CLI; auth0 login --no-input; $Domain = (auth0 tenants list --json | ConvertFrom-Json | Where-Object { $_.active -eq $true }).name; $CallbackUrl = "${PackageId}://${Domain}/capacitor/${PackageId}/callback"; auth0 apps create -n "$AppName" -t native -c "$CallbackUrl" -l "$CallbackUrl" -o "capacitor://localhost,http://localhost" --json --metadata created_by="quickstart-docs-cli" | Set-Content -Path auth0-app-details.json; $ClientId = (Get-Content -Raw auth0-app-details.json | ConvertFrom-Json).client_id; New-Item -ItemType Directory -Force -Path "src\environments"; Set-Content -Path "src\environments\environment.ts" -Value "export const environment = { production: false, auth0: { domain: '$Domain', clientId: '$ClientId' } };"; Remove-Item auth0-app-details.json; Write-Output "Environment file created at src\environments\environment.ts with your Auth0 details:"; Get-Content "src\environments\environment.ts"
+          ```
+        </AuthCodeGroup>
+      </Tab>
+
+      <Tab title="Dashboard">
+        Avant de commencer, créez un fichier d’environnement dans votre projet
+
+        ```typescript src/environments/environment.ts lines
+        export const environment = {
+          production: false,
+          auth0: {
+            domain: 'YOUR_AUTH0_APP_DOMAIN',
+            clientId: 'YOUR_AUTH0_APP_CLIENT_ID'
+          }
+        };
+        ```
+
+        1. Accédez au [Auth0 Dashboard](https://manage.auth0.com/dashboard/)
+        2. Cliquez sur **Applications** &gt; **Applications** &gt; **Create Application**
+        3. Saisissez un nom pour votre application (p. ex., `Ionic Angular App`), sélectionnez **Native** comme **Application type**, puis cliquez sur **Create**
+        4. Ouvrez l’onglet **Settings** et notez les valeurs de **Domain** et **Client ID**
+        5. Remplacez `YOUR_AUTH0_APP_DOMAIN` et `YOUR_AUTH0_APP_CLIENT_ID` dans `src/environments/environment.ts` par vos valeurs
+
+        <Info>
+          Dans ce Quickstart, `YOUR_PACKAGE_ID` fait référence au champ `appId` de votre fichier `capacitor.config.ts`. La valeur par défaut est `io.ionic.starter`. Consultez le [schéma de configuration de Capacitor](https://capacitorjs.com/docs/config#schema) pour en savoir plus.
+        </Info>
+
+        Configurez les URL suivantes dans l’onglet **Settings** (remplacez `YOUR_PACKAGE_ID` par votre ID de package réel) :
+
+        **Allowed Callback URLs :**
+
+        ```text
+        YOUR_PACKAGE_ID://{yourDomain}/capacitor/YOUR_PACKAGE_ID/callback
+        ```
+
+        **URL de déconnexion autorisées :**
+
+        ```text
+        YOUR_PACKAGE_ID://{yourDomain}/capacitor/YOUR_PACKAGE_ID/callback
+        ```
+
+        **Origines autorisées :**
+
+        ```text
+        capacitor://localhost, http://localhost
+        ```
+
+        <Info>
+          **Allowed Callback URLs** constituent une mesure de sécurité essentielle pour garantir que les utilisateurs sont redirigés de façon sécuritaire vers votre application après l’authentification. Sans URL correspondante, le processus de connexion échouera.
+
+          **Allowed Logout URLs** sont essentielles pour offrir une expérience utilisateur fluide au moment de la déconnexion. Sans URL correspondante, les utilisateurs verront une erreur lors de la déconnexion.
+
+          **Allowed Origins** sont requises pour l’authentification silencieuse. L’origine `capacitor://localhost` est utilisée pour iOS, et `http://localhost` pour Android.
+        </Info>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Configurer le module Auth0" stepNumber={4}>
+    Une fois le fichier d’environnement créé à l’étape précédente, configurez le module Auth0 dans votre application :
+
+    ```typescript src/main.ts {4-6,10,17-25} lines
+    import { bootstrapApplication } from '@angular/platform-browser';
+    import { RouteReuseStrategy, provideRouter } from '@angular/router';
+    import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
+    import { provideAuth0 } from '@auth0/auth0-angular';
+    import { environment } from './environments/environment';
+    import config from '../capacitor.config';
+    import { routes } from './app/app.routes';
+    import { AppComponent } from './app/app.component';
+
+    const redirect_uri = `${config.appId}://${environment.auth0.domain}/capacitor/${config.appId}/callback`;
+
+    bootstrapApplication(AppComponent, {
+      providers: [
+        { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+        provideIonicAngular(),
+        provideRouter(routes),
+        provideAuth0({
+          domain: environment.auth0.domain,
+          clientId: environment.auth0.clientId,
+          useRefreshTokens: true,
+          useRefreshTokensFallback: false,
+          authorizationParams: {
+            redirect_uri,
+          },
+        }),
+      ],
+    });
+    ```
+
+    La configuration `provideAuth0` comprend :
+
+    * `useRefreshTokens: true` — **obligatoire** sur mobile. Les applications Capacitor ne peuvent pas utiliser la silent authentication basée sur des iframes; des jetons d’actualisation servent donc à renouveler les sessions.
+    * `useRefreshTokensFallback: false` — **obligatoire** sur mobile. Empêche le SDK de revenir à la silent authentication basée sur des iframes, qui n’est pas offerte dans les applications natives.
+    * `authorizationParams.redirect_uri` — utilise le schéma d’URL personnalisé de votre application pour y rediriger après l’authentification.
+
+    <Warning>
+      Pour conserver l’authentification après avoir fermé puis rouvert l’application, vous pouvez définir `cacheLocation` à `localstorage`, mais veuillez prendre connaissance des [risques liés au stockage des jetons dans localstorage](https://auth0.com/docs/libraries/auth0-single-page-app-sdk#change-storage-options). De plus, `localstorage` doit être considéré comme **transitoire** dans les applications Capacitor. Veuillez consulter les [recommandations sur le stockage dans la documentation de Capacitor](https://capacitorjs.com/docs/guides/storage#why-cant-i-just-use-localstorage-or-indexeddb).
+    </Warning>
+  </Step>
+
+  <Step title="Créer des composants Login, Logout et Profil" stepNumber={5}>
+    Créer les fichiers de composants
+
+    <CodeGroup>
+      ```shellscript Mac/Linux
+      touch src/app/login-button.component.ts && touch src/app/logout-button.component.ts && touch src/app/profile.component.ts
+      ```
+
+      ```powershell Windows
+      New-Item -ItemType File -Path src/app/login-button.component.ts
+      New-Item -ItemType File -Path src/app/logout-button.component.ts
+      New-Item -ItemType File -Path src/app/profile.component.ts
+      ```
+    </CodeGroup>
+
+    Ajoutez le code suivant à chaque composant :
+
+    <AuthCodeGroup>
+      ```typescript src/app/login-button.component.ts expandable lines
+      import { Component, inject } from '@angular/core';
+      import { AuthService } from '@auth0/auth0-angular';
+      import { Browser } from '@capacitor/browser';
+      import { IonButton } from '@ionic/angular/standalone';
+
+      @Component({
+        selector: 'app-login-button',
+        standalone: true,
+        imports: [IonButton],
+        template: `<ion-button (click)="login()" expand="block">Log in</ion-button>`,
+      })
+      export class LoginButtonComponent {
+        private auth = inject(AuthService);
+
+        login(): void {
+          this.auth
+            .loginWithRedirect({
+              async openUrl(url: string) {
+                await Browser.open({ url, windowName: '_self' });
+              },
+            })
+            .subscribe();
+        }
+      }
+      ```
+
+      ```typescript src/app/logout-button.component.ts expandable lines
+      import { Component, inject } from '@angular/core';
+      import { AuthService } from '@auth0/auth0-angular';
+      import { Browser } from '@capacitor/browser';
+      import { IonButton } from '@ionic/angular/standalone';
+      import { environment } from '../environments/environment';
+      import config from '../../capacitor.config';
+
+      const returnTo = `${config.appId}://${environment.auth0.domain}/capacitor/${config.appId}/callback`;
+
+      @Component({
+        selector: 'app-logout-button',
+        standalone: true,
+        imports: [IonButton],
+        template: `<ion-button (click)="logout()" expand="block" color="danger">Log out</ion-button>`,
+      })
+      export class LogoutButtonComponent {
+        private auth = inject(AuthService);
+
+        logout(): void {
+          this.auth
+            .logout({
+              logoutParams: { returnTo },
+              async openUrl(url: string) {
+                await Browser.open({ url });
+              },
+            })
+            .subscribe();
+        }
+      }
+      ```
+
+      ```typescript src/app/profile.component.ts expandable lines
+      import { Component, inject } from '@angular/core';
+      import { CommonModule } from '@angular/common';
+      import { AuthService } from '@auth0/auth0-angular';
+      import { IonAvatar, IonItem, IonLabel } from '@ionic/angular/standalone';
+
+      @Component({
+        selector: 'app-profile',
+        standalone: true,
+        imports: [CommonModule, IonAvatar, IonItem, IonLabel],
+        template: `
+          @if (auth.user$ | async; as user) {
+            <ion-item lines="none">
+              <ion-avatar slot="start">
+                <img [src]="user.picture" [alt]="user.name" />
+              </ion-avatar>
+              <ion-label>
+                <h2>{{ user.name }}</h2>
+                <p>{{ user.email }}</p>
+              </ion-label>
+            </ion-item>
+          }
+        `,
+      })
+      export class ProfileComponent {
+        protected auth = inject(AuthService);
+      }
+      ```
+    </AuthCodeGroup>
+
+    Mettez maintenant à jour le composant App pour gérer les callbacks Auth0, et la page d&#39;accueil pour utiliser vos composants :
+
+    <Tabs>
+      <Tab title="Composant de l’application">
+        Remplacez le contenu de `src/app/app.component.ts` :
+
+        ```typescript src/app/app.component.ts expandable lines
+        import { Component, OnInit, NgZone, inject } from '@angular/core';
+        import { AuthService } from '@auth0/auth0-angular';
+        import { mergeMap } from 'rxjs/operators';
+        import { Browser } from '@capacitor/browser';
+        import { App } from '@capacitor/app';
+        import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
+        import { environment } from '../environments/environment';
+        import config from '../../capacitor.config';
+
+        const callbackUri = `${config.appId}://${environment.auth0.domain}/capacitor/${config.appId}/callback`;
+
+        @Component({
+          selector: 'app-root',
+          standalone: true,
+          imports: [IonApp, IonRouterOutlet],
+          template: '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>',
+        })
+        export class AppComponent implements OnInit {
+          private auth = inject(AuthService);
+          private ngZone = inject(NgZone);
+
+          ngOnInit(): void {
+            App.addListener('appUrlOpen', ({ url }) => {
+              this.ngZone.run(() => {
+                if (url?.startsWith(callbackUri)) {
+                  if (
+                    url.includes('state=') &&
+                    (url.includes('error=') || url.includes('code='))
+                  ) {
+                    this.auth
+                      .handleRedirectCallback(url)
+                      .pipe(mergeMap(() => Browser.close()))
+                      .subscribe();
+                  } else {
+                    Browser.close();
+                  }
+                }
+              });
+            });
+          }
+        }
+        ```
+      </Tab>
+
+      <Tab title="Page d’accueil">
+        Remplacez le contenu de `src/app/tab1/tab1.page.ts` :
+
+        ```typescript src/app/tab1/tab1.page.ts expandable lines
+        import { Component, inject } from '@angular/core';
+        import { CommonModule } from '@angular/common';
+        import { AuthService } from '@auth0/auth0-angular';
+        import {
+          IonHeader, IonToolbar, IonTitle, IonContent,
+          IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+        } from '@ionic/angular/standalone';
+        import { LoginButtonComponent } from '../login-button.component';
+        import { LogoutButtonComponent } from '../logout-button.component';
+        import { ProfileComponent } from '../profile.component';
+
+        @Component({
+          selector: 'app-tab1',
+          standalone: true,
+          imports: [
+            CommonModule,
+            IonHeader, IonToolbar, IonTitle, IonContent,
+            IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+            LoginButtonComponent, LogoutButtonComponent, ProfileComponent,
+          ],
+          template: `
+            <ion-header>
+              <ion-toolbar>
+                <ion-title>Accueil</ion-title>
+              </ion-toolbar>
+            </ion-header>
+
+            <ion-content class="ion-padding">
+              @if (auth.isAuthenticated$ | async) {
+                <ion-card>
+                  <ion-card-header>
+                    <ion-card-title>Bienvenue !</ion-card-title>
+                  </ion-card-header>
+                  <ion-card-content>
+                    <app-profile />
+                    <div class="ion-margin-top">
+                      <app-logout-button />
+                    </div>
+                  </ion-card-content>
+                </ion-card>
+              } @else {
+                <ion-card>
+                  <ion-card-header>
+                    <ion-card-title>Pour commencer</ion-card-title>
+                  </ion-card-header>
+                  <ion-card-content>
+                    <p>Ouvrez une session dans votre compte pour commencer.</p>
+                    <div class="ion-margin-top">
+                      <app-login-button />
+                    </div>
+                  </ion-card-content>
+                </ion-card>
+              }
+            </ion-content>
+          `,
+        })
+        export class Tab1Page {
+          protected auth = inject(AuthService);
+        }
+        ```
+      </Tab>
+    </Tabs>
+
+    <Info>
+      Le callback d’événement `appUrlOpen` du composant App est encapsulé dans `this.ngZone.run()`. C’est **obligatoire**, car les callbacks du plugin Capacitor s’exécutent à l’extérieur de la zone d’Angular; sans cela, Angular ne détectera pas les changements d’état d’authentification après le login. Consultez [Using Angular with Capacitor](https://capacitorjs.com/docs/guides/angular) pour en savoir plus.
+    </Info>
+  </Step>
+
+  <Step title="Lancez votre application" stepNumber={6}>
+    Commencez par tester dans le navigateur :
+
+    ```shellscript
+    ionic serve
+    ```
+
+    <Warning>
+      Lorsque vous exécutez l’application dans le navigateur avec `ionic serve`, la redirection par schéma d’URL personnalisé ne fonctionnera pas, car les navigateurs ne prennent pas en charge les schémas d’URL personnalisés. Pour tester dans le navigateur, remplacez temporairement `redirect_uri` par `http://localhost:8100` dans `src/main.ts` et ajoutez `http://localhost:8100` à **Allowed Callback URLs** et **Allowed Logout URLs** de votre application Auth0 dans le Dashboard. N’oubliez pas de rétablir cette modification avant de compiler pour le mode natif.
+    </Warning>
+
+    Pour exécuter l’application sur un appareil ou un simulateur, ajoutez d’abord les plateformes natives :
+
+    ```shellscript
+    npx cap add ios
+    npx cap add android
+    ```
+
+    Ensuite, compilez, synchronisez et exécutez :
+
+    <CodeGroup>
+      ```shellscript iOS
+      ionic build && npx cap sync && npx cap run ios
+      ```
+
+      ```shellscript Android
+      ionic build && npx cap sync && npx cap run android
+      ```
+    </CodeGroup>
+
+    <Info>
+      Vous devez ajouter les plateformes natives avec `npx cap add` avant de pouvoir les exécuter. Cette opération ne doit être effectuée qu’une seule fois par plateforme. Assurez-vous que votre schéma d’URL personnalisé est bien enregistré (voir Usage avancé ci-dessous).
+    </Info>
+  </Step>
+</Steps>
+
+<Check>
+  **Vérification**
+
+  Vous devriez maintenant avoir une page de connexion Auth0 entièrement fonctionnelle sur votre [localhost](http://localhost:8100/)
+</Check>
+
+***
+
+<div id="advanced-usage">
+  ## Utilisation avancée
+</div>
+
+<Accordion title="Utiliser l’approche traditionnelle avec NgModule">
+  Si vous avez créé votre projet avec `--type=angular` (au lieu de `--type=angular-standalone`) ou si vous préférez utiliser des NgModules, configurez le SDK avec `AuthModule.forRoot` :
+
+  ```typescript src/app/app.module.ts expandable lines
+  import { NgModule } from '@angular/core';
+  import { BrowserModule } from '@angular/platform-browser';
+  import { RouteReuseStrategy } from '@angular/router';
+  import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
+  import { AuthModule } from '@auth0/auth0-angular';
+  import { environment } from '../environments/environment';
+  import config from '../../capacitor.config';
+
+  import { AppRoutingModule } from './app-routing.module';
+  import { AppComponent } from './app.component';
+
+  const redirect_uri = `${config.appId}://${environment.auth0.domain}/capacitor/${config.appId}/callback`;
+
+  @NgModule({
+    declarations: [AppComponent],
+    imports: [
+      BrowserModule,
+      IonicModule.forRoot(),
+      AppRoutingModule,
+      AuthModule.forRoot({
+        domain: environment.auth0.domain,
+        clientId: environment.auth0.clientId,
+        useRefreshTokens: true,
+        useRefreshTokensFallback: false,
+        authorizationParams: {
+          redirect_uri,
+        },
+      }),
+    ],
+    providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }],
+    bootstrap: [AppComponent],
+  })
+  export class AppModule {}
+  ```
+
+  <Note>
+    Lorsque vous utilisez des NgModules, injectez `AuthService` via le constructeur (`constructor(public auth: AuthService)`) plutôt qu’avec `inject()`. Utilisez `*ngIf="auth.user$ | async as user"` dans les modèles au lieu de la syntaxe de flux de contrôle `@if`. Les composants doivent être déclarés dans le module plutôt que marqués avec `standalone: true`.
+  </Note>
+</Accordion>
+
+<Accordion title="Configuration d’un schéma d’URL personnalisé">
+  Pour tester l’authentification sur un appareil réel, enregistrez votre schéma d’URL personnalisé pour chaque plateforme.
+
+  ### iOS
+
+  Enregistrez votre schéma d’URL personnalisé dans `ios/App/App/Info.plist` :
+
+  ```xml lines
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>YOUR_PACKAGE_ID</string>
+      </array>
+    </dict>
+  </array>
+  ```
+
+  Remplacez `YOUR_PACKAGE_ID` par votre `appId` de `capacitor.config.ts`. Pour en savoir plus, consultez [Defining a Custom URL Scheme](https://developer.apple.com/documentation/xcode/defining-a-custom-url-scheme-for-your-app).
+
+  ### Android
+
+  Ajoutez un `intent-filter` à `android/app/src/main/AndroidManifest.xml`, dans la balise `<activity>` :
+
+  ```xml lines
+  <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="YOUR_PACKAGE_ID" />
+  </intent-filter>
+  ```
+
+  Remplacez `YOUR_PACKAGE_ID` par votre `appId` de `capacitor.config.ts`. Pour en savoir plus, consultez [Create Deep Links to App Content](https://developer.android.com/training/app-links/deep-linking).
+
+  ### Compiler et exécuter sur un appareil
+
+  ```shellscript
+  ionic build && npx cap sync && npx cap open ios
+  ```
+
+  Ou pour Android :
+
+  ```shellscript
+  ionic build && npx cap sync && npx cap open android
+  ```
+</Accordion>
+
+<Accordion title="Protéger les routes avec AuthGuard">
+  Utilisez la garde fonctionnelle pour protéger les routes qui nécessitent une authentification :
+
+  ```typescript src/app/app.routes.ts lines
+  import { Routes } from '@angular/router';
+  import { authGuardFn } from '@auth0/auth0-angular';
+
+  export const routes: Routes = [
+    {
+      path: 'tabs',
+      loadComponent: () => import('./tabs/tabs.page').then((m) => m.TabsPage),
+      children: [
+        {
+          path: 'tab1',
+          loadComponent: () => import('./tab1/tab1.page').then((m) => m.Tab1Page),
+        },
+        {
+          path: 'tab2',
+          loadComponent: () => import('./tab2/tab2.page').then((m) => m.Tab2Page),
+          canActivate: [authGuardFn],
+        },
+        {
+          path: 'tab3',
+          loadComponent: () => import('./tab3/tab3.page').then((m) => m.Tab3Page),
+          canActivate: [authGuardFn],
+        },
+        {
+          path: '',
+          redirectTo: '/tabs/tab1',
+          pathMatch: 'full',
+        },
+      ],
+    },
+    {
+      path: '',
+      redirectTo: '/tabs/tab1',
+      pathMatch: 'full',
+    },
+  ];
+  ```
+
+  Quand des utilisateurs non authentifiés tentent d’accéder à une route protégée, `authGuardFn` les redirige automatiquement vers la page de connexion Auth0.
+</Accordion>
+
+<Accordion title="Appeler des API protégées">
+  Configurez l’intercepteur HTTP pour joindre automatiquement des jetons d’accès aux appels d’API :
+
+  ```typescript src/main.ts expandable lines
+  import { bootstrapApplication } from '@angular/platform-browser';
+  import { RouteReuseStrategy, provideRouter } from '@angular/router';
+  import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
+  import { provideHttpClient, withInterceptors } from '@angular/common/http';
+  import { provideAuth0, authHttpInterceptorFn } from '@auth0/auth0-angular';
+  import { environment } from './environments/environment';
+  import config from '../capacitor.config';
+  import { routes } from './app/app.routes';
+  import { AppComponent } from './app/app.component';
+
+  const redirect_uri = `${config.appId}://${environment.auth0.domain}/capacitor/${config.appId}/callback`;
+
+  bootstrapApplication(AppComponent, {
+    providers: [
+      { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+      provideIonicAngular(),
+      provideRouter(routes),
+      provideAuth0({
+        domain: environment.auth0.domain,
+        clientId: environment.auth0.clientId,
+        useRefreshTokens: true,
+        useRefreshTokensFallback: false,
+        authorizationParams: {
+          redirect_uri,
+          audience: 'YOUR_API_IDENTIFIER',
+        },
+        httpInterceptor: {
+          allowedList: [
+            'http://localhost:3001/api/*',
+          ],
+        },
+      }),
+      provideHttpClient(
+        withInterceptors([authHttpInterceptorFn])
+      ),
+    ],
+  });
+  ```
+
+  Faites ensuite des appels d’API à l’aide du `HttpClient` d’Angular : l’intercepteur joint automatiquement le bearer token :
+
+  ```typescript src/app/api.service.ts lines
+  import { Injectable, inject } from '@angular/core';
+  import { HttpClient } from '@angular/common/http';
+
+  @Injectable({ providedIn: 'root' })
+  export class ApiService {
+    private http = inject(HttpClient);
+
+    getData() {
+      return this.http.get('http://localhost:3001/api/data');
+    }
+  }
+  ```
+
+  <Tip>
+    `httpInterceptor.allowedList` détermine quels points de terminaison d’API reçoivent des jetons d’accès. Incluez le paramètre `audience` pour demander un jeton d’accès pour votre API. Remplacez `YOUR_API_IDENTIFIER` par l’identifiant indiqué dans [Auth0 Dashboard &gt; APIs](https://manage.auth0.com/dashboard/).
+  </Tip>
+</Accordion>
+
+<Accordion title="Problèmes courants et solutions">
+  ### Erreur de non-correspondance de l’URL de rappel
+
+  **Solution :** Vérifiez que l’URL de rappel dans votre Auth0 Dashboard correspond exactement à l’URL construite dans votre application. Assurez-vous que `YOUR_PACKAGE_ID` correspond au champ `appId` dans votre fichier `capacitor.config.ts`.
+
+  ### L’écran ne se met pas à jour après la connexion
+
+  **Solution :** Assurez-vous que le callback de l’événement `appUrlOpen` est exécuté dans `this.ngZone.run()`. Sinon, Angular ne détectera pas les changements d’état provenant de `handleRedirectCallback`. Consultez [Using Angular with Capacitor](https://capacitorjs.com/docs/guides/angular).
+
+  ### Erreur « PKCE not allowed »
+
+  **Correctif :**
+
+  1. Allez à Auth0 Dashboard &gt; Applications &gt; Votre application
+  2. Modifiez le **Type d’application** à **Native**
+  3. Réglez **Méthode d’authentification du point de terminaison de jeton** sur `None`
+  4. Enregistrez les modifications et réessayez
+
+  ### Le SSO ne fonctionne pas sur iOS
+
+  Le Plugin Browser de Capacitor utilise `SFSafariViewController`, qui ne partage pas les cookies avec Safari sur iOS 11+. Si vous avez besoin du SSO, utilisez un plugin compatible qui utilise [ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession).
+
+  ### La connexion fonctionne, mais l’utilisateur reste non authentifié après le redémarrage de l’application
+
+  Activez `cacheLocation: 'localstorage'` dans la configuration `provideAuth0` pour enregistrer les jetons entre les redémarrages de l’application. Tenez compte des [implications de sécurité](https://auth0.com/docs/libraries/auth0-single-page-app-sdk#change-storage-options) et des [limites de stockage de Capacitor](https://capacitorjs.com/docs/guides/storage#why-cant-i-just-use-localstorage-or-indexeddb).
+
+  ### L’Observable ne s’exécute jamais
+
+  Toutes les méthodes de `AuthService` renvoient des Observables froids. Vous devez appeler `.subscribe()` pour qu’elles s’exécutent. Si `loginWithRedirect()` ou `logout()` semble ne rien faire, vérifiez que `.subscribe()` est bien enchaîné à la fin.
+</Accordion>
+
+<div id="next-steps">
+  ## Prochaines étapes
+</div>
+
+Consultez les ressources suivantes pour en savoir plus :
+
+* [Application d’exemple](https://github.com/auth0-samples/auth0-ionic-samples/tree/main/angular) — Une application Ionic Angular complète avec une intégration Auth0
+* [Documentation de l’Auth0 Angular SDK](https://github.com/auth0/auth0-angular) — Référence complète du SDK et exemples
+* [Auth0 Dashboard](https://manage.auth0.com/dashboard/) — Configurez et gérez votre Auth0 tenant et vos applications
+* [Auth0 Marketplace](https://marketplace.auth0.com/) — Découvrez les intégrations que vous pouvez activer pour étendre les fonctionnalités d’Auth0

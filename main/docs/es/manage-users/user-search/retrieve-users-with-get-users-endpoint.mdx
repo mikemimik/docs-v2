@@ -1,0 +1,246 @@
+---
+description: Aprende a obtener listas de usuarios mediante el endpoint get_users.
+title: Obtener usuarios con el endpoint Get Users
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+El [`GET /api/v2/users` endpoint](https://auth0.com/docs/api/management/v2#!/Users/get_users) le permite obtener una lista de usuarios. Con este endpoint, puede:
+
+* Buscar según diversos criterios
+* Seleccionar los campos que se devolverán
+* Ordenar los resultados devueltos
+
+Este endpoint es **eventually consistent** y, por lo tanto, le recomendamos usarlo para procesos administrativos, como cambiar el nombre para mostrar de un usuario existente.
+
+<div id="request-example">
+  ## Ejemplo de solicitud
+</div>
+
+Para buscar usuarios, realiza una solicitud `GET` al [endpoint `/api/v2/users`](https://auth0.com/docs/api/management/v2#!/Users/get_users). La solicitud debe incluir un [token de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens). Pasa la consulta de búsqueda en el parámetro `q` y establece el parámetro `search_engine` en `v3`.
+
+Por ejemplo, para buscar un usuario cuyo correo electrónico sea exactamente `jane@exampleco.com`, usa `q=email:"jane@exampleco.com"`:
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request GET \
+    --url 'https://{yourDomain}/api/v2/users?q=email%3A%22jane%40exampleco.com%22&search_engine=v3' \
+    --header 'authorization: Bearer {yourMgmtApiAccessToken}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users?q=email%3A%22jane%40exampleco.com%22&search_engine=v3");
+  var request = new RestRequest(Method.GET);
+  request.AddHeader("authorization", "Bearer {yourMgmtApiAccessToken}");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users?q=email%3A%22jane%40exampleco.com%22&search_engine=v3"
+
+  	req, _ := http.NewRequest("GET", url, nil)
+
+  	req.Header.Add("authorization", "Bearer {yourMgmtApiAccessToken}")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.get("https://{yourDomain}/api/v2/users?q=email%3A%22jane%40exampleco.com%22&search_engine=v3")
+    .header("authorization", "Bearer {yourMgmtApiAccessToken}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'GET',
+    url: 'https://{yourDomain}/api/v2/users',
+    params: {q: 'email:"jane@exampleco.com"', search_engine: 'v3'},
+    headers: {authorization: 'Bearer {yourMgmtApiAccessToken}'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users?q=email%3A%22jane%40exampleco.com%22&search_engine=v3",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "GET",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer {yourMgmtApiAccessToken}"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer {yourMgmtApiAccessToken}" }
+
+  conn.request("GET", "/{yourDomain}/api/v2/users?q=email%3A%22jane%40exampleco.com%22&search_engine=v3", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users?q=email%3A%22jane%40exampleco.com%22&search_engine=v3")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Get.new(url)
+  request["authorization"] = 'Bearer {yourMgmtApiAccessToken}'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Si la solicitud se realiza correctamente, recibirás una respuesta como esta:
+
+```json lines expandable
+[
+  {
+    "email": "jane@exampleco.com",
+    "email_verified": false,
+    "username": "janedoe",
+    "phone_number": "+199999999999999",
+    "phone_verified": false,
+    "user_id": "auth0|5457edea1b8f22891a000004",
+    "created_at": "",
+    "updated_at": "",
+    "identities": [
+      {
+        "connection": "Initial-Connection",
+        "user_id": "5457edea1b8f22891a000004",
+        "provider": "auth0",
+        "isSocial": false
+      }
+    ],
+    "app_metadata": {},
+    "user_metadata": {},
+    "picture": "",
+    "name": "",
+    "nickname": "",
+    "multifactor": [
+      ""
+    ],
+    "last_ip": "",
+    "last_login": "",
+    "logins_count": 0,
+    "blocked": false,
+    "given_name": "",
+    "family_name": ""
+  }
+]
+```
+
+<div id="query-examples">
+  ## Ejemplos de consultas
+</div>
+
+A continuación se muestran algunos ejemplos de los tipos de consultas que puede realizar con la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
+
+| Caso de uso                                                                                                                                    | Consulta                                                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Buscar todos los usuarios cuyo nombre contiene &quot;john&quot;                                                                                | `name:\*john\*`                                                            |
+| Buscar todos los usuarios cuyo nombre es exactamente &quot;jane&quot;                                                                          | `name:"jane"`                                                              |
+| Buscar todos los usuarios cuyo nombre comienza por &quot;john&quot;                                                                            | `name:john*`                                                               |
+| Buscar usuarios cuyos nombres comienzan por &quot;jane&quot; y terminan en &quot;smith&quot;                                                   | `name:jane*smith`                                                          |
+| Buscar todos los usuarios cuyo correo electrónico es exactamente &quot;john@exampleco.com&quot;                                                | `email:"john@exampleco.com"`                                               |
+| Buscar todos los usuarios cuyo correo electrónico es exactamente &quot;john@exampleco.com&quot; o &quot;jane@exampleco.com&quot; mediante `OR` | `email:("john@exampleco.com" OR "jane@exampleco.com")`                     |
+| Buscar usuarios sin correo electrónico verificado                                                                                              | `email_verified:false OR NOT \_exists_\:email_verified`                    |
+| Buscar usuarios que tienen el campo `user_metadata` llamado `full_name` con el valor &quot;John Smith&quot;                                    | `user_metadata.full_name:"John Smith"`                                     |
+| Buscar usuarios de una conexión específica                                                                                                     | `identities.connection:"google-oauth2"`                                    |
+| Buscar todos los usuarios que nunca han iniciado sesión                                                                                        | `(NOT \_exists_\:logins_count OR logins_count:0)`                          |
+| Buscar todos los usuarios que iniciaron sesión antes de 2018                                                                                   | `last_login:[* TO 2017-12-31]`                                             |
+| Buscar todos los usuarios cuyo último inicio de sesión fue en diciembre de 2017                                                                | `last_login:[2017-11 TO 2017-12]`, `last_login:[2017-12-01 TO 2017-12-31]` |
+| Buscar todos los usuarios con un número de inicios de sesión &gt;= 100 y &lt;= 200                                                             | `logins_count:[100 TO 200]`                                                |
+| Buscar todos los usuarios con un número de inicios de sesión &gt;= 100                                                                         | `logins_count:[100 TO *]`                                                  |
+| Buscar todos los usuarios con un número de inicios de sesión &gt; 100 y &lt; 200                                                               | `logins_count:\{100 TO 200}`                                               |
+| Buscar todos los usuarios cuyo dominio de correo electrónico es &quot;exampleco.com&quot;                                                      | `email.domain:"exampleco.com"`                                             |
+
+<div id="limitations">
+  ## Limitaciones
+</div>
+
+* El endpoint devuelve un máximo de 50 usuarios, incluso si hay más usuarios que coinciden con tu consulta.
+* Si necesitas devolver más de 50 usuarios, usa el parámetro `page` para mostrar más páginas de resultados. Cada página contiene 50 usuarios. Por ejemplo, puedes especificar `&page=2` para mostrar los resultados del 51 al 100, `&page=3` para mostrar los resultados del 101 al 150, y así sucesivamente. Sin embargo, este endpoint nunca devuelve más de 1000 usuarios en total con los mismos criterios de búsqueda, incluso con paginación.
+* Hay un límite de 1 MB por usuario para los datos que se pueden indexar, consultar y devolver mediante el [endpoint de búsqueda de usuarios](https://auth0.com/docs/api/management/v2/users/get-users). Para obtener más información sobre cómo esto afecta a los metadatos personalizados de más de 1 MB, consulta [Metadata Field Names and Data Types](/docs/es/manage-users/user-accounts/metadata/metadata-fields-data#size-limits-and-storage). Debes usar el [endpoint get user](https://auth0.com/docs/api/management/v2/users/get-users-by-id) para recuperar todos los atributos de usuario de perfiles de usuario que superen ese tamaño.
+* De forma predeterminada, el endpoint `GET /api/v2/users` devuelve los resultados en un orden determinista para que la misma consulta produzca siempre resultados ordenados de la misma manera. Este comportamiento se controla mediante el parámetro de consulta `primary_order`:
+
+  * `primary_order=true` (predeterminado): los resultados de consultas idénticas se ordenan siempre de forma consistente.
+  * `primary_order=false`: los resultados se devuelven en un orden no determinista, lo que puede mejorar el rendimiento en consultas complejas.
+* Si tu aplicación no requiere un orden consistente en los resultados de búsqueda y tus consultas son lo bastante cortas como para no depender de la paginación, establece `primary_order=false` para mejorar el rendimiento de las consultas.
+* Si necesitas una exportación completa de todos tus usuarios, usa la [tarea de exportación](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_exports) o la extensión [User Import / Export](/docs/es/customize/extensions/user-import-export-extension).
+* Si obtienes el error `414 Request-URI Too Large`, significa que tu cadena de consulta supera la longitud admitida. En ese caso, acota tu búsqueda.
+
+**No** recomendamos usar este endpoint para lo siguiente:
+
+* Operaciones que requieren consistencia inmediata. En su lugar, usa el [endpoint Get Users by Email](/docs/es/manage-users/user-search/retrieve-users-with-get-users-by-email-endpoint) o el [endpoint Get Users by ID](/docs/es/manage-users/user-search/retrieve-users-with-get-users-by-id-endpoint).
+* Exportaciones de usuarios. En su lugar, usa el [endpoint User Export](/docs/es/manage-users/user-migration/bulk-user-exports).
+* Operaciones que requieren la búsqueda de usuarios como parte de procesos de autenticación. En su lugar, usa el endpoint Get Users by Email o el endpoint Get Users by ID.
+* Buscar usuarios para [Account Linking](/docs/es/manage-users/user-accounts/user-account-linking) por correo electrónico. En su lugar, usa el endpoint Get Users by Email.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [User Search Query Syntax](/docs/es/manage-users/user-search/user-search-query-syntax)
+* [Ordenar los resultados de búsqueda](/docs/es/manage-users/user-search/sort-search-results)
+* [Ver los resultados de búsqueda por página](/docs/es/manage-users/user-search/view-search-results-by-page)
+* [Exportaciones masivas de usuarios](/docs/es/manage-users/user-migration/bulk-user-exports)

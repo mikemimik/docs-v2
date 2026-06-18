@@ -1,0 +1,62 @@
+---
+description: ユーザーをログインさせるためのカスタムトークン交換リクエストを Auth0 Authorization Server が受信したときに実行される、カスタムトークン交換トリガーについて説明します。
+sidebarTitle: 概要
+title: カスタムトークン交換トリガー
+---
+
+<Warning>
+  Custom Token Exchange (CTE) は現在、すべての Auth0 B2C Professional、B2B Professional、および Enterprise のお客様向けに早期アクセスとして提供されています。この機能を使用すると、[Okta’s Master Subscription Agreement](https://www.okta.com/legal/) に記載されている該当の無料トライアル条件に同意したものとみなされます。Auth0 の product release stages について詳しくは、[Product Release Stages](/docs/ja/troubleshoot/product-lifecycle/product-release-stages) をご覧ください。サブスクリプションの種類について詳しくは、Auth0 の [pricing](https://auth0.com/pricing) ページをご確認ください。
+</Warning>
+
+Auth0 Authorization Server がカスタムトークン交換リクエストの有効性を検証し、それが既存の [カスタムトークン交換プロファイル](/docs/ja/authenticate/custom-token-exchange/configure-custom-token-exchange#create-custom-token-exchange-profile) にマッピングされていることを確認すると、`custom-token-exchange` トリガーによって、そのプロファイルに関連付けられた 1 つの Action が実行されます。Action が正常に完了し、トランザクションにユーザーが設定されると、そのログイン済みユーザーに対して `post-login` Actions と Auth0パイプライン の残りの処理が実行されます。
+
+<Frame>![](/docs/images/custom-token-exchange/cte_trigger_flow.png)</Frame>
+
+このフローの Actions はブロッキング (同期) であるため、トリガーの処理の一部として実行され、Action が完了するまで Auth0パイプライン の残りの処理は実行されません。
+
+<div id="custom-token-exchange-vs-post-login-actions">
+  ## カスタムトークン交換 vs Post Login Actions
+</div>
+
+Post Login Actions トリガーは、トランザクションに設定したユーザーに対してカスタムトークン交換 Action が実行された後に実行されます。一方、アクセストークンにカスタムクレームを追加するなど、その他のユースケースでは、[Post Login Action トリガー](/docs/ja/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger)を使用します。
+
+カスタムトークン交換ではトークン交換のグラントタイプが使用され、この場合、Post Login Action トリガーでは `event.transaction.protocol` が `oauth2-token-exchange` に設定されます。カスタムトークン交換とネイティブソーシャルログインはどちらもトークン交換のグラントタイプを使用します。両者を区別するには、`subject_token_type` の値を使用します。これは、いずれかのカスタムトークン交換プロファイルに対応している必要があります。
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  カスタムトークン交換の早期アクセスでは、`api.authentication.challengeWith()` または `api.authentication.enrollWith()` はサポートされていません。これらのメソッドを Post-Login Actions で使用すると、トランザクションは回復不能なエラーで失敗します。`subject_token_type` の値に応じて、`event.transaction.protocol==oauth2-token-exchange` の場合は、これら 2 つのメソッドをスキップするようにしてください。
+</Callout>
+
+<div id="actor-support-for-delegation">
+  ## 委譲における actor のサポート
+</div>
+
+`custom-token-exchange` トリガーは、委譲認可のシナリオをサポートします。Action は [`api.authentication.setActor()`](/docs/ja/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object#api-authentication-setactor-actor) を呼び出して、発行されるトークンに `act` クレームを含めることができます。これにより、subject ユーザーの代理で動作するプリンシパルを識別できます。
+
+`setActor()` は、リクエストに `actor_token` が含まれているかどうかに関係なく呼び出せます。`actor_token` パラメータは、呼び出し元アプリケーションが actor 情報を Action に渡す方法の 1 つですが、actor のアイデンティティは `subject_token` 自体に埋め込むことも、Action コード内で別のカスタムな方法で取得することもできます。
+
+リクエストに `actor_token` と `actor_token_type` が含まれている場合、これらの値は [`event.transaction`](/docs/ja/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-event-object#event-transaction) で利用できます。`actor_token_type` が `urn:ietf:params:oauth:token-type:id_token` で、そのトークンが同じテナントの有効な Auth0 ID トークンである場合、サーバーはそのトークンを自動的に検証し、actor のユーザープロファイルを `event.transaction.actor_token_user` に設定します。
+
+`setActor()` で設定した `act` クレームは、[`event.transaction.actor`](/docs/ja/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object#event-transaction) を通じて Post-Login Actions でも利用できます。
+
+<div id="triggers">
+  ## トリガー
+</div>
+
+<div id="custom-token-exchange">
+  ### カスタムトークン交換
+</div>
+
+`custom-token-exchange` トリガーは、Auth0パイプラインの最初のステップです。この関数は、受信したカスタムトークン交換リクエストが検証され、既存のプロファイルに正常にマッピングされたあとに実行されます。
+
+<div id="references">
+  ### 参照
+</div>
+
+* [イベントオブジェクト](/docs/ja/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-event-object): subject&#95;token、IP アドレス、クライアントなど、Token Exchange リクエストに関するコンテキスト情報を提供します。
+* [API オブジェクト](/docs/ja/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object): Token Exchange Action で使用できるメソッドを提供します。これにより、ユーザーの設定、委譲用の actor の設定、トランザクションの拒否、ユーザー メタデータの設定、Actions キャッシュへのアクセスなどを行えます。
+
+<div id="common-use-cases">
+  ## 一般的なユースケース
+</div>
+
+カスタムトークン交換の一般的なユースケースについては、[ユースケースの例](/docs/ja/authenticate/custom-token-exchange/cte-example-use-cases)をご覧ください。

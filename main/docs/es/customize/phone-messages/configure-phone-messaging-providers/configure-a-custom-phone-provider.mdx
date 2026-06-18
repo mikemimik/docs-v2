@@ -1,0 +1,135 @@
+---
+description: Aprende a configurar un proveedor telefónico personalizado mediante Actions
+sidebarTitle: Información general
+title: Configurar un proveedor telefónico personalizado
+---
+
+Puede configurar un proveedor telefónico personalizado para mensajes SMS si usa un [número de teléfono como identificador de usuario](/docs/es/authenticate/database-connections/activate-and-configure-attributes-for-flexible-identifiers). Un proveedor telefónico personalizado usa [Actions](/docs/es/customize/actions/actions-overview) para dirigir los mensajes SMS al proveedor telefónico que elija al verificar números de teléfono y restablecer contraseñas.
+
+Es posible que quiera configurar un proveedor telefónico personalizado para los siguientes casos de uso:
+
+* Usar distintos proveedores telefónicos según el contexto de la aplicación, que puede incluir diferentes regiones geográficas en las que los precios de los mensajes pueden variar significativamente según el proveedor.
+* Usar distintos proveedores telefónicos según el contexto de la organización, ya que algunos clientes B2B pueden requerir proveedores específicos.
+
+Puede configurar un proveedor telefónico personalizado con el <Tooltip tip="El producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o la <Tooltip tip="El producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
+
+<div id="configure-a-custom-phone-provider-with-the-auth0-dashboard-or-management-api">
+  ## Configurar un proveedor telefónico personalizado con el Auth0 Dashboard o la Management API
+</div>
+
+Para configurar un proveedor telefónico personalizado, debes usar el trigger de Action `custom-phone-provider`, que no está disponible en el Actions Editor de Auth0. Para obtener más información, consulta [Ejemplo de Action custom-phone-provider](#example-custom-phone-provider-action).
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    #### Agrega un proveedor telefónico personalizado con el Auth0 Dashboard
+
+    Para configurar un nuevo proveedor telefónico personalizado en el Auth0 Dashboard:
+
+    1. Ve a [Branding &gt; Phone Provider](https://manage.auth0.com/dashboard/#/phone/templates/phone/provider). Esto te llevará a la página Phone Message Provider. De forma predeterminada, está seleccionado el proveedor telefónico de Twilio.
+    2. Selecciona la opción de proveedor telefónico **Custom** en la sección Phone Provider.
+    3. Selecciona el **método de entrega:**
+
+       1. Texto: El código de verificación se enviará a tus usuarios por SMS.
+       2. Voz: El código de verificación se enviará a tus usuarios por mensaje de voz.
+    4. En **Configuración del proveedor**, escribe el código de tu Action para configurar un proveedor telefónico personalizado:
+
+       1. Consulta la documentación de tu proveedor para entender cómo enviar mensajes a su API.
+       2. Agrega los secrets necesarios para autenticarte con la API.
+       3. (Opcional) Puedes editar la Action desde la interfaz completa del Actions Editor haciendo clic en el botón **Edit in Expanded Editor**. Después de editar tu Action en el Actions Editor, haz clic en **Save** y **Deploy** desde esa interfaz. Haz clic en el enlace **Back to Phone Provider** en la parte superior de la página del Actions Editor para volver a la página Phone Message Provider. Tendrás que volver a seleccionar la opción de proveedor telefónico **Custom** en la sección Phone Provider.
+    5. Haz clic en el botón **Save** al final de la página.
+
+    Cuando haces clic en **Save,** la Action se guarda y se implementa automáticamente. Para probar la configuración del proveedor telefónico personalizado antes de usarla en un entorno de Production, haz clic en **enviar mensaje de prueba**.
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      No puedes hacer clic en **enviar mensaje de prueba** para probar tu proveedor telefónico personalizado hasta después de guardar su configuración.
+    </Callout>
+
+    #### Edita un proveedor telefónico personalizado con el Auth0 Dashboard
+
+    Para editar un proveedor telefónico personalizado existente en el Auth0 Dashboard:
+
+    1. Ve a [Branding &gt; Phone Provider](https://manage.auth0.com/dashboard/#/phone/templates/phone/provider). Esto te llevará a la página Phone Message Provider.
+    2. Modifica el código de la Action en la página Phone Message Provider según sea necesario.
+
+       1. (Opcional) Puedes editar la Action desde la interfaz completa del Actions Editor haciendo clic en el botón **Edit in Expanded Editor**. Después de editar tu Action en el Actions Editor, haz clic en **Save** y **Deploy** desde esa interfaz. Luego, haz clic en el enlace **Back to Phone Provider** en la parte superior de la página del Actions Editor.
+    3. Haz clic en el botón **Save** al final de la página.
+
+    Cuando haces clic en **Save,** la Action se guarda y se implementa automáticamente. Para probar la configuración del proveedor telefónico personalizado antes de usarla en un entorno de Production, haz clic en **enviar mensaje de prueba**.
+  </Tab>
+
+  <Tab title="Management API">
+    #### Agrega un proveedor telefónico personalizado con la Management API
+
+    También puedes configurar un proveedor telefónico personalizado con la Management API. Es un proceso de varios pasos:
+
+    1. Crea una [Action](https://auth0.com/docs/api/management/v2/actions/post-action) y establece `supported_triggers.id` en `custom-phone-provider`.
+
+       1. Consulta la documentación de tu proveedor para entender cómo enviar mensajes a su API.
+       2. Agrega los secrets necesarios para autenticarte con la API.
+    2. [Implementa](https://auth0.com/docs/api/management/v2/actions/post-deploy-action) la Action.
+    3. Establece el [phone provider](https://auth0.com/docs/api/management/v2/branding/create-phone-provider) en `custom`.
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      La Action que crees con el trigger `custom-phone-provider` no aparecerá en la biblioteca de Actions.
+    </Callout>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      Si no hay ninguna Action implementada e intentas configurar un proveedor `custom`, Auth0 devolverá un error con `"errorCode":"custom_email_provider_deployed_action_not_found"`.
+    </Callout>
+
+    #### Edita un proveedor telefónico personalizado con la Management API
+
+    También puedes editar un proveedor telefónico personalizado con la Management API.
+
+    1. (Opcional) Si no conoces el Action ID específico, puedes [obtener la lista de Actions](https://auth0.com/docs/api/management/v2/actions/get-actions) a través de la Management API. La respuesta incluirá un objeto de Actions. La Action usada para el proveedor telefónico personalizado se puede identificar mediante `supported_triggers.id`, que debe estar establecido en `custom-phone-provider`.
+    2. [Actualiza la Action](https://auth0.com/docs/api/management/v2/actions/patch-action) según sea necesario.
+    3. [Implementa](https://auth0.com/docs/api/management/v2/actions/post-deploy-action) la Action.
+  </Tab>
+</Tabs>
+
+Un ejemplo de proveedor telefónico personalizado que puedes configurar es [Twilio Verify](https://www.twilio.com/docs/verify). Para obtener más información, consulta [Configurar un proveedor telefónico personalizado con Twilio Verify](/docs/es/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/configure-a-custom-phone-provider-with-twilio-verify).
+
+<div id="example-custom-phone-provider-action">
+  ## Ejemplo de Action `custom-phone-provider`
+</div>
+
+El trigger `custom-phone-provider` es diferente del trigger `send-phone-message`, que no debe utilizarse para configurar un proveedor telefónico personalizado. Para obtener más información, consulta lo siguiente:
+
+* [Action Triggers: objeto de API de custom-phone-provider](/docs/es/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/action-triggers-custom-phone-provider-api-object)
+* [Action Triggers: objeto de evento de custom-phone-provider](/docs/es/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/actions-triggers-custom-phone-provider-event-object)
+
+El siguiente ejemplo de código es una Action `custom-phone-provider` con la funcionalidad de una Action `send-phone-message`:
+
+```javascript lines expandable
+/**
+* Controlador que se ejecuta al enviar una notificación telefónica*
+* @param {Event} event - Detalles sobre el usuario y el contexto en el que está iniciando sesión.
+* @param {CustomPhoneProviderAPI} api - Métodos y utilidades para modificar el comportamiento del envío de una notificación telefónica.
+*/
+exports.onExecuteCustomPhoneProvider = async (event, api) => {
+
+  if (event.notification.message_type.startsWith('otp')) {
+    const body = {
+      from: event.notification.from,
+      action: event.notification.message_type === 'otp_verify' ? 'second-factor-authenticator' : 'enrollment',
+      language: event.notification.locale,
+      recipient: event.notification.recipient,
+      message_type: event.notification.delivery_method,
+      text: event.notification.as_text,
+      code: event.notification.code,
+    };
+
+    const response = await fetch(event.secret.SERVICE_URL, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${event.secrets.TOKEN}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    console.log(response);
+  }
+
+  return;
+};
+```

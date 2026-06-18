@@ -1,0 +1,50 @@
+---
+description: Aprende a configurar AWS CloudFront para usarlo como proxy de dominio personalizado para Auth0.
+title: Configurar AWS CloudFront como proxy inverso
+---
+
+<Card title="La disponibilidad varía según el plan de Auth0">
+  Tanto tu implementación específica de login como tu plan de Auth0 o acuerdo personalizado influyen en si esta función está disponible. Para obtener más información, consulta [Pricing](https://auth0.com/pricing).
+</Card>
+
+Puedes configurar AWS CloudFront para usarlo como proxy inverso con nombres de <Tooltip tip="Dominio personalizado: dominio de terceros con un nombre especializado o distintivo." cta="Ver glosario" href="/docs/es/glossary?term=custom+domain">dominio personalizado</Tooltip> para tu tenant de Auth0.
+
+1. Inicia sesión en AWS y ve a [CloudFront](https://console.aws.amazon.com/cloudfront).
+2. Haz clic en **Create Distribution**.
+3. Puedes elegir el método de entrega para tu contenido. Haz clic en **Get Started** en la sección **Web**.
+4. Configura los ajustes de tu distribución. Estos son los valores que deberás cambiar.
+
+   | Setting                         | Value                                                                                                                                                  |
+   | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | Origin Domain Name              | Establece este campo con el valor de **Origin Domain Name** obtenido del Auth0 Dashboard durante el proceso de Setup de dominio personalizado                 |
+   | Origin ID                       | Una descripción del origen. Este valor te permite distinguir entre varios orígenes dentro de la misma distribución y, por lo tanto, debe ser único.    |
+   | Origin Protocol Policy          | Establécelo en `HTTPS Only`                                                                                                                            |
+   | Alternate Domain Names (CNAMEs) | Establécelo con el nombre de tu dominio personalizado (el mismo que configuraste en el Auth0 Dashboard)                                                |
+   | SSL Certificate                 | Establécelo con el SSL Certificate de tu dominio personalizado almacenado en AWS Certificate Manager (ACM) en la Region US East(N. Virginia) o en IAM. |
+5. Proporciona la información de **Origin Custom Headers** (los campos **Header Name** y **Value** solo aparecen después de que hayas indicado un **Origin Domain Name**)
+
+   | Setting     | Value                                                                                                                                        |
+   | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Header Name | Establécelo en `cname-api-key`                                                                                                               |
+   | Value       | Establece el valor de CNAME API Key que se te proporcionó inmediatamente después de verificar la propiedad de tu nombre de dominio con Auth0 |
+6. Configura **Default Cache Behavior Settings**. Estos son los valores que deberás cambiar
+
+   | Setting                                 | Value                                                                                                                                                                                              |
+   | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Viewer Protocol Policy                  | Selecciona **Redirect HTTP to HTTPS**                                                                                                                                                              |
+   | Allowed HTTP Methods                    | Selecciona **GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE**                                                                                                                                        |
+   | Cache and origin request settings       | Selecciona **Legacy cache settings**                                                                                                                                                               |
+   | Cache Based on Selected Request Headers | Selecciona **Include the following headers**                                                                                                                                                       |
+   | Add Headers                             | Introduce `User-Agent` y haz clic en **Add Custom &gt;&gt;** para añadir el header personalizado. Haz lo mismo con los headers `Authorization`, `Origin`, `Referer`, `Accept-Language` y `Accept`. |
+   | Forward Cookies                         | Selecciona **All**                                                                                                                                                                                 |
+   | Query Strings                           | Selecciona **All**                                                                                                                                                                                 |
+7. Desplázate hasta la parte inferior de la página y haz clic en **Create Distribution**.
+   Verás la distribución recién creada en tu lista de CloudFront Distributions. Ten en cuenta que el Status mostrará `In progress` hasta que la distribución esté Deployed.
+8. Agrega un nuevo registro CNAME en tu DNS para tu dominio personalizado que apunte al CloudFront Domain Name de tu Distribution. Puedes encontrarlo haciendo clic en tu Distribution ID, en la pestaña General, en Domain Name (por ejemplo, `e2zwy42nt1feu7.cloudfront.net`). También puedes usar un registro Alias si Route 53 está configurado para tu dominio.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar funcionalidades para usar dominios personalizados](/docs/es/customize/custom-domains/configure-features-to-use-custom-domains)
+* [Versiones y algoritmos de cifrado de TLS (SSL)](/docs/es/customize/custom-domains/self-managed-certificates/tls-ssl)

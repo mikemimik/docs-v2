@@ -1,0 +1,50 @@
+---
+description: Découvrez comment configurer AWS CloudFront pour l’utiliser comme proxy inverse pour un domaine personnalisé avec Auth0.
+title: Configurer AWS CloudFront comme proxy inverse
+---
+
+<Card title="La disponibilité varie selon votre plan Auth0">
+  Votre mise en œuvre de connexion ainsi que votre plan Auth0 ou votre entente personnalisée déterminent si cette fonctionnalité est offerte. Pour en savoir plus, consultez [Pricing](https://auth0.com/pricing).
+</Card>
+
+Vous pouvez configurer AWS CloudFront pour l’utiliser comme proxy inverse avec des noms de <Tooltip tip="Custom Domain : domaine tiers avec un nom spécialisé ou personnalisé." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=custom+domain">domaine personnalisé</Tooltip> pour votre tenant Auth0.
+
+1. Ouvrez une session dans AWS, puis accédez à [CloudFront](https://console.aws.amazon.com/cloudfront).
+2. Cliquez sur **Create Distribution**.
+3. Vous pouvez choisir le mode de diffusion de votre contenu. Cliquez sur **Get Started** dans la section **Web**.
+4. Configurez les paramètres de votre distribution. Voici les valeurs à modifier.
+
+   | Setting                         | Value                                                                                                                                                                 |
+   | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Origin Domain Name              | Définissez cette option à la valeur **Origin Domain Name** obtenue dans l’Auth0 Dashboard pendant le processus de configuration de Custom Domains                     |
+   | Origin ID                       | Une description de l’origine. Cette valeur vous permet de distinguer plusieurs origines dans une même distribution; elle doit donc être unique.                       |
+   | Origin Protocol Policy          | Définissez cette option à `HTTPS Only`                                                                                                                                |
+   | Alternate Domain Names (CNAMEs) | Définissez cette option à votre nom de domaine personnalisé (le même que celui configuré dans l’Auth0 Dashboard)                                                      |
+   | SSL Certificate                 | Définissez cette option au certificat SSL de votre domaine personnalisé stocké dans AWS Certificate Manager (ACM), dans la région US East (N. Virginia), ou dans IAM. |
+5. Fournissez les renseignements sur les **Origin Custom Headers** (les champs **Header Name** et **Value** n’apparaissent qu’après avoir fourni un **Origin Domain Name**)
+
+   | Setting     | Value                                                                                                                                                                     |
+   | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Header Name | Définissez cette option à `cname-api-key`                                                                                                                                 |
+   | Value       | Définissez cette option à la valeur de la clé API CNAME qui vous a été fournie immédiatement après la vérification de la propriété de votre nom de domaine auprès d’Auth0 |
+6. Configurez les **Default Cache Behavior Settings**. Voici les valeurs à modifier.
+
+   | Setting                                 | Value                                                                                                                                                                                                    |
+   | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Viewer Protocol Policy                  | Sélectionnez **Redirect HTTP to HTTPS**                                                                                                                                                                  |
+   | Allowed HTTP Methods                    | Sélectionnez **GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE**                                                                                                                                            |
+   | Cache and origin request settings       | Sélectionnez **Legacy cache settings**                                                                                                                                                                   |
+   | Cache Based on Selected Request Headers | Sélectionnez **Include the following headers**                                                                                                                                                           |
+   | Add Headers                             | Entrez `User-Agent`, puis cliquez sur **Add Custom &gt;&gt;** pour ajouter l’en-tête personnalisé. Faites de même pour les en-têtes `Authorization`, `Origin`, `Referer`, `Accept-Language` et `Accept`. |
+   | Forward Cookies                         | Sélectionnez **All**                                                                                                                                                                                     |
+   | Query Strings                           | Sélectionnez **All**                                                                                                                                                                                     |
+7. Faites défiler jusqu’au bas de la page et cliquez sur **Create Distribution**.
+   Vous verrez votre nouvelle distribution dans la liste des distributions CloudFront. Notez que l’état affichera `In progress` jusqu’à ce que la distribution soit déployée.
+8. Ajoutez un nouvel enregistrement CNAME dans votre DNS pour faire pointer votre domaine personnalisé vers le CloudFront Domain Name de votre Distribution. Vous le trouverez en cliquant sur l’ID de votre distribution, sous l’onglet General, à Domain Name (par exemple, `e2zwy42nt1feu7.cloudfront.net`). Vous pouvez aussi utiliser un enregistrement Alias si Route 53 est configuré pour votre domaine.
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Configurer les fonctionnalités pour utiliser des domaines personnalisés](/docs/fr-CA/customize/custom-domains/configure-features-to-use-custom-domains)
+* [Versions et suites cryptographiques TLS (SSL)](/docs/fr-CA/customize/custom-domains/self-managed-certificates/tls-ssl)

@@ -1,0 +1,110 @@
+---
+description: Describe cómo migrar las llamadas y respuestas de la API de contraseñas de /oauth/ro a /oauth/token.
+title: Migra tu flujo de contraseña del propietario del recurso
+---
+
+Se añadió compatibilidad con la contraseña del <Tooltip tip="Propietario del recurso: entidad (como un usuario o una aplicación) capaz de otorgar acceso a un recurso protegido." cta="Ver glosario" href="/docs/es/glossary?term=resource+owner">propietario del recurso</Tooltip> en `/oauth/token`. El uso del endpoint `/oauth/ro` quedó obsoleto el 8 de julio de 2017. Anteriormente, el endpoint `/oauth/ro` se usaba para intercambiar una contraseña de un solo uso (OTP) recibida por el usuario final por correo electrónico o SMS y obtener un <Tooltip tip="Token de ID: credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de identidad</Tooltip> y un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip>. Auth0 ha implementado una nueva API que reemplaza `/oauth/ro` para este caso de uso, y te recomendamos migrar al nuevo endpoint.
+
+<div id="features-affected">
+  ## Funcionalidades afectadas
+</div>
+
+Este cambio te afecta si usas el [flujo de contraseña del propietario del recurso](/docs/es/get-started/authentication-and-authorization-flow/resource-owner-password-flow) (a veces llamado concesión de contraseña del propietario del recurso o ROPG) y llamas a `/oauth/ro` directamente sin usar ninguna biblioteca ni SDK de Auth0. Las bibliotecas de Auth0, como Lock o Auth0.js, se han actualizado para dejar de usar `/oauth/ro` internamente. Si usas la biblioteca lock-<Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/docs/es/glossary?term=passwordless">passwordless</Tooltip>, ahora puedes usar el modo Passwordless en Lock.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Cuando caduque el token de acceso basado en `/oauth/ro` de un usuario, Auth0 lo obliga a volver a autenticarse (se requiere un cierre de sesión forzado), ya que el token de actualización de `/oauth/ro` no se puede usar para llamar a `/oauth/token` y obtener un nuevo token de acceso. Todos los usuarios que tengan una sesión iniciada actualmente deberán volver a iniciar sesión durante una migración de `/oauth/ro` a `/oauth/token`.
+</Callout>
+
+<div id="actions">
+  ## Actions
+</div>
+
+<div id="change-requests">
+  ### Cambios en las solicitudes
+</div>
+
+Anteriormente, el payload de una solicitud a `/oauth/ro` tenía este aspecto:
+
+```json lines
+{
+  "grant_type": "password",
+  "client_id": "123",
+  "username": "alice",
+  "password": "A3ddj3w", 
+  "connection": "my-database-connection",
+  "scope": "openid email favorite_color offline_access",
+  "device": "my-device-name"
+}
+```
+
+La nueva implementación incluye los siguientes cambios:
+
+* El endpoint para ejecutar intercambios de tokens ahora es `/oauth/token`.
+* El tipo de concesión propio de Auth0 se utiliza para autenticar a los usuarios mediante una conexión (o `realm`) específica.
+* Auth0 admite los scopes estándar de OIDC, junto con los scopes que hayas definido en tu API personalizada.
+* Un scope que no encaja en ninguna de estas categorías, como el `favorite_color` anterior, ya no es válido.
+* Se elimina el parámetro `device`.
+* El parámetro `audience` es opcional.
+
+Aquí tienes un ejemplo del payload de una solicitud a `/oauth/token`:
+
+```json lines
+{
+  "grant_type": "http://auth0.com/oauth/grant-type/password-realm",
+  "client_id": "123",
+  "username": "alice",
+  "password": "A3ddj3w",
+  "realm": "my-database-connection",
+  "scope": "openid email offline_access",
+  "audience": "https://api.example.com"
+}
+```
+
+* El tipo de concesión se especifica aquí como `password-realm`, en lugar del estándar `password`.
+* Los parámetros `client_id`, `username` y `password` permanecen sin cambios.
+* Se incluye `realm` porque estamos usando el tipo de concesión Password Realm y reemplaza el parámetro `connection` de las llamadas anteriores.
+* El parámetro `scope` es prácticamente el mismo, pero no acepta valores que no sean de OIDC.
+* Se puede agregar el parámetro `audience`, que indica la API <Tooltip tip="Audiencia: identificador único de la audiencia de un token emitido. Se llama aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audiencia</Tooltip> a la que va dirigido el token.
+
+<div id="response-changes">
+  ### Cambios en las respuestas
+</div>
+
+Las respuestas de `/oauth/ro` tenían un formato similar a este:
+
+```json lines
+{
+  "access_token": "SlAV32hkKG",
+  "token_type": "Bearer",
+  "refresh_token": "8xLOxBtZp8",
+  "expires_in": 3600,
+  "id_token": "eyJ..."
+}
+```
+
+* El token de acceso devuelto es válido para llamar al endpoint `/userinfo` (siempre que la API especificada por el parámetro `audience` use RS256 como <Tooltip tip="Signing Algorithm: Algoritmo utilizado para firmar digitalmente tokens y garantizar que no hayan sido manipulados." cta="Ver glosario" href="/docs/es/glossary?term=signing+algorithm">algoritmo de firma</Tooltip>) y, opcionalmente, la API personalizada, si se especificó una.
+* El token de identidad se firmará obligatoriamente con RS256 si lo solicita un <Tooltip tip="Public Client: Cliente (aplicación) que no puede almacenar credenciales de forma segura. Algunos ejemplos incluyen aplicaciones nativas de escritorio o móviles, y aplicaciones web del lado del cliente basadas en JavaScript (como las aplicaciones de página única [SPA])." cta="Ver glosario" href="/docs/es/glossary?term=public+client">cliente público</Tooltip>.
+* Solo se devolverá un <Tooltip tip="Refresh Token: Token utilizado para obtener un nuevo token de acceso sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+Token">token de actualización</Tooltip> si se concedió el scope `offline_access` y la API tiene activada la opción **Allow Offline Access**.
+
+Aquí tienes un ejemplo de la respuesta compatible con OIDC de `/oauth/token`:
+
+```json lines
+{
+  "access_token": "eyJ...",
+  "token_type": "Bearer",
+  "refresh_token": "8xLOxBtZp8",
+  "expires_in": 3600,
+  "id_token": "eyJ..."
+}
+```
+
+<div id="verify-migration">
+  ### Verificar la migración
+</div>
+
+1. Una vez que hayas migrado tu base de código y tengas la certeza de que tus aplicaciones ya no llaman al endpoint, ve a [Dashboard &gt; Configuración del tenant &gt; Advanced](https://manage.auth0.com/#/tenant/advanced).
+2. Desplázate hacia abajo hasta **Migración** y desactiva **Legacy** `/oauth/ro` **Endpoint**. Al desactivar este interruptor, se deshabilita el endpoint obsoleto de tu tenant, lo que evita que vuelva a utilizarse.
+
+Si al desactivar este interruptor se producen inicios de sesión fallidos, es señal de que aún no has eliminado por completo todas las instancias de código heredado de tus aplicaciones.
+
+Una vez que las migraciones se hayan completado correctamente en los entornos de producción, el interruptor puede desactivarse y dejarse así para garantizar que las funciones obsoletas ya no puedan utilizarse.

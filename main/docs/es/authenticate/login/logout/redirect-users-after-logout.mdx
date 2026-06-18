@@ -1,0 +1,83 @@
+---
+description: Describe cómo redirigir a los usuarios con el endpoint heredado de cierre de sesión.
+title: Redirigir a los usuarios con el endpoint alternativo de cierre de sesión
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Puedes redirigir a los usuarios a una URL específica después de que cierren sesión. Tendrás que registrar la URL de redirección en la configuración de tu tenant o de tu aplicación. Auth0 solo redirige a las URL incluidas en la allow list después del cierre de sesión. Si necesitas redirecciones distintas para cada aplicación, puedes agregar las URL a la allow list en la configuración de tu aplicación.
+
+1. Agrega un parámetro de query string `returnTo` con la URL de destino como valor. Codifica la URL de destino que se envía. Por ejemplo, para redirigir al usuario a `https://www.example.com` después del cierre de sesión, realiza la siguiente solicitud:
+   `https://{yourDomain}/v2/logout?returnTo=https%3A%2F%2Fwww.example.com`.
+2. Agrega la URL `returnTo` sin codificar (por ejemplo, `https://www.example.com`) como **Allowed Logout URLs** en uno de estos dos lugares:
+
+   * **Configuración del tenant**: Para las solicitudes de cierre de sesión que no incluyan el parámetro `client_id`, debes agregar la URL `returnTo` a la lista de **Allowed Logout URLs** en la pestaña [Advanced de tu Configuración del tenant](https://manage.auth0.com/#/tenant/advanced).
+
+     Para agregar una lista de URL a las que se puede redirigir al usuario después de cerrar sesión a nivel de tenant, ve a [Configuración del tenant &gt; Advanced](https://manage.auth0.com/#/tenant/advanced) en el Auth0 Dashboard.
+
+     <Frame>![Pestaña Advanced de Configuración del Auth0 Dashboard de Login y cierre de sesión](/docs/images/cdy7uua7fh8z/77s6AWMuzH78ABObR3lg0o/e71244706641f43e292d719056f3e651/2025-02-27_11-14-31.png)</Frame>
+   * **Configuración de la aplicación de Auth0**: Para las solicitudes de cierre de sesión que incluyan el parámetro `client_id`, debes agregar la URL `returnTo` a la lista de **Allowed Logout URLs** en la pestaña **Settings** de las aplicaciones de Auth0 asociadas.
+
+     <Frame>![Dashboard Applications Application Settings URI de la aplicación](/docs/images/cdy7uua7fh8z/1QhW2i4fTCCp8owey2tMPI/a19f7fc3f84118920d0e5cb2357144da/Application_URIs.png)</Frame>
+
+Al proporcionar la lista de URL, puedes:
+
+1. Especificar varias URL válidas, separadas por comas.
+2. Usar `*` como [wildcard para subdominios](/docs/es/get-started/applications/wildcards-for-subdomains) (como `http://*.example.com`).
+
+Si se incluye el parámetro `client_id` y no se establece la URL `returnTo`, el servidor redirige al usuario a la primera Allowed Logout URLs configurada en el Dashboard.
+
+Para evitar errores de validación, asegúrate de incluir la parte del protocolo en la URL. Por ejemplo, si estableces el valor en `*.example.com`, se producirá un error de validación, por lo que debes usar `http://*.example.com` en su lugar.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para redirigir usando el endpoint `oidc/logout` de Auth0, consulta [Usa el OIDC Endpoint para cerrar la sesión de los usuarios en Auth0](/docs/es/authenticate/login/logout/log-users-out-of-auth0).
+</Callout>
+
+<div id="federated-logouts">
+  ## Cierres de sesión federados
+</div>
+
+[Varios proveedores](/docs/es/authenticate/login/logout/log-users-out-of-idps#federated-logout-support) admiten el cierre de sesión federado.
+
+Para redirigir a los usuarios desde aplicaciones que usan cierre de sesión federado, inicia el cierre de sesión federado con el siguiente endpoint:
+
+`https://{yourDomain}/v2/logout?federated`
+
+Eres responsable de asegurarte de que tu aplicación finalice la sesión del usuario antes de redirigirlo.
+
+Cuando el usuario llega al endpoint `/logout`, Auth0 finaliza la sesión de Auth0, redirige al usuario al endpoint de cierre de sesión de <Tooltip tip="Identity Provider (IdP): Servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=Identity+Providers">proveedores de identidad</Tooltip> y finaliza la sesión con el proveedor de identidad.
+
+<div id="limitations">
+  ## Limitaciones
+</div>
+
+* No se tienen en cuenta ni la validación de las URL proporcionadas como valores del parámetro `returnTo`, ni la cadena de consulta, ni la información de hash incluidas como parte de la URL.
+* El comportamiento de los cierres de sesión federados con proveedores sociales es inconsistente. Cada proveedor gestionará el parámetro `returnTo` de forma distinta y, en algunos casos, no funcionará. Consulta la configuración de tu proveedor social para asegurarte de que acepta el parámetro `returnTo` y de cómo se comportará.
+* Las URL incluidas en la lista de **Allowed Logout URLs** distinguen entre mayúsculas y minúsculas, por lo que la URL utilizada para los cierres de sesión debe coincidir exactamente con la capitalización de la URL de cierre de sesión configurada en el Dashboard. No obstante, ten en cuenta que las partes del esquema y del host no distinguen entre mayúsculas y minúsculas. Por ejemplo, si tu URL es `http://www.Example.Com/FooHoo.html`, la parte `http://www.Example.Com` no distingue entre mayúsculas y minúsculas, mientras que la parte `FooHoo.html` sí.
+
+Si trabajas con proveedores de identidad sociales como Google o Facebook, debes configurar tu `Client ID` y `Secret` para estos proveedores en el [Dashboard](https://manage.auth0.com/#) para que el cierre de sesión funcione correctamente.
+
+<div id="additional-requirements-for-facebook">
+  ## Requisitos adicionales para Facebook
+</div>
+
+Usa el parámetro `returnTo` para especificar adónde redirigir al usuario después del cierre de sesión.
+
+No todos los IdPs admiten `returnTo`.
+
+En Facebook, el ejemplo de código siguiente usa el parámetro `returnTo` y especifica un sitio web al que redirigir.
+
+export const codeExample = `https://{yourDomain}/v2/logout?federated&
+      returnTo=https://{yourDomain}/logout?returnTo=http://www.example.com
+      &access_token={facebookAccessToken}`;
+
+<AuthCodeBlock children={codeExample} language="http" />
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Cerrar la sesión de los usuarios en las aplicaciones](/docs/es/authenticate/login/logout/log-users-out-of-applications)
+* [Cerrar la sesión de los usuarios en Auth0 con el endpoint de OIDC](/docs/es/authenticate/login/logout/log-users-out-of-auth0)
+* [Cerrar la sesión de los usuarios en los proveedores de identidad](/docs/es/authenticate/login/logout/log-users-out-of-idps)
+* [Cerrar la sesión de los usuarios en los proveedores de identidad SAML](/docs/es/authenticate/login/logout/log-users-out-of-saml-idps)

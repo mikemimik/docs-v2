@@ -1,0 +1,137 @@
+---
+description: Explica cómo instalar el plugin de Auth0 para WordPress
+title: Instalar Login by Auth0
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para instalar o personalizar plugins, debes usar un sitio de WordPress.org con alojamiento propio. En un sitio de WordPress.com no se pueden instalar plugins. Para obtener más información sobre las diferencias, consulta [WordPress.com and WordPress.org on wordpress.com](https://wordpress.com/support/com-vs-org/).
+</Callout>
+
+Puedes añadir este plugin a tu sitio de WordPress desde la pantalla **Plugins** en wp-admin:
+
+1. Inicia sesión en un sitio de WordPress existente como administrador.
+2. Ve a **Plugins &gt; Añadir nuevo** en el menú de administración de la izquierda.
+3. Busca &quot;Login by Auth0&quot;
+4. En el plugin Login by Auth0, haz clic en **Instalar ahora** y luego en **Activar**.
+
+Para obtener más información sobre este proceso, consulta [WordPress.com and WordPress.org on wordpress.com](https://wordpress.com/support/com-vs-org/).
+
+En cuanto actives el plugin, se te redirigirá al inicio del Setup Wizard.
+
+Si aún no tienes una cuenta de Auth0, [r**egístrate gratis para crear una**](https://auth0.com/signup) antes de continuar.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Auth0 no reemplazará tus formularios de inicio de sesión hasta que se hayan añadido un **Domain**, un **ID de cliente** y un **secreto de cliente** en la pestaña Basic de la página de configuración.
+</Callout>
+
+<div id="multisite-setup">
+  ## Configuración multisitio
+</div>
+
+El plugin Login by Auth0 es compatible con redes multisitio de WordPress. Puede activarse para toda la red y así proteger automáticamente los sitios de la red (una vez completada la configuración), o activarse solo en una parte de la red.
+
+Hay varias formas de configurar una red de sitios en Auth0:
+
+1. **Todos los sitios pueden compartir una aplicación y una conexión de base de datos**
+
+   1. Complete todos los pasos del Setup Wizard para el sitio principal.
+   2. Configure manualmente todos los demás sitios con el **Domain**, el **ID de cliente** y el **secreto de cliente** del sitio principal en la pestaña Basic de la página de configuración de Auth0.
+   3. Actualice los **Allowed Callback URLs**, **Allowed Web Origins** y **Allowed Logout URLs** de la aplicación para incluir cada sitio (se pueden usar comodines si su red usa subdominios).
+2. **Cada sitio puede tener su propia aplicación y compartir una conexión de base de datos**
+
+   1. Complete todos los pasos del Setup Wizard para el sitio principal.
+   2. A continuación, [cree manualmente una aplicación para cada sitio](/docs/es/customize/integrations/cms/wordpress-plugin/configure-login-by-auth0) y agregue cada una a la conexión de base de datos creada previamente.
+   3. Agregue los valores de **Domain**, **ID de cliente** y **secreto de cliente** en la pestaña Basic de la página de configuración de Auth0 de cada sitio.
+3. **Cada sitio puede tener su propia aplicación y su propia conexión de base de datos.** En este caso, complete todos los pasos del Setup Wizard para cada sitio.
+
+Cada una de las opciones anteriores tiene sus ventajas y desventajas. La opción 1 implica la menor cantidad de entidades distintas para administrar en Auth0 pero, si su red tiene cientos de sitios y no usa subdominios, podría encontrarse con limitaciones en la cantidad de URL de devolución de llamada. La opción 2 requerirá administrar muchas aplicaciones distintas, pero le permitirá configurar de forma diferente la aplicación de cada sitio.
+
+Como siempre, si tiene alguna pregunta sobre este proceso de configuración, [cree una publicación en nuestra Community y etiquétela como &quot;wordpress&quot;](https://community.auth0.com/tags/wordpress).
+
+<div id="setup-wizard">
+  ## Setup Wizard
+</div>
+
+El Setup Wizard intentará crear todos los componentes necesarios para usar Auth0 en tu sitio de WordPress. Si ya tienes una aplicación o una conexión de base de datos que quieres usar, consulta los pasos de configuración manual que aparecen a continuación.
+
+<div id="option-1-standard-setup">
+  ### Opción 1: Configuración estándar
+</div>
+
+Esto creará y configurará una aplicación y una conexión de base de datos para este sitio.
+
+Primero, [genera un token de la Management API](https://auth0.com/docs/api/management/v2/get-access-tokens-for-test#get-access-tokens-manually). Una vez generado el token, toma nota del nombre de dominio usado en el campo **Identifier** de la pestaña **Settings**. Por ejemplo, si tu Identifier es `https://tenant-name.auth0.com/api/v2/`, el dominio del tenant es `tenant-name.auth0.com`. Para obtener más información sobre los dominios de tenant, consulta [Crear tenants](/docs/es/get-started/auth0-overview/create-tenants).
+
+De vuelta en el Setup Wizard del administrador de WordPress, haz clic en **Standard**. En la ventana modal que aparece, haz clic en **Start Standard Setup**.
+
+Introduce el dominio del tenant y el token de API indicados arriba. Este token solo se usa durante el proceso de configuración y no se guardará en la base de datos.
+
+Si la primera parte de la configuración se completa correctamente, verás la pantalla &quot;Configure your social connections&quot;. Haz clic en **Next** para continuar con el proceso de configuración migrando tu cuenta de administrador.
+
+En este paso, se conecta tu usuario de WordPress con un usuario de Auth0 que te autoriza a iniciar sesión. Puedes elegir la misma contraseña que usas para tu cuenta de administrador u otra distinta, pero asegúrate de que cumpla con las políticas de fortaleza de la contraseña de la conexión de base de datos que se esté utilizando. Para obtener más información, consulta [Fortaleza de la contraseña en las Database Connections de Auth0: políticas de contraseñas](/docs/es/authenticate/database-connections/password-strength#password-policieslicies).
+
+El Setup Wizard debe ejecutarse hasta completarse para que tu sitio quede configurado correctamente. Si el Wizard falla por cualquier motivo antes de la pantalla &quot;setup successful&quot;, revisa el registro de errores del plugin en **wp-admin &gt; Auth0 &gt; Error Log** y los pasos que aparecen a continuación para identificar el problema.
+
+Para reiniciar el proceso por completo, elimina cualquier aplicación o Database Connections que se hayan creado en el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. En WordPress, ve a **Auth0 &gt; Settings &gt; Basic**, elimina los campos Domain, <Tooltip tip="secreto de cliente: secreto que usa un cliente (aplicación) para autenticarse con el servidor de autorización; solo deberían conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio como para que no pueda adivinarse." cta="Ver glosario" href="/docs/es/glossary?term=Client+ID">ID de cliente</Tooltip>, y <Tooltip tip="ID de cliente: valor de identificación que Auth0 asigna a tu recurso registrado." cta="Ver glosario" href="/docs/es/glossary?term=Client+Secret">secreto de cliente</Tooltip>, y haz clic en **Save**. Después, haz clic en **Setup Wizard** en el menú de administración para volver a iniciar el proceso.
+
+Si todavía no puedes instalarlo, [publica un hilo en nuestra Community](https://community.auth0.com/tags/wordpress) con los mensajes de error que ves en el Error Log y con gusto te ayudaremos.
+
+<div id="option-2-user-migration-setup">
+  ### Opción 2: Setup de Migración de usuarios
+</div>
+
+Esto creará y configurará una aplicación y una conexión de base de datos, además de migrar los datos desde tu base de datos de WordPress. Esto requiere una conexión entrante desde los servidores de Auth0 y no se puede cambiar más adelante sin perder datos. Para obtener más información, consulta [Migración de usuarios en Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/user-migration-in-login-by-auth0).
+
+::: warning
+Si tienes más de una conexión de base de datos personalizada en Auth0, tendrás que asegurarte de que los ID de usuario tengan espacio de nombres para evitar conflictos. Esto se hace automáticamente en los sitios que instalan la versión 3.11.0 o posterior. Si tus conexiones se están o se estaban creando con una versión anterior, consulta los pasos de solución de problemas en [Migración de usuarios en Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/user-migration-in-login-by-auth0).
+:::
+
+Una vez completado el proceso de configuración, cierra sesión en tu sitio de WordPress e intenta volver a iniciar sesión con tus credenciales actuales de WordPress en el formulario de inicio de sesión de Auth0. Esto debería crear un usuario de Auth0 vinculado a tu cuenta de WordPress.
+
+<div id="option-3-manual-setup">
+  ### Opción 3: Configuración manual
+</div>
+
+Esto omitirá la configuración automática y te permitirá crear y configurar tu propia aplicación y conexión de base de datos (consulta más abajo). Debes usar esta opción si quieres que este sitio utilice una aplicación o una conexión de base de datos existentes.
+
+<div id="option-4-import-setup">
+  ### Opción 4: Importar configuración
+</div>
+
+El sitio también se puede configurar importando la configuración de otro sitio. Esto resulta útil si estás migrando entre entornos o si tienes un sitio de WordPress similar que ya está configurado.
+
+<div id="setup-complete">
+  ## Configuración completada
+</div>
+
+Cuando veas la pantalla &quot;Done&quot;, Auth0 estará habilitado y listo para aceptar inicios de sesión y, si está configurado, registros de usuarios.
+
+Este es un buen momento para comprobar que lo básico funciona en tu sitio antes de cambiar cualquiera de los ajustes predeterminados:
+
+1. Cierra sesión en WordPress y confirma que el formulario de Auth0 ahora aparece en `/wp-login.php`.
+2. Inicia sesión con el usuario de Auth0 creado anteriormente.
+3. Cierra sesión e intenta crear una cuenta con una dirección de correo electrónico diferente (si tienes activada la opción &quot;Anyone can register&quot; en la configuración general de WordPress).
+4. Intenta iniciar sesión con una conexión social (si las has activado).
+
+Ahora estás listo para [configurar la aplicación](/docs/es/customize/integrations/cms/wordpress-plugin/configure-login-by-auth0).
+
+<div id="manual-setup">
+  ## Configuración manual
+</div>
+
+El plugin puede configurarse con el Setup Wizard integrado (que se describe a continuación) o manualmente, creando una aplicación y asignando conexiones. El proceso de configuración completamente manual puede usarse si tienes problemas con el wizard, si ya has completado el proceso de configuración antes o si quieres compartir una conexión de base de datos entre aplicaciones.
+
+1. Ve a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#) y selecciona **Create**.
+2. Asigna a tu aplicación un nombre descriptivo, selecciona **Aplicaciones web clásicas** y, a continuación, selecciona **Create**.
+3. Configura la aplicación para tu instalación de WordPress. Para obtener información sobre cómo configurar la aplicación, lee [Configure Login by Auth0](/docs/es/customize/integrations/cms/wordpress-plugin/configure-login-by-auth0) y sigue todas las secciones hasta &quot;Actualizar la configuración de Auth0 en WordPress&quot;.
+
+Una vez completados los pasos anteriores, tu sitio quedará configurado y listo para usarse.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Integrar con WordPress](/docs/es/customize/integrations/cms/wordpress-plugin/integrate-with-wordpress)
+* [Configurar Login by Auth0](/docs/es/customize/integrations/cms/wordpress-plugin/configure-login-by-auth0)
+* [Solucionar problemas con Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/troubleshoot-login-by-auth0)
+* [Extender Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/extend-login-by-auth0)

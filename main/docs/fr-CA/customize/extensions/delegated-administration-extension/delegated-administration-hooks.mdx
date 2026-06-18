@@ -1,0 +1,201 @@
+---
+description: Découvrez comment personnaliser le comportement de la Delegated Administration Extension à l’aide des Extension Hooks.
+title: 'Delegated Administration : Extension Hooks'
+---
+
+Si le rôle **Delegated Admin - Administrator** vous a été attribué, vous pouvez gérer les différents Extension Hooks et les requêtes qui vous permettent de personnaliser le comportement de l’extension Delegated Administration.
+
+Pour accéder à la zone de configuration :
+
+1. Ouvrez une session dans le Delegated Administration Dashboard.
+2. Cliquez sur votre nom dans le coin supérieur droit. Un menu déroulant s’affiche; cliquez sur l’option **Configure**.
+
+La page **Configuration** vers laquelle vous êtes redirigé vous permet de gérer vos Hooks et vos requêtes.
+
+<div id="extension-hooks-context">
+  ## Contexte des Extension Hooks
+</div>
+
+L’objet contextuel (**ctx**) met à disposition quelques fonctions utilitaires ainsi que des renseignements sur la requête en cours. Les méthodes et propriétés suivantes sont disponibles dans chaque Extension Hook :
+
+* journalisation
+* mise en cache
+* donnée personnalisée
+* Payload et Request
+* Appels distants
+
+<div id="logging">
+  ### Journalisation
+</div>
+
+Pour ajouter un message aux journaux en temps réel d’Actions (que vous pouvez consulter au moyen d’Actions Real-time Logs), appelez la méthode **log** :
+
+```javascript lines
+function(ctx, callback) {
+  ctx.log('Logging action:', ctx.payload.action);
+  return callback();
+}
+```
+
+<div id="caching">
+  ### Mise en cache
+</div>
+
+Pour mettre en cache des éléments (comme une longue liste de départements), vous pouvez les stocker dans l’objet **global** du contexte. Cet objet restera accessible jusqu’à ce que le conteneur Actions Real-Time Logs soit redémarré.
+
+```javascript lines
+function(ctx, callback) {
+  ctx.global.departments = [ 'IT', 'HR', 'Finance' ];
+  return callback();
+}
+```
+
+<div id="custom-data">
+  ### Données personnalisées
+</div>
+
+Vous pouvez stocker des données personnalisées dans l’extension. Ce champ peut contenir jusqu’à 400 ko de données.
+
+```javascript lines
+var data = {
+departments: [ 'IT', 'HR', 'Finance' ]
+};
+
+ctx.write(data)
+.then(function() {
+    // ...
+})
+.catch(function(err) {
+    // ...
+});
+```
+
+Pour lire les données :
+
+```js lines
+ctx.read()
+.then(function(data) {
+    // ...
+})
+.catch(function(err) {
+    // ...
+});
+```
+
+<div id="payload-and-request">
+  ### Payload et requête
+</div>
+
+Chaque Extension Hook expose le payload ou la requête en cours avec des renseignements précis. La requête contiendra toujours des renseignements sur l’utilisateur connecté au Dashboard Users :
+
+```javascript lines
+function(ctx, callback) {
+  ctx.log('Current User:', ctx.request.user);
+  return callback();
+}
+```
+
+<div id="remote-calls">
+  ### Appels distants
+</div>
+
+Si vous souhaitez appeler un service externe (comme une API) pour valider des données ou charger des adhésions, vous pouvez le faire à l’aide du module `request`.
+
+```javascript lines
+function(ctx, callback) {
+var request = require('request');
+    request('http://api.mycompany.com/departments', function (error, response, body) {
+        if (error) {
+        return callback(error);
+        }
+
+        // ...
+    });
+}
+```
+
+<div id="hook-contract">
+  ### Contrat du Hook
+</div>
+
+* `ctx` : L’objet de contexte
+
+  * `payload` : L’objet payload
+
+    * `action` : L’action en cours d’exécution (par exemple, `delete:user`)
+    * `user` : L’utilisateur visé par l’action en cours d’exécution
+* `callback(error)` : Le callback auquel vous pouvez renvoyer une erreur si l’accès est refusé
+
+<div id="sample-use">
+  ### Exemple d’utilisation
+</div>
+
+Kelly gère le département des finances et ne devrait pouvoir accéder qu’aux utilisateurs de son département.
+
+```javascript lines
+function(ctx, callback) {
+  if (ctx.payload.action === 'delete:user') {
+    return callback(new Error('You are not allowed to delete users.'));
+  }
+
+  // Obtenir le département à partir des métadonnées de l'utilisateur actuel.
+  var department = ctx.request.user.app_metadata && ctx.request.user.app_metadata.department;
+  if (!department || !department.length) {
+    return callback(new Error('The current user is not part of any department.'));
+  }
+
+  // Le département TI peut accéder à tous les utilisateurs.
+  if (department === 'IT') {
+    return callback();
+  }
+
+  ctx.log('Verifying access:', ctx.payload.user.app_metadata.department, department);
+
+  if (!ctx.payload.user.app_metadata.department || ctx.payload.user.app_metadata.department !== department) {
+    return callback(new Error('You can only access users within your own department.'));
+  }
+
+  return callback();
+}
+```
+
+Si ce hook n’est pas configuré, il sera possible d’accéder à tous les utilisateurs.
+
+Noms d’action pris en charge :
+
+* `read:user`
+* `delete:user`
+* `reset:password`
+* `change:password`
+* `change:username`
+* `change:email`
+* `read:devices`
+* `read:logs`
+* `remove:multifactor-provider`
+* `block:user`
+* `unblock:user`
+* `send:verification-email`
+
+<div id="available-extension-hooks">
+  ## Extension Hooks disponibles
+</div>
+
+Les Extension Hooks suivants peuvent être utilisés avec l’application Delegated Administration :
+
+* [Access Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-access-hook)
+* [Custom Domain Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-custom-domain-hook)
+* [Filter Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-filter-hook)
+* [Memberships Query Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-memberships-query-hook)
+* [Settings Query Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-settings-query-hook)
+* [Write Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-write-hook)
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Delegated Administration : Access Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-access-hook)
+* [Delegated Administration : Custom Domain Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-custom-domain-hook)
+* [Delegated Administration : Filter Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-filter-hook)
+* [Delegated Administration : Memberships Query Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-memberships-query-hook)
+* [Delegated Administration : Settings Query Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-settings-query-hook)
+* [Delegated Administration : Write Hook](/docs/fr-CA/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-write-hook)
