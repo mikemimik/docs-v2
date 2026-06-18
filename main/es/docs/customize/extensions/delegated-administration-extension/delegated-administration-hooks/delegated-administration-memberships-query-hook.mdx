@@ -1,0 +1,67 @@
+---
+description: Aprende a usar el Memberships Query Hook con la Delegated Administration Extension.
+title: 'Administración delegada: Memberships Query Hook'
+---
+
+Al crear un usuario nuevo, la interfaz de usuario muestra un menú desplegable en el que puedes elegir la membresía o las membresías que quieres asignarle. Estas membresías se definen mediante el **Memberships Query Hook**.
+
+<div id="hook-contract">
+  ## Contrato del Hook
+</div>
+
+* **ctx**: Objeto `context`.
+* **callback(error, &#123; createMemberships: true/false, memberships: &#125;)**: Devolución de llamada en la que puedes devolver un error y un objeto que contiene la configuración de las membresías.
+
+<div id="sample-use">
+  ## Ejemplo de uso
+</div>
+
+Los usuarios del departamento de TI deberían poder crear usuarios en otros departamentos. Los usuarios de otros departamentos solo deberían poder crear usuarios en sus propios departamentos.
+
+```javascript lines
+function(ctx, callback) {
+  var currentDepartment = ctx.payload.user.app_metadata && ctx.payload.user.app_metadata.department;
+  if (!currentDepartment || !currentDepartment.length) {
+    return callback(null, [ ]);
+  }
+
+  if (currentDepartment === 'IT') {
+    return callback(null, [ 'IT', 'HR', 'Finance', 'Marketing' ]);
+  }
+
+  return callback(null, [ ctx.payload.user.app_metadata.department ]);
+}
+```
+
+<div id="notes">
+  ## Notas
+</div>
+
+Como solo puedes usar esta consulta en la UI, tendrás que asignar membresías mediante el **Write Hook** si necesitas aplicar reglas sobre la asignación de usuarios a departamentos específicos.
+
+Si solo es posible un grupo de membresía, el campo Memberships no se mostrará en la UI.
+
+Puedes permitir que el usuario final introduzca cualquier valor en el campo **memberships** estableciendo **createMemberships** en true:
+
+```javascript lines
+function(ctx, callback) {
+  var currentDepartment = ctx.payload.user.app_metadata.department;
+  if (!currentDepartment || !currentDepartment.length) {
+    return callback(null, [ ]);
+  }
+
+  return callback(null, {
+    createMemberships: ctx.payload.user.app_metadata.department === 'IT' ? true : false,
+    memberships: [ ctx.payload.user.app_metadata.department ]
+  });
+}
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Administración delegada: Access Hook](/es/docs/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-access-hook)
+* [Administración delegada: Filter Hook](/es/docs/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-filter-hook)
+* [Administración delegada: Settings Query Hook](/es/docs/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-settings-query-hook)
+* [Administración delegada: Write Hook](/es/docs/customize/extensions/delegated-administration-extension/delegated-administration-hooks/delegated-administration-write-hook)

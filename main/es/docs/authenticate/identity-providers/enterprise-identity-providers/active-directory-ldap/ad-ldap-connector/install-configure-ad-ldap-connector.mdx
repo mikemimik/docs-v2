@@ -1,0 +1,115 @@
+---
+description: Instala el Auth0 AD/LDAP Connector en un equipo con Windows o Linux dentro de tu red y conéctalo a tu servidor de Active Directory o LDAP y a tu tenant de Auth0.
+title: Instala y configura AD/LDAP Connector
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+export const codeExample = `{
+   "LDAP_URL": "ldap://{yourLdapServerFqdn}",
+   "LDAP_BASE": "dc={yourDomain},dc=com",
+   "LDAP_BIND_USER":"{yourLdapUser}",
+   "LDAP_BIND_PASSWORD":"{yourLdapUserPassword}" //contraseña sin cifrar
+}`;
+
+<div id="prerequisites">
+  ## Requisitos previos
+</div>
+
+* Asegúrate de que tu sistema cumpla los [requisitos del sistema](/es/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/ad-ldap-connector-requirements).
+* Asegúrate de haber instalado [Git](https://git-scm.com/downloads), [Node.js](https://nodejs.org) y [npm](http://blog.npmjs.org/post/85484771375/how-to-install-npm).
+* En la mayoría de las plataformas, necesitarás privilegios de root o de administrador.
+
+<div id="install-the-connector-for-windows">
+  ## Instala el conector para Windows
+</div>
+
+<div id="download-and-run-the-installer">
+  ### Descargue y ejecute el instalador
+</div>
+
+Vaya a [Auth0 Dashboard &gt; Autenticación &gt; Enterprise &gt; Active Directory/LDAP](https://manage.auth0.com/#/connections/enterprise/ad) y seleccione la conexión que desea configurar.
+
+En la pestaña **Setup**, seleccione el botón **Install For Windows** para descargar el instalador más reciente, en formato MSI.
+
+Ejecute el instalador y siga las instrucciones para instalar el **AD/LDAP Connector** como un servicio de Windows.
+
+<Frame>![Servicios de AD/LDAP Connector](/docs/images/cdy7uua7fh8z/MPMfLmJsXoPAzpPQhGAv5/25fb39ac7cef7a125110b8fa9f2dff01/adldap-connector-services.png)</Frame>
+
+Una vez completada la instalación, verá en el navegador una pantalla que apunta a localhost:
+
+<Frame>![Ticket de administrador de AD/LDAP Connector](/docs/images/cdy7uua7fh8z/3biSuxJYQ4swMGJkOZtC3R/cab77cb763ad3b9ff47710bc406c527b/adldap-connector-admin-ticket.png)</Frame>
+
+Introduzca la **TICKET URL** proporcionada cuando aprovisionó la conexión. La **TICKET URL** identifica de forma única este conector en Auth0. El conector la utilizará para comunicarse con el servidor de Auth0 y completar automáticamente la configuración.
+
+<div id="link-to-ldap">
+  ### Conectar a LDAP
+</div>
+
+Introduce la configuración de LDAP:
+
+<Frame>![adldap-connector-admin-settings](/docs/images/cdy7uua7fh8z/2mHaknek0qyBxGmsanb30L/600b0259ed6db3fe9c526aa9f57a76bd/adldap-connector-admin-settings.png)</Frame>
+
+| Configuración               | Descripción                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cadena de conexión LDAP** | Por ejemplo, `ldap://ldap.internal.contoso.com`. Es el protocolo + el nombre de dominio o la dirección IP de tu servidor LDAP. Tu servidor LDAP es el controlador de dominio local donde está instalado Active Directory. El protocolo puede ser `ldap` o `ldaps`. Si necesitas usar `ldaps`, asegúrate de que el certificado sea válido en el servidor actual. |
+| **DN base**                 | Por ejemplo, `dc=contoso,dc=com`. Es el contenedor base para todas las consultas que realiza el conector.                                                                                                                                                                                                                                                       |
+| **Nombre de usuario**       | Por ejemplo, `cn=svcauth0,dc=services,dc=contoso,dc=com`. El nombre distintivo completo de un usuario para realizar consultas.                                                                                                                                                                                                                                  |
+| **Contraseña**              | La contraseña del usuario.                                                                                                                                                                                                                                                                                                                                      |
+
+Una vez que envíes la información anterior, el conector realizará una serie de pruebas para validar la información que ingresaste. Los resultados se muestran en **Registro de configuración** en la pantalla de la consola.
+
+<Frame>![adldap-connector-admin-settings-ok](/docs/images/cdy7uua7fh8z/7kezId8mhvyYDbuovvi9FM/c2f3b2188fdfebc460458daf7247c124/adldap-connector-admin-settings-ok.png)</Frame>
+
+Asegúrate de que todas las pruebas aparezcan en verde.
+
+| Prueba | Descripción                                                                                                                                  | Solución de problemas                                                                                   |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Test 1 | Intenta establecer una conexión TCP con el servidor LDAP y el puerto especificados.                                                          | Verifica la conectividad básica de red y la configuración del firewall que podría impedir esa conexión. |
+| Test 2 | Intenta realizar una vinculación LDAP en el servidor LDAP y el puerto especificados con el nombre de usuario y la contraseña proporcionados. | Verifica la cadena de conexión LDAP, la ruta de búsqueda, el nombre de usuario y la contraseña.         |
+| Test 3 | Intenta realizar una búsqueda LDAP en el directorio para comprobar los privilegios del nombre de usuario especificado.                       | Verifica los privilegios del nombre de usuario en el directorio de destino.                             |
+| Test 4 | Intenta establecer una conexión con el servidor de Auth0.                                                                                    | Verifica la conectividad de red y la configuración del firewall que podría impedir esa conexión.        |
+
+<div id="install-the-connector-for-other-platforms">
+  ## Instala el conector para otras plataformas
+</div>
+
+1. Descarga e instala la versión más reciente del paquete **[Auth0 Active Directory/LDAP Connector](https://github.com/auth0/ad-ldap-connector/releases)** en `/tmp`. Para obtener más información, consulta el [repositorio de AD/LDAP Connector](https://github.com/auth0/ad-ldap-connector).
+
+2. Inicia el servidor.
+   `node server.js` Cuando se te solicite el número de ticket, introduce la URL completa del ticket desde la pestaña **Settings** de la pantalla **Setup AD/LDAP connector** en el Dashboard de administración de Auth0.
+
+3. Se te pedirá que edites el archivo de configuración `config.json` con los datos de tu conexión LDAP y de autenticación:
+
+   <AuthCodeBlock children={codeExample} language="json" lines />
+
+4. Ejecuta `node server.js` una vez más para iniciar el Connector. Ten en cuenta que la línea `LDAP_BIND_PASSWORD` de `config.json` pasa a ser `LDAP_BIND_CREDENTIALS` en este punto.
+
+5. Una vez que el Connector esté en ejecución, tendrás que ejecutarlo como daemon (si aún no has elegido una herramienta, puedes considerar [systemd](https://www.freedesktop.org/wiki/Software/systemd/)). Por ejemplo, si vas a usar systemd con Ubuntu Xenial, el archivo `/lib/systemd/system/auth0-adldap.service` podría contener lo siguiente:
+
+   ```bash
+   [Unit]
+   Description=Auth0 AD LDAP Agent
+   After=network.target
+
+   [Service]
+   Type=simple
+   Restart=always
+   User=ubuntu
+   WorkingDirectory=/opt/auth0-adldap
+   ExecStart=/usr/bin/node server.js
+   ```
+
+6. Ejecuta `node admin/server.js` para acceder a la interfaz de administración. La interfaz de administración estará en ejecución y disponible en `http://localhost:8357`.
+
+Si aparece un mensaje de `Invalid Ticket` al configurar el Connector por primera vez, lo más probable es que se deba a un problema de red (por ejemplo, que el Connector se esté ejecutando detrás de un proxy).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Requisitos del sistema para AD/LDAP Connector](/es/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/ad-ldap-connector-requirements)
+* [Vincular AD/LDAP Connector a las conexiones de Auth0](/es/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/ad-ldap-connector-to-auth0)
+* [Configurar la autenticación de AD/LDAP Connector con certificados de cliente](/es/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/configure-ad-ldap-connector-client-certificates)
+* [Configurar la autenticación de AD/LDAP Connector con Kerberos](/es/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/configure-ad-ldap-connector-with-kerberos)
+* [Actualizar los conectores AD/LDAP](/es/docs/authenticate/identity-providers/enterprise-identity-providers/active-directory-ldap/ad-ldap-connector/update-ad-ldap-connectors)

@@ -1,0 +1,83 @@
+---
+description: Aprenda cuáles son las mejores prácticas al trabajar con conexiones Passwordless.
+title: Mejores prácticas para las conexiones Passwordless
+---
+
+<div id="implement-login">
+  ## Implementar el inicio de sesión
+</div>
+
+Puedes implementar la autenticación con <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/es/docs/glossary?term=Passwordless">Passwordless</Tooltip> redirigiendo al <Tooltip tip="Passwordless: Forma de autenticación que no depende de una contraseña como primer factor." cta="Ver glosario" href="/es/docs/glossary?term=Universal+Login">Universal Login</Tooltip> de Auth0 o incorporando el inicio de sesión en tu aplicación. Siempre recomendamos implementar Universal Login. Para saber por qué, lee [Centralized Universal Login vs. Embedded Login](/es/docs/authenticate/login/universal-vs-embedded-login).
+
+Para saber cómo implementar la autenticación Passwordless, lee los siguientes artículos:
+
+* [Passwordless with Universal Login](/es/docs/authenticate/passwordless/passwordless-with-universal-login)
+* [Passwordless Authentication with Universal Login](/es/docs/authenticate/passwordless/implement-login/universal-login)
+* [Passwordless Authentication with Embedded Login](/es/docs/authenticate/passwordless/implement-login/embedded-login)
+
+<div id="use-sms-and-email-as-authentication-factors">
+  ## Usa SMS y correo electrónico como factores de autenticación
+</div>
+
+La implementación Passwordless de Auth0 permite autenticar a los usuarios con un solo factor. Ese factor único puede ser un código de un solo uso enviado por correo electrónico o SMS, o un enlace mágico enviado por correo electrónico.
+
+Aunque usar el correo electrónico o los SMS puede ser más seguro que una contraseña débil, ambos presentan problemas conocidos:
+
+* Los números de teléfono no son suficientes para la autenticación de usuarios. El [sistema de enrutamiento telefónico SS7 que utilizan las redes celulares tiene vulnerabilidades comprobadas](https://thehackernews.com/2017/05/ss7-vulnerability-bank-hacking.html), por lo que no se recomienda como factor de autenticación. Existen muchos vectores de ataque, desde el uso de ingeniería social hasta el intercambio de tarjetas SIM y la compra de acceso a la red SS7.
+* Tener acceso a una dirección de correo electrónico no es suficiente para la autenticación de usuarios (los alias, el reenvío y varios usuarios en una misma cuenta son solo algunos ejemplos). Los proveedores de correo electrónico varían en sus prácticas de seguridad, y algunos no exigen ninguna verificación de la identidad del usuario. SMTP es un protocolo muy antiguo, y muchos proveedores todavía enrutan el tráfico SMTP sin cifrar, lo que aumenta la probabilidad de sufrir un ataque de interceptación.
+
+Por estas razones, recomendamos que, si utilizas autenticación Passwordless, también implementes la [Autenticación multifactor (MFA)](/es/docs/secure/multi-factor-authentication) con un factor distinto cuando el usuario realice una operación sensible desde el punto de vista de la seguridad.
+
+<div id="prevent-phishing-attacks">
+  ## Prevenir ataques de phishing
+</div>
+
+Un ejemplo de cómo podría producirse un ataque de phishing es el siguiente:
+
+1. El usuario hace clic en un enlace de un correo electrónico o de un sitio web malicioso.
+2. El usuario llega al sitio falso del atacante, donde se le pide que introduzca su número de teléfono para autenticarse.
+3. El usuario introduce su número de teléfono y el atacante introduce ese mismo número en la aplicación legítima.
+4. La aplicación legítima envía un SMS al usuario.
+5. El usuario introduce el código de un solo uso en el sitio web del atacante.
+6. El atacante ya puede iniciar sesión en el sitio web legítimo.
+
+Para reducir las probabilidades de éxito de este ataque, el usuario debe esperar que el SMS identifique claramente la aplicación. Debe configurar la plantilla del SMS para que mencione el nombre del tenant y/o el nombre de la aplicación:
+
+```http wrap lines
+Your verification code for accessing's Acme @@application.name@@ is @@code@@
+```
+
+<div id="prevent-brute-force-attacks">
+  ## Prevenir ataques de fuerza bruta
+</div>
+
+Auth0 ofrece las siguientes protecciones contra ataques de fuerza bruta:
+
+* Solo se aceptará el código (o enlace) de un solo uso emitido más recientemente. En cuanto se emita el último, los anteriores quedarán invalidados. Una vez utilizado, ese último código también se invalidará.
+* Solo se permiten tres intentos fallidos de introducir un mismo código de un solo uso. Después de eso, será necesario solicitar uno nuevo.
+* El código de un solo uso emitido será válido durante tres minutos (de forma predeterminada) antes de caducar.
+* Si un usuario de passwordless ha sido bloqueado [administrativamente](/es/docs/manage-users/user-accounts/block-and-unblock-users), Auth0 no enviará ningún código OTP por SMS o correo electrónico hasta que se desbloquee al usuario. Este comportamiento evita que tus proveedores de SMS y correo electrónico reciban solicitudes innecesarias.
+
+El tiempo de expiración del código de un solo uso puede modificarse en [Auth0 Dashboard &gt; Authentication &gt; Passwordless](https://manage.auth0.com/#/connections/passwordless).
+
+<div id="prevent-user-enumeration-attacks">
+  ## Evita los ataques de enumeración de usuarios
+</div>
+
+La enumeración de usuarios ocurre cuando un actor malicioso utiliza técnicas de fuerza bruta para adivinar o confirmar qué usuarios son válidos en un sistema.
+
+Cuando **Disable Sign Ups** está habilitado, tu aplicación puede volverse vulnerable a ataques de enumeración de usuarios. Auth0 recomienda no habilitar esta configuración para garantizar la máxima seguridad de tu aplicación y sus usuarios.
+
+Si habilitas **Disable Signs Ups**, la [Brute-force Protection](/es/docs/secure/attack-protection/brute-force-protection) puede ayudar a mitigar la amenaza de algunos de estos ataques, pero no protege completamente tu aplicación.
+
+<div id="link-accounts">
+  ## Vincular cuentas
+</div>
+
+Es posible que los usuarios quieran autenticarse con distintos factores Passwordless a lo largo del tiempo. Por ejemplo, podrían registrarse inicialmente con un SMS y, más adelante, empezar a autenticarse con un correo electrónico. Puedes hacerlo permitiéndoles vincular sus distintos perfiles mediante [la vinculación de cuentas](/es/docs/manage-users/user-accounts/user-account-linking/link-user-accounts).
+
+<div id="set-the-auth0-forwarded-for-header-for-rate-limit-purposes">
+  ## Establece la cabecera auth0-forwarded-for para fines de limitación de solicitudes
+</div>
+
+El endpoint `/passwordless/start` tiene un [límite de solicitudes](/es/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy) de 50 solicitudes por hora por dirección IP. Si llamas a la API desde el servidor, es posible que la IP de tu backend alcance fácilmente estos límites de solicitudes. Para saber cómo resolver este problema, lee la sección Rate Limiting in Passwordless Endpoints de [Using Passwordless APIs](/es/docs/authenticate/passwordless/implement-login/embedded-login/relevant-api-endpoints).

@@ -1,0 +1,135 @@
+---
+description: Décrit comment utiliser votre serveur backend pour authentifier une application monopage (SPA) à l’aide de cookies.
+title: Authentifier les applications monopages à l’aide de cookies
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+export const codeExample = `ISSUER_BASE_URL="{yourDomain}"
+CLIENT_ID="{yourClientId}"
+BASE_URL="http://localhost:3000"
+APP_SESSION_SECRET="<YOUR SECRET VALUE>"`;
+
+Sécuriser une application monopage (SPA) peut représenter un défi. Toutefois, si votre SPA répond aux critères suivants, vous pouvez simplifier votre mise en œuvre en utilisant des cookies pour l’authentification.
+
+* Est servie au client par votre propre backend.
+* Utilise le même domaine que votre backend.
+* Effectue vers votre backend des appels d’API qui nécessitent une authentification.
+
+Voici une description de cette approche ainsi qu’un exemple de mise en œuvre avec [Node.js](https://nodejs.org/en/).
+
+<div id="how-it-works">
+  ## Comment ça fonctionne
+</div>
+
+Les étapes ci-dessous montrent comment les jetons sont récupérés et utilisés. Dans cette approche, le [flux implicite avec envoi de formulaire POST](/fr-CA/docs/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post) est utilisé au lieu d’un [flux de code d’autorisation avec PKCE](/fr-CA/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) traditionnel. En effet, le mode de réponse Form Post est une façon plus simple d’implémenter la connexion lorsque vous demandez l’accès à votre propre ressource.
+
+<Frame>![Authentifier des SPA à l’aide de cookies : fonctionnement, partie 1](/docs/images/cdy7uua7fh8z/7suPpG6SuHuCOFHeFmE21T/1bf0a56fd21f65460cff7fd01b4c93f4/2023-09-22_13-21-34.png)</Frame>
+
+1. L’utilisateur accède à une route protégée à l’aide de son navigateur, ou effectue une action qui nécessite le lancement d’une étape d’authentification (par exemple, cliquer sur un bouton Login)
+2. Le navigateur redirige vers une route `/login` sur le backend, ou vers la route protégée, selon l’action effectuée par l’utilisateur
+3. Le backend construit une requête vers le endpoint `/authorize` du serveur d’autorisation et y redirige le navigateur
+4. L’utilisateur est invité à s’authentifier à l’aide de la méthode présentée par le serveur d’autorisation
+5. Le serveur d’autorisation envoie les jetons par POST à l’URI de redirection sous la forme d’un envoi de formulaire encodé dans l’URL. Le backend peut récupérer ces jetons en analysant les données du corps de la requête.
+
+À ce stade, l’utilisateur est authentifié et le backend possède les jetons requis. Un cookie peut maintenant être créé pour représenter cet état côté client. Le navigateur est ensuite redirigé vers une route qui sert la SPA et reçoit également le cookie d’authentification.
+
+Par la suite, ce cookie est échangé entre le client et le backend lorsque des appels d’API sont effectués au moyen d’un appel AJAX. À chaque requête, le backend vérifie si le cookie est toujours valide et, le cas échéant, permet à la requête de se poursuivre.
+
+<Frame>![Authentifier des SPA à l’aide de cookies : fonctionnement, partie 2](/docs/images/cdy7uua7fh8z/6SCp9KwQkwJV7L26TOuxIO/d625575a43d00a00fcf17c7310ac2bc8/2023-09-22_13-21-50.png)</Frame>
+
+<div id="invalid-or-missing-cookies">
+  ### Cookies invalides ou manquants
+</div>
+
+Lors de la mise en œuvre de cette approche, vous devrez gérer les cas où le cookie d’authentification est invalide ou manquant. L’appel API du client vers le backend se fait en arrière-plan; le client doit donc traiter toute réponse du serveur indiquant que l’utilisateur doit se réauthentifier.
+
+Dans l’exemple d’application suivant, ce cas est géré de façon naïve en demandant à l’utilisateur de se réauthentifier si l’appel API entraîne une redirection 302. Le code 302 est renvoyé parce que, lorsque la validation du cookie échoue, le serveur tente de rediriger vers l’endpoint d’autorisation du <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités auxquelles un utilisateur a accès." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=authorization+server">serveur d’autorisation</Tooltip> et envoie cette réponse au client.
+
+<div id="example">
+  ## Exemple
+</div>
+
+L’application utilisée dans cet exemple fait appel à Node.js et à Express pour illustrer les concepts abordés ci-dessus.
+
+<div id="prerequisites">
+  ### Prérequis
+</div>
+
+* Pour suivre ce guide, assurez-vous d’avoir la [dernière version de Node](https://nodejs.org/en/download/) installée.
+* Une fois Node installé, [téléchargez ou clonez le code source](https://github.com/auth0-blog/spa-cookie-demo/) et ouvrez le dossier du projet dans une fenêtre de terminal.
+
+  ```bash lines
+  # Clonez le dépôt du tutoriel à l’aide de SSH
+  git clone git@github.com:auth0-blog/spa-cookie-demo
+  # ... ou si vous utilisez HTTPS :
+  git clone https://github.com/auth0-blog/spa-cookie-demo.git
+  # Placez-vous dans le répertoire du projet
+  cd spa-cookie-demo
+  ```
+* La branche `master` représente l’état de l’application avant l’ajout de tout mécanisme d’authentification. Si vous souhaitez consulter la version finale de l’application, basculez vers la branche `with-oidc` :
+  `git checkout with-oidc`
+
+<div id="initialize-the-nodejs-app">
+  ### Initialiser l’application Node.js
+</div>
+
+Installez les dépendances de l’application en exécutant `npm install` dans votre terminal. Pour exécuter l’application, utilisez `npm run dev`. Cette commande démarre le serveur Express. Ouvrez [http://localhost:3000](http://localhost:3000/) dans votre navigateur pour afficher l’application.
+
+Le serveur de développement utilise `nodemon`, qui redémarre automatiquement dès qu’il détecte des modifications de fichiers.
+
+<div id="explore-the-application">
+  ### Explorer l’application
+</div>
+
+Une fois l’application ouverte à [http://localhost:3000](http://localhost:3000/), cliquez sur le bouton **Call API**. Vous devriez voir un message s’afficher à l’écran.
+
+<Frame>![Écran Explorer l’application de l’authentification SPA avec cookie](/docs/images/cdy7uua7fh8z/7JhdgzFLig2xcDle7ziiGp/c1db6272d20d4a291ba90a6968460109/image3.png)</Frame>
+
+Notez que vous avez pu appeler l’API sans être connecté. Corrigeons cela en ajoutant un middleware qui oblige l’utilisateur à s’authentifier avant de pouvoir appeler l’API.
+
+<div id="set-up-environment">
+  ### Configurer l’environnement
+</div>
+
+Pour que l’application fonctionne avec l’authentification, `express-openid-connect` nécessite certaines variables d’environnement. Pour cette application, ces variables peuvent être définies dans un fichier `.env`. Créez un fichier `.env` à la racine du répertoire du projet et ajoutez-y ce qui suit :
+
+```shell .env lines
+ISSUER_BASE_URL="<YOUR OIDC URL>"
+CLIENT_ID="<YOUR OIDC CLIENT ID>"
+BASE_URL="http://localhost:3000"
+APP_SESSION_SECRET="<YOUR SECRET VALUE>"
+```
+
+<div id="set-up-app-in-auth0">
+  ### Configurer l’application dans Auth0
+</div>
+
+1. Accédez à [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) et cliquez sur **Create Application**.
+2. Donnez un nom à votre nouvelle application, sélectionnez **Regular Web Applications**, puis cliquez sur **Create**.
+3. Dans **Settings** de votre nouvelle application, ajoutez `http:/localhost:3000/callback` à **Allowed Callback URLs**.
+4. Ajoutez `http:/localhost:3000` à **Allowed Logout URLs**.
+5. Cliquez sur **Save Changes**.
+6. Accédez à [Dashboard &gt; Authentication &gt; Social](https://manage.auth0.com/#/connections/social) et configurez des connexions sociales. Activez-les pour votre application dans les options **Application** de l’onglet **Connections**. L’exemple utilise une base de données avec username/password, Facebook, Google et X.
+7. Dans l’écran **Settings**, prenez en note les paramètres du domaine et du client ID affichés en haut.
+8. Deux valeurs doivent être configurées dans l’application. Rouvrez le fichier `.env` et définissez ces valeurs :
+
+   <AuthCodeBlock children={codeExample} language="shell" filename=".env" />
+
+<div id="run-the-app">
+  ### Exécuter l’application
+</div>
+
+1. Une fois la configuration du serveur et de l’environnement terminée, repérez la fenêtre de navigateur où l’application est ouverte. Si vous avez fermé le navigateur et arrêté le serveur, exécutez la commande suivante dans le terminal pour redémarrer l’application :
+   `npm run dev`
+2. Ouvrez `http://localhost:3000` dans le navigateur. Du point de vue de l’UI, l’application devrait avoir le même aspect; cette fois, toutefois, lorsque vous cliquez sur le bouton **Call API**, vous devriez voir un avertissement indiquant que l’utilisateur n’est pas connecté. Notez également que vous ne voyez plus le message « Hello, World » comme auparavant, puisque l’appel à l’API a été rejeté.
+3. Cliquez sur **Log in now** pour vous connecter. Une fois authentifié, vous reviendrez à l’application et verrez une UI mise à jour qui reflète votre nouvel état de connexion. Vous devriez pouvoir cliquer de nouveau sur le bouton **Call API** pour appeler l’API du serveur, et cette fois, cela fonctionnera.
+4. Cliquez sur le lien **Profile** en haut de la page pour afficher les renseignements de l’utilisateur récupérés à partir de l’ID token.
+
+<div id="learn-more">
+  ## Pour en savoir plus
+</div>
+
+* [Implicit Flow with Form Post](/fr-CA/docs/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post)
+* [Sécurité](/fr-CA/docs/secure)
+* [Modifications de l’attribut de cookie SameSite](/fr-CA/docs/manage-users/cookies/samesite-cookie-attribute-changes)

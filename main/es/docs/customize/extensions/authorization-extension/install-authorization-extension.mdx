@@ -1,0 +1,111 @@
+---
+description: Describe cómo instalar Authorization Extension de Auth0.
+title: Instalar Authorization Extension
+---
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Auth0 ofrece dos formas de implementar el control de acceso basado en roles (RBAC), que puedes usar en lugar del sistema interno de control de acceso de tu API o en combinación con él:
+
+  * [Authorization Core](/es/docs/manage-users/access-control/rbac)
+  * [Authorization Extension](/es/docs/customize/extensions/authorization-extension)
+
+  El conjunto de funcionalidades de Authorization Core coincide con el de Authorization Extension, mejora el rendimiento y la escalabilidad, y proporciona un sistema RBAC más flexible que Authorization Extension.
+
+  Actualmente, ambos implementan las funciones clave de RBAC y te permiten restringir los `scopes` personalizados definidos para una API a los que se hayan asignado al usuario como permisos.
+</Callout>
+
+<div id="prerequisite">
+  ## Requisito previo
+</div>
+
+Antes de comenzar, asegúrate de tener una aplicación existente que pueda usarse con la Authorization Extension. Puedes usar los siguientes tipos de aplicaciones:
+
+* Aplicaciones nativas
+* Aplicaciones web tradicionales
+* Aplicaciones de página única
+
+Las aplicaciones sin un tipo asignado o las aplicaciones de máquina a máquina no pueden usarse con esta extensión.
+
+<div id="install-extension">
+  ## Instalar la extensión
+</div>
+
+1. Ve a [Auth0 Dashboard &gt; Extensions](https://manage.auth0.com/#/extensions).
+2. Selecciona **Auth0 Authorization** y sigue el prompt para instalarlo.
+3. Elige dónde quieres almacenar tus datos: almacenamiento de Webtask o un bucket de Amazon S3.
+
+Una vez instalada la extensión, la verás en **Installed Extensions**.
+
+<Frame>![Dashboard - Extensions - Installed Extensions - Authorization Extension](/docs/images/cdy7uua7fh8z/5gJ26ZetkEXOur9Z7WFxzY/2d29427f1a8a754af5ef610bc0e4a381/Installed_Extensions_-_English.png)</Frame>
+
+<Warning>
+  Al instalar esta extensión, se crea una aplicación auth0-authz para tu cuenta. **No edites ni elimines esta aplicación.** Si desinstalas la extensión más adelante, esta aplicación se eliminará automáticamente.
+</Warning>
+
+Cuando hagas clic en el enlace para abrir la extensión por primera vez, se te pedirá que concedas permiso para que la extensión acceda a tu cuenta de Auth0. Si lo haces, irás al Authorization Dashboard.
+
+<Frame>![Dashboard - Extensions - Authorization Dashboard - Users](/docs/images/cdy7uua7fh8z/1ALaqm8mvtleQfm3XKvBtf/73fb69c35e2eed4dae74b1baa8e372a2/auth-dashboard-v2.png)</Frame>
+
+<div id="webtask-storage">
+  ### Almacenamiento de Webtask
+</div>
+
+La extensión usará almacenamiento de Webtask de forma predeterminada y tendrás un límite de 500 KB de datos. Esto equivale a:
+
+* 1000 grupos y 3000 usuarios, donde cada usuario es miembro de 3 grupos
+* 20 grupos y 7000 usuarios, donde cada usuario es miembro de 3 grupos
+
+<div id="amazon-s3">
+  ### Amazon S3
+</div>
+
+Como alternativa, puede utilizar Amazon S3 como proveedor de almacenamiento. Amazon S3 es una plataforma de almacenamiento basada en archivos, lo que significa que realiza escrituras en paralelo. Esto puede ocasionar problemas, pero la lógica de almacenamiento de la extensión intenta contemplarlo. Sin embargo, si automatiza la creación de grupos, roles o permisos, Auth0 recomienda usar llamadas secuenciales a la API.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Esta extensión tiene limitaciones de rendimiento y no está pensada para usarse con grandes conjuntos de datos. Antes de elegir Amazon S3 para almacenar datos, le recomendamos hacer pruebas para ver cómo funciona en su caso. También es posible que el rendimiento se degrade a medida que se agregan más datos a S3.
+</Callout>
+
+Para usar Amazon S3, necesita:
+
+1. Crear un bucket de S3.
+2. Crear un usuario de IAM y obtener el ID de la clave de ese usuario.
+3. Crear una política para el usuario de IAM que le permita realizar cambios en el bucket.
+
+```json lines expandable
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:DeleteObject",
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::{nameOfYourBucket}/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::{nameOfYourBucket}"
+            ],
+            "Condition": {}
+        }
+    ]
+}
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar Authorization Extension](/es/docs/customize/extensions/authorization-extension/configure-authorization-extension)
+* [Configurar Users en el Dashboard de Authorization Extension](/es/docs/customize/extensions/authorization-extension/set-up-authorization-extension-users)
+* [Habilitar el acceso a la API de Authorization Extension](/es/docs/customize/extensions/authorization-extension/enable-api-access-to-authorization-extension)
+* [Importar y exportar datos de Authorization Extension](/es/docs/customize/extensions/authorization-extension/import-and-export-authorization-extension-data)

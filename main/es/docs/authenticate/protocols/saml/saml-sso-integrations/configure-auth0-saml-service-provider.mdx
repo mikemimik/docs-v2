@@ -1,0 +1,187 @@
+---
+title: Configurar Auth0 como proveedor de servicios SAML
+description: Aprende a configurar Auth0 para que actúe como proveedor de servicios en una federación SAML.
+---
+
+Para configurar Auth0 como proveedor de servicios (SP) en una federación <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=SAML">SAML</Tooltip>, tendrá que crear una conexión empresarial en Auth0 y luego actualizar su <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=identity+provider">proveedor de identidad</Tooltip> (IdP) SAML con los metadatos de la conexión.
+
+Auth0 admite el uso de Auth0 como SP en configuraciones compatibles con los protocolos SAML 1.1 y SAML 2.0.
+
+<div id="get-metadata-and-certificate-from-the-idp">
+  ## Obtén metadatos y el certificado del IdP
+</div>
+
+Necesitarás recopilar algunos metadatos de configuración del IdP para crear una conexión en Auth0:
+
+| Campo                     | Descripción                                                                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| URL de inicio de sesión   | La URL a la que se envían las solicitudes de autenticación SAML. También se conoce como el endpoint de inicio de sesión único (SSO).                                                 |
+| URL de cierre de sesión   | La URL a la que se envían las solicitudes de cierre de sesión SAML. También se conoce como el endpoint de cierre de sesión único (SLO).                                              |
+| Certificado de firma X509 | El certificado de clave pública que el SP necesita para validar la firma de las aserciones de autenticación firmadas digitalmente por el IdP. Auth0 acepta los formatos .pem y .cer. |
+
+<div id="create-saml-enterprise-connection-in-auth0">
+  ## Crear una conexión empresarial SAML en Auth0
+</div>
+
+Puede crear una conexión empresarial SAML en el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o con la <Tooltip tip="Management API: un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip> de Auth0:
+
+<Tabs>
+  <Tab title="Dashboard">
+    1. Ve a [**Dashboard &gt; Autenticación &gt; empresarial**](https://manage.auth0.com/#/connections/enterprise/samlp) y selecciona **SAML**.
+    2. Selecciona **Crear conexión**.
+    3. Configura las siguientes opciones:
+
+    | Configuración                                             | Descripción                                                                                                                                                                                                                                                                                                                                                                                           |
+    | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | Nombre de la conexión                                     | Introduce un nombre para la conexión, como `SAML-SP`.                                                                                                                                                                                                                                                                                                                                                 |
+    | URL de inicio de sesión                                   | Introduce la **URL de inicio de sesión** que obtuviste del IdP.                                                                                                                                                                                                                                                                                                                                       |
+    | Certificado de firma X509                                 | Carga el archivo del certificado de firma X509 (en formato `.pem` o `.cer`) que obtuviste del IdP.                                                                                                                                                                                                                                                                                                    |
+    | Habilitar cierre de sesión                                | Habilita el campo **URL de cierre de sesión**.                                                                                                                                                                                                                                                                                                                                                        |
+    | URL de cierre de sesión                                   | Introduce la **URL de cierre de sesión** obtenida del IdP.                                                                                                                                                                                                                                                                                                                                            |
+    | Atributo de ID de usuario                                 | Introduce el atributo del token SAML que se asignará a la propiedad `user_id` en Auth0. Si no se configura, `user_id` se recuperará de lo siguiente (en este orden):<ul><li>`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier`</li><li>`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn`</li><li>`http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name`</li></ul> |
+    | Modo de depuración                                        | Habilita el **modo de depuración** para obtener registros más detallados.                                                                                                                                                                                                                                                                                                                             |
+    | Firmar solicitud                                          | Habilita las solicitudes de autenticación SAML firmadas.                                                                                                                                                                                                                                                                                                                                              |
+    | Algoritmo de firma de la solicitud                        | En el menú desplegable, selecciona el algoritmo hash que se va a usar.                                                                                                                                                                                                                                                                                                                                |
+    | Resumen del algoritmo de firma de la solicitud            | En el menú desplegable, selecciona el algoritmo que se usará para comprobar la validez de la aserción.                                                                                                                                                                                                                                                                                                |
+    | Binding del protocolo                                     | En el menú desplegable, selecciona una de las siguientes opciones:<ul><li>`HTTP-Redirect`: Permite transmitir mensajes en parámetros de URL.</li><li>`HTTP-POST`: Permite transmitir mensajes en un formulario HTML.</li></ul>                                                                                                                                                                        |
+    | Sincronizar atributos del perfil de usuario en cada login | Habilita la sincronización de los atributos del perfil de usuario en cada login.                                                                                                                                                                                                                                                                                                                      |
+
+    4. Selecciona **Crear**.
+  </Tab>
+
+  <Tab title="Management API">
+    El endpoint [Create a Connection](https://auth0.com/docs/api/management/v2#!/Connections/post_connections) de la Auth0 Management API admite las siguientes propiedades en el objeto `options` al crear una conexión SAML:
+
+    | Campo                | Tipo    | ¿Obligatorio? | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+    | -------------------- | ------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `signInEndpoint`     | String  | Obligatorio   | La **URL de inicio de sesión** del IdP.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+    | `signingCert`        | String  | Obligatorio   | Contenido del certificado X509 de firma (en formato `.pem` o `.cer`) codificado en Base64.                                                                                                                                                                                                                                                                                                                                                                                                  |
+    | `debug`              | Boolean | Opcional      | Activa el **Modo de depuración**, que incluye un registro más detallado durante el proceso de autenticación. Establezca este valor en `false` para las conexiones utilizadas en entornos de producción.                                                                                                                                                                                                                                                                                     |
+    | `destinationUrl`     | String  | Opcional      | La URL a la que Auth0 enviará las solicitudes de autenticación SAML. Solo es necesaria cuando se utiliza una puerta de enlace proxy.                                                                                                                                                                                                                                                                                                                                                        |
+    | `digestAlgorithm`    | String  | Opcional      | El algoritmo que se utiliza para cifrar el elemento de resumen de las solicitudes de autenticación.<br /><br />Los valores aceptados son `sha256` y `sha1`.                                                                                                                                                                                                                                                                                                                                 |
+    | `disableSignout`     | Boolean | Opcional      | Habilita o deshabilita la **URL de cierre de sesión**. Si es `false`, debe especificar una **URL de cierre de sesión** para aceptar solicitudes de cierre de sesión. Si es `true`, las solicitudes de cierre de sesión se enviarán a la **URL de inicio de sesión**.                                                                                                                                                                                                                        |
+    | `fieldsMap`          | Objeto  | Opcional      | Contiene los mapeos de atributos que se aplicarán a las respuestas de autenticación del IdP.<br /><br />Por ejemplo: `"email": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"`.                                                                                                                                                                                                                                                                                     |
+    | `idpinitiated`       | Objeto  | Opcional      | Contiene opciones para SSO IdP-Initiated:<ul><li>`enabled`: Boolean. Activa o desactiva SSO IdP-Initiated.</li><li>`client_id`: String. El ID de cliente de la aplicación predeterminada.</li><li>`client_protocol`: String. El protocolo de respuesta utilizado para comunicarse con la aplicación predeterminada. Los valores aceptados son `oauth2`, `samlp` y `wsfed`.</li><li>`client_authorizequery`: String. La cadena de consulta enviada a la aplicación predeterminada.</li></ul> |
+    | `protocolBinding`    | String  | Opcional      | El binding de protocolo utilizado para las solicitudes de autenticación.<br /><br />Los valores aceptados son:<ul><li>`urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect`</li><li>`urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST`</li></ul>                                                                                                                                                                                                                                               |
+    | `recipientUrl`       | String  | Opcional      | La URL a la que el IdP enviará las respuestas de autenticación SAML. Solo es necesaria cuando se utiliza una pasarela proxy.                                                                                                                                                                                                                                                                                                                                                                |
+    | `signatureAlgorithm` | String  | Opcional      | El algoritmo utilizado para firmar las solicitudes de autenticación.<br /><br />Los valores admitidos son `rsa-sha256` y `rsa-sha1`.                                                                                                                                                                                                                                                                                                                                                        |
+    | `signSAMLRequest`    | Boolean | Opcional      | Activa o desactiva la firma de las solicitudes de autenticación que envía Auth0.                                                                                                                                                                                                                                                                                                                                                                                                            |
+    | `user_id_attribute`  | String  | Opcional      | El nombre del atributo en las respuestas de autenticación que se asignará a la propiedad User ID. Este campo sustituirá cualquier mapeo de la propiedad `user_id` en el objeto `fieldsMap`.                                                                                                                                                                                                                                                                                                 |
+
+    #### Ejemplo de solicitud
+
+    ```json lines expandable
+    {
+    	"strategy": "samlp",
+    	"name": "example-samlp-connection",
+    	"options": {
+    		"signingCert": "{X509_CERTIFICATE_IN_BASE64}",
+    		"signInEndpoint": "https://example.com/samlp/login",
+    		"disableSignout": false,
+    		"signOutEndpoint": "https://example.com/samlp/logout",
+    		"fieldsMap": {
+    			"email": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+    			"user_id": [
+    				"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+    				"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn",
+    				"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+    			],
+    			"given_name": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+    			"address_name": "http://schemas.auth0.com/address_name",
+    			"address_street_address": "http://schemas.auth0.com/address_street_address"
+    		},
+    		"user_id_attribute": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+    		"idpinitiated": {
+    			"enabled": true,
+    			"client_id": "{DEFAULT_APPLICATION_CLIENT_ID}",
+    			"client_protocol": "oauth2",
+    			"client_authorizequery": "response_type=code&scope=openid email profile"
+    		},
+    		"signSAMLRequest": true,
+    		"signatureAlgorithm": "rsa-sha256",
+    		"digestAlgorithm": "sha256",
+    		"protocolBinding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+    		"debug": true
+    	}
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<div id="configure-saml-connection-for-proxy-gateways">
+  ### Configurar una conexión SAML para gateways proxy
+</div>
+
+Si tienes Auth0 detrás de un gateway proxy, deberás configurar los campos `destinationUrl` y `recipientUrl` de la conexión SAML según corresponda.
+
+1. Obtén la configuración actual de tu conexión SAML mediante el endpoint de Management API [Obtener una conexión](https://auth0.com/docs/api/management/v2/connections/get-connections-by-id).
+2. Copia el valor del objeto `options` de la respuesta.
+3. Agrega los siguientes campos al objeto `options`:
+
+| Campo            | Tipo   | Valor                  |
+| ---------------- | ------ | ---------------------- |
+| `destinationUrl` | String | URL del gateway proxy. |
+| `recipientUrl`   | String | URL del gateway proxy. |
+
+4. Llama al endpoint de Management API [Actualizar una conexión](https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id) con el objeto `options` completo y actualizado en el cuerpo de la solicitud.
+
+<div id="customize-the-request-template">
+  ### Personaliza la plantilla de solicitud
+</div>
+
+Cuando Auth0 envía la solicitud de autenticación al IdP, el cuerpo de la solicitud contiene un objeto `AuthnRequest`. Puedes personalizar la plantilla que se usa para este objeto:
+
+1. Ve a [Dashboard &gt; Autenticación &gt; Empresarial &gt; SAML](https://manage.auth0.com/#/connections/enterprise/samlp) y selecciona tu conexión.
+2. Cambia a la vista **Configuración** y busca el campo **Plantilla de solicitud**.
+3. Modifica la plantilla.
+4. Selecciona **Guardar cambios**.
+
+<div id="template-variables">
+  #### Variables de plantilla
+</div>
+
+Las variables se pueden incluir en la plantilla `AuthnRequest` con la sintaxis `@@VariableName@@`. Las siguientes variables están disponibles:
+
+| Nombre                           | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AssertionConsumerServiceURL`    | La URL a la que el IdP envía la respuesta después de que el usuario inicie sesión. Incluye el atributo `ProtocolBinding` en la plantilla de solicitud si utilizas esta variable.                                                                                                                                                                                                                                           |
+| `Connection.<options-key>`       | Usa la notación por puntos en la clave `Connection` para acceder a cualquiera de los valores de `options` de la conexión, tal como los devuelve el endpoint [obtener una conexión](https://auth0.com/docs/api/management/v2/#!/Connections/get_connections_by_id) de Auth0 Management API. Por ejemplo, si la conexión tiene `options.some_property: "value"`, puedes usar `@@Connection.some_property@@` en la plantilla. |
+| `Destination`                    | La URL a la que Auth0 envía la solicitud. Debe ser la **URL de inicio de sesión** configurada para la conexión.                                                                                                                                                                                                                                                                                                            |
+| `ID`                             | El ID de la transacción.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `IssueInstant`                   | La marca de tiempo de la fecha de la transacción.                                                                                                                                                                                                                                                                                                                                                                          |
+| `Issuer`                         | El ID de entidad del SP en formato `urn`.<br /><br />Por ejemplo, `urn:auth0:<YOUR_AUTH0_TENANT_NAME>:<YOUR_AUTH0_CONNECTION_NAME>`.                                                                                                                                                                                                                                                                                       |
+| `LoginHint`                      | El nombre de usuario o correo electrónico del usuario que inicia sesión. Si utilizas [Identifier First Authentication](/es/docs/authenticate/login/auth0-universal-login/identifier-first), Auth0 puede enviar este valor al IdP para rellenarlo previamente en el formulario de inicio de sesión del IdP.                                                                                                                    |
+| `ProtocolBinding`                | El [tipo de binding](https://www.ibm.com/support/knowledgecenter/en/SSPREK_9.0.4/com.ibm.isam.doc/config/concept/fed_SAML20_bindings.html) del protocolo.                                                                                                                                                                                                                                                                  |
+| `ProviderName`                   | El nombre de la aplicación que inició la solicitud. Siempre devuelve el nombre del tenant de Auth0.                                                                                                                                                                                                                                                                                                                        |
+| `AssertServiceURLAndDestination` | Obsoleto. En las configuraciones nuevas, usa `AssertionConsumerServiceURL` y `Destination` en su lugar.                                                                                                                                                                                                                                                                                                                    |
+
+<div id="configure-the-idp">
+  ## Configura el IdP
+</div>
+
+Ve a [Configuración del proveedor de identidad SAML](/es/docs/authenticate/protocols/saml/saml-identity-provider-configuration-settings) para encontrar los metadatos que debes proporcionar al IdP.
+
+Auth0 admite todos los IdP de SAML que cumplen con el protocolo SAML 1.1 o SAML 2.0. A continuación, te ofrecemos instrucciones detalladas para configurar proveedores específicos.
+
+<div id="test-connection">
+  ## Probar la conexión
+</div>
+
+Para probar tu conexión en el Dashboard:
+
+1. Ve a [Dashboard &gt; Autenticación &gt; Empresarial &gt; SAML](https://manage.auth0.com/#/connections/enterprise/samlp).
+2. Busca la conexión que creaste, selecciona el icono del menú **...** (tres puntos) y luego **Try**.
+3. Aparecerá una página de Universal Login y se te pedirá que ingreses tus credenciales.
+4. Ingresa la dirección de correo electrónico de un usuario que exista en el IdP. Si configuraste [Home Realm Discovery](/es/docs/authenticate/login/auth0-universal-login/identifier-first#define-home-realm-discovery-identity-providers), asegúrate de ingresar una dirección de correo electrónico que use uno de los dominios especificados.
+5. Cuando se te redirija a la pantalla de inicio de sesión del IdP, inicia sesión como lo harías normalmente.
+6. Se te redirigirá a una página de Auth0 que muestra el contenido de la aserción de autenticación enviada a Auth0 desde el IdP.
+
+<div id="troubleshoot-connection">
+  ## Solucionar problemas con la conexión
+</div>
+
+Si tu conexión no funciona como debería, prueba los siguientes pasos:
+
+* Borra el historial, las cookies y la caché del navegador antes de cada prueba. Si no lo haces, es posible que el navegador no cargue la información de configuración más reciente o que tenga cookies obsoletas que afecten la ejecución.
+* Asegúrate de que tu navegador permita las cookies y tenga JavaScript habilitado.
+* [Captura un archivo HAR](https://support.auth0.com/center/s/article/generate-and-analyze-har-files-to-troubleshoot-auth0-issues) de la transacción y luego usa la [herramienta SAML de Auth0](http://samltool.io/) para decodificar la aserción SAML e inspeccionar su contenido.

@@ -1,0 +1,100 @@
+---
+description: Escribe código de Actions claro, conciso y seguro con nuestras pautas de codificación.
+title: Pautas de codificación para Actions
+---
+
+Sigue las pautas que se indican a continuación para escribir código de Actions eficiente, seguro y claro en un entorno de producción optimizado.
+
+<div id="actions-basics">
+  ## Conceptos básicos de Actions
+</div>
+
+* Usa la menor cantidad posible de solicitudes HTTP y establece un tiempo de espera razonable (menos de 10 segundos) para evitar la acumulación de solicitudes durante el inicio de sesión.
+* Usa los [metadatos de la aplicación](/es/docs/get-started/applications/configure-application-metadata) para filtrar aplicaciones específicas y determinar si debe ejecutarse una Action.
+
+  * Ejemplo: valores específicos de la aplicación o valores de agrupación de aplicaciones que se usan para variar parcial o totalmente la ejecución de la Action.
+* Usa `user_metadata`/`app_metadata` para conservar datos personalizados en el perfil del usuario.
+
+  * Ejemplo: preferencias del usuario o valores de estado.
+* Usa [metadatos de transacción](/es/docs/customize/actions/transaction-metadata) para compartir datos entre [triggers de post-login](/es/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger) durante la misma ejecución.
+
+  * Ejemplo: valores recuperados de servicios externos o calculados que deben reutilizarse en Actions posteriores y que están relacionados con la ejecución actual.
+* Usa la caché para los datos que deban compartirse entre Actions que pertenezcan a ejecuciones diferentes.
+
+  * Ejemplo: valores recuperados de servicios externos o calculados que deban reutilizar las Actions y que no estén relacionados con el usuario ni con la ejecución actual específica.
+* Asegúrate de que las Actions que proporcionan verificación o activan la <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación del usuario que utiliza un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/es/docs/glossary?term=MFA">MFA</Tooltip> no puedan omitirse de forma accidental o malintencionada.
+* Las Actions nunca deben generar intencionalmente un error; si los procesos se detienen debido a un error o una condición, usa el método `api` adecuado, como `api.access.deny()`.
+* Usa `event.request.hostname` para el dominio que se utiliza en las llamadas a Authentication API; puede ser el dominio predeterminado del tenant de Auth0 o un [dominio personalizado](/es/docs/customize/custom-domains).
+
+<div id="actions-modules">
+  ## Módulos de Actions
+</div>
+
+* Usa módulos de Actions cuando necesites reutilizar funciones en distintas Actions y evitar la redundancia de código.
+* Siempre que sea posible, ahorra tiempo de instanciación de objetos implementando el [patrón Singleton](https://en.wikipedia.org/wiki/Singleton_pattern) para reutilizar instancias de objetos en el módulo de Action.
+* Sigue las directrices aplicables que se comparten en este documento sobre codificación, seguridad, registros, dependencias y datos de usuario.
+* Al usar un módulo de Action desde una Action, ten siempre presente qué versión del módulo se está utilizando.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Cuando publicas una nueva versión de un módulo de Action, Auth0 no actualiza automáticamente la versión a la que hacen referencia las Actions, lo que evita posibles incompatibilidades cuando la actualización no es compatible con la Action.
+</Callout>
+
+<div id="coding-basics">
+  ## Conceptos básicos de programación
+</div>
+
+* Comprueba el uso de la igualdad estricta `===` en cualquier dato de entrada o almacenado.
+* Usa una instrucción `return` cuando el proceso de la Action deba detenerse.
+* Ejecuta un linter de código, como [ESLint](https://eslint.org), y un analizador, como [Semgrep](https://semgrep.dev/docs/getting-started/), para mejorar la calidad del código y detectar problemas automáticamente.
+
+<div id="security-basics">
+  ## Conceptos básicos de seguridad
+</div>
+
+* No escribas secretos ni artefactos de código sensibles en texto sin formato como parte de tu código de Actions. En su lugar, usa el [Secrets Manager](/es/docs/customize/actions/write-your-first-action#add-a-secret) o integra tu propio gestor en el código de Actions.
+* No transmitas información de identificación personal (PII) sin cifrar y a simple vista, por ejemplo en URL o mensajes de error.
+* Usa siempre URL HTTPS para las redirecciones y las llamadas a la API.
+* Usa una lista de direcciones IP permitidas cuando sea posible.
+* Ten cuidado con los datos entrantes que puedan ser manipulados (parámetros de URL, agente de usuario, etc.).
+
+<div id="defensive-coding">
+  ## Programación defensiva
+</div>
+
+* [Captura errores](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling#exception_handling_statements) y gestiónalos según sea necesario.
+* Usa cláusulas de guarda y devuelve el control pronto si el procesamiento de la Action no debe continuar.
+
+<div id="logging">
+  ## Registro
+</div>
+
+* Nunca registres datos sensibles, secrets ni PII.
+* No superes el máximo de 256 caracteres registrados por Action.
+
+<div id="dependencies">
+  ## Dependencias
+</div>
+
+* Usa paquetes fiables y mantenidos.
+* Comprueba si hay CVE pendientes mediante [la función de auditoría de `npm`](https://docs.npmjs.com/cli/v6/commands/npm-audit) o un verificador automatizado de dependencias conectado a un repositorio.
+* Usa la versión más reciente de un paquete siempre que sea posible.
+
+<div id="user-data">
+  ## Datos del usuario
+</div>
+
+* Compruebe si una dirección de correo electrónico está verificada con `event.user.email_verified` si se utiliza en un contexto sensible o de alta seguridad.
+* Las distintas conexiones proporcionan diferentes datos del perfil del usuario; el único [campo del perfil del usuario](/es/docs/manage-users/user-accounts/user-profiles/user-profile-structure) cuya presencia está garantizada es `user_id`.
+
+<div id="redirect-actions-in-the-login-flow">
+  ## Actions de redirección en el flujo de inicio de sesión
+</div>
+
+* El token devuelto por `api.redirect.encodeToken` está firmado, pero no cifrado, por lo que no deben incluirse datos sensibles ni PII en el payload.
+* El flujo de inicio de sesión se ejecuta después de que el usuario inicia sesión correctamente, lo que incluye:
+
+  * SSO (no se muestra ningún formulario de inicio de sesión)
+  * autenticación silenciosa (comprobación de una sesión mediante `prompt=none` en la URL de autorización)
+  * intercambio de token de actualización (sin interacción del usuario)
+  * grants de contraseña RO (credenciales recopiladas desde una aplicación e intercambiadas con el endpoint de token)
+* Las Actions que redirigen deben tener en cuenta los casos anteriores y denegar el acceso si se requiere interacción, o bien permitir intencionadamente la omisión, lo que traslada la responsabilidad a la aplicación que solicita el inicio de sesión.

@@ -1,0 +1,169 @@
+---
+title: "Détails des entités"
+description: "Découvrez les entités d’Experiment Center : les feature flags, les variations, les segments, les expériences et les assignations."
+sidebarTitle: Détails des entités
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<ReleaseStageNotice feature="Auth0 Experiment Center" stage="beta" terms="true" contact="Auth0 Support" />
+
+Avec la [Management API](/fr-CA/docs/api/management/v2) d’Auth0, vous pouvez définir les détails des entités d’Experiment Center, notamment leurs propriétés, leurs états du cycle de vie et leurs règles de validation.
+
+<Warning>
+  Durant la bêta, Experiment Center fonctionne uniquement dans les tenants de développement. Les tenants de production ne sont pas pris en charge.
+</Warning>
+
+<div id="experiment">
+  ## Expérience
+</div>
+
+<div id="experiment-lifecycle">
+  ### Cycle de vie des expériences
+</div>
+
+Les expériences ont cinq états :
+
+| **Statut**  | **Signification**                                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `draft`     | Créé, mais non démarré. Peut être testé en toute sécurité à l’aide des remplacements de paramètres de requête.                             |
+| `active`    | En cours d’exécution. L’attribution des variantes et l’injection de contexte sont actives pour toutes les transactions d’authentification. |
+| `paused`    | Temporairement suspendu. Aucune nouvelle attribution. Les sessions en cours conservent la variation qui leur a été attribuée.              |
+| `completed` | Terminé. Aucune nouvelle attribution. La configuration est conservée à titre de référence lors de la promotion manuelle.                   |
+| `archived`  | Supprimé de façon réversible. Masqué dans les vues de liste par défaut. Les données analytiques sont conservées.                           |
+
+Pour changer l’état du cycle de vie, utilisez le point de terminaison de la Management API [`/api/v2/experimentation/experiments/{id}/status`](/fr-CA/docs/api/management/v2/experimentation/update-experiment-status).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Il n’est pas possible de passer de `completed → active`. Si vous devez exécuter de nouveau le même test, créez une nouvelle expérience.
+</Callout>
+
+<div id="the-is_valid-gate">
+  ### La vérification `is_valid`
+</div>
+
+Avant qu’une expérience puisse être activée, elle doit passer une vérification de préparation.
+
+Experiment Center stocke un booléen `is_valid` pour chaque expérience et le recalcule à chaque modification. Vous obtenez ainsi une rétroaction immédiate pendant la configuration.
+
+Vous pouvez aussi vérifier explicitement l’état de préparation au moyen du point de terminaison de la Management API [`/api/v2/experimentation/experiments/{id}/validate`](/fr-CA/docs/api/management/v2/experimentation/validate-experiment).
+
+Cet appel renvoie `is_valid: true/false` et un tableau `errors` qui liste tous les éléments bloquants. La même vérification s’exécute automatiquement lorsque vous tentez d’activer l’expérience via le point de terminaison de statut.
+
+**Règles de validation vérifiées à l’activation :**
+
+* Le feature flag référencé a le statut `active`
+* Au moins une répartition existe
+* Toutes les valeurs `variation_id` de répartition appartiennent au feature flag de l’expérience
+* Une seule répartition a `is_control: true`
+* Le total des pondérations de répartition est de 100 (stratégie par pourcentage)
+* Une seule répartition a `is_fallback: true` (stratégie par segment)
+* Aucune autre expérience n’est actuellement active pour le tenant (Bêta seulement)
+
+<div id="assignment">
+  ### Affectation
+</div>
+
+**Substitutions par paramètres de requête**
+
+Vous pouvez forcer une affectation précise pour toute requête `/authorize` en transmettant des paramètres de requête :
+
+| Paramètre       | Description                                              |
+| --------------- | -------------------------------------------------------- |
+| `experiment_id` | Vous inscrire à une expérience précise                   |
+| `variation_id`  | Forcer une variation précise (nécessite `experiment_id`) |
+| `segment_id`    | Forcer un segment précis (nécessite `experiment_id`)     |
+
+Cela fonctionne pour les expériences, quel que soit leur état, y compris `draft`. Utilisez cette option pendant le développement pour vérifier que les deux variations s’affichent correctement avant l’activation.
+
+<div id="feature-flag">
+  ## Feature flag
+</div>
+
+<div id="feature-flag-lifecycle">
+  ### Cycle de vie des feature flags
+</div>
+
+Les feature flags ont un cycle de vie enregistré comportant trois états :
+
+| **Statut** | **Signification**                                                                                         |
+| ---------- | --------------------------------------------------------------------------------------------------------- |
+| `draft`    | Créé, mais pas encore actif. Ne peut pas être utilisé par une expérience active.                          |
+| `active`   | Prêt à être utilisé. Obligatoire avant qu’une expérience qui utilise ce feature flag puisse être activée. |
+| `archived` | État final. Aucune nouvelle expérience ne peut utiliser ce feature flag. Créez-en un nouveau au besoin.   |
+
+Pour passer d’un statut à l’autre, utilisez le point de terminaison de l’Auth0 Management API [`/api/v2/experimentation/feature-flags/{id}/status`](/fr-CA/docs/api/management/v2/experimentation/update-feature-flag-status).
+
+**Condition d’activation :** un feature flag ne peut pas passer à l’état `active` tant qu’il ne comporte pas au moins deux variations. Cela garantit que chaque feature flag actif comprend au minimum un contrôle et un traitement avant sa mise en ligne.
+
+```text wrap lines
+draft → active   (requires ≥2 variations)
+draft → archived
+active → archived (terminal; no way back)
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Il n’est pas possible de passer de `archived → active`. Si vous archivez un flag et devez effectuer un autre test, créez un nouveau feature flag.
+</Callout>
+
+<div id="variation">
+  ### Variation
+</div>
+
+**Paramètres et remplacements**
+
+Les paramètres du feature flag définissent la configuration de votre expérience. Chaque paramètre comprend :
+
+* Un nom (par exemple, `show_passkey_prompt`)
+* Un type : `string`, `boolean`, `number`, `array` ou `object`
+* Une valeur par défaut (la configuration de référence)
+
+Le champ `overrides` d’une variation précise uniquement les paramètres qui diffèrent. À l’exécution, Experiment Center fusionne la configuration de référence du flag avec les remplacements de la variation, puis transmet l’objet `config` complet ainsi fusionné à ACUL, aux Actions et aux modèles de page. Chaque paramètre a toujours une valeur dans `config` ; vous n’avez donc jamais à écrire de logique de repli.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Les paramètres utilisent **uniquement le mode structuré**. Chaque paramètre comprend une clé nommée et une valeur typée.
+</Callout>
+
+<div id="segment">
+  ## Segment
+</div>
+
+<div id="segment-rules">
+  ### Règles du segment
+</div>
+
+Les `rules` d’un segment forment un tableau d’objets de règle. Une request correspond au segment si **au moins une** règle du tableau correspond. Une règle correspond si ses conditions respectent le `match_type` :
+
+* `match_type: "all"` : toutes les conditions doivent être vraies (logique ET)
+* `match_type: "any"` : au moins une condition doit être vraie (logique OU)
+
+Chaque condition compare un attribut à une valeur à l’aide d’un opérateur : `equals`, `not_equals`, `in`, `not_in`, `exists`, `not_exists`.
+
+<div id="available-condition-attributes">
+  ### Attributs de condition disponibles
+</div>
+
+Les Segments ne peuvent utiliser que les attributs disponibles au début de la transaction `/authorize` :
+
+| **Catégorie**                               | **Attributs**                                      |
+| ------------------------------------------- | -------------------------------------------------- |
+| Client                                      | `client_id`                                        |
+| Connection                                  | `connection`, `connection_type`                    |
+| Organization                                | `organization_id`                                  |
+| Domain                                      | `domain`                                           |
+| Appareil et navigateur                      | `device_type`, `browser`, `platform`, `user_agent` |
+| Zone géographique (dérivée de l’adresse IP) | `country`, `region`                                |
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+<CardGroup cols={2}>
+  <Card title="Experiment Center Quickstart" icon="gear" href="/fr-CA/docs/customize/experiment-center/quickstart">
+    Découvrez, de bout en bout, comment créer un feature flag, des variations et une expérience.
+  </Card>
+
+  <Card title="Intégration ACUL" icon="puzzle-piece" href="/fr-CA/docs/customize/experiment-center/integrations/acul-integration-guide">
+    Consultez le contexte de l’expérience dans les écrans Auth0 Custom Universal Login (ACUL).
+  </Card>
+</CardGroup>

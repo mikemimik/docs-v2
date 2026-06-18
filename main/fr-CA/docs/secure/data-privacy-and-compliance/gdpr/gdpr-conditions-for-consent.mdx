@@ -1,0 +1,1105 @@
+---
+description: Décrit les fonctionnalités d’Auth0 qui peuvent vous aider à vous conformer aux exigences du RGPD en matière de consentement.
+title: 'RGPD : conditions du consentement'
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Conformément à l’article 7 du GDPR, vous devez demander aux utilisateurs de consentir au traitement de leurs données personnelles dans un format clair et facilement accessible. Vous devez également être en mesure de démontrer que l’utilisateur a donné son consentement et de lui offrir un moyen simple de retirer ce consentement en tout temps.
+
+Cet article explique comment utiliser les fonctionnalités d’Auth0 pour mettre en œuvre ces exigences.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Le contenu de ces documents ne constitue pas un avis juridique et ne doit pas non plus être considéré comme un substitut à une assistance juridique. Il vous incombe en dernier ressort de comprendre le GDPR et de vous y conformer, bien qu’Auth0 vous aide, dans la mesure du possible, à respecter les exigences du GDPR.
+</Callout>
+
+<div id="ask-for-consent">
+  ## Demander le consentement
+</div>
+
+Au moment de l’inscription, vous devez obtenir le consentement de vos utilisateurs. Avec Auth0, vous pouvez enregistrer cette information dans les métadonnées de l’utilisateur. Plusieurs options s’offrent à vous selon la façon dont vous utilisez Auth0 pour authentifier vos utilisateurs. Avant de concevoir votre solution à l’aide des métadonnées, assurez-vous de bien comprendre les restrictions. Auth0 limite la taille totale de `user_metadata` à **16 MB**. Pour en savoir plus, consultez [les noms de champ et les types de données des métadonnées](/fr-CA/docs/manage-users/user-accounts/metadata/metadata-fields-data).
+
+<Warning>
+  Les métadonnées d’Auth0 ne constituent pas un stockage de données sécurisé et ne doivent pas être utilisées pour stocker des renseignements sensibles, comme des secrets à risque élevé et des renseignements personnels identifiables (PII), tels que des numéros d’assurance sociale ou de carte de crédit. Auth0 recommande fortement à ses clients d’évaluer les données stockées dans les métadonnées et de n’y conserver que celles qui sont nécessaires à la gestion des identités et des accès.
+</Warning>
+
+<div id="use-lock">
+  ### Utiliser Lock
+</div>
+
+Vous pouvez personnaliser l’interface utilisateur de Lock pour afficher des liens vers vos pages de conditions générales et/ou de politique de confidentialité, ainsi qu’une case à cocher de consentement que l’utilisateur doit sélectionner pour pouvoir s’inscrire. Cela peut se faire à l’aide de l’option Lock `mustAcceptTerm`s. Lorsque cette propriété est définie à `true`, une case à cocher s’affiche à côté des conditions générales et doit être sélectionnée avant l’inscription. Les conditions générales peuvent être définies à l’aide de l’option `languageDictionary`. Pour en savoir plus, consultez [Options de configuration de Lock](/fr-CA/docs/libraries/lock/lock-configuration).
+
+Une fois que l’utilisateur a donné son consentement et s’est inscrit, enregistrez les informations de consentement dans le `user_metadata` à l’aide d’une règle qui s’exécutera lors de la première connexion. Pour en savoir plus sur les règles, consultez [Règles Auth0](/fr-CA/docs/customize/rules).
+
+Si vous souhaitez recueillir plus de renseignements auprès des utilisateurs pendant l’inscription et que vous les authentifiez au moyen d’une connexion de base de données, vous pouvez ajouter des champs personnalisés à l’interface utilisateur de Lock. Cela peut se faire à l’aide de l’option Lock `additionalSignUpFields`. Tous les champs personnalisés sont automatiquement ajoutés au `user_metadata`.
+
+Si vous utilisez des connexions sociales, l’ajout de champs personnalisés n’est pas possible, mais vous pouvez rediriger l’utilisateur vers une autre page pour lui demander son consentement et tout renseignement supplémentaire, puis le rediriger de nouveau afin de terminer la transaction d’authentification. Cela peut se faire à l’aide de règles de redirection. Pour en savoir plus, consultez [Rediriger les utilisateurs depuis les règles](/fr-CA/docs/customize/rules/redirect-users). Une fois le processus d’inscription terminé, enregistrez les informations de consentement dans le `user_metadata` en appelant la <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Management+API">Management API</Tooltip> [point de terminaison **Update User**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id).
+
+Pour savoir comment mettre en œuvre l’un ou l’autre de ces scénarios, consultez [GDPR : Suivre le consentement avec Lock](/fr-CA/docs/secure/data-privacy-and-compliance/gdpr/gdpr-track-consent-with-lock).
+
+<div id="use-custom-ui">
+  ### Utiliser une UI personnalisée
+</div>
+
+Si vous utilisez un formulaire d’inscription personnalisé avec une connexion de base de données, vous devez ajouter un champ supplémentaire à l’écran d’inscription afin de recueillir le consentement de l’utilisateur. Ensuite, appelez le point de terminaison [**Signup** de l’Authentication API](https://auth0.com/docs/api/authentication#signup) afin de créer l’utilisateur dans Auth0. À cette étape, vous pouvez définir les informations sur le consentement dans le `user_metadata`.
+
+Sinon, si vous utilisez auth0.js dans une SPA, vous pouvez [utiliser la méthode `signup`](/fr-CA/docs/libraries/auth0js) pour créer l’utilisateur dans Auth0 et définir les informations sur le consentement dans le `user_metadata`.
+
+Si vous utilisez un formulaire d’inscription personnalisé avec des fournisseurs d’identité sociale, vous ne pouvez pas définir les informations sur le consentement de l’utilisateur au moment de l’inscription, mais vous pouvez les mettre à jour dès que l’utilisateur est créé. Enregistrez les informations sur le consentement dans le `user_metadata` en appelant le point de terminaison [**Update User** de la Management API](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id).
+
+Pour savoir comment mettre en œuvre l’un ou l’autre de ces scénarios, consultez [GDPR : suivre le consentement avec une UI personnalisée](/fr-CA/docs/secure/data-privacy-and-compliance/gdpr/gdpr-track-consent-with-custom-ui).
+
+<div id="re-consent-and-user-migration">
+  ### Renouvellement du consentement et migration des utilisateurs
+</div>
+
+Si vous devez demander de nouveau le consentement d’utilisateurs existants et que vous décidez de migrer vos utilisateurs d’une base de données existante vers Auth0, vous pouvez [utiliser notre fonctionnalité de migration automatique des utilisateurs](/fr-CA/docs/manage-users/user-migration/configure-automatic-migration-from-your-database). En l’activant, chaque fois qu’un utilisateur ouvrira une session pour la première fois (depuis l’activation de cette fonctionnalité), son compte sera créé dans Auth0 sans qu’il ait à réinitialiser son mot de passe. Pour ce faire, vous devez :
+
+* Rédiger l’avis que les utilisateurs verront expliquant comment leurs données sont utilisées, pendant combien de temps elles le seront, quels sont leurs droits, etc., et personnaliser la boîte d’inscription de l’interface utilisateur.
+* Déterminer si un nouveau consentement est nécessaire pour vos utilisateurs, selon vos anciennes conditions générales et vos certifications de confidentialité antérieures.
+
+Notez que chaque fois que vos conditions générales changent, vous **devez** demander de nouveau le consentement des utilisateurs.
+
+<div id="track-consent">
+  ## Suivre le consentement
+</div>
+
+Conformément au GDPR, vous devriez pouvoir démontrer que l’utilisateur a consenti au traitement de ses données personnelles.
+
+Avec Auth0, vous pouvez enregistrer les informations de consentement de l’utilisateur dans `user_metadata`. Vous pouvez soit enregistrer uniquement un indicateur indiquant si l’utilisateur a consenti ou non, soit un ensemble d’informations et de préférences liées au consentement (y compris, par exemple, la date à laquelle l’utilisateur a donné son consentement, les conditions auxquelles il a consenti, etc.). Vous pourrez ensuite accéder à ces informations et les modifier à l’aide de la Management API.
+
+Management API offre également plusieurs options pour la recherche d’utilisateurs et des points de terminaison permettant de mettre à jour les métadonnées de l’utilisateur ou d’exporter des utilisateurs par lot.
+
+Pour accéder à la Management API, vous aurez besoin d’un <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=access+token">jeton d’accès</Tooltip>. Pour savoir comment obtenir un jeton d’accès pour la Management API, consultez [Jetons d’accès pour la Management API](/fr-CA/docs/secure/tokens/access-tokens/management-api-access-tokens).
+
+<div id="search-for-users-by-email-address">
+  ### Rechercher des utilisateurs par adresse courriel
+</div>
+
+Pour rechercher un utilisateur à l’aide de son adresse courriel, utilisez le [point de terminaison **Search User by Email**](/fr-CA/docs/manage-users/user-search/user-search-best-practices).
+
+Définissez le paramètre de requête **fields** sur `user_metadata` afin de limiter les champs renvoyés. De cette façon, seul `user_metadata` sera renvoyé plutôt que le profil utilisateur complet.
+
+Exemple de requête :
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request GET \
+    --url 'https://{yourDomain}/api/v2/users-by-email?email=USER_EMAIL_ADDRESS&fields=user_metadata' \
+    --header 'authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users-by-email?email=USER_EMAIL_ADDRESS&fields=user_metadata");
+  var request = new RestRequest(Method.GET);
+  request.AddHeader("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users-by-email?email=USER_EMAIL_ADDRESS&fields=user_metadata"
+
+  	req, _ := http.NewRequest("GET", url, nil)
+
+  	req.Header.Add("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.get("https://{yourDomain}/api/v2/users-by-email?email=USER_EMAIL_ADDRESS&fields=user_metadata")
+    .header("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'GET',
+    url: 'https://{yourDomain}/api/v2/users-by-email',
+    params: {email: 'USER_EMAIL_ADDRESS', fields: 'user_metadata'},
+    headers: {authorization: 'Bearer YOUR_MGMT_API_ACCESS_TOKEN'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users-by-email?email=USER_EMAIL_ADDRESS&fields=user_metadata",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "GET",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer YOUR_MGMT_API_ACCESS_TOKEN" }
+
+  conn.request("GET", "/{yourDomain}/api/v2/users-by-email?email=USER_EMAIL_ADDRESS&fields=user_metadata", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users-by-email?email=USER_EMAIL_ADDRESS&fields=user_metadata")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Get.new(url)
+  request["authorization"] = 'Bearer YOUR_MGMT_API_ACCESS_TOKEN'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Exemple de réponse :
+
+```json lines
+[
+  {},
+  {
+    "user_metadata": {
+      "consent": {
+	    "given": true,
+	    "date": "01/23/2018",
+	    "text_details": "some-url"
+	  }
+    }
+  }
+]
+```
+
+<div id="search-for-users-by-id">
+  ### Rechercher des utilisateurs par ID
+</div>
+
+Pour rechercher un utilisateur à l’aide de son ID, utilisez le [point de terminaison **Get a User**](/fr-CA/docs/manage-users/user-search/user-search-best-practices).
+
+Définissez le paramètre de requête **fields** à `user_metadata` afin de limiter les champs renvoyés. Ainsi, seul `user_metadata` sera renvoyé au lieu du profil utilisateur complet.
+
+Exemple de requête :
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request GET \
+    --url 'https://{yourDomain}/api/v2/users/%7ByourUserID%7D?fields=user_metadata' \
+    --header 'authorization: Bearer {yourMgmtApiAccessToken}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users/%7ByourUserID%7D?fields=user_metadata");
+  var request = new RestRequest(Method.GET);
+  request.AddHeader("authorization", "Bearer {yourMgmtApiAccessToken}");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users/%7ByourUserID%7D?fields=user_metadata"
+
+  	req, _ := http.NewRequest("GET", url, nil)
+
+  	req.Header.Add("authorization", "Bearer {yourMgmtApiAccessToken}")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.get("https://{yourDomain}/api/v2/users/%7ByourUserID%7D?fields=user_metadata")
+    .header("authorization", "Bearer {yourMgmtApiAccessToken}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'GET',
+    url: 'https://{yourDomain}/api/v2/users/%7ByourUserID%7D',
+    params: {fields: 'user_metadata'},
+    headers: {authorization: 'Bearer {yourMgmtApiAccessToken}'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users/%7ByourUserID%7D?fields=user_metadata",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "GET",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer {yourMgmtApiAccessToken}"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer {yourMgmtApiAccessToken}" }
+
+  conn.request("GET", "/{yourDomain}/api/v2/users/%7ByourUserID%7D?fields=user_metadata", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users/%7ByourUserID%7D?fields=user_metadata")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Get.new(url)
+  request["authorization"] = 'Bearer {yourMgmtApiAccessToken}'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Exemple de réponse :
+
+```json lines
+{
+  "user_metadata": {
+    "consent": {
+	    "given": true,
+	    "date": "01/23/2018",
+	    "text_details": "some-url"
+  	}
+  }
+}
+```
+
+<div id="update-consent-information">
+  ### Mettre à jour les informations de consentement
+</div>
+
+Pour mettre à jour le `user_metadata` d’un utilisateur, utilisez le point de terminaison [**Update a User**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id).
+
+La structure de votre requête dépend de l’organisation de vos métadonnées : à la racine ou dans des propriétés imbriquées.
+
+Si vos métadonnées sont stockées à la racine :
+
+```json lines
+{
+  "consentGiven": true,
+  "consentDetails": "some-url"
+}
+```
+
+Si vos métadonnées sont stockées dans des propriétés internes :
+
+```json lines
+{
+  "consent": {
+    "given": true,
+    "text_details": "some-url"
+  }
+}
+```
+
+<div id="update-root-property">
+  #### Mettre à jour une propriété `racine`
+</div>
+
+Les mises à jour des propriétés au niveau `racine` sont fusionnées. Vous n’avez donc qu’à envoyer la valeur du champ que vous souhaitez mettre à jour. Par exemple, supposons que nous voulions ajouter une date de consentement et la définir à `01/23/2018`.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request PATCH \
+    --url 'https://{yourDomain}/api/v2/users/USER_ID' \
+    --header 'authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN' \
+    --header 'content-type: application/json' \
+    --data '{"user_metadata":{"consentDate":"01/24/2018"}}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users/USER_ID");
+  var request = new RestRequest(Method.PATCH);
+  request.AddHeader("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"user_metadata":{"consentDate":"01/24/2018"}}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users/USER_ID"
+
+  	payload := strings.NewReader("{"user_metadata":{"consentDate":"01/24/2018"}}")
+
+  	req, _ := http.NewRequest("PATCH", url, payload)
+
+  	req.Header.Add("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.patch("https://{yourDomain}/api/v2/users/USER_ID")
+    .header("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+    .header("content-type", "application/json")
+    .body("{"user_metadata":{"consentDate":"01/24/2018"}}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'PATCH',
+    url: 'https://{yourDomain}/api/v2/users/USER_ID',
+    headers: {
+      authorization: 'Bearer YOUR_MGMT_API_ACCESS_TOKEN',
+      'content-type': 'application/json'
+    },
+    data: {user_metadata: {consentDate: '01/24/2018'}}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users/USER_ID",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "PATCH",
+    CURLOPT_POSTFIELDS => "{"user_metadata":{"consentDate":"01/24/2018"}}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"user_metadata":{"consentDate":"01/24/2018"}}"
+
+  headers = {
+      'authorization': "Bearer YOUR_MGMT_API_ACCESS_TOKEN",
+      'content-type': "application/json"
+      }
+
+  conn.request("PATCH", "/{yourDomain}/api/v2/users/USER_ID", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users/USER_ID")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Patch.new(url)
+  request["authorization"] = 'Bearer YOUR_MGMT_API_ACCESS_TOKEN'
+  request["content-type"] = 'application/json'
+  request.body = "{"user_metadata":{"consentDate":"01/24/2018"}}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Cela ajoutera une nouvelle propriété au profil de l’utilisateur, **user&#95;metadata.consentDate**, qui contiendra la date à laquelle le client a consenti. La réponse sera le profil complet de l’utilisateur. Les métadonnées mises à jour ressembleront à ceci :
+
+```json lines
+{
+  "consentGiven": true,
+  "consentDate": "01/23/2018",
+  "consentDetails": "some-url"
+}
+```
+
+<div id="update-inner-property">
+  #### Mettre à jour une propriété imbriquée
+</div>
+
+Pour mettre à jour une propriété imbriquée, vous devez envoyer l’objet de métadonnées au complet, même si vous ne mettez à jour qu’une seule propriété. Si vous n’incluez pas l’objet au complet, Auth0 supprimera vos propriétés existantes.
+
+Ajoutons une propriété imbriquée pour la date de consentement et définissons-la sur `01/23/2018`.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request PATCH \
+    --url 'https://{yourDomain}/api/v2/users/USER_ID' \
+    --header 'authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN' \
+    --header 'content-type: application/json' \
+    --data '{"user_metadata":{"consent": {"given":true, "date":"01/23/2018", "text_details":"some-url"}}}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users/USER_ID");
+  var request = new RestRequest(Method.PATCH);
+  request.AddHeader("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"user_metadata":{"consent": {"given":true, "date":"01/23/2018", "text_details":"some-url"}}}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users/USER_ID"
+
+  	payload := strings.NewReader("{"user_metadata":{"consent": {"given":true, "date":"01/23/2018", "text_details":"some-url"}}}")
+
+  	req, _ := http.NewRequest("PATCH", url, payload)
+
+  	req.Header.Add("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.patch("https://{yourDomain}/api/v2/users/USER_ID")
+    .header("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+    .header("content-type", "application/json")
+    .body("{"user_metadata":{"consent": {"given":true, "date":"01/23/2018", "text_details":"some-url"}}}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'PATCH',
+    url: 'https://{yourDomain}/api/v2/users/USER_ID',
+    headers: {
+      authorization: 'Bearer YOUR_MGMT_API_ACCESS_TOKEN',
+      'content-type': 'application/json'
+    },
+    data: {
+      user_metadata: {consent: {given: true, date: '01/23/2018', text_details: 'some-url'}}
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users/USER_ID",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "PATCH",
+    CURLOPT_POSTFIELDS => "{"user_metadata":{"consent": {"given":true, "date":"01/23/2018", "text_details":"some-url"}}}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"user_metadata":{"consent": {"given":true, "date":"01/23/2018", "text_details":"some-url"}}}"
+
+  headers = {
+      'authorization': "Bearer YOUR_MGMT_API_ACCESS_TOKEN",
+      'content-type': "application/json"
+      }
+
+  conn.request("PATCH", "/{yourDomain}/api/v2/users/USER_ID", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users/USER_ID")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Patch.new(url)
+  request["authorization"] = 'Bearer YOUR_MGMT_API_ACCESS_TOKEN'
+  request["content-type"] = 'application/json'
+  request.body = "{"user_metadata":{"consent": {"given":true, "date":"01/23/2018", "text_details":"some-url"}}}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Cela ajoutera une nouvelle propriété au profil de l’utilisateur, **user&#95;metadata.consent.date,** qui contiendra la date à laquelle le client a donné son consentement. La réponse contiendra le profil complet de l’utilisateur. Les métadonnées mises à jour ressembleront à ceci :
+
+```json lines
+{
+  "consent": {
+    "given": true,
+    "date": "01/23/2018",
+    "text_details": "some-url"
+  }
+}
+```
+
+<div id="export-consent-information">
+  ### Exporter les renseignements sur le consentement
+</div>
+
+Pour exporter une liste de vos utilisateurs à l’aide de la Management API, utilisez le [**point de terminaison User Export**](/fr-CA/docs/manage-users/user-search/user-search-best-practices).
+
+Ce point de terminaison crée un job qui exporte tous les utilisateurs associés à une connexion. Vous aurez besoin de l’ID de la connexion. Pour trouver cet ID, utilisez le [**point de terminaison Get Connections**](https://auth0.com/docs/api/management/v2#!/Connections/get_connections) (vous pouvez définir le paramètre **name** au nom de la connexion afin de récupérer uniquement celle-ci).
+
+Une fois que vous avez l’ID de la connexion et un jeton d’accès pour la Management API, vous êtes prêt à commencer l’exportation des utilisateurs. Pour voir un exemple de requête et de réponse, consultez [Import and Export Users](/fr-CA/docs/manage-users/user-migration). Pour savoir comment obtenir un jeton d’accès pour la Management API, consultez [Management API Access Tokens](/fr-CA/docs/secure/tokens/access-tokens/management-api-access-tokens).
+
+Vous devez aussi :
+
+* Déterminer comment vous voulez faire le suivi du consentement. Nous vous recommandons d’inclure des renseignements non seulement sur la date à laquelle l’utilisateur a donné son consentement, mais aussi sur la version des modalités et conditions qu’il a acceptée. Nous vous recommandons également d’inclure un tableau pour conserver les renseignements sur les utilisateurs qui retirent leur consentement (n’oubliez pas que l’utilisateur peut donner et retirer son consentement plusieurs fois).
+* Choisir où vous voulez stocker le consentement : dans la base de données d’Auth0 ou ailleurs.
+
+<div id="withdraw-consent">
+  ## Retirer le consentement
+</div>
+
+L’utilisateur devrait avoir la possibilité de retirer son consentement dans votre application. Cette option devrait être facilement accessible et clairement visible. Une fois que l’utilisateur décide de retirer son consentement, vous devriez agir en conséquence.
+
+D’abord, vous devez décider comment vous gérerez le retrait du consentement : allez-vous supprimer les utilisateurs ou les marquer comme supprimés ?
+
+<div id="delete-user">
+  ### Supprimer un utilisateur
+</div>
+
+Pour supprimer un utilisateur, utilisez le [point de terminaison **Supprimer un utilisateur**](https://auth0.com/docs/api/management/v2#!/Users/delete_users_by_id).
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request DELETE \
+    --url 'https://{yourDomain}/api/v2/users/USER_ID' \
+    --header 'authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users/USER_ID");
+  var request = new RestRequest(Method.DELETE);
+  request.AddHeader("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users/USER_ID"
+
+  	req, _ := http.NewRequest("DELETE", url, nil)
+
+  	req.Header.Add("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.delete("https://{yourDomain}/api/v2/users/USER_ID")
+    .header("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'DELETE',
+    url: 'https://{yourDomain}/api/v2/users/USER_ID',
+    headers: {authorization: 'Bearer YOUR_MGMT_API_ACCESS_TOKEN'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users/USER_ID",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "DELETE",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer YOUR_MGMT_API_ACCESS_TOKEN" }
+
+  conn.request("DELETE", "/{yourDomain}/api/v2/users/USER_ID", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users/USER_ID")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Delete.new(url)
+  request["authorization"] = 'Bearer YOUR_MGMT_API_ACCESS_TOKEN'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Le corps de la réponse de ce point de terminaison est vide. Pour confirmer que l’utilisateur a bien été supprimé, essayez ensuite de récupérer l’utilisateur à l’aide de son adresse courriel. Si le point de terminaison renvoie une erreur, cela signifie que votre appel de suppression a réussi.
+
+<div id="flag-user-as-deleted">
+  ### Marquer l’utilisateur comme supprimé
+</div>
+
+Si vous ne souhaitez pas supprimer l’utilisateur, marquez son profil comme supprimé à l’aide du [point de terminaison **app&#95;metadata**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id). Ensuite, ajoutez du code pour faire échouer le processus d’authentication pour tout utilisateur dont le profil est ainsi marqué.
+
+Cela vous permet de conserver une trace des utilisateurs supprimés pour usage futur.
+
+<div id="flag-the-profile">
+  #### Marquer le profil
+</div>
+
+Pour marquer un utilisateur comme supprimé, utilisez le champ app&#95;metadata. Dans l&#39;exemple suivant, nous vous montrons comment ajouter une propriété appelée **deleted** au champ **app&#95;metadata**. Vous pourrez ainsi configurer le processus d&#39;authentification pour traiter comme supprimés tous les utilisateurs dont cette propriété est définie à true.
+
+Pour mettre à jour les métadonnées d&#39;un utilisateur, utilisez le [point de terminaison **Update a User**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id).
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request PATCH \
+    --url 'https://{yourDomain}/api/v2/users/USER_ID' \
+    --header 'authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN' \
+    --header 'content-type: application/json' \
+    --data '{"app_metadata":{"deleted":true}}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users/USER_ID");
+  var request = new RestRequest(Method.PATCH);
+  request.AddHeader("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"app_metadata":{"deleted":true}}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users/USER_ID"
+
+  	payload := strings.NewReader("{"app_metadata":{"deleted":true}}")
+
+  	req, _ := http.NewRequest("PATCH", url, payload)
+
+  	req.Header.Add("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.patch("https://{yourDomain}/api/v2/users/USER_ID")
+    .header("authorization", "Bearer YOUR_MGMT_API_ACCESS_TOKEN")
+    .header("content-type", "application/json")
+    .body("{"app_metadata":{"deleted":true}}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'PATCH',
+    url: 'https://{yourDomain}/api/v2/users/USER_ID',
+    headers: {
+      authorization: 'Bearer YOUR_MGMT_API_ACCESS_TOKEN',
+      'content-type': 'application/json'
+    },
+    data: {app_metadata: {deleted: true}}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users/USER_ID",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "PATCH",
+    CURLOPT_POSTFIELDS => "{"app_metadata":{"deleted":true}}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer YOUR_MGMT_API_ACCESS_TOKEN",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"app_metadata":{"deleted":true}}"
+
+  headers = {
+      'authorization': "Bearer YOUR_MGMT_API_ACCESS_TOKEN",
+      'content-type': "application/json"
+      }
+
+  conn.request("PATCH", "/{yourDomain}/api/v2/users/USER_ID", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users/USER_ID")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Patch.new(url)
+  request["authorization"] = 'Bearer YOUR_MGMT_API_ACCESS_TOKEN'
+  request["content-type"] = 'application/json'
+  request.body = "{"app_metadata":{"deleted":true}}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+<div id="disable-login-for-flagged-users">
+  #### Désactiver la connexion pour les utilisateurs marqués
+</div>
+
+Ensuite, vous devez désactiver la connexion pour les utilisateurs marqués comme supprimés. Pour ce faire, vous allez ajouter une règle (un extrait de code Javascript qui s’exécute dans le pipeline d’authentification).
+
+1. Accédez à [Auth0 Dashboard &gt; Auth Pipeline &gt; Rules](https://manage.auth0.com/#/rules) et créez une règle.
+2. Copiez le script ci-dessous :
+
+   ```javascript lines
+   function (user, context, callback) {
+     user.app_metadata = user.app_metadata || {};
+     if (user.app_metadata.deleted){
+     	return callback(new UnauthorizedError('Access denied (deleted user)'));
+     }
+     callback(null, user, context);
+   }
+   ```
+
+   Le script effectue les opérations suivantes :
+
+   1. Vérifie la valeur de la propriété de metadata **deleted** (`user.app_metadata.deleted`).
+   2. Retourne une erreur `Access denied (deleted user)` à votre application si `user.app_metadata.deleted = true`
+3. Donnez un nom à votre règle et enregistrez vos modifications.
+
+Vous devez aussi :
+
+* Vous assurer que le mécanisme de retrait du consentement est suffisamment granulaire.
+* Configurer dans l’application l’endroit où les clients pourront retirer leur consentement.
+
+<div id="learn-more">
+  ## Pour en savoir plus
+</div>
+
+* [GDPR : Minimisation des données](/fr-CA/docs/secure/data-privacy-and-compliance/gdpr/gdpr-data-minimization)
+* [GDPR : Portabilité des données](/fr-CA/docs/secure/data-privacy-and-compliance/gdpr/gdpr-data-portability)
+* [GDPR : Protéger et sécuriser les données des utilisateurs](/fr-CA/docs/secure/data-privacy-and-compliance/gdpr/gdpr-protect-and-secure-user-data)
+* [GDPR : Droit d’accéder aux données, de les corriger et de les effacer](/fr-CA/docs/secure/data-privacy-and-compliance/gdpr/gdpr-right-to-access-correct-and-erase-data)

@@ -1,0 +1,229 @@
+---
+description: Fonctionnement de l’authentification dans votre mise en œuvre B2C IAM.
+title: Authentification (B2C)
+---
+
+Pour offrir des services à vos utilisateurs, vous devez pouvoir les identifier. Ce processus s’appelle l’authentification des utilisateurs. Il existe plusieurs façons d’authentifier un utilisateur — au moyen de comptes de médias sociaux, d’un nom d’utilisateur et d’un mot de passe, <Tooltip tip="Sans mot de passe : forme d’authentification qui ne repose pas sur un mot de passe comme premier facteur." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=passwordless">sans mot de passe</Tooltip> — et il est souvent recommandé d’aller au-delà d’un premier facteur en activant l’<Tooltip tip="Sans mot de passe : forme d’authentification qui ne repose pas sur un mot de passe comme premier facteur." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=multi-factor+authentication">authentification multifacteur</Tooltip> (MFA).
+
+<Info>
+  ### Pratique exemplaire
+
+  Il est important de tenir compte à la fois de la sécurité et de l’expérience utilisateur lorsque vous concevez la façon dont vous authentifierez vos utilisateurs. Offrir plusieurs facteurs primaires et/ou exiger plus d’un facteur pendant l’authentification sont des moyens d’assurer les deux.
+</Info>
+
+Il y a plusieurs éléments à prendre en considération lorsque vous évaluez les fonctionnalités et le flux de travail :
+
+* Où les utilisateurs saisiront-ils leurs identifiants ?
+* Comment assurerez-vous la sécurité des identifiants des utilisateurs ?
+* Comment maintiendrez-vous votre système d’authentification ?
+* Comment pouvez-vous offrir une authentification par mot de passe à vos utilisateurs ?
+* Comment pouvez-vous empêcher des pirates de tenter de se connecter à la place de vos utilisateurs ?
+* Comment mettrez-vous en œuvre l’authentification dans différents types d’applications ?
+* Comment pouvez-vous simplifier la connexion pour vos utilisateurs de différentes langues ?
+* Comment offrirez-vous une bonne expérience utilisateur pendant l’abandon progressif d’un ancien système d’authentification ?
+* Que devez-vous prendre en compte lors de l’intégration d’applications à Auth0 ?
+* Les utilisateurs peuvent-ils se connecter à l’aide de leurs comptes sociaux existants (par ex., Facebook ou Google) ?
+* Avez-vous besoin d’offrir l’authentification multifacteur ?
+* Que faites-vous si vous avez un service qui ne permet pas à l’utilisateur de se connecter à l’avance ?
+* Pouvez-vous transmettre le même <Tooltip tip="Jeton d’accès : information d’autorisation d’identification, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=access+token">jeton d’accès</Tooltip> utilisateur d’une API à une autre ?
+
+Auth0 [Universal Login](#universal-login) offre aux utilisateurs une expérience sûre et sécurisée, que vous choisissiez de proposer une connexion avec ID utilisateur/mot de passe ou d’autoriser les scénarios dits Bring Your Own Identity offerts par [Social Login](https://auth0.com/learn/social-login/). Le fait de centraliser l’expérience de connexion avec <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, afin de vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Universal+Login">Universal Login</Tooltip> présente aussi des avantages sur le plan de la reconnaissance de la marque, même si vous avez également des exigences propres au produit en matière d’[image de marque](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/branding). Les widgets d’interface utilisateur d’Auth0 habituellement utilisés avec Universal Login offrent aussi une prise en charge prête à l’emploi de l’[internationalisation](/fr-CA/docs/customize/internationalization-and-localization/universal-login-internationalization) pour les utilisateurs ayant des besoins linguistiques variés, et la prise en charge prête à l’emploi de fonctionnalités Auth0 comme la [MFA](#multi-factor-authentication-mfa-) et la [protection contre les attaques](#anomaly-detection) vous permet de mettre en place des mesures pour empêcher des pirates de tenter d’accéder aux comptes des utilisateurs.
+
+Permettre aux utilisateurs de se connecter à l’aide d’identifiants ID utilisateur/mot de passe signifie que l’accès à votre système ne dépend pas de l’état de <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=identity+providers">fournisseurs d’identité</Tooltip> tiers. Vous pouvez aussi exiger que les identifiants utilisés soient conformes à vos politiques d’entreprise. Auth0 vous aide à cet égard en vous offrant plusieurs options pour prendre en charge les connexions avec ID utilisateur/mot de passe, et les [directives fournies](#username-and-password-authentication) vous aideront à comprendre comment tirer parti de ces options. Ajouter la prise en charge [sociale](#social-authentication) à une étape donnée, comme facteur d’authentification primaire supplémentaire, vous donne plus de souplesse et peut vous aider à mieux comprendre vos utilisateurs sans avoir à leur poser plus de questions, en tirant parti de l’information déjà stockée par les différents [fournisseurs](/fr-CA/docs/authenticate/identity-providers/social-identity-providers) de connexion sociale.
+
+Si vous avez un ancien référentiel d’identités existant, vous voudrez aussi consulter la section [Migration des utilisateurs](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/provisioning). Cette section présente les avantages de migrer vers le stockage d’identités géré par Auth0 sur le plan de la sûreté et de la sécurité.
+
+Pour les applications destinées aux clients, <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OpenID</Tooltip> Connect ([OIDC](/fr-CA/docs/authenticate/protocols/openid-connect-protocol)) est le protocole standard de l’industrie le plus couramment utilisé, et OIDC est pris en charge de façon native dans Auth0. Auth0 offre diverses approches pour intégrer différents types d’applications; vous voudrez donc consulter la section sur l’[intégration de l’application](#application-integration) pour obtenir l’information dont vous aurez besoin afin de faire un choix éclairé.
+
+Lorsqu’on appelle une API à partir d’une autre API, ou dans toute situation où il n’y a pas de contexte utilisateur authentifié — comme un ou plusieurs cron jobs, des générateurs de rapports ou des systèmes d’intégration et de livraison continues — vous aurez besoin d’un moyen d’autoriser l’application plutôt qu’un utilisateur. Il s’agit d’un processus en une seule étape où l’application est authentifiée (au moyen d’un <Tooltip tip="ID client : valeur d’identification attribuée à votre ressource enregistrée par Auth0." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=client+ID">ID client</Tooltip> et d’un secret), puis autorisée en un seul appel. Vous pouvez en apprendre davantage à ce sujet dans notre section sur l’autorisation, sous [l’autorisation machine à machine (m2m)](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/authorization).
+
+<div id="universal-login">
+  ## Universal Login
+</div>
+
+Avez-vous, ou aurez-vous, plus d’une application dans votre système ? Si la réponse à cette question est oui, vous aurez intérêt à offrir une expérience de connexion centralisée. Pour assurer une expérience fluide d’<Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur se connecte à une application, connecte automatiquement cet utilisateur à d’autres applications." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Single+Sign-on">authentification unique</Tooltip> (SSO) entre plusieurs applications, il est essentiel de disposer d’un emplacement central vers lequel rediriger vos utilisateurs pour l’authentification. Vous pouvez ainsi offrir une expérience cohérente à vos utilisateurs si vous ajoutez l’authentification sociale plus tard, si vous ajoutez des applications tierces à votre système, ou si vous ajoutez l’authentification multifacteur comme option (ou comme exigence) pour vos utilisateurs — tout en profitant de nouvelles fonctionnalités pour améliorer leur expérience avec peu, voire aucun, effort de développement supplémentaire.
+
+<Info>
+  ### Best Practice
+
+  Si vous avez plus d’une application, la pratique recommandée consiste à rediriger les utilisateurs vers un [emplacement centralisé](/fr-CA/docs/authenticate/login/auth0-universal-login) pour les authentifier. Avec Auth0, cela signifie tirer parti de [Universal Login](/fr-CA/docs/authenticate/login/auth0-universal-login), qui offre de nombreux avantages prêts à l’emploi sur le plan de la sécurité et de l’expérience utilisateur, y compris le [SSO](/fr-CA/docs/authenticate/single-sign-on).
+</Info>
+
+Auth0 Universal Login simplifie l’authentification des utilisateurs en un processus court et facile, réalisable en trois étapes simples (tous nos Quickstarts le montrent, et nos SDK masquent aussi la complexité pour vous) :
+
+1. Déterminez comment et quand vous souhaitez [rediriger depuis votre application](#application-integration).
+2. Configurez l’[image de marque](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/branding) appropriée et/ou le HTML personnalisé dans votre configuration Auth0.
+3. Configurez votre application pour [recevoir et traiter la réponse](#application-integration) du serveur d’autorisation.
+
+<div id="username-and-password-authentication">
+  ## Authentification par nom d’utilisateur et mot de passe
+</div>
+
+Presque toutes les applications B2C permettent à leurs clients de créer un nouvel ensemble d’identifiants. Il s’agit d’une forme courante d’authentification que tous les utilisateurs connaissent bien.
+
+Dans Auth0, l’authentification par nom d’utilisateur et mot de passe se décline en plusieurs options. Si votre application est nouvelle et ne compte aucune base d’utilisateurs existante, une simple [Database Connection](/fr-CA/docs/authenticate/database-connections) prête à l’emploi d’Auth0 vous offrira tout ce dont vous avez besoin pour commencer à authentifier vos utilisateurs. En revanche, si vous disposez d’un user store existant — comme votre propre base de données d’utilisateurs ou un système LDAP existant — vous avez plusieurs options pour migrer vos utilisateurs, comme l’explique notre documentation sur la [Migration des utilisateurs](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/provisioning).
+
+Quelle que soit la façon dont vous provisionnez les utilisateurs pour votre database connection, l’authentification de ces utilisateurs se fait sensiblement de la même manière. Vous devez leur présenter un formulaire dans lequel saisir leur nom d’utilisateur et leur mot de passe. Comme il est indiqué dans la documentation sur [Universal Login](#universal-login), la façon la plus simple et la plus sûre d’authentifier les utilisateurs avec un nom d’utilisateur et un mot de passe consiste à les rediriger vers une page de connexion centralisée pour qu’ils y saisissent ces informations. Auth0 peut ainsi déterminer s’ils se sont déjà authentifiés et ignorer complètement le formulaire de connexion lorsqu’il n’est pas nécessaire.
+
+<Info>
+  ### Best Practice
+
+  Le fait de recueillir les identifiants uniquement sur la page de connexion centralisée réduit le risque de fuite potentielle de secrets d’utilisateurs. Cela permet aussi d’éviter de recueillir des identifiants inutilement. Consultez [Universal Login](#universal-login) pour en savoir plus.
+</Info>
+
+<div id="application-integration">
+  ## Intégration de l’application
+</div>
+
+Une fois que vous avez déterminé comment vous voulez authentifier vos utilisateurs, l’étape suivante consiste à déterminer comment vous amorcerez cette authentification. Chaque application aura généralement son propre point de départ.
+
+<Warning>
+  Les applications mobiles natives (et les applications de bureau) devraient utiliser le navigateur du système pour s’authentifier, faute de quoi elles s’exposent à des risques de sécurité supplémentaires. Consultez [Native Login](/fr-CA/docs/authenticate/login/native-login) pour plus d’informations.
+</Warning>
+
+Comme nous l’avons mentionné, nous avons constaté que la plupart de nos clients utilisent [OpenID Connect (OIDC)](/fr-CA/docs/authenticate/protocols/openid-connect-protocol) comme protocole normalisé de l’industrie pour leurs applications destinées à la clientèle. Déterminer quel flux OIDC utiliser est votre première tâche, et vous devriez commencer par consulter notre guide de correspondance des types d’autorisation [grant mapping](/fr-CA/docs/get-started/applications/application-grant-types).
+
+Si vous souhaitez permettre à des utilisateurs anonymes d’accéder à une partie de votre application, vous devez déterminer si vous les redirigerez immédiatement ou seulement lorsque nécessaire (ou une combinaison des deux ; consultez [Redirect Users After Login](/fr-CA/docs/authenticate/login/redirect-users-after-login) pour en savoir plus). Si les utilisateurs peuvent utiliser un [lien profond](#deep-linking-to-protected-endpoints) vers une version protégée (ou une zone protégée) de votre site, vous devrez déterminer quels liens vers votre application entraîneront une redirection automatique vers Auth0.
+
+<div id="anonymous-access">
+  ### Accès anonyme
+</div>
+
+Il est important de tenir compte de l’expérience utilisateur lorsqu’une personne arrive pour la première fois dans votre application. Si votre application prend en charge l’accès anonyme des utilisateurs (ce qui est assez courant pour les applications de commerce électronique), différents scénarios sont à considérer :
+
+* Revient-elle dans l’application après s’être déjà connectée, ou
+* S’il s’agit de sa première visite dans l’application :
+
+  * A-t-elle déjà accédé à une autre application qui utilise le même tenant Auth0,
+  * S’est-elle déjà authentifiée sur cet appareil ou dans ce navigateur (ou peut-être pas depuis longtemps).
+
+Lorsqu’un utilisateur anonyme accède à votre application, il peut souvent être souhaitable que l’application détermine si l’utilisateur s’est déjà connecté à une autre application de la même famille, ou qu’elle se souvienne de lui même si l’application est une [SPA](/fr-CA/docs/quickstart/spa) sans état. Par exemple, si vous pouvez déterminer que l’utilisateur est déjà connecté, vous pourriez décider que l’en-tête de l’application n’affiche pas de bouton de connexion et présente plutôt un menu de compte ou de profil. Pour y parvenir, vous voudrez utiliser l’« [authentification silencieuse](/fr-CA/docs/authenticate/login/configure-silent-authentication) ». L’authentification silencieuse vous permettra de vérifier si l’utilisateur est connecté sans lui demander de se connecter si ce n’est pas le cas. L’application pourra alors afficher un bouton de connexion au besoin. Si l’utilisateur est déjà connecté, toutefois, vous recevrez des jetons et n’aurez pas à lui présenter de nouveau un bouton de connexion.
+
+<Warning>
+  Vérifier l’existence d’une session de connexion en redirigeant vers Auth0 peut être utile pour votre application, mais si cela entraîne un grand nombre de requêtes, vous devriez utiliser un mécanisme de limitation pour éviter la latence ou une limitation du débit.
+
+  Les appels à la Management API sont assujettis à la [politique de limitation du débit d’Auth0](/fr-CA/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy). Vous devez en tenir compte et, pour vous aider, Auth0 recommande généralement d’utiliser l’[Auth0 SDK](/fr-CA/docs/libraries) approprié à votre environnement de développement plutôt que d’appeler directement nos API.
+</Warning>
+
+<div id="deep-linking-to-protected-endpoints">
+  ### Liens profonds vers des points de terminaison protégés
+</div>
+
+Il y a plusieurs raisons pour lesquelles quelqu’un pourrait créer un lien direct vers une page précise de votre application, accessible uniquement aux utilisateurs authentifiés. Si c’est possible dans votre application, vous devriez rediriger automatiquement l’utilisateur vers Auth0 s’il n’est pas authentifié. Une fois qu’il s’est authentifié et que le <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités offertes à un utilisateur." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=authorization+server">serveur d’autorisation</Tooltip> le renvoie vers votre application, vous pouvez [le rediriger](/fr-CA/docs/authenticate/login/redirect-users-after-login) vers l’endroit où il voulait aller au départ.
+
+<div id="best-practice">
+  ### Bonne pratique
+</div>
+
+La plupart des frameworks d’authentification modernes prennent en charge un middleware de redirection vers un serveur d’autorisation comme Auth0. Au moment d’en choisir un, voici quelques points importants à considérer :
+
+* Prise en charge des clients confidentiels, des clients non confidentiels ou des deux
+* Prise en charge de la configuration au moyen du [point de terminaison de découverte](/fr-CA/docs/get-started/applications/configure-applications-with-oidc-discovery "Configurer les applications avec OIDC Discovery") ou définie explicitement dans le code
+* Prise en charge de la validation des jetons, y compris les dates d’expiration, les signatures, les claims et les portées
+* Prise en charge des <Tooltip tip="Refresh Token : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Refresh+Tokens">jetons d’actualisation</Tooltip>, au besoin
+
+<div id="authenticating-the-user">
+  ### Authentification de l’utilisateur
+</div>
+
+L’authentification est le processus qui permet d’établir l’identité de l’utilisateur. Dans un contexte OIDC, elle produit un <Tooltip tip="jeton d’identité : information d’identification destinée au client lui-même, et non à l’accès à une ressource." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=ID+Token">jeton d’identité</Tooltip>. Ce jeton contient des renseignements sur l’utilisateur et ne devrait pouvoir être obtenu que si l’utilisateur s’authentifie à l’aide d’un ou de plusieurs facteurs, tels que définis par le serveur d’autorisation (la forme la plus courante étant l’authentification par [ID utilisateur et mot de passe](#username-and-password-authentication)). Voici quelques éléments dont vous pourriez aussi devoir tenir compte, en plus de l’obtention d’un jeton d’identité :
+
+* Avons-nous aussi besoin d’un [jeton d’accès](/fr-CA/docs/secure/tokens/access-tokens) pour appeler une API partagée ?
+* Votre application est-elle une application à page unique et n’a-t‑elle besoin que d’un [jeton d’identité](/fr-CA/docs/secure/tokens/id-tokens) ? Consultez [Authorization Code Grant with PKCE](/fr-CA/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce) pour en savoir plus.
+* Votre application est-elle une application native (mobile ou de bureau) et/ou avez-vous besoin d’un [jeton d’actualisation](/fr-CA/docs/secure/tokens/refresh-tokens) ? Consultez [Authorization Code Grant with PKCE](/fr-CA/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce) pour en savoir plus.
+
+<Warning>
+  Avant la mise en production, vous devez vous assurer que **seuls** les types d’octroi que vous utilisez pour chaque application sont activés dans la [configuration de votre application](/fr-CA/docs/get-started/applications/update-grant-types).
+</Warning>
+
+<div id="authorization-code-grant-with-or-without-pkce">
+  ### Octroi par code d’autorisation (avec ou sans PKCE)
+</div>
+
+Si votre SDK ne prend en charge que l’octroi par code d’autorisation, ou si vous avez besoin d’un jeton d’accès ou d’un <Tooltip tip="Jeton d’actualisation : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Refresh+Token">jeton d’actualisation</Tooltip>, l’octroi par code d’autorisation (avec ou sans [PKCE](/fr-CA/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce)) peut aussi servir à récupérer un jeton d’identité. L’octroi par code d’autorisation comprend un appel d’API supplémentaire pour échanger le code contre un jeton, ce qui peut entraîner une latence additionnelle inutile si tout ce dont vous avez besoin est un jeton d’identité. Dans bien des cas, le [flux hybride](/fr-CA/docs/get-started/authentication-and-authorization-flow/hybrid-flow) est mis en œuvre pour offrir un accès optimal au jeton d’identité tout en tirant parti du workflow de l’octroi par code d’autorisation pour récupérer les jetons d’accès et d’actualisation de façon sûre et sécurisée.
+
+<Warning>
+  Bien qu’Auth0 prenne en charge l’utilisation de l’octroi implicite pour les applications basées sur le navigateur qui n’ont besoin que d’un jeton d’identité, il est recommandé d’utiliser l’octroi par code d’autorisation avec [PKCE](/fr-CA/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce). Pour plus d’information, consultez [OAuth2 Implicit Grant and SPA](https://auth0.com/blog/oauth2-implicit-grant-and-spa/) sur le blogue d’Auth0.
+
+  Si vous avez besoin d’un [jeton d’actualisation](/fr-CA/docs/secure/tokens/refresh-tokens) pour pouvoir obtenir un nouveau jeton d’accès ou un jeton d’identité sans devoir réauthentifier l’utilisateur, vous devez utiliser l’[octroi par code d’autorisation](/fr-CA/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/call-your-api-using-the-authorization-code-flow).
+</Warning>
+
+<div id="attack-protection">
+  ## Protection contre les attaques
+</div>
+
+Les systèmes d’authentification sont essentiels parce qu’ils empêchent les <Tooltip tip="Acteurs malveillants : entité (personne ou groupe) qui représente une menace pour l’entreprise ou l’environnement avec l’intention de causer du tort." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=bad+actors">acteurs malveillants</Tooltip> d’accéder aux applications et aux données utilisateur auxquelles ils ne devraient pas avoir accès. Nous voulons multiplier les obstacles entre ces acteurs malveillants et l’accès à nos systèmes. L’un des moyens les plus simples d’y parvenir est de vous assurer que votre [protection contre les attaques](/fr-CA/docs/secure/attack-protection) avec Auth0 est correctement configurée. Prenez donc quelques instants pour consulter les recommandations à ce sujet et vérifier que tout fonctionne comme prévu.
+
+<Info>
+  ### Bonne pratique
+
+  La détection des anomalies est gérée en arrière-plan par Auth0 et constitue une excellente fonctionnalité de sécurité pour votre produit. Si vous comptez l’utiliser, assurez-vous d’avoir configuré votre [Fournisseur de courriel](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/operations#email-provider-setup) et vos [Modèles de courriel](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/branding#email-template-customization) avant d’activer l’envoi de courriels à vos utilisateurs.
+</Info>
+
+<div id="sso-with-legacy-systems">
+  ## SSO avec des systèmes hérités
+</div>
+
+Dans le cadre d’une restructuration à grande échelle, il n’est pas toujours possible — ni pratique — de mettre à jour toutes vos applications en même temps. En fait, la meilleure pratique que nous recommandons est d’adopter une approche itérative pour l’intégration à Auth0. Si vos applications prennent déjà part à l’authentification unique (SSO) et que votre système d’identité hérité prend en charge des protocoles comme OIDC ou <Tooltip tip="Security Assertion Markup Language (SAML) : protocole normalisé permettant à deux parties d’échanger des renseignements d’authentification sans mot de passe." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=SAML">SAML</Tooltip>, deux options s’offrent à vous si vous souhaitez continuer d’offrir le SSO pendant l’intégration à Auth0 :
+
+* Mettez à jour votre fournisseur d’identité existant dans votre système SSO hérité afin qu’il redirige vers Auth0 pour la connexion (p. ex., en utilisant [SAML](/fr-CA/docs/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider)), ou
+* Configurez Auth0 pour qu’il redirige vers votre système SSO hérité pour la connexion. Cela exige de configurer votre système hérité comme IdP dans Auth0 (c.-à-d., en utilisant soit [SAML](/fr-CA/docs/authenticate/protocols/saml/saml-sso-integrations/configure-auth0-saml-service-provider), soit [OIDC](/fr-CA/docs/authenticate/identity-providers/social-identity-providers)).
+
+<Info>
+  ### Best Practice
+
+  La prise en charge d’une expérience SSO avec votre système hérité peut ajouter de la complexité, mais cela peut en valoir la peine pour offrir une expérience utilisateur plus fluide pendant l’intégration à Auth0. Si vous comptez suivre cette voie, le fait de la planifier tôt peut aider à faire en sorte qu’elle soit réalisable. Si vous n’avez pas déjà un service centralisé offrant le SSO, il est peu probable que la complexité nécessaire pour l’ajouter en vaille les avantages.
+</Info>
+
+Il s’agit d’un sujet complexe qui nécessitera probablement une analyse plus approfondie selon votre architecture héritée actuelle, et nous vous recommandons de ne l’envisager que si votre système hérité prend déjà en charge le SSO. Remarque : si vous redirigez actuellement vos applications vers un système centralisé pour authentifier vos utilisateurs et que ce système ne demande des renseignements d’authentification que si vous n’avez pas déjà de session avec lui, alors vous disposez d’une mise en œuvre SSO héritée.
+
+<div id="social-authentication">
+  ## Authentification sociale
+</div>
+
+Le scénario « Bring Your Own Identity » offert par Facebook, Google, etc. est un excellent moyen de simplifier l’expérience d’authentification des utilisateurs sans compromettre la sécurité, et l’utilisation de [Universal Login](#universal-login) permet d’ajouter facilement la prise en charge des [Connexions sociales](/fr-CA/docs/authenticate/identity-providers/social-identity-providers) avec un minimum de perturbations.
+
+<Warning>
+  Auth0 offre un moyen simple de tester les connexions sociales à l’aide de [clés de développeur préconfigurées](/fr-CA/docs/authenticate/identity-providers/social-identity-providers/devkeys). Cependant, celles-ci ont des [limitations](/fr-CA/docs/authenticate/identity-providers/social-identity-providers/devkeys#limitations-of-developer-keys), et avant de passer en production, vous devrez configurer vos propres clés pour votre application en suivant les [instructions](/fr-CA/docs/authenticate/identity-providers/social-identity-providers) correspondant au(x) fournisseur(s) social(aux) de votre choix.
+</Warning>
+
+Grâce à la prise en charge de l’authentification [sociale](https://auth0.com/learn/social-login/), les identités et les identifiants des utilisateurs sont gérés par le fournisseur social, de même que certaines claims d’identité, qu’Auth0 utilisera pour remplir le [profil](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/profile-management) de l’utilisateur. Auth0 peut aussi fournir l’accès aux [jetons d’accès](/fr-CA/docs/secure/tokens/access-tokens) des fournisseurs d’identité sociaux (IdP sociaux), afin que votre application puisse également appeler les API d’IdP sociaux tiers au nom de l’utilisateur.
+
+<Info>
+  ### Bonne pratique
+
+  L’authentification sociale est une excellente fonctionnalité à offrir, mais lorsque vous proposez plusieurs façons de se connecter, vous devez tenir compte du fait que vos clients pourraient en utiliser plus d’une. Par défaut, chaque identité utilisateur dans Auth0 possède son propre profil utilisateur; vous voudrez donc probablement envisager la capacité d’Auth0 à [lier des comptes d’utilisateur](/fr-CA/docs/manage-users/user-accounts/user-account-linking) afin d’associer efficacement un même profil utilisateur à plusieurs identités.
+</Info>
+
+L’[extension Custom Social Connections](/fr-CA/docs/authenticate/identity-providers/social-identity-providers) d’Auth0 pousse encore plus loin l’authentification sociale en vous permettant de vous connecter à n’importe quel fournisseur tiers compatible avec [OpenID Connect (OIDC)](/fr-CA/docs/authenticate/protocols/openid-connect-protocol) qui n’est pas pris en charge d’emblée. Par exemple, la prise en charge du fournisseur d’identité gouvernemental [SwissID](https://www.swissid.ch/) peut être configurée dans Auth0 à l’aide d’une connexion sociale personnalisée.
+
+<div id="multi-factor-authentication-mfa">
+  ## Authentification multifacteur (MFA)
+</div>
+
+À une époque où l’utilisation abusive des identifiants des utilisateurs n’a jamais été aussi élevée, protéger vos systèmes représente un véritable défi, surtout quand les pirates volent si souvent les renseignements d’identité des utilisateurs. L’un des moyens les plus efficaces consiste toutefois à permettre aux utilisateurs de configurer un second facteur pour protéger leur compte. On parle plus couramment d’[Authentification multifacteur](/fr-CA/docs/secure/multi-factor-authentication). Cela garantit que seul un utilisateur légitime peut accéder à son compte, même s’il utilise un nom d’utilisateur et un mot de passe qui ont pu être compromis dans une autre application.
+
+<Info>
+  ### Bonne pratique
+
+  Il est assez courant que les applications destinées aux clients offrent aux utilisateurs une *option* d’ajouter un second facteur plutôt que de les *obliger* à en utiliser un. Pour en savoir plus à ce sujet, consultez [offrir à vos utilisateurs l’option d’ajouter la MFA](https://auth0.com/learn/multifactor-authentication-customers/).
+</Info>
+
+Auth0 prend en charge plusieurs options pour activer la MFA afin de protéger l’accès aux comptes d’utilisateurs, et il existe plusieurs pratiques pour vous assurer d’offrir une protection souple et efficace par second facteur :
+
+* Auth0 [Guardian](https://auth0.com/multifactor-authentication) : un service qui fournit à la fois la génération de notifications push et une application permettant d’autoriser ou de rejeter des requêtes. Push envoie des notifications à l’appareil préenregistré d’un utilisateur — généralement un téléphone mobile ou une tablette — à partir duquel l’utilisateur peut immédiatement autoriser ou rejeter l’accès au compte d’une simple pression sur un bouton.
+* Mot de passe à usage unique basé sur le temps ([TOTP](https://auth0.com/blog/from-theory-to-practice-adding-two-factor-to-node-dot-js/)) : vous permet d’enregistrer un appareil — comme Google Authenticator — qui génère un mot de passe à usage unique changeant au fil du temps, que l’utilisateur peut saisir comme second facteur pour valider son compte.
+* SMS : pour envoyer un code à usage unique par SMS que l’utilisateur est ensuite invité à saisir avant de pouvoir terminer son authentification.
+* Voice : pour transmettre un code à usage unique au moyen d’un appel téléphonique que l’utilisateur est ensuite invité à saisir avant de pouvoir terminer son authentification.
+* Duo : vous permet d’utiliser votre compte Duo pour l’authentification multifacteur.
+* Email : vous permet d’utiliser votre compte de courriel pour l’authentification multifacteur.
+
+Bien que le flux de travail de MFA utilisant des technologies comme Guardian ou Google Authenticator soit généralement fourni au moyen d’une application distincte qui s’exécute sur un téléphone mobile ou une tablette, si vous ne voulez pas que vos clients aient à télécharger une application distincte, Auth0 vous fournit également un [SDK](https://auth0.com/blog/announcing-guardian-whitelabel-sdk/) que vous pouvez utiliser pour créer le flux de travail du second facteur directement dans vos applications mobiles existantes.
+
+<div id="project-planning-guide">
+  ## Guide de planification de projet
+</div>
+
+Nous mettons à votre disposition un guide de planification au format PDF que vous pouvez télécharger et consulter pour en savoir plus sur les stratégies que nous recommandons.
+
+[Guide de planification de projet B2C IAM](https://assets.ctfassets.net/cdy7uua7fh8z/3er1aEQ7Ul0q3c9leJWczR/b1f18b4c16abb7e78b01e4eb2b52bb8e/B2C_Project_Planning.pdf)

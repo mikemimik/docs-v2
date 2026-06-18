@@ -1,0 +1,109 @@
+---
+description: Describe cómo puedes minimizar los datos personales que recopilas para su tratamiento y garantizar su seguridad.
+title: 'RGPD: Minimización de datos'
+---
+
+Según el artículo 5 del RGPD, los datos personales que recopiles deben limitarse a lo necesario para su tratamiento y conservarse solo durante el tiempo necesario. Debe garantizarse una seguridad adecuada durante el tratamiento de los datos, incluida la protección contra el tratamiento no autorizado o ilícito y contra la pérdida, destrucción o daño accidentales.
+
+Auth0 ofrece varias funciones que pueden ayudarte a alcanzar estos objetivos, como la vinculación de cuentas, el cifrado del perfil de usuario, entre otras.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El contenido de estos documentos no pretende constituir asesoramiento jurídico ni debe considerarse un sustituto de la asistencia legal. La responsabilidad final de comprender el RGPD y cumplirlo recae en ti, aunque Auth0 te ayudará, siempre que sea posible, a cumplir sus requisitos.
+</Callout>
+
+<div id="restrict-user-profile-information">
+  ## Restringir la información del perfil de usuario
+</div>
+
+Para limitar la cantidad de información personal en el perfil de usuario de Auth0, puedes:
+
+* Minimizar (o evitar) el almacenamiento de información personal en la sección de metadatos del perfil de usuario
+* Si usas directorios empresariales, configúralos para que devuelvan solo la información mínima necesaria
+* Si usas proveedores sociales, configúralos para que devuelvan solo la información mínima necesaria
+* Incluir en la lista de bloqueo los atributos de usuario que no quieras conservar en las bases de datos de Auth0
+
+<div id="encrypt-user-profile-information">
+  ## Cifrar la información del perfil de usuario
+</div>
+
+Puedes cifrar la información del usuario antes de guardarla en su perfil. Puedes usar cualquier mecanismo de cifrado que prefieras antes de almacenar los datos en los campos de metadatos. Cuando un usuario establezca información confidencial, llama al endpoint Update a User.
+
+<div id="use-account-linking">
+  ## Usa la vinculación de cuentas
+</div>
+
+Cada vez que un usuario usa una conexión para iniciar sesión en tu aplicación, se crea un perfil de usuario si todavía no existe. Ten en cuenta que esto ocurre por conexión.
+
+Para entenderlo mejor, considera el siguiente caso. Tu aplicación ofrece tres opciones distintas de registro:
+
+* registrarse con correo electrónico/contraseña
+* iniciar sesión con Google
+* iniciar sesión con Facebook
+
+Si un usuario se registra con Google, se creará un perfil de usuario en Auth0. Si ese mismo usuario, cuando vuelve, no recuerda con qué se registró y elige iniciar sesión con Facebook, Auth0 creará otro perfil de usuario para esa persona. Así, ahora tienes dos perfiles para el mismo usuario.
+
+Puedes resolver esto con la vinculación de cuentas. Puedes vincular varias cuentas a un único perfil de usuario, independientemente del tipo de conexión (por ejemplo, usuario/contraseña, social o <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=SAML">SAML</Tooltip>).
+
+Hay dos maneras de implementar esto:
+
+* **Vinculación de cuentas iniciada por el usuario**: tu aplicación debe proporcionar la interfaz para que un usuario autenticado pueda vincular sus cuentas manualmente.
+* **Vinculación de cuentas sugerida**: en este caso, sigues configurando una regla que vinculará cuentas con la misma dirección de correo electrónico verificada. Sin embargo, en lugar de completar la vinculación automáticamente, tu aplicación primero le pedirá al usuario que vincule sus identidades.
+
+<div id="export-logs">
+  ## Exportar registros
+</div>
+
+Puedes exportar los registros de Auth0 y almacenarlos tú mismo o enviarlos automáticamente a un servicio externo de registros en [Auth0 Marketplace](https://marketplace.auth0.com/features/log-streaming). Esta funcionalidad puede ayudarte a cumplir con los requisitos de retención de datos, así como con los de análisis de registros.
+
+<div id="export-logs-with-the-api">
+  ### Exportar registros con la API
+</div>
+
+Puedes usar la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip> para exportar registros y almacenarlos por tu cuenta. Hay dos endpoints disponibles, cada uno ofrece información ligeramente distinta.
+
+<div id="search-all-logs">
+  #### Buscar todos los registros
+</div>
+
+El endpoint Search Log Events recupera las entradas de registro que coinciden con los criterios de búsqueda que hayas proporcionado. Si no proporcionas ningún criterio de búsqueda, obtendrás una lista de todas las entradas disponibles.
+
+Puedes proporcionar criterios de búsqueda mediante el parámetro **q** y recuperar campos específicos con el parámetro **fields**.
+
+Para acceder a la API, necesitas un token de Management API v2.
+
+Esta solicitud de ejemplo recupera todos los registros de inicios de sesión correctos (el acrónimo del evento para un inicio de sesión correcto es `s`). La lista de campos que recuperaremos para cada entrada de registro es: **date**, **description**, **client&#95;id** y **log&#95;id**.
+
+<div id="get-a-single-log-entry">
+  #### Obtener una entrada de registro individual
+</div>
+
+El endpoint Get a Log Event by ID recupera la entrada de registro asociada al ID proporcionado.
+
+Esta solicitud de ejemplo recupera una entrada de registro individual con el ID `90020180129170850881585554625888895190928456277777449010`.
+
+<div id="export-to-an-external-service">
+  ### Exportar a un servicio externo
+</div>
+
+Puedes instalar y configurar una de nuestras [soluciones de transmisión de registros](https://marketplace.auth0.com/features/log-streaming) en Auth0 Marketplace para exportar automáticamente los registros a otro proveedor, como Sumo Logic o Loggly. Para consultar una lista de proveedores disponibles y los pasos detallados para configurar cada uno, consulta Exportar registros de Auth0 a un servicio externo.
+
+<div id="keep-sensitive-information-from-logs">
+  ## Evita que la información sensible aparezca en los registros
+</div>
+
+Debes minimizar cualquier información sensible contenida en las URL que pueda quedar registrada en los archivos de registro de Auth0. Por ejemplo, considera usar `health-site` o algo similar como nombre de dominio en lugar de `cancer-treatments`.
+
+También debes asegurarte de hacer lo siguiente:
+
+* Analizar qué datos recopilas durante el registro y a través de las redes sociales, y si realmente son necesarios para la finalidad de tu servicio.
+* Configurar <Tooltip tip="Identity Provider (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/es/docs/glossary?term=identity+providers">proveedores de identidad</Tooltip> empresariales para controlar qué datos se devuelven a Auth0.
+* Especificar qué datos quieres recopilar del proveedor social y negociar con este cualquier condición específica relacionada con el inicio de sesión social y con el uso de los datos que recibirán sobre el inicio de sesión de tus usuarios.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [RGPD: Condiciones para el consentimiento](/es/docs/secure/data-privacy-and-compliance/gdpr/gdpr-conditions-for-consent)
+* [RGPD: Portabilidad de los datos](/es/docs/secure/data-privacy-and-compliance/gdpr/gdpr-data-portability)
+* [RGPD: Protección y seguridad de los datos de los usuarios](/es/docs/secure/data-privacy-and-compliance/gdpr/gdpr-protect-and-secure-user-data)
+* [RGPD: Derecho a acceder, rectificar y eliminar datos](/es/docs/secure/data-privacy-and-compliance/gdpr/gdpr-right-to-access-correct-and-erase-data)

@@ -1,0 +1,52 @@
+---
+title: ホスト型ログインと埋め込み型ログイン
+description: ホスト型ログイン（Universal Login）と埋め込み型ログインの違いを説明します。
+---
+
+アプリケーションのログイン体験を設計する際は、ホスト型 ([Universal Login](/ja/docs/authenticate/login/auth0-universal-login)) にするか、埋め込み型にするかを決める必要があります。
+
+<div id="hosted-login">
+  ## ホスト型ログイン
+</div>
+
+ホスト型ログインフローでは、アプリケーションは認証を行うためにユーザーを<Tooltip tip="認可サーバー: ユーザーのアクセス範囲を定義する中核的なサーバーです。たとえば、認可サーバーはユーザーが利用できるデータ、タスク、機能を制御できます。" cta="用語集を見る" href="/ja/docs/glossary?term=authorization+server">認可サーバー</Tooltip>にリダイレクトし、その後、認可サーバーからユーザーがアプリケーションに戻されます。
+
+<div id="universal-login-flow">
+  ### Universal Login フロー
+</div>
+
+<Tooltip tip="Universal Login: アプリケーションは、ユーザーの本人確認のために、Auth0 の認可サーバーでホストされる Universal Login にリダイレクトされます。" cta="用語集を見る" href="/ja/docs/glossary?term=Universal+Login">Universal Login</Tooltip> を使った一般的なユーザー認証の流れは、次のとおりです。
+
+1. アプリケーションは、Auth0 SDK のログインメソッドを呼び出すか、[Auth0 Authentication API の Login エンドポイント](https://auth0.com/docs/api/authentication/login/) を直接呼び出して、認証リクエストを開始します。
+2. アプリケーションは、ユーザーを Auth0 の認可サーバー (Auth0 テナント) にリダイレクトします。
+3. Auth0 は、[Auth0 Session Layer](/ja/docs/manage-users/sessions/session-layers) にセッションクッキーがあるかどうかを確認します。
+
+   * セッションクッキーが見つからない場合、Auth0 はユーザーを Universal Login にリダイレクトして認証を行い、対応するセッションクッキーを作成します。
+   * セッションクッキーが見つかった場合、Auth0 はそれを使ってユーザーを認証します。
+4. Auth0 は、[ID トークン](/ja/docs/secure/tokens/id-tokens) と [アクセストークン](/ja/docs/secure/tokens/access-tokens) を付与したうえで、ユーザーをアプリケーションに戻します。
+
+<div id="embedded-login">
+  ## 埋め込み型ログイン
+</div>
+
+埋め込み型ログインフローでは、ユーザーはアプリケーション内で直接認証されます。アプリケーションがログインフォームを表示し、ユーザーの認証情報を収集して認証プロバイダーに送信した後、ユーザーの<Tooltip tip="IDトークン: リソースにアクセスするためではなく、クライアント自体のための認証情報です。" cta="用語集を見る" href="/ja/docs/glossary?term=ID+token">IDトークン</Tooltip>と<Tooltip tip="IDトークン: リソースにアクセスするためではなく、クライアント自体のための認証情報です。" cta="用語集を見る" href="/ja/docs/glossary?term=access+token">アクセストークン</Tooltip>を含むレスポンスを受け取ります。
+
+Webアプリケーションでは、Auth0テナントに[カスタムドメインを設定](/ja/docs/customize/custom-domains)していない限り、埋め込み型ログインでは[クロスオリジン認証](/ja/docs/authenticate/login/cross-origin-authentication)を使用します。クロスオリジン認証では、異なるオリジン間で安全な認証トランザクションを行えるように、サードパーティ Cookie を使用します。
+
+<div id="feature-comparison">
+  ## 機能比較
+</div>
+
+| 機能                                                 | Hosted                                                                                                                                                                                                         | Embedded                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[シングルサインオン](/ja/docs/authenticate/single-sign-on)** | Auth0 Authorization Server (お客様の Auth0 テナント) 上の[セッションクッキー](/ja/docs/manage-users/sessions)を使用する Universal Login により、全面的にサポートされます。                                                                                 | サポートは限定的です。[Lock](/ja/docs/libraries/lock/lock-api-reference#checksession-) または [Auth0.js](/ja/docs/libraries/auth0js#using-checksession-to-acquire-new-tokens) ライブラリを使用するウェブアプリケーションでは、セッションを共有できます。ネイティブアプリケーションは、[Native to Web SSO](/ja/docs/authenticate/single-sign-on/native-to-web) を通じてウェブアプリケーションとセッションを共有できます。 |
+| **[カスタマイズ](/ja/docs/customize)**                      | Universal Login では、テーマ、ページテンプレート、テキスト要素、プロンプトなど、さまざまな要素を簡単にカスタマイズできます。<br /><br />完全なカスタマイズは、[Advanced Customizations for Universal Login.](/ja/docs/customize/login-pages/advanced-customizations) によってサポートされます。 | アプリケーションの UI/UX を完全に制御できるため、最も自由度の高いカスタマイズが可能です。                                                                                                                                                                                                                                                                 |
+| **機能管理**                                           | 機能は Auth0 Dashboard または Auth0 Management API を通じて一元管理できます。<br /><br />たとえば、Auth0 Dashboard で MFA を有効化または無効化すると、その変更は以降のユーザーログインに即座に反映されます。                                                                     | 機能はアプリケーションごとに個別に管理する必要があります。<br /><br />たとえば、ウェブアプリケーションとネイティブアプリケーションの両方に MFA を実装したい場合は、それぞれを更新し、新しいバージョンをリリースする必要があります。                                                                                                                                                                                       |
+| **ユーザー体験**                                         | 認証中、ユーザーはお客様のアプリケーションと Auth0 Authorization Server の間をリダイレクトされます。<br /><br />ネイティブアプリケーションでは、そのためにユニバーサルリンクまたはディープリンクの実装が必要です。                                                                                  | 認証中も、ユーザーはお客様のアプリケーション内にとどまります。                                                                                                                                                                                                                                                                                  |
+| **セキュリティと保守**                                      | Auth0 はセキュリティ動向を監視し、それに応じて Universal Login を更新します。                                                                                                                                                             | セキュリティのベストプラクティスに従い、提供される技術を適切に実装する責任はお客様にあります。                                                                                                                                                                                                                                                                  |
+
+<div id="best-practice">
+  ## ベストプラクティス
+</div>
+
+[IETF の RFC 8252: OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252.txt) によると、認証フローでは、ネイティブアプリケーションは外部ユーザーエージェント (ブラウザーなど) のみを使用すべきです。

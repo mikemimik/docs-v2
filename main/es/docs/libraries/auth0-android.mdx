@@ -1,0 +1,139 @@
+---
+description: Aprende a instalar, inicializar y usar Auth0.Android
+title: Auth0.Android
+---
+
+Auth0.Android es una biblioteca del lado del cliente que puedes usar con tu aplicación de Android para autenticar a los usuarios y acceder a las [APIs de Auth0](/es/docs/api).
+
+Consulta el [repositorio de Auth0.Android](https://github.com/auth0/Auth0.Android) en GitHub.
+
+<div id="requirements">
+  ## Requisitos
+</div>
+
+Se requiere Android API versión 21 o superior.
+
+<div id="installation">
+  ## Instalación
+</div>
+
+Agrega el SDK a tu proyecto. La biblioteca hará solicitudes a la Authentication API y la Management API de Auth0.
+
+<div id="add-auth0-to-gradle">
+  ### Añade Auth0 a Gradle
+</div>
+
+En la sección de dependencias de `build.gradle` de tu aplicación, añade lo siguiente:
+
+```kotlin lines
+dependencies {
+  // Agrega el Android SDK de Auth0
+  implementation 'com.auth0.android:auth0:2.+'
+}
+```
+
+Si Android Studio marca el signo `+`, o si quieres usar una versión fija, consulta la última versión en [Maven](https://central.sonatype.com/artifact/com.auth0.android/auth0).
+
+<Card title="Sincroniza el proyecto con Gradle">
+  Recuerda sincronizar usando el aviso de Android Studio o ejecutar `./gradlew clean build` desde la línea de comandos.
+</Card>
+
+En la sección `android`, configura Java 8 como bytecode de destino para los plugins de Android y Kotlin, respectivamente.
+
+```kotlin lines
+android {
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+  kotlinOptions {
+    jvmTarget = '1.8'
+  }
+}
+```
+
+<div id="permissions">
+  ### Permisos
+</div>
+
+Abre el archivo `AndroidManifest.xml` de tu aplicación y añade el siguiente permiso.
+
+```text lines
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+<div id="configure-for-universal-login">
+  ## Configurar para Universal Login
+</div>
+
+Primero, ve a [Dashboard &gt; Applications](https://manage.auth0.com/#/applications) y haz clic en el nombre de la aplicación que quieras editar. En **Allowed Callback URLs**, asegúrate de que tu URL siga este formato:
+`https://YOUR_DOMAIN/android/{YOUR_APP_PACKAGE_NAME}/callback`
+
+A continuación, sustituye `{YOUR_APP_PACKAGE_NAME}` por el nombre real del paquete de tu aplicación. Puedes encontrarlo en el archivo `app/build.gradle`, con el valor de `applicationId`.
+
+Después, en tu archivo `app/build.gradle`, agrega los [marcadores de posición del manifiesto](https://developer.android.com/build/manage-manifests) para las propiedades Auth0 Domain y Auth0 Scheme, que la biblioteca usará para registrar un intent-filter que capture la URI de devolución de llamada.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si no tienes previsto usar la función Web Authentication ni declarar los marcadores de posición del manifiesto, puedes volver a declarar manualmente la actividad en el archivo de manifiesto de tu aplicación Android para eliminarla del archivo de manifiesto combinado. Así evitarás que Gradle indique que faltan los marcadores de posición del manifiesto.
+
+  Consulta las [preguntas frecuentes](https://github.com/auth0/auth0.android/blob/main/FAQ.md) para obtener más información.
+</Callout>
+
+```kotlin lines
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 30
+    defaultConfig {
+        applicationId "com.auth0.samples"
+        minSdkVersion 21
+        targetSdkVersion 30
+        //...
+
+        //---> Agrega la siguiente línea
+        manifestPlaceholders = [auth0Domain: "@string/com_auth0_domain", auth0Scheme: "https"]
+        //<---
+    }
+    //...
+}
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Es una buena práctica definir recursos reutilizables como `@string/com_auth0_domain` en lugar de escribirlos directamente en el código.
+</Callout>
+
+<div id="initialize-auth0">
+  ## Inicializa Auth0
+</div>
+
+Crea un nuevo objeto `Auth0` con tu <Tooltip tip="ID de cliente: valor de identificación que Auth0 asigna a tu recurso registrado." cta="Ver glosario" href="/es/docs/glossary?term=client+ID">ID de cliente</Tooltip> de Auth0 y el valor de tu dominio. Más adelante, los objetos lo usarán al interactuar con los endpoints de Auth0.
+
+```kotlin lines
+val auth0 = Auth0("{yourClientId}", "YOUR_DOMAIN")
+```
+
+También puedes inicializar este objeto con un Context de Android, como se muestra en [este ejemplo de uso](https://github.com/auth0/Auth0.Android/tree/master#usage).
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+[Permite que los usuarios inicien y cierren sesión en tu aplicación](/es/docs/libraries/auth0-android/auth0-android-login-logout-and-user-profiles) usando la clase `WebAuthProvider`.
+
+<div id="reset-user-password">
+  ### Restablecer la contraseña de un usuario
+</div>
+
+Para iniciar el restablecimiento de la contraseña de un usuario, llama a `resetPassword` con la dirección de correo electrónico del usuario y el nombre de la conexión de base de datos como parámetros.
+
+Las solicitudes de restablecimiento de contraseña fallarán en caso de errores de red, pero no si el correo electrónico indicado no existe en la base de datos (por motivos de seguridad).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Auth0.Android: Inicio y cierre de sesión, y perfiles de usuario](/es/docs/libraries/auth0-android/auth0-android-login-logout-and-user-profiles)
+* [Opciones de configuración de Auth0.Android](/es/docs/libraries/auth0-android/auth0-android-configuration)
+* [Autenticación con base de datos de Auth0.Android](/es/docs/libraries/auth0-android/auth0-android-database-authentication)
+* [Autenticación passwordless de Auth0.Android](/es/docs/libraries/auth0-android/auth0-android-passwordless)
+* [Auth0.Android: Administración de usuarios](/es/docs/libraries/auth0-android/auth0-android-user-management)

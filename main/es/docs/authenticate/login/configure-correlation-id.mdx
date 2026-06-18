@@ -1,0 +1,177 @@
+---
+description: Aprende a usar ID de correlación para hacer seguimiento de los eventos en el flujo de autenticación.
+title: Configurar ID de correlación
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<ReleaseStageNotice feature="ID de correlación" stage="ea" terms="true" contact="equipo de soporte de Auth0 o su gerente técnico de cuenta" />
+
+<Card title="Requisitos previos">
+  Para usar `correlation_id`, debe tener:
+
+  * **Auth0 Universal Login configurado**: ID de correlación está disponible en los flujos de Universal Login.
+  * **Una aplicación capaz de generar ID únicos**: Su aplicación debe poder generar UUIDs o ID de transacción. (Ejemplo: `txn_12345_xyz`, ID de sesión o ID de pedido)
+
+  <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+    Si `correlation_id` no está disponible en sus solicitudes de autorización, es posible que esta función no esté habilitada en su tenant.
+  </Callout>
+</Card>
+
+Auth0 ofrece la posibilidad de rastrear transacciones de autenticación con ID de correlación. Esta capacidad de seguimiento puede reducir el tiempo de respuesta del equipo de soporte y permitirle hacer un seguimiento multisistema más allá de los eventos de autenticación.
+
+El parámetro `correlation_id` agrega a la URL de autorización un identificador único generado por su aplicación. Este ID se registra automáticamente, lo que le permite rastrear y filtrar eventos en los [logs del tenant de Auth0](/es/docs/deploy-monitor/logs).
+
+ID de correlación persiste en los siguientes eventos:
+
+* Registro
+* Inicio de sesión
+* Inscripción y desafíos de autenticación multifactor (MFA)
+* Restablecimiento de contraseña
+
+Puede usar ID de correlación con Universal Login, plantillas de página de Universal Login, plantillas de correo electrónico, plantillas de SMS, páginas de error personalizadas, Flows y Auth0 Actions.
+
+<div id="configure-correlation-id">
+  ## Configurar el ID de correlación
+</div>
+
+Los valores de `correlation_id` tienen las siguientes limitaciones:
+
+* **Caracteres permitidos**: caracteres alfanuméricos y caracteres especiales que coincidan con `/^[-\w.*~@+/:]{1,64}$/`.
+* **Longitud máxima**: 64 caracteres
+* **No debe** contener información de identificación personal (PII)
+
+Pasa el parámetro `correlation_id` en el objeto `authorizationParams` para añadir el ID único a la URL de autorización, como en el siguiente ejemplo:
+
+```javascript wrap lines
+const { loginWithRedirect } = useAuth0();
+loginWithRedirect({
+  authorizationParams: {
+    // Agrega "&correlation_id=..." a la URL para rastreo
+    correlation_id: "YOUR_CORRELATION_ID"
+  }
+});
+```
+
+<div id="universal-login">
+  ## Universal Login
+</div>
+
+Todos los flujos de Universal Login admiten `correlation_id`. Una vez que pases el valor del ID de correlación al endpoint `/authorize`, los eventos de autenticación generan logs del tenant con el ID de correlación, que puedes usar para hacer seguimiento. Usa el SDK de Management API para recuperar y filtrar eventos recientes e identificar una transacción específica.
+
+La siguiente llamada de ejemplo usa el SDK de Management API para recuperar los eventos de autenticación más recientes. Luego, los filtra localmente para aislar un evento específico:
+
+```javascript wrap lines
+// 1. Llamar a la Management API (sintaxis de SDK v5)
+const { data: logs } = await management.logs.list({
+  per_page: 100,
+  sort: 'date:-1'
+});
+// 2. Filtrar el array en el cliente para encontrar tu ID
+const transactionEvents = logs.filter(log =>
+  log.references?.correlation_id === "YOUR_CORRELATION_ID"
+);
+console.log(`Found ${transactionEvents.length} events for this transaction.`);
+```
+
+<div id="login-page-template">
+  ### Plantilla de la página de inicio de sesión
+</div>
+
+Si personalizas la experiencia de inicio de sesión con [Universal Login Page Templates](/es/docs/customize/login-pages/universal-login/customize-templates), añade `correlation_id` a tu plantilla para rastrear eventos de autenticación en un inicio de sesión personalizado.
+
+El siguiente ejemplo muestra `correlationId: "{{correlation_id}}"` agregado a `{%- auth0:widget -%}`.
+
+```html wrap lines
+<!-- Ejemplo: Inyectando el ID en un script del lado del cliente -->
+<!-- Nota: {{ }} es sintaxis de plantilla Liquid evaluada en el servidor por Auth0, no son marcadores de posición de documentación -->
+<script>
+  window.addEventListener("load", function () {
+    const loginContext = {
+      application: "{{application.name}}",
+      // Accede al correlation_id directamente mediante sintaxis Liquid
+      correlationId: "{{correlation_id}}"
+    };
+
+    console.log("Tracking Context:", loginContext);
+    // Ahora puedes pasar loginContext.correlationId a tu herramienta de análisis
+  });
+</script>
+```
+
+<div id="email-templates">
+  ## Plantillas de correo electrónico
+</div>
+
+Puedes incluir `correlation_id` en [Plantillas de correo electrónico](/es/docs/customize/email/email-templates/customize-email-templates) para facilitar el seguimiento de eventos de autenticación que activan notificaciones por correo electrónico, como restablecimientos de contraseña o correos de verificación.
+
+El siguiente ejemplo muestra `{{correlation_id}}` añadido al cuerpo de una plantilla de correo electrónico.
+
+```liquid wrap lines
+<p>If you did not initiate this request, please ignore this email.</p>
+<p>Tracking reference: {{correlation_id}}</p>
+```
+
+<div id="sms-templates">
+  ## Plantillas de SMS
+</div>
+
+Puedes incluir `correlation_id` en [Plantillas de SMS](/es/docs/customize/phone-messages/phone-templates) para rastrear eventos de autenticación que activan notificaciones por SMS, como desafíos de MFA.
+
+El siguiente ejemplo muestra `{{correlation_id}}` añadido en una plantilla de SMS.
+
+```liquid wrap lines
+Your verification code is: {{code}}. Ref: {{correlation_id}}
+```
+
+<div id="custom-error-pages">
+  ## Páginas de error personalizadas
+</div>
+
+Puedes incluir `correlation_id` en [Páginas de error personalizadas](/es/docs/customize/login-pages/custom-error-pages) para mostrar la referencia de seguimiento directamente en las páginas de error, lo que facilita a los usuarios informar problemas y a tu equipo de soporte rastrear la transacción fallida.
+
+El siguiente ejemplo muestra `{{correlation_id}}` añadido a una plantilla personalizada de página de error.
+
+```liquid wrap lines
+<h1>{{error | escape}}: {{error_description | escape}}</h1>
+<p>If you need support, reference this ID: {{correlation_id}}</p>
+```
+
+<div id="auth0-actions">
+  ## Acciones de Auth0
+</div>
+
+Con [desencadenadores de registro e inicio de sesión](/es/docs/customize/actions/explore-triggers/signup-and-login-triggers) de Auth0 Actions, utilice el objeto `event` para registrar eventos en servicios de terceros o enviar los eventos a API posteriores.
+
+Los siguientes objetos de evento admiten `correlation_id`:
+
+* [Pre-registro de usuario](/es/docs/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-event-object)
+* [Post-inicio de sesión](/es/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object)
+* [Post-desafío](/es/docs/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-event-object)
+* [Post-cambio de contraseña](/es/docs/customize/actions/explore-triggers/password-reset-triggers/post-change-password-trigger/post-change-password-event-object)
+* [Proveedor de correo electrónico personalizado](/es/docs/customize/email/smtp-email-providers/custom/action-triggers-custom-email-provider-event-object)
+* [Proveedor telefónico personalizado](/es/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/actions-triggers-custom-phone-provider-event-object)
+* [Notificación de MFA: send-phone-message](/es/docs/customize/actions/explore-triggers/mfa-notifications-trigger/send-phone-message-event-object)
+* [Intercambio de credenciales](/es/docs/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-event-object)
+
+La Acción de ejemplo de Post-Login muestra cómo extraer el `correlation_id` del objeto `event`.
+
+```javascript wrap lines
+exports.onExecutePostLogin = async (event, api) => {
+  console.log('PostLogin Action Start');
+  const correlation_id = event.transaction?.correlation_id;
+  // Verificar si existe correlation_id
+  if (correlation_id) {
+    console.log(`Correlation ID found: ${correlation_id}`);
+  } else {
+    console.log('No correlation_id found in transaction');
+  }
+  console.log('PostLogin Action End');
+};
+```
+
+<div id="forms">
+  ## Forms
+</div>
+
+Puedes usar ID de correlación en Forms y Flows. Forms te permite personalizar el registro y el inicio de sesión con lógica personalizada que creas en Flows. Para usar ID de correlación en Forms y Flows, usa el objeto `context` en el editor de Flows para añadir a tu lógica la variable de eventos correlacionados `{{context.transaction.correlation_id}}`. Para obtener más información, consulta [Variables y funciones auxiliares](/es/docs/customize/forms/variables).

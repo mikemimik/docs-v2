@@ -1,0 +1,55 @@
+---
+title: Dépannage des bases de données personnalisées
+description: Comment gérer les erreurs et effectuer le dépannage lorsque vous utilisez votre propre base de données comme fournisseur d’identité.
+---
+
+Vous pourriez recevoir des erreurs liées aux bases de données personnalisées. Vous pouvez aussi retourner des erreurs depuis les scripts d’action de votre connexion de base de données personnalisée à des fins de dépannage.
+
+<div id="custom-database-error-types">
+  ## Types d’erreurs des bases de données personnalisées
+</div>
+
+Les connexions de base de données peuvent renvoyer les erreurs suivantes :
+
+| Erreur                                                                              | Login Script      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `new WrongUsernameOrPasswordError(`<br />`  <email or user_id>, <message>`<br />`)` | Login             | Se produit lorsque les informations d’authentification de l’utilisateur ne sont pas valides. Si aucun argument n’est transmis, ou si le premier argument est évalué comme faux, l’erreur sera consignée comme un événement `fu` (nom d’utilisateur/courriel invalide) avec une chaîne vide pour `user_id`. Si le premier argument est évalué comme vrai, l’erreur sera consignée comme un événement `fp` (l’utilisateur existe, mais le mot de passe n’est pas valide) avec une valeur `user_id` de `auth0\|<first_argument>`. Pour en savoir plus, consultez [Codes de type des événements de journal](/fr-CA/docs/deploy-monitor/logs/log-event-type-codes). |
+| `new ValidationError(`<br />`  <user_exists>, <message>`<br />`)`                   | Create            | Se produit lorsqu’un utilisateur existe déjà dans votre base de données.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `callback(<null>,<false>)`                                                          | Change Password   | Se produit lorsque le mot de passe de l’utilisateur n’a pas été mis à jour.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `callback(<null>)`                                                                  | Get User          | Se produit lorsque l’utilisateur est introuvable.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `new UnauthorizedError(<message>)`                                                  | All Login Scripts | Se produit lorsqu’un problème survient pendant une tentative d’accès à la base de données. C’est la méthode privilégiée pour transmettre les erreurs des bases de données personnalisées au front-end.                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `new Error(<message>)`                                                              | All Login Scripts | Se produit lorsqu’un problème survient pendant une tentative d’accès à la base de données.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `error code: auth0_idp_error;` `user already exists`                                | Create            | Se produit dans un magasin d’identités existant lorsque vous tentez de créer un utilisateur qui existe déjà dans votre magasin d’identités existant ou dans Auth0.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `error code: auth0_idp_error;` `user already exists`                                | Delete            | Se produit dans un magasin d’identités existant lorsque vous tentez de supprimer un utilisateur à l’aide de scripts de base de données personnalisés. L’erreur peut aussi s’afficher sous la forme « Error! There was a problem deleting `user@example.com` » ou « Sandbox Error: Please implement the Delete script for this database connection at `https://manage.auth0.com/#/connections/database` ».                                                                                                                                                                                                                                                |
+
+<div id="return-errors">
+  ## Renvoyer des erreurs
+</div>
+
+Pour renvoyer une erreur, appelez la fonction `callback()` et passez `error` comme premier paramètre :
+
+```js lines
+callback(error);
+```
+
+Par exemple :
+
+```js wrap lines
+callback(new ValidationError('email-too-long', 'Email is too long.'));
+```
+
+<div id="return-errors-when-using-lock">
+  ### Renvoyer des erreurs lors de l’utilisation de Lock
+</div>
+
+Si vous utilisez Lock, vous pouvez [personnaliser les messages d’erreur](/fr-CA/docs/customize/login-pages/classic-login/customize-lock-error-messages) en les ajoutant au dictionnaire.
+
+<div id="troubleshoot-errors">
+  ## Résoudre les erreurs
+</div>
+
+Testez le script à l’aide du bouton **Try**.
+
+Si vous n’obtenez pas le résultat attendu ou si vous recevez une erreur, utilisez [Actions Real-time Logs](/fr-CA/docs/customize/actions/actions-real-time-logs), ajoutez des instructions `console.log()` dans votre script, puis réessayez la connexion. La sortie de `console.log()` s’affiche dans la fenêtre Actions Real-time Logs.
+
+Il se peut que vous rencontriez des erreurs lorsque vous utilisez des scripts d’action pour importer, créer ou supprimer des utilisateurs. Utilisez `console.logs` pour vérifier que l’erreur est bien causée par l’utilisation de scripts d’action. Pour en savoir plus, consultez [Custom Database Action Script Templates](/fr-CA/docs/authenticate/database-connections/custom-db/templates).

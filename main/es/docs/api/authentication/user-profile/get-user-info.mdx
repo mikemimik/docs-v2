@@ -1,0 +1,143 @@
+---
+title: "Obtener información del usuario"
+description: "Devuelve el perfil de un usuario usando un token de acceso de Auth0 cuando se haya concedido el scope openid."
+---
+
+import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
+
+<div id="endpoint">
+  ## Endpoint
+</div>
+
+`GET /userinfo`
+
+Dado el token de acceso de Auth0 obtenido durante el inicio de sesión, este endpoint devuelve el perfil de un usuario. Este endpoint solo funciona si se concedió `openid` como `scope` del token de acceso. La información del perfil del usuario incluida en la respuesta depende de los `scopes` solicitados. Por ejemplo, un `scope` de solo `openid` puede devolver menos información que un `scope` de `openid profile email`.
+
+<div id="remarks">
+  ### Observaciones
+</div>
+
+* El script de ejemplo de auth0.js usa la versión 8 de la biblioteca. Si usas la versión 7 de auth0.js, consulta esta [guía de referencia](https://auth0.com/docs/libraries/auth0js/v7).
+* El método `parseHash` de auth0.js requiere que tus tokens estén firmados con `RS256` en lugar de `HS256`.
+* Para devolver `user_metadata` u otra información personalizada desde este endpoint, agrega un claim personalizado al token de ID con una [Action](https://auth0.com/docs/secure/tokens/json-web-tokens/create-custom-claims#create-custom-claims). Para obtener más información, consulta [Claims del perfil de usuario y scope](https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes).
+* Este endpoint devuelve tres encabezados de respuesta HTTP con datos relevantes sobre sus límites de solicitudes:
+  * `X-RateLimit-Limit`: Número de solicitudes permitidas por minuto.
+  * `X-RateLimit-Remaining`: Número de solicitudes disponibles. Cada nueva solicitud reduce este número en 1. Por cada minuto que transcurre, se vuelve a agregar una solicitud, por lo que este número aumenta en 1 cada vez.
+  * `X-RateLimit-Reset`: Tiempo restante hasta que se restablezca el límite de solicitudes (`X-RateLimit-Limit`). El valor está en [segundos de época UTC](https://en.wikipedia.org/wiki/Unix_time).
+* El claim `Email` devuelve una instantánea del correo electrónico al momento de iniciar sesión.
+* Los claims estándar (excepto `email`) devuelven el valor más reciente, a menos que provenga de un IdP externo.
+* Los claims personalizados siempre devuelven el valor más reciente del claim.
+* Para acceder a los valores más actualizados de `email` o de los claims personalizados, debes obtener tokens nuevos. Puedes iniciar sesión mediante autenticación silenciosa (donde el parámetro `prompt` de tu llamada al endpoint [`authorize`](https://auth0.com/docs/api/authentication#authorization-code-grant) es igual a `none`).
+* Para acceder a los valores más actualizados de los claims estándar que se cambiaron mediante un IdP externo (por ejemplo, si el usuario cambió su dirección de correo electrónico en Facebook), debes obtener tokens nuevos. Vuelve a iniciar sesión con el IdP externo, pero *no* mediante autenticación silenciosa.
+
+<div id="learn-more">
+  ### Más información
+</div>
+
+* [Referencia de Auth0.js v8: Extraer el authResult y obtener información del usuario](https://auth0.com/docs/libraries/auth0js#extract-the-authresult-and-get-user-info)
+* [Política de límite de tasa de la API de Auth0](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy)
+
+<div id="headers">
+  ## Encabezados
+</div>
+
+<ParamField header="access_token" type="string" required />
+
+<ParamField header="DPoP" type="string">
+  Una prueba DPoP para la solicitud. Es opcional y solo se requiere si tu aplicación usa Demonstrating Proof-of-Possession.
+</ParamField>
+
+<div id="response-schema">
+  ## Esquema de la respuesta
+</div>
+
+<ResponseSchema>
+  <ResponseField name="sub" type="string">
+    El identificador único del usuario.
+  </ResponseField>
+
+  <ResponseField name="name" type="string">
+    El nombre completo del usuario.
+  </ResponseField>
+
+  <ResponseField name="given_name" type="string">
+    El nombre de pila del usuario.
+  </ResponseField>
+
+  <ResponseField name="family_name" type="string">
+    El apellido del usuario.
+  </ResponseField>
+
+  <ResponseField name="middle_name" type="string">
+    El segundo nombre del usuario.
+  </ResponseField>
+
+  <ResponseField name="nickname" type="string">
+    El apodo del usuario.
+  </ResponseField>
+
+  <ResponseField name="preferred_username" type="string">
+    El nombre de usuario preferido del usuario.
+  </ResponseField>
+
+  <ResponseField name="profile" type="string">
+    URL de la página de perfil del usuario.
+  </ResponseField>
+
+  <ResponseField name="picture" type="string">
+    URL de la foto de perfil del usuario.
+  </ResponseField>
+
+  <ResponseField name="website" type="string">
+    URL del sitio web del usuario.
+  </ResponseField>
+
+  <ResponseField name="email" type="string">
+    La dirección de correo electrónico del usuario.
+  </ResponseField>
+
+  <ResponseField name="email_verified" type="boolean">
+    Indica si la dirección de correo electrónico del usuario ha sido verificada.
+  </ResponseField>
+
+  <ResponseField name="gender" type="string">
+    El género del usuario.
+  </ResponseField>
+
+  <ResponseField name="birthdate" type="string">
+    La fecha de nacimiento del usuario.
+  </ResponseField>
+
+  <ResponseField name="zoneinfo" type="string">
+    La zona horaria del usuario.
+  </ResponseField>
+
+  <ResponseField name="locale" type="string">
+    La configuración regional del usuario.
+  </ResponseField>
+
+  <ResponseField name="phone_number" type="string">
+    El número de teléfono del usuario.
+  </ResponseField>
+
+  <ResponseField name="phone_number_verified" type="boolean">
+    Indica si el número de teléfono del usuario ha sido verificado.
+  </ResponseField>
+
+  <ResponseField name="address" type="object">
+    La dirección del usuario.
+  </ResponseField>
+
+  <ResponseField name="updated_at" type="integer">
+    La hora de la última actualización de la información del usuario, en tiempo Unix.
+  </ResponseField>
+</ResponseSchema>
+
+<div id="response-messages">
+  ## Mensajes de respuesta
+</div>
+
+| Estado | Descripción                                         |
+| ------ | --------------------------------------------------- |
+| 200    | Perfil de usuario recuperado correctamente.         |
+| 401    | No autorizado; token de acceso no válido o ausente. |

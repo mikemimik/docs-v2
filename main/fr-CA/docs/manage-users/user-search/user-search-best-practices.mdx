@@ -1,0 +1,26 @@
+---
+description: Découvrez les meilleures pratiques pour rechercher des utilisateurs dans Auth0
+title: Meilleures pratiques de recherche d’utilisateurs
+---
+
+Voici quelques meilleures pratiques pour la recherche d’utilisateurs :
+
+* Vous avez besoin d’un jeton pour envoyer des requêtes à la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Management+API">Management API</Tooltip>. Pour en savoir plus, consultez [Management API Access Tokens](/fr-CA/docs/secure/tokens/access-tokens/management-api-access-tokens).
+* Pour effectuer des requêtes de recherche d’utilisateurs, le scope `read:users` est requis.
+* Tirez parti de la recherche non déterministe : si votre application n’exige pas un ordre constant des résultats de recherche et que vos requêtes sont assez courtes pour ne pas dépendre de la pagination, définissez `primary_order=false` afin d’améliorer les performances des requêtes.
+* Pour obtenir les résultats de recherche les plus récents, utilisez un endpoint **à cohérence immédiate** pendant les processus d’authentification, comme [Get Users by ID](/fr-CA/docs/manage-users/user-search/retrieve-users-with-get-users-by-id-endpoint) et [Get Users by Email](/fr-CA/docs/manage-users/user-search/retrieve-users-with-get-users-by-email-endpoint). Les recherches effectuées à l’aide de ces endpoints reflètent les résultats de toutes les opérations d’écriture réussies, y compris celles qui ont eu lieu peu avant votre requête.
+* Utilisez un schéma well-known pour les métadonnées :
+
+  * Utilisez des types de données cohérents pour les propriétés.
+  * Évitez les noms de propriétés dynamiques.
+  * Évitez les schémas trop volumineux et les structures trop profondes.
+  * Évitez de stocker des données dont vous n’avez pas besoin à des fins d’authentification et d’autorisation.
+* Les requêtes de recherche expirent (code d’état HTTP 503) si elles ne se terminent pas en deux secondes ou moins. Les requêtes qui prennent plus de temps indiquent soit qu’elles sont coûteuses, soit qu’elles comportent une erreur qui les empêche de se terminer rapidement.
+* Les requêtes de recherche portant sur des attributs définis par l’utilisateur dans `app_metadata` et `user_metadata` peuvent expirer. Nous vous conseillons de ne pas utiliser [List or search users](https://auth0.com/docs/api/management/v2/users/get-users) pour des opérations critiques.
+* N’utilisez pas de critère de recherche qui renvoie un grand volume de données (plus de 1000 résultats).
+* N’utilisez pas de requêtes d’existence (par exemple, « donnez-moi tous les utilisateurs qui ont une propriété, peu importe sa valeur »).
+* N’interrogez pas les API de recherche en boucle.
+* N’effectuez pas de requêtes de recherche d’utilisateurs dans des points d’extension du login flow, comme les Rules ou les Actions `post-login`.
+* N’utilisez pas de champs de métadonnées volumineux (essayez de les limiter à 2 Ko ou moins).
+* L’utilisation de caractères génériques dans les recherches peut nuire aux performances. Dans certains cas, les recherches avec caractères génériques sur de grands ensembles de données peuvent entraîner des erreurs d’expiration. Nous vous recommandons aussi d’éviter les caractères génériques placés avant le terme de recherche; leur utilisation en suffixe offre de meilleures performances.
+* Échappez le caractère d’espacement pour améliorer les performances (p. ex., `q=name:John Doe` devrait s’écrire `q=name:John\ Doe`).

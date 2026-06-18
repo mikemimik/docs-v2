@@ -1,0 +1,58 @@
+---
+description: Découvrez les meilleures pratiques relatives à Native to Web SSO
+title: Meilleures pratiques de Native to Web SSO
+validatedOn: 2026-02-24
+---
+
+Pour obtenir les meilleurs résultats lors de la mise en œuvre de Native to Web <Tooltip tip="Authentification unique (SSO) : service qui, une fois qu’un utilisateur s’est connecté à une application, l’authentifie automatiquement auprès d’autres applications." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=SSO">SSO</Tooltip>, Auth0 recommande de suivre les meilleures pratiques ci-dessous. Ces lignes directrices peuvent aider à préserver l’intégrité de la session :
+
+<div id="use-post-login-actions-to-limit-session-lifetime">
+  ## Utilisez les Actions Post Login pour limiter la durée de vie de la session
+</div>
+
+Utilisez les déclencheurs d’action [`post-login`](/fr-CA/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger) pour vous assurer que les sessions web créées par Native to Web SSO sont limitées dans le temps de manière appropriée et expirent rapidement en cas d’inactivité. 
+Vous pouvez utiliser les Actions `post-login` pour détecter lorsqu’une session est établie au moyen d’un `session_transfer_token` et appliquer des délais d’expiration d’inactivité et absolus plus courts :
+
+```swift lines
+exports.onExecutePostLogin = async (event, api) => {
+  if (event.session_transfer_token) {
+    const now = Date.now();
+
+    // Limiter la session à 30 minutes au total
+    api.session.setExpiresAt(now + 30 * 60 * 1000);
+
+    // Définir le délai d'inactivité à 15 minutes
+    api.session.setIdleExpiresAt(now + 15 * 60 * 1000);
+  }
+};
+```
+
+<div id="bind-session_transfer_token-to-the-device-or-ip-address">
+  ## Lier session_transfer_token à l’appareil ou à l’adresse IP
+</div>
+
+Pour réduire le risque de rejeu de jeton si un jeton est divulgué, journalisé ou intercepté, liez toujours le [`session_transfer_token`](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id)à l’environnement d’origine à l’aide de `enforce_device_binding`.
+
+<div id="use-secure-cookies-over-query-parameters">
+  ## Utilisez des cookies sécurisés plutôt que des paramètres de requête
+</div>
+
+Envoyez le `session_transfer_token` à l’application web au moyen d’un cookie sécurisé HTTPOnly, limité à votre domaine Auth0, afin d’éviter que le jeton soit consigné ou partagé accidentellement dans des URL et de réduire la surface d’attaque liée à son interception. Si vous devez utiliser un paramètre de requête (par exemple, avec Chrome Custom Tabs), assurez-vous que l’URL utilise HTTPS et retirez le jeton de l’URL après son utilisation.
+
+<div id="avoid-issuing-refresh-tokens-to-web-apps-unless-necessary">
+  ## Évitez d’émettre des jetons d’actualisation pour les applications Web, sauf si nécessaire
+</div>
+
+Activez [`allow_refresh_token`](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id) uniquement pour les applications Web qui ont réellement besoin de jetons à longue durée de vie. Dans la plupart des cas, des <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=access+tokens">jetons d’accès</Tooltip> de courte durée combinés à l’authentification silencieuse suffisent et sont plus sécuritaires dans un contexte de navigateur.
+
+<div id="enable-allow-refresh-tokens-when-appropriate-to-set-the-refresh-tokens-as-online">
+  ## Activez Allow Refresh Tokens, au besoin, pour définir les jetons d’actualisation comme « en ligne »
+</div>
+
+Pour éviter les identifiants orphelins et empêcher que les <Tooltip tip="Jeton d’actualisation : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=refresh+tokens">jetons d’actualisation</Tooltip> ne persistent après le logout, utilisez le paramètre [`allow_refresh_token`](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id) pour vous assurer que les jetons d’actualisation émis via Native to Web SSO sont liés à la session qui les a émis. Si la session est révoquée ou expire, le jeton d’actualisation est automatiquement invalidé.
+
+<div id="enable-enforce-cascade-revocation">
+  ## Activer la révocation en cascade forcée
+</div>
+
+Pour vous assurer que toutes les sessions Web et tous les jetons d’actualisation associés à un `session_transfer_token` sont révoqués, activez [`enforce_cascade_revocation`](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id) dans l’application native. C’est essentiel pour garantir l’invalidation sécurisée des sessions d’une application à l’autre.

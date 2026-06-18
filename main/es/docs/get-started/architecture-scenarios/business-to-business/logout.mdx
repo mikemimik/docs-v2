@@ -1,0 +1,97 @@
+---
+description: Consideraciones de planificación del cierre de sesión para su implementación de IAM B2B.
+title: Cierre de sesión (B2B)
+---
+
+[El cierre de sesión](/es/docs/authenticate/login/logout) consiste en finalizar una sesión autenticada cuando ya no es necesaria, lo que minimiza la probabilidad de que personas no autorizadas puedan &quot;apoderarse&quot; de la sesión. Por lo general, esto se logra ofreciendo una opción para cerrar sesión en la interfaz de usuario que pone a disposición de sus usuarios. Cuando un usuario inicia sesión, pueden crearse varios tipos de sesiones (por ejemplo, sesiones locales de la aplicación, la sesión de Auth0 y sesiones de <Tooltip tip="Proveedor de identidad (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/es/docs/glossary?term=Identity+Provider">Proveedor de identidad</Tooltip> de terceros), y tendrá que determinar cuáles de esas sesiones deben finalizarse cuando el usuario haga clic en cualquier opción de **Cerrar sesión**.
+
+<Info>
+  ### Práctica recomendada
+
+  El comportamiento de cierre de sesión debe dejar claro al usuario qué sesión o sesiones se están finalizando y, de ser posible, mostrar después una confirmación visual de que el cierre de sesión se completó.
+</Info>
+
+Al configurar el comportamiento de cierre de sesión, deberá tener en cuenta lo siguiente:
+
+* ¿Qué sesiones deben finalizarse cuando el usuario inicia el cierre de sesión?
+* ¿Qué información debe proporcionar a los usuarios para confirmar qué sesiones se finalizaron?
+* ¿A dónde debe redirigirse a los usuarios una vez completado el cierre de sesión?
+* ¿Cuánto tiempo quiere que duren las sesiones si los usuarios no inician el proceso de cierre de sesión?
+* ¿Debe cerrarse la sesión del usuario final en todas sus sesiones de aplicación cuando cierre sesión en una de ellas?
+* ¿También debe finalizarse, al cerrar sesión, la sesión con el IdP de una organización?
+
+Dada la variedad de tipos de sesiones que pueden crearse cada vez que un usuario inicia sesión, existen varios tipos posibles de cierre de sesión. El cierre de sesión local de la aplicación finaliza la sesión con la aplicación, mientras que el cierre de sesión de Auth0 [finaliza la sesión de Auth0](/es/docs/authenticate/login/logout/log-users-out-of-auth0). Si tiene organizaciones que usan su propio IdP, quizá le convenga considerar una estrategia de [Cierre de sesión federado](#federated-logout) e implementarla en consecuencia. El cierre de sesión global, o [Cierre de sesión único](/es/docs/authenticate/login/logout/log-users-out-of-applications) (SLO), finaliza la sesión de Auth0 y además envía una solicitud o notificación de cierre de sesión a las aplicaciones que dependen de la sesión de Auth0.
+
+La funcionalidad que ofrece su aplicación, así como el uso de capacidades como el [Inicio de sesión único (SSO)](/es/docs/authenticate/single-sign-on), influirán en su decisión sobre qué tipo de cierre de sesión se requiere y qué confirmación visual deberá proporcionar a sus usuarios. Independientemente de la opción que elija, el proceso de cierre de sesión que implemente debe dejar claro al usuario qué sesiones se están finalizando y también cuándo se ha completado el proceso de cierre de sesión.
+
+<Warning>
+  Si la función de cierre de sesión de una aplicación finaliza una sesión de SSO de Auth0 que usan otras aplicaciones, el usuario podría perder trabajo si tiene transacciones sin confirmar. Asegúrese de añadir la funcionalidad necesaria para gestionar esas situaciones a fin de minimizar la probabilidad de pérdida de trabajo.
+</Warning>
+
+En algunas situaciones, puede esperarse que un usuario cierre sesión en todas las aplicaciones asociadas cuando cierre sesión en cualquiera de las aplicaciones que usted proporciona. Esto puede añadir complejidad. Sin embargo, si le preocupa que los usuarios puedan quedar expuestos (quizá por la sensibilidad de los datos o por motivos similares), probablemente tendrá que revisar [Cierre de sesión único](#single-logout) e implementarlo en consecuencia.
+
+<div id="where-to-send-users-after-logout">
+  ## Adónde redirigir a los usuarios después de cerrar sesión
+</div>
+
+Una vez que el usuario cierre sesión, se lo redirigirá a una ubicación específica que elijas. Esta ubicación se especifica como la **URL de redirección tras cerrar sesión**, y puedes [definirla como un parámetro](/es/docs/authenticate/login/logout/redirect-users-after-logout) desde el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>.
+
+Las URL que uses para redirigir a los usuarios después de cerrar sesión deben estar [incluidas en la lista de permitidas en el Dashboard](/es/docs/authenticate/login/logout#redirect-users-after-logout) para mitigar vulnerabilidades de seguridad de redirección abierta. Puedes incluirlas en la lista de permitidas a nivel de tenant o de aplicación.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Si el usuario cierra sesión y lo rediriges de vuelta a la aplicación, y la aplicación lo redirige a un proveedor de identidad que todavía mantiene una sesión válida para ese usuario, este iniciará sesión en la aplicación sin que se le solicite. Esto puede hacer que al usuario le parezca que el proceso de cierre de sesión no funcionó correctamente.
+</Callout>
+
+<div id="automatic-termination-of-sessions">
+  ## Finalización automática de las sesiones
+</div>
+
+No todos los usuarios cerrarán sesión manualmente, por lo que Auth0 también ofrece **tiempo de expiración de la sesión** para evitar sesiones demasiado prolongadas. Esta configuración [está disponible y se puede configurar desde el Auth0 Dashboard](/es/docs/get-started/tenant-settings#login-session-management).
+
+<div id="single-logout">
+  ## Cierre de sesión único
+</div>
+
+Si estás implementando [cierre de sesión federado](#federated-logout), probablemente también querrás implementar cierre de sesión único (SLO), y hay dos enfoques principales que puedes seguir.
+
+<Warning>
+  SLO puede añadir complejidad a tu sistema, por lo que debes asegurarte de que realmente lo necesitas antes de dedicar tiempo adicional al desarrollo y mantenimiento.
+</Warning>
+
+<div id="short-lived-tokens">
+  ### Tokens de corta duración
+</div>
+
+<Info>
+  ### Práctica recomendada
+
+  Le conviene evitar hacer demasiadas llamadas a su tenant de Auth0 para evitar limitaciones de tasa y un rendimiento deficiente. Una práctica recomendada es solicitar nuevos tokens solo cuando los tokens hayan expirado y el usuario realice alguna acción. Esto evitará que las aplicaciones que simplemente están abiertas, pero no se están usando, sigan consultando continuamente para obtener nuevos tokens.
+</Info>
+
+Este es, con diferencia, el enfoque más simple para el cierre de sesión único. Cada aplicación establece un período corto durante el cual un usuario puede usar el sistema, por ejemplo, de 5 a 10 minutos. En cada acción que realice el usuario, si ese tiempo ha expirado, se usará una redirección a Auth0 (para aplicaciones web tradicionales) o [Autenticación silenciosa](/es/docs/authenticate/login/configure-silent-authentication) en el caso de las aplicaciones Single Page Application del lado del cliente para obtener nuevos tokens. Normalmente, los nuevos tokens se emitirán de forma silenciosa gracias a la sesión de <Tooltip tip="Single Sign-On (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/es/docs/glossary?term=Single+Sign+On">Single Sign On</Tooltip> (SSO). Sin embargo, después de cerrar sesión, ninguna aplicación podrá obtener nuevos tokens de forma silenciosa porque la sesión de SSO se habrá eliminado, y el usuario tendrá que volver a introducir sus credenciales.
+
+<Warning>
+  Si está redirigiendo automáticamente al usuario directamente a su propio IdP como parte de una conexión empresarial mediante el parámetro connection, esta técnica puede dejar de funcionar a menos que también esté usando [cierre de sesión federado](#federated-logout)
+</Warning>
+
+<div id="build-a-logout-service">
+  ### Crear un servicio de cierre de sesión
+</div>
+
+Otra técnica que puedes usar es crear un servicio de cierre de sesión capaz de rastrear y destruir las sesiones de la aplicación. Cada aplicación notificaría al servicio de cierre de sesión cuando crea y elimina una sesión. El servicio (de cierre de sesión) tendría acceso directo a todas las sesiones del lado del servidor de la aplicación y las destruiría directamente, o bien podría hacer una llamada de retorno a cada aplicación para indicarle que debe eliminar su sesión.
+
+Esta técnica puede ser bastante eficaz, ya que hay poca latencia entre el momento en que un usuario solicita cerrar sesión y el momento en que queda desconectado de todas las aplicaciones. Sin embargo, puede añadir complejidad y también requerir más tiempo de desarrollo para su implementación. También requerirá algún mecanismo para garantizar que las nuevas aplicaciones que se agreguen al sistema se incorporen a este servicio.
+
+<div id="federated-logout">
+  ## Cierre de sesión federado
+</div>
+
+Puede que necesites considerar el [cierre de sesión de usuario federado](/es/docs/authenticate/login/logout/log-users-out-of-idps) para tu aplicación. Si tú o tus clientes van a usar un IdP de terceros (es decir, algo distinto de un [proveedor de identidad de base de datos](/es/docs/authenticate/database-connections)), tendrás que decidir si es necesario cerrar la sesión del usuario en el IdP cuando cierre sesión en tu aplicación. La respuesta depende de lo que tus usuarios esperen. Si la aplicación y/o el IdP que utilizas está estrechamente vinculado a la organización de un cliente y forma parte central de las operaciones diarias, puede resultar frustrante para los usuarios que se cierre su sesión en el IdP al cerrar sesión en tu aplicación. Si no es así, es posible que cerrar la sesión en el IdP sea lo esperado o, en algunos casos, incluso lo deseado. En la mayoría de los escenarios B2B, nuestros clientes consideran preferible *no* realizar un cierre de sesión federado para un usuario.
+
+<div id="project-planning-guide">
+  ## Guía de planificación del proyecto
+</div>
+
+Ofrecemos una guía de planificación en formato PDF que puedes descargar y consultar para obtener más información sobre nuestras estrategias recomendadas.
+
+[Guía de planificación de proyectos de B2B IAM](https://assets.ctfassets.net/cdy7uua7fh8z/63F0WOPJdVzsPMxV1Xvp8x/7a329487c5e890d8e820f6a48983b46a/B2B_Project_Planning.pdf)

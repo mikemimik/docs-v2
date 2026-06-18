@@ -1,0 +1,25 @@
+---
+description: ユーザーを一意に識別する方法を説明します。
+title: ユーザーの識別
+---
+
+ユーザーを一意に識別するための推奨方法は 2 つあります。
+
+1. `user_id` プロパティを使用する方法です。これは、ユーザーごとに (1 つのテナント内で) 一意であることが保証されています (例: `{identity provider id}|{unique id in the provider}` や `facebook|1234567890`) 。ユーザーが複数の Auth0 テナントで同じ `user_id` プロパティを持つ場合もありますが、一貫性は保証されません。
+2. `email` プロパティのような自然キーを使用する方法です。この場合は、メールアドレスの確認を有効にし、ユーザーにメールアドレスの確認を必須としているプロバイダーでのみこの方法を使用することをお勧めします。
+
+[通常の](/ja/docs/authenticate/database-connections/auth0-user-store)データベース接続および[カスタム](/ja/docs/authenticate/database-connections/custom-db)データベース接続では、同じテナント内で、異なるデータベース接続に対して重複する `user_id` を作成しないでください。異なる接続の ID が衝突する可能性がある場合は、接続を識別するプレフィックスを使用してください。
+
+次のコードサンプルは、`MyConnection1|` というプレフィックスで識別されるカスタムデータベース接続を示しています。
+
+```javascript lines
+function login (email, password, callback) {
+  var user = getUserFromDB(email);
+  var profile = {
+    user_id: 'MyConnection1|' + user.id,
+    email: user.email,
+    [...]
+  };
+  callback(null, profile);
+}
+```

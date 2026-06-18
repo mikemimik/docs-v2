@@ -1,0 +1,316 @@
+---
+description: Bonnes pratiques pour mettre en œuvre et gérer plusieurs domaines personnalisés dans Auth0.
+title: Bonnes pratiques pour domaine personnalisé multiple
+---
+
+La mise en œuvre efficace de [domaine personnalisé multiple](/fr-CA/docs/customize/custom-domains/multiple-custom-domains) (MCD) exige une planification rigoureuse et le respect des bonnes pratiques. En suivant ces recommandations, vous pouvez assurer l’évolutivité, maintenir un haut niveau de sécurité et offrir une expérience de marque cohérente dans l’ensemble de vos domaines personnalisés.
+
+Ce guide présente les bonnes pratiques en matière de planification, de sécurité, de performance, d’exploitation et d’expérience utilisateur lors de l’utilisation de plusieurs domaines personnalisés.
+
+<div id="verify-ownership-of-domains">
+  ## Vérifier que vous êtes bien propriétaire de vos domaines
+</div>
+
+Assurez-vous d’être prêt à vérifier rapidement que vous êtes bien propriétaire de vos domaines personnalisés. Laisser des domaines non vérifiés trop longtemps peut encombrer votre espace et compliquer leur gestion.
+
+<div id="planning-and-architecture">
+  ## Planification et architecture
+</div>
+
+<div id="choose-a-domain-strategy">
+  ### Choisissez une stratégie de domaine
+</div>
+
+Avant de mettre en œuvre MCD, déterminez votre stratégie de domaine :
+
+* **Par marque** : des domaines personnalisés distincts pour chaque marque (p. ex., `login.brand1.com`, `login.brand2.com`)
+* **Par région** : des domaines régionaux pour des raisons de conformité ou de performance (p. ex., `login.us.example.com`, `login.eu.example.com`)
+* **Par client** : des domaines dédiés pour les clients d’entreprise (p. ex., `login.customer1.com`, `login.customer2.com`)
+* **Hybride** : une combinaison de stratégies (p. ex., marque + région : `login-us.brand1.com`)
+
+<div id="configure-a-default-domain">
+  ### Configurer un domaine par défaut
+</div>
+
+Configurez toujours un [domaine personnalisé par défaut](/fr-CA/docs/customize/custom-domains/multiple-custom-domains/default-domain) pour :
+
+* Simplifier la configuration des applications qui n&#39;ont pas besoin d&#39;un comportement propre à un domaine
+* Servir de solution de repli pour les notifications par courriel
+* Réduire la nécessité de préciser explicitement le domaine dans les appels d&#39;API
+
+**Bonne pratique** : utilisez un domaine générique ou administratif comme domaine par défaut (par exemple, `login.company.com` ou `admin.company.com`) plutôt qu&#39;un domaine associé à une marque précise.
+
+<div id="plan-for-scale">
+  ### Prévoir le passage à l’échelle
+</div>
+
+Tenez compte de la croissance future lorsque vous concevez votre architecture MCD :
+
+* **Documenter les attributions de domaines** : Tenez une documentation claire indiquant quelles applications utilisent quels domaines
+* **Réserver des modèles de domaines** : Enregistrez les domaines dont vous pourriez avoir besoin à l’avenir
+* **Surveiller les limites** : Suivez le nombre de domaines par rapport aux limites autorisées
+* **Prévoir l’expansion** : Concevez votre architecture de façon à pouvoir accueillir des domaines supplémentaires
+
+<div id="use-metadata-to-stay-organized">
+  ## Utilisez les métadonnées pour mieux vous organiser
+</div>
+
+Exploitez les champs de métadonnées disponibles pour chaque domaine personnalisé afin de faciliter la gestion et la personnalisation :
+
+**Champs de métadonnées recommandés** :
+
+* `brand`: Identifiant de la marque (p. ex., &quot;BrandA&quot;, &quot;BrandB&quot;)
+* `region`: Région géographique (p. ex., &quot;us-east&quot;, &quot;eu-west&quot;)
+* `environment`: Type d’environnement (p. ex., &quot;production&quot;, &quot;staging&quot;)
+* `customer_id`: Identifiant du client ou du tenant
+* `support_email`: Contact de soutien propre au domaine
+* `purpose`: Rôle du domaine (p. ex., &quot;customer-portal&quot;, &quot;admin-portal&quot;)
+
+**Exemple de structure de métadonnées** :
+
+```json
+{
+  "brand": "BrandA",
+  "region": "us-east",
+  "environment": "production",
+  "customer_id": "cust_12345",
+  "support_email": "support@brand-a.com",
+  "tier": "enterprise"
+}
+```
+
+Utilisez les métadonnées pour :
+
+* **Personnalisation des courriels** : Personnalisez les modèles de courriel selon les métadonnées
+* **Logique des Actions** : Implémentez des règles d’authentification adaptées à votre domaine
+* **Filtrage et recherche** : Organisez les domaines dans vos outils de gestion
+* **Rapports** : Suivez l’utilisation et le rendement par marque, région ou client
+
+<div id="security">
+  ## Sécurité
+</div>
+
+Lors de la mise en œuvre de plusieurs domaines personnalisés, tenez compte des mesures de sécurité suivantes selon votre cas d’utilisation :
+
+* **Validation de domaine** : empêchez l’utilisation non autorisée de domaines en limitant l’authentification à des domaines personnalisés précis
+* **Isolation des organisations** : veillez à ce que les utilisateurs puissent accéder aux organisations uniquement par l’entremise de domaines approuvés
+* **Gestion des certificats** : assurez une gestion sécurisée du cycle de vie des certificats
+
+<div id="domain-validation-in-actions">
+  ### Validation du domaine dans Actions
+</div>
+
+Utilisez [Actions](/fr-CA/docs/customize/actions) pour limiter l&#39;authentification à certains domaines personnalisés. Cela peut être utile si vous voulez empêcher les utilisateurs de s&#39;authentifier via le domaine Auth0 principal ou restreindre l&#39;accès à des domaines de marque particuliers :
+
+```javascript
+exports.onExecutePostLogin = async (event, api) => {
+  const domain = event.custom_domain?.domain;
+
+  // Liste des domaines personnalisés autorisés
+  const allowedDomains = [
+    'login.brand1.com',
+    'login.brand2.com',
+    'login.example.com'
+  ];
+
+  if (!domain || !allowedDomains.includes(domain)) {
+    return api.access.deny(
+      `Authentication from ${domain} is not permitted.`
+    );
+  }
+};
+```
+
+<div id="organization-based-access-control">
+  ### Contrôle d’accès basé sur les organisations
+</div>
+
+Si vous utilisez [Auth0 Organizations](/fr-CA/docs/manage-users/organizations), vous pouvez limiter les domaines personnalisés autorisés pour chaque organisation. Cela est utile dans les scénarios B2B où chaque client a son propre domaine de marque et ne devrait accéder à son organisation que par l’intermédiaire de ce domaine :
+
+```javascript
+exports.onExecutePostLogin = async (event, api) => {
+  const domain = event.custom_domain?.domain;
+
+  if (!event.organization) {
+    return;
+  }
+
+  // Vérifier les domaines autorisés de l'organisation
+  const allowedDomains = event.organization.metadata?.allowed_domains?.split(',') || [];
+
+  if (allowedDomains.length > 0 && !allowedDomains.includes(domain)) {
+    return api.access.deny(
+      `Access to ${event.organization.name} requires authentication via an approved domain.`
+    );
+  }
+};
+```
+
+<div id="certificate-management">
+  ### Gestion des certificats
+</div>
+
+* **Surveiller l’expiration** : Mettez en place des alertes pour les dates d’expiration des certificats
+* **Automatiser le renouvellement** : Utilisez des certificats gérés par Auth0 pour le renouvellement automatique
+* **Documenter les processus autogérés** : Si vous utilisez des certificats autogérés, gardez des runbooks clairs à jour
+
+<div id="performance">
+  ## Performance
+</div>
+
+<div id="use-regional-domains">
+  ### Utiliser des domaines régionaux
+</div>
+
+Pour les applications à portée mondiale, envisagez d’utiliser des domaines personnalisés propres à chaque région afin de répondre aux exigences de résidence des données et d’adapter l’image de marque selon la région :
+
+* Exemples : `login-us.example.com`, `login-eu.example.com`, `login-ap.example.com`
+
+<Note>
+  La latence de l’authentification dépend de l’emplacement de déploiement de votre tenant Auth0, et non du nom de domaine personnalisé. Choisissez la région de votre tenant en fonction de l’emplacement de vos utilisateurs.
+</Note>
+
+<div id="branding-and-user-experience">
+  ## Image de marque et expérience utilisateur
+</div>
+
+<div id="keep-branding-consistent">
+  ### Maintenez une image de marque cohérente
+</div>
+
+Le MCD ajoute une dimension supplémentaire à vos efforts d’image de marque. Les utilisateurs s’attendent à une cohérence à tous les points de contact :
+
+* **Universal Login** : Personnalisez les pages de connexion pour chaque domaine à l’aide des métadonnées de domaine
+* **Modèles de courriel** : Utilisez des variables de domaine personnalisé pour personnaliser les courriels
+* **Interface de l’application** : Harmonisez l’image de marque de votre application avec l’expérience d’authentification
+
+Pour des directives complètes, consultez les guides d’image de marque [B2B](/fr-CA/docs/get-started/architecture-scenarios/business-to-business/branding) et [B2C](/fr-CA/docs/get-started/architecture-scenarios/business-to-consumer/branding).
+
+<div id="passkey-management">
+  ### Gestion des passkeys
+</div>
+
+* **Communiquez clairement** : informez les utilisateurs que les passkeys sont propres à chaque domaine
+* **Encouragez l’inscription** : incitez les utilisateurs à inscrire un passkey après leur 3e connexion
+* **Suivez l’inscription** : surveillez les domaines pour lesquels les utilisateurs ont inscrit des passkeys
+* **Offrez de l’aide** : proposez une documentation claire sur la gestion des passkeys
+
+Consultez [Passkeys avec domaine personnalisé multiple](/fr-CA/docs/customize/custom-domains/multiple-custom-domains/passkeys) pour obtenir des conseils détaillés.
+
+<div id="user-communication">
+  ### Communication avec les utilisateurs
+</div>
+
+Lorsque les utilisateurs interagissent avec plusieurs domaines personnalisés :
+
+* **Clarifier les attentes** : Expliquez que différentes marques ou différents portails peuvent avoir des URL de connexion différentes
+* **Donner des repères** : Aidez les utilisateurs à comprendre quel domaine utiliser
+* **Gérer les erreurs avec tact** : Affichez des messages d’erreur clairs si les utilisateurs tentent d’accéder au mauvais domaine
+* **Documentation de soutien** : Maintenez une documentation claire sur la structure de vos domaines
+
+<div id="operations-and-maintenance">
+  ## Exploitation et maintenance
+</div>
+
+<div id="monitoring-and-alerting">
+  ### Surveillance et alertes
+</div>
+
+Configurez la surveillance pour :
+
+* **Expiration du certificat** : Créez des alertes 30, 15 et 7 jours avant l’expiration
+* **Statut de vérification du domaine** : Surveillez les échecs de vérification
+* **Échecs d’authentification** : Suivez les échecs par domaine personnalisé
+* **État de santé du DNS** : Surveillez la résolution DNS pour tous les domaines personnalisés
+* **Performances de l’API** : Suivez la latence de la Management API pour les opérations liées au domaine
+
+<div id="documentation">
+  ### Documentation
+</div>
+
+Tenez à jour une documentation complète :
+
+* **Inventaire des domaines** : Liste de tous les domaines personnalisés, avec les métadonnées et leur usage
+* **Correspondance des applications** : Quelles applications utilisent quels domaines
+* **Runbooks** : Procédures pour les opérations courantes (ajout de domaines, renouvellement des certificats, dépannage)
+* **Schémas d’architecture** : Représentation visuelle de la structure des domaines
+* **Coordonnées** : Équipes ou personnes responsables de chaque domaine
+
+<div id="testing">
+  ### Tests
+</div>
+
+Faites des tests approfondis avant la mise en production :
+
+* **Tests fonctionnels** : Vérifiez l’authentification pour chaque domaine personnalisé
+* **Tests d’intégration** : Testez toutes les applications avec le domaine personnalisé qui leur est attribué
+* **Tests des courriels** : Vérifiez que les courriels utilisent les bons domaines personnalisés
+* **Tests de basculement** : Testez le repli vers le domaine par défaut
+* **Tests de performance** : Effectuez un test de charge de l’authentification au moyen des domaines personnalisés
+
+<div id="change-management">
+  ### Gestion des changements
+</div>
+
+Lorsque vous apportez des modifications aux domaines personnalisés :
+
+* **Utilisez d’abord l’environnement de préproduction** : Testez les changements dans des environnements non productifs
+* **Déploiement progressif** : Déployez d’abord les changements sur un sous-ensemble de domaines
+* **Surveillez de près** : Soyez attentif aux problèmes pendant le déploiement
+* **Prévoyez un plan de retour arrière** : Soyez prêt à annuler les changements au besoin
+* **Communiquez les changements** : Informez les parties prenantes des changements prévus
+
+<div id="common-pitfalls-to-avoid">
+  ## Erreurs courantes à éviter
+</div>
+
+<div id="dont-over-complicate-domain-structure">
+  ### Ne compliquez pas inutilement la structure des domaines
+</div>
+
+* **Anti‑modèle** : Créer un domaine personnalisé pour chaque variation possible
+* **Meilleure approche** : Commencez avec quelques domaines de base, puis élargissez au besoin
+
+<div id="dont-forget-to-update-all-integration-points">
+  ### N&#39;oubliez pas de mettre à jour tous les points d’intégration
+</div>
+
+Lorsque vous ajoutez de nouveaux domaines personnalisés, mettez à jour :
+
+* les URL de rappel de l’application
+* les URI de redirection du fournisseur social
+* les points de terminaison de la connexion d’entreprise
+* la logique de validation du jeton
+* les règles de surveillance et d’alerte
+
+<div id="dont-neglect-documentation">
+  ### N’oubliez pas la documentation
+</div>
+
+* **Anti-modèle** : Se fier au savoir institutionnel
+* **Meilleure approche** : Documenter les affectations de domaines, la signification des métadonnées et les procédures opérationnelles
+
+<div id="dont-ignore-certificate-management">
+  ### Ne négligez pas la gestion des certificats
+</div>
+
+* **Anti-modèle** : Laisser les certificats expirer sans préavis
+* **Approche recommandée** : Automatiser la surveillance et le renouvellement
+
+<div id="dont-mix-authentication-contexts">
+  ### Ne mélangez pas les contextes d’authentification
+</div>
+
+* **Anti-modèle** : Utiliser le même domaine personnalisé pour des marques ou des clients sans lien entre eux
+* **Bonne approche** : Maintenir une séparation claire entre les différents contextes d’authentification
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Domaines personnalisés multiples](/fr-CA/docs/customize/custom-domains/multiple-custom-domains)
+* [Domaine personnalisé par défaut](/fr-CA/docs/customize/custom-domains/multiple-custom-domains/default-domain)
+* [Management API pour les domaines personnalisés multiples](https://auth0.com/docs/api/management/v2)
+* [Guide de migration](/fr-CA/docs/customize/custom-domains/multiple-custom-domains/migration-guide)
+* [Intégration Actions](/fr-CA/docs/customize/custom-domains/multiple-custom-domains/actions-integration)
+* [Clés d’accès avec les domaines personnalisés multiples](/fr-CA/docs/customize/custom-domains/multiple-custom-domains/passkeys)

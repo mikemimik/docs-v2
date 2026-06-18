@@ -1,0 +1,107 @@
+---
+description: Aprende a usar Actions y SDKs con Auth0 Organizations.
+title: Desarrollo personalizado con Organizations
+---
+
+Puedes ampliar las capacidades de Auth0 usando los metadatos de [organización](/es/docs/manage-users/organizations/organizations-overview) y Actions, o usar nuestras APIs y SDKs para crear paneles de administración de organizaciones para tus usuarios.
+
+<Card title="La disponibilidad varía según el plan de Auth0">
+  Tu plan de Auth0 o tu acuerdo personalizado determinan si esta funcionalidad está disponible. Para obtener más información, consulta [Pricing](https://auth0.com/pricing).
+</Card>
+
+<div id="extensibility">
+  ## Extensibilidad
+</div>
+
+Organizations son compatibles con nuestros puntos de extensibilidad, por lo que puedes definir propiedades en los metadatos de la organización y exponer esos datos a [Actions](/es/docs/customize/actions). Esto te permite personalizar funcionalidades para clientes o aplicaciones concretos; por ejemplo, puedes ejecutar lógica personalizada en Actions para determinados clientes según su plan de suscripción, almacenando esa información en los metadatos de la organización.
+
+<div id="actions-event-object">
+  ### Objeto `event` de Actions
+</div>
+
+El objeto `event` de una Action almacena información contextual sobre la transacción de autenticación actual, como la dirección IP, la aplicación o la ubicación del usuario.
+
+Si cambias el contenido del token mediante el objeto `event` dentro de una Action, tus cambios estarán disponibles en los tokens después de que todas las Actions hayan terminado de ejecutarse.
+
+<div id="sdks">
+  ## SDKs
+</div>
+
+Para permitir que los miembros gestionen sus propias organizaciones, puedes asignar roles a los miembros y usar nuestra API y los SDKs para crear paneles en tus productos. Los administradores pueden configurar el <Tooltip tip="inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/es/docs/glossary?term=Single+Sign-On">inicio de sesión único</Tooltip> (SSO), invitar usuarios a organizaciones, asignar miembros a organizaciones, asignar roles a los miembros, entre otras acciones.
+
+A continuación, se describen ejemplos de tareas que quizá quieras realizar con organizaciones mediante los SDKs.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Los ejemplos siguientes hacen referencia al claim `org_id`, disponible de forma predeterminada en los tokens de ID y de acceso. Sin embargo, puedes configurar tu tenant para que también admita el uso de nombres de organización en la Authentication API. Esto da como resultado tokens que contienen tanto el claim `org_id` como el claim `org_name`. Si está presente, valida el claim `org_name` además de `org_id` para asegurarte de que los valores recibidos correspondan a una entidad de confianza.
+
+  En general, usar IDs de organización es el método preferido para validar tokens. Sin embargo, los nombres de organización pueden usarse si son más adecuados para tu caso de uso. Para comprender las posibles implicaciones de usar nombres de organización para validar tokens, revisa [Usar nombres de organización en Authentication API](/es/docs/manage-users/organizations/configure-organizations/use-org-name-authentication-api).
+</Callout>
+
+<div id="i-want-users-to-log-in-to-a-specified-organization">
+  ### Quiero que los usuarios inicien sesión en una organización específica
+</div>
+
+Al definir un nuevo cliente, pasa el ID de la organización en el parámetro `organization`. Luego, en la devolución de llamada, asegúrate de que la organización devuelta en el <Tooltip tip="Token de ID: credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=ID+token">token de identidad</Tooltip> sea la misma que se envió en la solicitud a `/authorize`, validando el claim `org_id` de la misma forma que se validan otros claims, como `exp` y `nonce`.
+
+Para obtener más información, lee:
+
+* [Agregar inicio de sesión mediante el flujo de código de autorización](/es/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/add-login-auth-code-flow)
+* [Llamar a tu API mediante el flujo de código de autorización](/es/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/call-your-api-using-the-authorization-code-flow)
+* [Agregar inicio de sesión mediante el flujo de código de autorización con PKCE](/es/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce)
+* [Llamar a tu API mediante el flujo de código de autorización con PKCE](/es/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce)
+* [Agregar inicio de sesión mediante el flujo implícito con Form Post](/es/docs/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/add-login-using-the-implicit-flow-with-form-post)
+* [Llamar a tu API mediante el flujo híbrido](/es/docs/get-started/authentication-and-authorization-flow/hybrid-flow/call-api-hybrid-flow)
+* [Personalizar el tiempo de espera de inactividad de la sesión según la organización](/es/docs/manage-users/sessions/manage-sessions-actions)
+
+<div id="from-my-application-i-want-to-get-the-organization-to-which-the-authenticated-user-logged-in">
+  ### Desde mi aplicación, quiero obtener la organización con la que el usuario autenticado inició sesión
+</div>
+
+Si el usuario se autenticó mediante una organización, el ID de la organización aparecerá en el claim `org_id` del token de identidad. Con Auth0 SPA SDK, se puede obtener de la siguiente manera:
+
+`const { org_id } = await client.getIdTokenClaims();`
+
+<div id="from-my-api-i-want-to-get-the-organization-with-which-the-access-token-was-issued">
+  ### En mi API, quiero obtener la organización con la que se emitió el token de acceso
+</div>
+
+Si el usuario se autenticó mediante una organización y se especificó un <Tooltip tip="Audience: Identificador único del destinatario de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/es/docs/glossary?term=audience">audience</Tooltip>, el <Tooltip tip="Audience: Identificador único del destinatario de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/es/docs/glossary?term=access+token">token de acceso</Tooltip> será un <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y a menudo formato de token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JWT">JWT</Tooltip> y contendrá el claim `org_id` con el ID de la organización en la que el usuario inició sesión.
+
+Esto se puede validar junto con los demás claims en el backend, como en el siguiente ejemplo para Ruby:
+
+```ruby lines
+class JsonWebToken
+  def self.verify(token)
+    decoded = JWT.decode(token, nil,
+               true, # Verificar la firma de este token
+               algorithms: 'RS256',
+               iss: 'https://YOUR_DOMAIN/',
+               verify_iss: true,
+               aud: Rails.application.secrets.auth0_api_audience,
+               verify_aud: true) do |header|
+      jwks_hash[header['kid']]
+    end
+
+    // Obtener el valor del ID de organización del token decodificado
+    org = decoded[0]['org_id']
+  end
+end
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  **Encuentra tu dominio de Auth0**
+
+  Tu dominio de Auth0 es el nombre de tu tenant, seguido de tu subdominio regional (a menos que tu tenant esté en la región de EE. UU. y se haya creado antes de junio de 2020), más `.auth0.com`. Por ejemplo, si el nombre de tu tenant fuera `travel0`, el nombre de tu dominio de Auth0 sería `travel0.us.auth0.com`. (Si tu tenant estuviera en EE. UU. y se hubiera creado antes de junio de 2020, entonces tu nombre de dominio sería `https://travel0.auth0.com`.)
+
+  Si usas dominios personalizados, este debería ser el nombre de tu dominio personalizado.
+</Callout>
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Descubra cómo funciona Auth0 Organizations](/es/docs/manage-users/organizations/organizations-overview)
+* [Cree su primera organización](/es/docs/manage-users/organizations/create-first-organization)
+* [Trabaje con tokens y Organizations](/es/docs/manage-users/organizations/using-tokens)
+* [Configure Organizations](/es/docs/manage-users/organizations/configure-organizations)
+* [Auth0 Actions](/es/docs/customize/actions)

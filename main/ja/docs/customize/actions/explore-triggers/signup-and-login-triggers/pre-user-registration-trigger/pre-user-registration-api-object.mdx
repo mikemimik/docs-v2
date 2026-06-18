@@ -1,0 +1,181 @@
+---
+#
+# このファイルは自動生成されています。
+# 手動で編集しないでください。
+#
+description: pre-user-registration Action トリガーの API オブジェクトについて説明します。
+title: 'Actions Triggers: pre-user-registration - API オブジェクト'
+validatedOn: 2026-05-22
+---
+
+pre-user-registration Actions トリガーの API オブジェクトには、以下が含まれます。
+
+<div id="apiaccess">
+  ## `api.access`
+</div>
+
+ログインしようとしているユーザーのアクセスを変更します。たとえば、ログイン試行を拒否できます。
+
+<div id="apiaccessdenyreason-usermessage">
+  ### `api.access.deny(reason, userMessage)`
+</div>
+
+ユーザーによる登録を拒否します。サインアップフローはこの
+アクションの完了後ただちに停止し、それ以降のActionsは実行されません。
+
+<ResponseField name="reason" type="string">
+  この登録試行を拒否する内部的な理由です。この値は
+  テナントログに表示されます。
+</ResponseField>
+
+<ResponseField name="userMessage" type="string">
+  登録試行を拒否する理由を、ユーザーが理解しやすい形で説明するメッセージです。これは
+  エンドユーザー向けインターフェースに直接表示される場合があります。
+</ResponseField>
+
+<div id="apiuser">
+  ## `api.user`
+</div>
+
+ログイン中のユーザーのメタデータを変更します。
+
+<div id="apiusersetappmetadatakey-value">
+  ### `api.user.setAppMetadata(key, value)`
+</div>
+
+ログイン中のユーザーに、アプリケーション固有のメタデータを設定します。
+
+注: このメソッドはコールバック内では使用しないでください。このメソッドを呼び出しても、メタデータはすぐには更新されません。
+同じフロー内の複数の Actions でこのメソッドを何度も呼び出すことができ、エンジンがそれらの変更を集約して、
+フローの完了前にメタデータをまとめて更新します。
+
+<ResponseField name="key" type="string">
+  設定するメタデータのプロパティ。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  メタデータのプロパティの値。メタデータのプロパティを削除するには、`null` を設定できます。
+</ResponseField>
+
+<div id="apiusersetusermetadatakey-value">
+  ### `api.user.setUserMetadata(key, value)`
+</div>
+
+ログイン中のユーザーの一般的なメタデータを設定します。
+
+注: このメソッドはコールバックでは使用しないでください。このメソッドを呼び出しても、メタデータはすぐには更新されません。
+同じフロー内の複数の Actions でこのメソッドを何度でも呼び出すことができ、エンジンが変更を集約して、
+フローが完了する前にメタデータをまとめて更新します。
+
+<ResponseField name="key" type="string">
+  設定するメタデータのプロパティです。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  メタデータのプロパティの値です。これを `null` に設定すると、
+  メタデータのプロパティを削除できます。
+</ResponseField>
+
+<div id="apicache">
+  ## `api.cache`
+</div>
+
+実行をまたいで保持されるデータを保存・取得します。
+
+<div id="apicachedeletekey">
+  ### `api.cache.delete(key)`
+</div>
+
+指定されたキーにキャッシュ値を表すレコードが存在する場合は、それを削除します。
+
+<ResponseField name="key" type="string">
+  削除するキャッシュレコードのキー。
+</ResponseField>
+
+<div id="apicachegetkey">
+  ### `api.cache.get(key)`
+</div>
+
+指定したキーに対応するキャッシュ値のレコードが存在する場合は、
+それを取得します。レコードが見つかった場合、キャッシュ値は
+返されたオブジェクトの `value` プロパティに格納されています。
+
+<ResponseField name="key" type="string">
+  キャッシュに保存されているレコードのキー。
+</ResponseField>
+
+<div id="apicachesetkey-value-options">
+  ### `api.cache.set(key, value, options)`
+</div>
+
+指定したキーで、文字列値をキャッシュに保存または更新します。
+
+このキャッシュに保存された値は、それを設定したトリガーにスコープが設定されます。
+また、[Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations) の制限が適用されます。
+
+この方法で保存された値の有効期間は、指定した
+`ttl` または `expires_at` の値までの *最大* となります。有効期間を指定しない場合は、
+デフォルトで 15 分が使用されます。有効期間は
+[Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations) に記載されている最大
+時間を超えることはできません。
+
+**重要**: このキャッシュは、短期間の一時的なデータ向けに設計されています。指定した
+有効期間内であっても、後続のトランザクションでは項目を利用できない場合があります。
+
+<ResponseField name="key" type="string">
+  保存するレコードのキー。
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  保存するレコードの値。
+</ResponseField>
+
+<ResponseField name="options" type="cachesetoptions" post={["optional"]}>
+  キャッシュの動作を調整するためのオプション。
+
+  <Expandable title="options プロパティ" defaultOpen>
+    <ResponseField name="expires_at" type="number" post={["optional"]}>
+      Unixエポックからの経過ミリ秒で表した絶対有効期限。
+      キャッシュされたレコードはそれより前に削除されることがありますが、
+      指定された `expires_at` を超えて保持されることは
+      ありません。
+
+      *注*: `ttl` にも値が
+      指定されている場合、この値は指定しないでください。両方のオプションが指定された場合は、
+      2 つのうち早い方の有効期限が使用されます。
+    </ResponseField>
+
+    <ResponseField name="ttl" type="number" post={["optional"]}>
+      このキャッシュエントリの有効期間 (ミリ秒) 。
+      キャッシュ値はそれより前に削除されることがありますが、
+      指定された `ttl` を超えて保持されることは
+      ありません。
+
+      *注*: `expires_at` にも値が
+      指定されている場合、この値は指定しないでください。両方のオプションが指定された場合は、
+      2 つのうち早い方の有効期限が使用されます。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apivalidation">
+  ## `api.validation`
+</div>
+
+ログインしようとしているユーザーのアクセスを変更できます。たとえば、バリデーションエラーが原因でログイン試行を拒否できます。
+
+<div id="apivalidationerrorerrorcode-errormessage">
+  ### `api.validation.error(errorCode, errorMessage)`
+</div>
+
+ユーザーが登録できないようにします。このアクションが完了すると、サインアップフローはただちに停止し、以降の Actions は実行されません。
+
+<ResponseField name="errorCode" type="string">
+  この登録試行を拒否する理由を示す、任意に定義したエラーコードです。この値は
+  テナントログに表示されます。
+</ResponseField>
+
+<ResponseField name="errorMessage" type="string">
+  登録試行を拒否する理由を説明する、任意に定義したメッセージです。これは
+  エンドユーザー向けインターフェースに直接表示される場合があります。
+</ResponseField>

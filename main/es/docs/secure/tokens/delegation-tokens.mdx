@@ -1,0 +1,42 @@
+---
+description: Describe cómo funcionan los tokens de delegación en Auth0.
+title: Tokens de delegación
+---
+
+<Warning>
+  De forma predeterminada, la delegación está deshabilitada para los tenants que no usaban un add-on al 8 de junio de 2017. Los tenants Legacy que actualmente usan un add-on que requiere delegación pueden seguir usando esta funcionalidad. Si la funcionalidad de delegación se modifica o se elimina del servicio en algún momento, se notificará con antelación a los clientes que la usan actualmente y se les dará tiempo suficiente para migrar.
+</Warning>
+
+Se debe obtener y usar un token de delegación cuando una aplicación necesita llamar a la API de un add-on de aplicación, como Firebase o SAP, registrado y configurado en Auth0, en el mismo tenant que el programa que realiza la llamada.
+
+Dado un token existente, este endpoint generará un nuevo token firmado con el secreto de la aplicación `target`. Esto se usa para transferir la identidad del usuario desde la aplicación a una API.
+
+El tipo de token de delegación varía según el proveedor. Por ejemplo, si se emite para Azure Blob Storage, será una SAS (Shared Access Signature). Si es para el add-on de Firebase, será un <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, con frecuencia, de token de acceso) usado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JWT">JWT</Tooltip>.
+
+El <Tooltip tip="ID Token: Credencial destinada al cliente mismo, en lugar de acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=ID+token">token de identidad</Tooltip> de un usuario autenticado puede usarse con el endpoint `/delegation` para solicitar un token de delegación para un destino concreto. El destino puede ser un add-on de aplicación configurado en Auth0. Los add-ons para los que esto se puede hacer son aquellos que no son add-ons <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=SAML">SAML</Tooltip> o <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=WS-Fed">WS-Fed</Tooltip>. El add-on debe estar configurado en Auth0 con secrets obtenidos del servicio del add-on, como Firebase. Las instrucciones para configurar los secrets están disponibles en la página de configuración de cada add-on. Los secrets se usan para firmar el token de delegación, de modo que la API del add-on pueda validarlo y confiar en él.
+
+El endpoint de delegación te permite establecer varios parámetros que determinan el contenido del token de delegación, incluidos `target`, `scope`, la API a la que se llamará (`api_type`) y un área adicional de formato libre para parámetros adicionales.
+
+<div id="auth0js-example">
+  ## Ejemplo de Auth0.js
+</div>
+
+Para ver un ejemplo de cómo obtener un nuevo token para un add-on que has activado con **Auth0.js**, consulta Solicitud de token de delegación. Ten en cuenta que este ejemplo corresponde a la **versión 7** de la **biblioteca Auth0.js**; delegación **no es compatible** con la versión 8 de **Auth0.js**.
+
+<div id="validity-period-and-termination">
+  ## Período de validez y terminación
+</div>
+
+El período de validez y la posibilidad de revocar un token de delegación varían según cada Add-on. Para obtener más información, consulte la documentación del proveedor de la API de cada Add-on.
+
+<div id="use-delegation-tokens-with-public-applications">
+  ## Usa tokens de delegación con aplicaciones públicas
+</div>
+
+Hay una advertencia importante que debes tener en cuenta al usar el endpoint de delegación con aplicaciones públicas.
+
+Si llamas al endpoint `/token` desde una aplicación pública, el token de ID se firmará forzosamente con `RS256`, incluso si el algoritmo de firma de JsonWebToken en la configuración de la aplicación está establecido como `HS256`.
+
+Si después llamas al endpoint de delegación con ese token de ID, la llamada fallará si el algoritmo de firma de JsonWebToken de la aplicación estaba configurado como `HS256`. Esto se debe a que delegación valida según la configuración de la aplicación, pero el token de ID se emitió con un algoritmo diferente debido a ese cambio forzado.
+
+Por lo tanto, si tienes previsto usar delegación con una aplicación pública, es importante que configures el algoritmo de firma de JsonWebToken de tu aplicación como `RS256`.

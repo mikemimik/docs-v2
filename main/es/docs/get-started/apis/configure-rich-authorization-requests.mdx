@@ -1,0 +1,282 @@
+---
+description: Aprende a configurar Rich Authorization Requests (RAR) para un servidor de recursos.
+title: Configurar Rich Authorization Requests (RAR)
+---
+
+Con [Rich Authorization Requests (RAR)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rar), los clientes pueden solicitar y obtener datos de <Tooltip tip="Fine-grained Authorization (FGA): Producto de Auth0 que permite a usuarios individuales acceder a objetos o recursos específicos." cta="Ver glosario" href="/es/docs/glossary?term=fine-grained+authorization">autorización granular</Tooltip> de los <Tooltip tip="Resource Owner: Entidad (como un usuario o una aplicación) capaz de conceder acceso a un recurso protegido." cta="Ver glosario" href="/es/docs/glossary?term=resource+owners">propietarios de recursos</Tooltip>, como los usuarios finales, durante el [flujo de código de autorización con solicitud de autorización push (PAR)](/es/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par) y [Client-Initiated Backchannel Authentication Flow](/es/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow).
+
+Rich Authorization Requests usan el parámetro `authorization_details`. Este parámetro acepta un arreglo JSON de objetos que puede incluir información detallada sobre la autorización solicitada, como los recursos o las acciones específicas a las que el cliente quiere acceder en nombre del usuario.
+
+Puedes renderizar los `authorization_details` solicitados para el usuario con cualquiera de estas opciones:
+
+* El navegador, mediante una [solicitud de consentimiento personalizada](#set-customized-consent-prompt)
+* Una aplicación móvil al usar notificaciones push con el [Auth0 Guardian SDK o la aplicación Auth0 Guardian](/es/docs/secure/multi-factor-authentication/auth0-guardian)
+
+Para configurar Rich Authorization Requests para un <Tooltip tip="Resource Server: Servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/es/docs/glossary?term=resource+server">servidor de recursos</Tooltip>, debes:
+
+1. [Registrar los tipos de `authorization_details`](#register-authorization_details-types) para el servidor de recursos.
+2. [Configurar las políticas de acceso a la API](#configure-the-api-access-policies) para permitir que tu aplicación solicite esos tipos.
+3. [Establecer la solicitud de consentimiento personalizada](#set-customized-consent-prompt) para renderizar `authorization_details`.
+4. [Opcional: Configurar la política de consentimiento para el servidor de recursos](#optional-configure-consent-policy-for-the-resource-server).
+
+<div id="register-authorization_details-types">
+  ## Registrar los tipos de `authorization_details`
+</div>
+
+Cada objeto del arreglo JSON debe tener un campo `type` que describa la estructura del objeto. Un arreglo `authorization_details` puede contener varias entradas del mismo `type`.
+
+<div id="auth0-guardian-app">
+  ### aplicación Auth0 Guardian
+</div>
+
+Si usas la aplicación Auth0 Guardian, el valor del parámetro `authorization_details` debe incluir solo un objeto en el arreglo, y ese objeto debe ajustarse al siguiente esquema de Auth0:
+
+| Field         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Example                                                                                                                           |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `type`        | Especifica el tipo de solicitud de autorización:<br /><ul><li>`urn:auth0:schemas:authorization-details`: La URN de Auth0 indica que la solicitud usará el esquema de Auth0.</li><li>`v1`: La versión del esquema.</li><li>`user-profile`: Valor proporcionado por el cliente que indica que la solicitud es de información del perfil de usuario.</li></ul>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `urn:auth0:schemas:authorization-details:v1:user-profile`                                                                         |
+| `instruction` | Un mensaje legible para humanos para que el usuario apruebe la solicitud.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | `Please approve the request.`                                                                                                     |
+| `properties`  | Un objeto JSON que contiene los atributos de usuario o claims específicos que se solicitan. Cada clave (por ejemplo, `email`, `full_name`) representa un campo concreto del perfil de usuario:<br /><ul><li>`display`: Un valor booleano que determina si la propiedad debe mostrarse al usuario en el cuadro de diálogo de consentimiento. Si es `true`, se mostrará; si es `false`, será una propiedad solo interna y no estará pensada para que el usuario la vea.</li><li>`name`: El nombre legible para humanos de la propiedad (por ejemplo, &quot;Email Address&quot;).</li><li>`display_order`: Un entero que determina el orden en que se mostrarán las propiedades en el cuadro de diálogo de consentimiento.</li><li>`description`: Una explicación breve y opcional del propósito de la propiedad.</li><li>`value`: El valor real de los datos de la propiedad (por ejemplo, &quot;user@example.com&quot;, &quot;John Doe&quot;). El tipo de dato puede variar (cadena, entero, booleano, etc.).</li></ul> | `"properties": { "stringPropertyForDisplay": { "display": true, "name": "A String:", "display_order": "1", "value": "Value 1"} }` |
+
+A continuación, se muestra un ejemplo del tipo `authorization_details` con el esquema de Auth0:
+
+```json lines
+{
+    "type": "urn:auth0:schemas:authorization-details:v1:user-profile",
+    "instruction": "An instruction to the user",
+    "properties": {
+        "stringPropertyForDisplay": {
+            "display": true,
+            "name": "A String:",
+            "display_order": 1,
+            "value": "Value 1"
+        },
+        "numericPropertyForDisplay": {
+            "display": true,
+            "name": "A Number:",
+            "display_order": 2,
+            "description": "An optional description",
+            "value": 100.00
+        },
+        "booleanPropertyForDisplay": {
+            "display": true,
+            "name": "A Boolean:",
+            "display_order": 3,
+            "value": true
+        },
+        "hiddenProperty": {
+            "display": false,
+            "value": "This value should not be displayed"
+        }
+    }
+}
+```
+
+<div id="other-notification-channels">
+  ### Otros canales de notificación
+</div>
+
+El tipo `authorization_details` no necesita usar el esquema de Auth0 si no estás usando la aplicación Auth0 Guardian. Si muestras `authorization_details` mediante una solicitud de consentimiento personalizada o tu propia aplicación móvil personalizada con el Auth0 Guardian SDK, se aplican los siguientes requisitos:
+
+* Máximo de 5 KB
+* Debe ser un JSON válido
+* Debe ser un arreglo de objetos
+* Máximo de 5 entradas en el arreglo
+* Cada objeto debe tener una propiedad `type` (prerregistrada en la API)
+* Máximo de 10 propiedades por objeto
+* La longitud máxima de los nombres de las propiedades es de 255 caracteres
+* La longitud máxima del valor de una propiedad es de 255 caracteres
+* Máximo de 5 niveles de objetos anidados
+* Los nombres de las propiedades solo pueden contener los siguientes caracteres: `a-zA-Z0-9_.-`
+
+A continuación se muestra un ejemplo de `authorization_details` de tipo `money_transfer` que no usa el esquema de Auth0. Contiene los siguientes campos de objeto:
+
+* `instructedAmount`: La cantidad de dinero en USD que se va a transferir.
+* `sourceAccount`: La cuenta bancaria de origen desde la que se transferirá el dinero.
+* `destinationAccount`: La cuenta bancaria de destino a la que se transferirá el dinero.
+* `beneficiary`: El beneficiario de la transferencia de dinero.
+* `subject`: El asunto de la transferencia de dinero.
+
+```json lines
+{
+  "type": "money_transfer", 
+  "instructedAmount": {"amount": 2500, "currency": "USD"},   
+  "sourceAccount": "xxxxxxxxxxx1234", 
+  "destinationAccount": "xxxxxxxxxxx9876", 
+  "beneficiary": "Hanna Herwitz", 
+  "subject": "A Lannister Always Pays His Debts"
+}
+```
+
+Debes registrar tipos de `authorization_details` para un servidor de recursos, de forma similar a como registras los scopes permitidos. Puedes registrar tipos de `authorization_details` desde el [Auth0 Dashboard](https://manage.auth0.com/) o con la [Management API](https://auth0.com/docs/api/management/v2).
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Para agregar `authorization_details` en el Auth0 Dashboard:
+
+    1. Ve a [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis).
+    2. Selecciona la pestaña **Permissions**.
+    3. En **Add an Authorization Details type**, puedes agregar varios tipos de `authorization_details` para tu servidor de recursos. Introduce un tipo de `authorization_details`
+    4. Selecciona la opción **+Add**.
+
+    Puedes ver los tipos de `authorization_details` de tu servidor de recursos en **List of Authorization Details Types**:
+
+    <Frame>![](/docs/images/cdy7uua7fh8z/6qRpmbZiqaU8pSFDuWzUAy/951c827a307791de8df9cecd8f817351/Screenshot_2025-04-07_at_3.45.36_PM.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Para registrar tipos de `authorization_details` en un servidor de recursos existente, haz una solicitud `PATCH` al endpoint [Update a resource server](https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id).
+
+    El siguiente ejemplo de código agrega los tipos `payment_initiation` y `money_transfer` en `authorization_details` de un servidor de recursos:
+
+    ```bash lines
+    curl --location --request PATCH 'https://$tenant/api/v2/resource-servers/$resource-server-id' \
+      --header 'Authorization: Bearer $management_access_token' \
+      --header 'Content-Type: application/json' \
+      --data-raw '{
+      "authorization_details": [{"type": "payment_initiation"}, {"type": "money_transfer"}]
+      }'
+    ```
+
+    Para crear un nuevo servidor de recursos con un tipo de `authorization_details` registrado, haz una solicitud `POST` al endpoint `/resource-servers`.
+
+    La siguiente solicitud `POST` crea un nuevo servidor de recursos con el tipo `payment_initiation` en `authorization_details`:
+
+    ```bash lines
+    curl --location --request POST 'https://$tenant/api/v2/resource-servers' \
+      --header 'Authorization: Bearer $management_access_token' \
+      --header 'Content-Type: application/json' \
+      --data-raw '{
+      "name": "Payments API",
+      "identifier": "https://payments.api/",
+      "authorization_details": [{"type": "payment_initiation"}]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="configure-the-api-access-policies">
+  ## Configura las políticas de acceso a la API
+</div>
+
+[API Access Policies for Applications](/es/docs/get-started/apis/api-access-policies-for-applications) controlan a qué aplicaciones pueden acceder tus APIs y a qué scopes o tipos de `authorization_details` se les permite acceder.
+
+Puedes comprobar la policy actual de tu API con la Management API. Haz una request `GET` al endpoint [Get a resource server](https://auth0.com/docs/api/management/v2/resource-servers/get-resource-servers-by-id) y revisa la propiedad `subject_type_authorization` en la respuesta:
+
+```bash lines
+curl --location --request GET 'https://$tenant/api/v2/resource-servers/$resource-server-id' \
+  --header 'Authorization: Bearer $management_access_token' \
+  --header 'Content-Type: application/json'
+```
+
+La propiedad `subject_type_authorization` tiene valores para `client.policy` y `user.policy`:
+
+* Si el valor de la política es `allow_all`, las aplicaciones o los usuarios pueden solicitar todos los tipos de `authorization_details` registrados en la API.
+* Si el valor de la política es `require_client_grant`, cada tipo de `authorization_details` debe estar permitido explícitamente por la autorización de cliente de esa aplicación.
+* Si el valor de la política es `deny_all`, ninguna aplicación ni usuario puede solicitar ninguno de los tipos de `authorization_details` registrados en la API.
+
+Para obtener más información sobre cómo gestionar las autorizaciones de cliente para las aplicaciones, consulta [Acceso de las aplicaciones a las API: autorizaciones de cliente](/es/docs/get-started/applications/application-access-to-apis-client-grants) .
+
+<div id="set-customized-consent-prompt">
+  ## Configurar la solicitud de consentimiento personalizada
+</div>
+
+Puedes renderizar `authorization_details` de una solicitud de autorización enriquecida en la solicitud de consentimiento. Para ello, configura el prompt `customized-consent` con los partials de plantilla correspondientes.
+
+Puedes configurar la solicitud de consentimiento personalizada mediante la Auth0 CLI o la Management API.
+
+<div id="auth0-cli">
+  ### Auth0 CLI
+</div>
+
+Para configurar los partials del consentimiento personalizado, ejecuta el comando `auth0 ul customize` con los indicadores adecuados en tu terminal:
+
+```bash lines
+auth0 ul customize
+```
+
+Para obtener más información, consulta la [documentación de auth0 universal-login customize](https://auth0.github.io/auth0-cli/auth0_universal-login_customize.html).
+
+<div id="management-api">
+  ### Management API
+</div>
+
+Para configurar los partials de consentimiento personalizado, realiza una solicitud `PUT` al endpoint `/prompts/customized-consent/partials`:
+
+```bash lines
+curl --location --request PUT "https://$tenant/api/v2/prompts/customized-consent/partials" \
+  --header "Authorization: Bearer $management_access_token" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "customized-consent": {
+      "form-content": "<div style=\"font-size: 1.3em; font-weight: bold;\">Operation Details</div><hr style=\"margin: 10px 0;\"><div style=\"margin-bottom: 20px;\"></div><div style=\"font-weight: bold;\">Transaction Type</div><div>{{ transaction.params.authorization_details[0].type }}</div><div style=\"margin-bottom: 20px;\"></div><div style=\"font-weight: bold;\">Amount</div><div>{{ transaction.params.authorization_details[0].instructedAmount.amount }} {{ transaction.params.authorization_details[0].instructedAmount.currency }}</div><div style=\"margin-bottom: 20px;\"></div><div style=\"font-weight: bold;\">Recipient</div><div>{{ transaction.params.authorization_details[0].beneficiary }}</div><div style=\"margin-bottom: 20px;\"></div><div style=\"font-weight: bold;\">Destination Account</div><div>{{ transaction.params.authorization_details[0].destinationAccount }}</div><div style=\"margin-bottom: 20px;\"></div>"
+    }
+  }'
+```
+
+La plantilla de consentimiento personalizado renderiza `authorization_details` en la siguiente solicitud de consentimiento que Auth0 muestra al usuario final:
+
+<Frame>![](/docs/images/cdy7uua7fh8z/9NdSMIBWrNI2kbPuaVpon/afc3dde316d5a3577d0d181e6046fa81/Screenshot_2025-03-31_at_3.24.40_PM.png)</Frame>
+
+En el [flujo de notificaciones por correo electrónico con CIBA y RAR](/es/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/email-notifications-with-ciba), debes personalizar la solicitud de consentimiento para mostrar al usuario las pantallas de aprobación o rechazo:
+
+<Frame>
+  <img src="/docs/images/ciba/user_accepts_the_authentication_request.png" alt="El usuario acepta la solicitud de autenticación" style={{ width: '300px', height: 'auto' }} />
+</Frame>
+
+<Frame>
+  <img src="/docs/images/ciba/user_rejects_authentication_request.png" alt="El usuario acepta la solicitud de autenticación" style={{ width: '300px', height: 'auto' }} />
+</Frame>
+
+Para obtener más información sobre cómo personalizar la solicitud de consentimiento, consulta:
+
+* [Personalizar las páginas de Universal Login](/es/docs/customize/login-pages/universal-login/customize-templates)
+* [Personalizar Universal Login con el editor No-Code](/es/docs/customize/login-pages/universal-login/customize-themes)
+* [Documentación de la API para Establecer partials para un prompt](/es/docs/api/management/v2/prompts/put-partials)
+
+<div id="optional-configure-consent-policy-for-the-resource-server">
+  ## Opcional: Configurar la política de consentimiento para el servidor de recursos
+</div>
+
+La política de consentimiento del servidor de recursos determina si Auth0 almacena los valores de `authorization_details` y los pone a disposición de las aplicaciones móviles cuando se envía una notificación push.
+
+Consulta el comportamiento de la política de consentimiento estándar de Auth0 para una solicitud que contiene `authorization_details`:
+
+| Flujo                                            | Notificación push enviada | Comportamiento                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cualquiera                                       | No                        | Se muestra la solicitud de consentimiento personalizada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Flujo de código de autorización con PAR          | Sí                        | No se muestra ninguna solicitud de consentimiento. El consentimiento debe mostrarse en la aplicación móvil que recibe el desafío de notificación push.<br />Si se utiliza la aplicación Auth0 Guardian, los `authorization_details` se mostrarán automáticamente al usuario.<br />Si se utiliza una aplicación móvil personalizada, los `authorization_details` pueden recuperarse con el Auth0 Guardian SDK.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Client-Initiated Backchannel Authentication Flow | Sí                        | Si se utiliza la aplicación Auth0 Guardian para autorizar la solicitud CIBA, los `authorization_details` se recuperarán y mostrarán automáticamente.<br />Si se utiliza una aplicación móvil personalizada para autorizar la solicitud CIBA, los `authorization_details` pueden recuperarse con el Auth0 Guardian SDK.<br />Si la solicitud CIBA se autoriza mediante un enlace web (por ejemplo, desde un correo electrónico), se mostrará la solicitud de consentimiento personalizada.<br />Los clientes pueden optar por activar una notificación push como segundo factor para la solicitud CIBA cuando el usuario la aprueba mediante un enlace web; en ese caso, el comportamiento es el mismo que el descrito anteriormente. La aplicación Auth0 Guardian volverá a mostrar automáticamente los `authorization_details` al usuario, mientras que las aplicaciones móviles personalizadas pueden optar por recuperarlos con el Auth0 Guardian SDK. |
+
+Los clientes también pueden establecer `consent_policy` en `transactional-authorization-with-mfa`, que tiene el siguiente comportamiento:
+
+| Flujo                                            | Notificación push enviada | Comportamiento                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flujo de código de autorización con PAR          | No                        | Se muestra la solicitud de consentimiento personalizada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Flujo de código de autorización con PAR          | Sí                        | No se muestra ninguna solicitud de consentimiento. La solución del cliente debe mostrar el consentimiento mediante su propia interfaz de usuario. Auth0 asignará un ID único a la solicitud y lo expondrá a la Post-Login Action como `event.transaction.linking_id`, junto con `event.transaction.requested_authorization_details`.<br />Si se utiliza la aplicación Auth0 Guardian, NO se mostrarán los `authorization_details`.<br />Si se utiliza una aplicación móvil personalizada, la notificación push incluirá el `linking_id`, lo que permitirá a quienes desarrollan la aplicación recuperar los `authorization_details` desde sus propias API si es necesario. |
+| Client-Initiated Backchannel Authentication Flow | Cualquiera                | El flujo CIBA no es compatible con la política de consentimiento `transactional-authorization-with-mfa`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+Puedes establecer la política de consentimiento para un servidor de recursos con el [Auth0 Dashboard](https://manage.auth0.com/) o la [Management API](https://auth0.com/docs/api/management/v2).
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Configura la política de consentimiento en los ajustes de tu API mediante el Auth0 Dashboard.
+
+    1. Ve a [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis).
+    2. Selecciona la pestaña **Settings**.
+    3. En **Access Settings**, elige la política de consentimiento **Standard**.
+    4. Guarda los cambios.
+
+    <Frame>![Dashboard > Applications > APIs > Settings > Access Settings](/docs/images/cdy7uua7fh8z/3gr8Sf98gh8CUkjnlodNk/cf33985b1e5b62082d46e4f5c8bbed6f/Screenshot_2025-03-31_at_8.22.45_PM.png)</Frame>
+  </Tab>
+
+  <Tab title="Management API">
+    Para establecer la política de consentimiento de un servidor de recursos o una API con la Management API, envía una solicitud `PATCH` al endpoint [Update a resource server](https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id). En la solicitud `PATCH`, establece `consent_policy` en `standard`:
+
+    ```bash wrap lines
+    curl --location --request PATCH 'https://$tenant/api/v2/resource-servers/$resource-server-id' \
+      --header 'Authorization: Bearer $management_access_token' \
+      --header 'Content-Type: application/json' \
+      --data-raw '{ "consent_policy": "standard" }'
+    ```
+  </Tab>
+</Tabs>

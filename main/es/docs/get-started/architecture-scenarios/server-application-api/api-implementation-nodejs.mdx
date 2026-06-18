@@ -1,0 +1,206 @@
+---
+description: La implementación en Node.js de la API para el escenario de arquitectura Aplicaciones de servidor + API
+title: 'Aplicaciones de servidor + API: Implementación en Node.js para la API'
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Como parte del [escenario de arquitectura de servidor + API](/es/docs/get-started/architecture-scenarios/server-application-api), implementaremos la API de Timesheets en Node.js. Consulta el escenario para obtener más información sobre la solución implementada.
+
+El código fuente completo de la implementación de la API en Node.js está disponible en [este repositorio de GitHub](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-api/node).
+
+<div id="step-1-define-the-api-endpoint">
+  ## Paso 1. Definir el endpoint de la API
+</div>
+
+Usaremos el [framework de aplicaciones web Express](http://expressjs.com/) para crear nuestra API de Node.js.
+
+<div id="create-a-packagejson-file">
+  ### Crea un archivo package.json
+</div>
+
+Crea una carpeta para tu API, accede a ella y ejecuta `npm init`. Esto creará tu archivo `package.json`.
+
+Puedes dejar la configuración predeterminada o cambiarla como prefieras.
+
+El archivo `package.json` de nuestro ejemplo tiene este aspecto:
+
+```json lines
+{
+  "name": "timesheets-api",
+  "version": "1.0.0",
+  "description": "API used to add timesheet entries for employees and contractors",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/auth0-samples/auth0-pnp-timesheets.git"
+  },
+  "author": "Auth0",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/auth0-samples/auth0-pnp-timesheets/issues"
+  },
+  "homepage": "https://github.com/auth0-samples/auth0-pnp-timesheets#readme"
+}
+```
+
+<div id="install-the-dependencies">
+  ### Instala las dependencias
+</div>
+
+A continuación, debemos configurar nuestras dependencias. Usaremos los siguientes módulos:
+
+* **express**: Este módulo agrega el [framework web de aplicaciones Express](https://expressjs.com/).
+* **jwks-rsa**: Esta biblioteca recupera claves de firma RSA desde un endpoint JWKS (JSON Web Key Set). Con `expressJwtSecret`, podemos generar un proveedor de secretos que proporcione la clave de firma correcta a `express-jwt` según el `kid` del encabezado del <Tooltip tip="JSON Web Token (JWT): formato estándar de ID Token (y, a menudo, formato de Access Token) usado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JWT">JWT</Tooltip>. Para obtener más información, consulta el [repositorio de GitHub de node-jwks-rsa](https://github.com/auth0/node-jwks-rsa).
+* **express-jwt**: Este módulo te permite autenticar solicitudes HTTP con tokens JWT en tus aplicaciones de Node.js. Proporciona varias funciones que facilitan el trabajo con JWT. Para obtener más información, consulta el [repositorio de GitHub de express-jwt](https://github.com/auth0/express-jwt).
+* **body-parser**: Este es un middleware de análisis del cuerpo de las solicitudes para Node.js. Extrae todo el cuerpo de un flujo de solicitud entrante y lo expone en `req.body` de una forma más fácil de usar. Para obtener más información y conocer varias alternativas, consulta el repositorio de GitHub de body-parser.
+
+Para instalar estas dependencias, ejecuta lo siguiente:
+
+```bash lines
+npm install express express-jwt jwks-rsa body-parser --save
+```
+
+<div id="implement-the-endpoint">
+  ### Implementa el endpoint
+</div>
+
+Ve al directorio de tu API y crea un archivo `server.js`. Tu código debe:
+
+* Configurar las dependencias.
+* Habilitar el middleware para analizar el cuerpo de las solicitudes.
+* Implementar el endpoint.
+* Iniciar el servidor de la API.
+
+Esta es nuestra implementación de ejemplo:
+
+```javascript lines
+// establecer dependencias
+const express = require('express');
+const app = express();
+const jwt = require('express-jwt');
+const jwksRsa = require('jwks-rsa');
+const bodyParser = require('body-parser');
+
+// habilitar el uso del middleware de análisis del cuerpo de la solicitud
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+
+// crear el endpoint de la API para subir hojas de horas
+app.post('/timesheets/upload', function(req, res){
+  res.status(201).send({message: "This is the POST /timesheets/upload endpoint"});
+})
+
+// iniciar el servidor de la API en localhost:8080
+app.listen(8080);
+```
+
+Inicia tu servidor de la API con `node server` y haz una solicitud HTTP POST a `localhost:8080/timesheets/upload`. Deberías ver una respuesta JSON con el mensaje `This is the POST /timesheets/upload endpoint`.
+
+Así que ahora tenemos nuestro endpoint, pero cualquiera puede llamarlo. Continúa con el siguiente párrafo para ver cómo podemos solucionar esto.
+
+<div id="step-2-secure-the-api-endpoint">
+  ## Paso 2. Protege el endpoint de la API
+</div>
+
+Para validar nuestro token, usaremos la función `jwt`, proporcionada por el [middleware express-jwt](https://github.com/auth0/express-jwt#usage), y el paquete `jwks-rsa` para obtener la clave pública de Auth0. Estas bibliotecas hacen lo siguiente:
+
+1. `express-jwt` decodificará el token y pasará la solicitud, el encabezado y el payload a `jwksRsa.expressJwtSecret`.
+2. `jwks-rsa` descargará todas las claves de firma desde el endpoint JWKS y comprobará si alguna de ellas coincide con el `kid` del encabezado del JWT. Si ninguna coincide con el `kid` recibido, se generará un error. Si hay coincidencia, pasaremos la clave de firma correcta a `express-jwt`.
+3. `express-jwt` continuará con su propia lógica para validar la firma del token, su expiración, `audience` y `issuer`.
+
+Los pasos que seguiremos en nuestro código son:
+
+* Crear la función de middleware para validar el <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=access+token">token de acceso</Tooltip>.
+* Habilitar el uso del middleware en nuestras rutas.
+
+Este también es un buen momento para implementar la lógica para guardar las entradas de la hoja de horas en una base de datos local, o en cualquier otro mecanismo de almacenamiento que prefieras. Esta es nuestra implementación de ejemplo (se omite parte del código por brevedad):
+
+export const codeExample = `// configurar dependencias - código omitido
+
+// habilitar el uso del middleware de análisis del cuerpo de la solicitud - código omitido
+
+// Crear middleware para verificar el JWT
+const checkJwt = jwt({
+  // Proporcionar dinámicamente una clave de firma según el kid del encabezado y las claves de firma proporcionadas por el endpoint de JWKS.
+  secret: jwksRsa.expressJwtSecret({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 5,
+    jwksUri: \`https://{yourDomain}/.well-known/jwks.json\`
+  }),
+
+  // Validar la audiencia y el emisor.
+  audience: process.env.AUTH0_AUDIENCE,
+  issuer: \`https://{yourDomain}/\`,
+  algorithms: ['RS256']
+});
+
+// crear endpoint de la API de hojas de horas
+app.post('/timesheets/upload', checkJwt, function(req, res){
+  var timesheet = req.body;
+
+  // Guardar la entrada de la hoja de horas en la base de datos...
+
+  // enviar la respuesta
+  res.status(201).send(timesheet);
+})
+
+// iniciar el servidor de la API en localhost:8080 - código omitido`;
+
+<AuthCodeBlock children={codeExample} language="javascript" />
+
+Si iniciamos nuestro servidor ahora y hacemos una solicitud HTTP POST a `localhost:8080/timesheets/upload`, deberíamos obtener el mensaje de error `Missing or invalid token` (lo cual es perfectamente normal, ya que no enviamos ningún token de acceso en la solicitud).
+
+Para probar también el caso en que sí funciona, necesitamos:
+
+* Obtener un token de acceso. Para más información sobre cómo hacerlo, consulta: [Obtener un token de acceso](/es/docs/get-started/architecture-scenarios/server-application-api#get-an-access-token)
+* Invocar la API añadiendo un encabezado `Authorization` a la solicitud con el valor `Bearer ACCESS_TOKEN` (donde `ACCESS_TOKEN` es el valor del token que obtuvimos en el primer paso).
+
+<div id="step-3-check-the-client-permissions">
+  ## Paso 3. Verifica los permisos del cliente
+</div>
+
+En este paso, añadiremos a nuestra implementación la capacidad de comprobar si el cliente tiene permisos (o `scope`) para usar nuestro endpoint y subir una hoja de horas. En concreto, queremos asegurarnos de que el token tenga el `scope` correcto, que es `batch:upload`.
+
+Para ello, usaremos el paquete de Node.js `express-jwt-authz`, así que añádelo a tu proyecto:
+
+```bash lines
+npm install express-jwt-authz --save
+```
+
+Ahora basta con añadir una llamada a `jwtAuthz(...)` en tu middleware para asegurarte de que el JWT contiene un scope concreto antes de ejecutar un endpoint determinado. Esta es nuestra implementación de ejemplo (se omite parte del código por brevedad):
+
+```javascript lines
+// establecer dependencias - parte del código omitido
+const jwtAuthz = require('express-jwt-authz');
+
+// Crear middleware para verificar el JWT
+
+// Habilitar el uso del middleware de análisis del cuerpo de la solicitud
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+
+// Endpoint de carga por lotes
+app.post('/timesheets/upload', checkJwt, jwtAuthz(['batch:upload']), function(req, res){
+  var timesheet = req.body;
+
+  // Guardar el registro de hoja de horas en la base de datos...
+
+  //enviar la respuesta
+  res.status(201).send(timesheet);
+});
+
+// iniciar el servidor de la API en localhost:8080 - código omitido
+```
+
+Si invocamos nuestra API con un token que no incluye este scope, deberíamos obtener el mensaje de error Forbidden con el código de estado HTTP `403`. Puedes comprobarlo eliminando este scope de tu API.
+
+¡Eso es todo! ¡Ya terminaste!

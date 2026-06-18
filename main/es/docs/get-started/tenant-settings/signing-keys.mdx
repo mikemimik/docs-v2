@@ -1,0 +1,68 @@
+---
+description: Describe cómo funcionan las claves de firma de aplicaciones de tu tenant.
+sidebarTitle: Información general
+title: Claves de firma
+---
+
+Cuando seleccionas nuestro <Tooltip tip="Signing Algorithm: Algoritmo utilizado para firmar digitalmente tokens y garantizar que no hayan sido manipulados." cta="Ver glosario" href="/es/docs/glossary?term=signing+algorithm">algoritmo de firma</Tooltip> recomendado (RS256), Auth0 utiliza criptografía de clave pública para establecer confianza con tus aplicaciones. En términos más generales, usamos una clave de firma que consta de un par de claves pública y privada.
+
+Las claves de firma se usan para firmar <Tooltip tip="Signing Algorithm: Algoritmo utilizado para firmar digitalmente tokens y garantizar que no hayan sido manipulados." cta="Ver glosario" href="/es/docs/glossary?term=ID+tokens">token de ID</Tooltip>, <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=access+tokens">tokens de acceso</Tooltip>, aserciones <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/es/docs/glossary?term=SAML">SAML</Tooltip> y aserciones <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/es/docs/glossary?term=WS-Fed">WS-Fed</Tooltip> enviadas a tu aplicación o API. La clave de firma es una clave web JSON (JWK) que contiene una clave pública well-known utilizada para validar la firma de un <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JSON+web+token">JSON Web Token</Tooltip> (JWT) firmado. Un JSON Web Key Set (JWKS) es un conjunto de claves que contiene las claves públicas utilizadas para verificar cualquier JWT emitido por el <Tooltip tip="Authorization Server: Servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funciones disponibles para un usuario." cta="Ver glosario" href="/es/docs/glossary?term=authorization+server">servidor de autorización</Tooltip> y firmado con el algoritmo de firma RS256. El servicio puede usar solo un JWK para validar tokens web; sin embargo, el JWKS puede contener varias claves si el servicio rotó los certificados de firma.
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+Cuando un usuario inicia sesión en su aplicación, creamos un token que contiene información sobre el usuario y lo firmamos con su clave privada antes de devolvérselo a su aplicación. Auth0 protege la clave privada, que es única para cada tenant.
+
+Para verificar que el token es válido y que se originó en Auth0, su aplicación valida la firma del token con la clave pública. También ofrecemos otras capacidades de administración de claves de seguridad para aplicaciones, tanto a través de nuestro Dashboard como de la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip>.
+
+Auth0 recomienda rotar las claves con regularidad para estar preparado para actuar en caso de una vulneración de seguridad.
+
+A continuación se enumeran certificados de firma de aplicaciones adicionales.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Estos enlaces se generan en función de su tenant activo para proporcionarle información precisa. Debe haber iniciado sesión en `auth0.com/docs` con las credenciales de su tenant para acceder a estos enlaces.
+
+  Para iniciar sesión, seleccione **Iniciar sesión** en la esquina superior derecha. Después de iniciar sesión, puede cambiar de tenant seleccionando el icono de su perfil y eligiendo **Cambiar tenant**.
+</Callout>
+
+* <AuthLink href="https://{yourDomain}/cer">CER</AuthLink>
+* <AuthLink href="https://{yourDomain}/pem">PEM</AuthLink>
+* <AuthLink href="https://{yourDomain}/rawpem">PEM sin formato</AuthLink>
+* <AuthLink href="https://{yourDomain}/pb7">PB7</AuthLink>
+* <AuthLink href="https://{yourDomain}/fingerprint">Huella digital</AuthLink>
+
+También puede obtener esta información para aplicaciones individuales a través del <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/es/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Para hacerlo, vaya a la página **Configuración** de una aplicación específica. Luego, expanda **Configuración avanzada** y elija la pestaña **Certificados**.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Usamos la clave de firma de la aplicación para firmar aserciones que se envían a las aplicaciones. Estas aserciones pueden incluir tokens de ID, tokens de acceso, aserciones SAML y aserciones WS-Fed. Tenga en cuenta que estas claves son distintas de las que se usan para firmar interacciones con conexiones, incluida la firma de solicitudes SAML a proveedores de identidad (IdPs) y el cifrado de respuestas de los IdPs.
+
+  De forma predeterminada, las aserciones SAML para conexiones de IdP están firmadas, y es lo que recomendamos. Para obtener claves públicas que pueda usar para configurar el IdP, consulte [Configuración del proveedor de identidad SAML: aserciones firmadas](/es/docs/authenticate/protocols/saml/saml-identity-provider-configuration-settings).
+</Callout>
+
+El proceso de rotación y revocación se adapta a sus preferencias y facilita una transición fluida para su aplicación. Si prefiere actualizar primero su aplicación y luego rotar y revocar su clave, puede hacerlo. Como alternativa, si prefiere rotar su clave y luego actualizar su aplicación y revocar su clave anterior, también puede hacerlo.
+
+Las claves disponibles incluyen:
+
+* **Actualmente en uso**: Clave que se está usando actualmente para firmar todas las aserciones nuevas.
+* **Usada anteriormente**: Clave que se usó anteriormente, pero que quedó fuera de uso tras la rotación. Las aserciones que se generaron con esta clave seguirán funcionando.
+* **Siguiente en la cola**: Clave que está en cola y reemplazará la clave actual la próxima vez que se rote la clave de firma de la aplicación.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Pruebe siempre la rotación de la clave de firma en un tenant de desarrollo antes de rotar claves de firma de aplicaciones en producción.
+</Callout>
+
+<div id="limitations">
+  ## Limitaciones
+</div>
+
+La rotación de tu clave de firma estará sujeta a un límite de frecuencia más bajo que el de otros endpoints de la API. Para obtener más información, consulta [Management API Rate Limits](/es/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy/management-api-endpoint-rate-limits).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Rotar claves de firma](/es/docs/get-started/tenant-settings/signing-keys/rotate-signing-keys)
+* [Revocar claves de firma](/es/docs/get-started/tenant-settings/signing-keys/revoke-signing-keys)
+* [Ver certificados de firma](/es/docs/get-started/tenant-settings/signing-keys/view-signing-certificates)
+* [Cambiar los algoritmos de firma de la aplicación](/es/docs/get-started/applications/change-application-signing-algorithms)

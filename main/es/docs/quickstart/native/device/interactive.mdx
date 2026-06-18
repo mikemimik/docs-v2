@@ -1,0 +1,528 @@
+---
+mode: wide
+description: Este tutorial muestra cómo llamar a tu API desde un dispositivo con capacidad de entrada limitada mediante Device Authorization Flow.
+title: Device Authorization Flow
+---
+
+import { Recipe, Content, Section, SideMenu, SideMenuSectionItem, SignUpForm } from "/snippets/recipe.jsx";
+import { LoggedInForm } from "/snippets/Login.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+export const sections = [
+  { id: "prerequisites", title: "Requisitos previos" },
+  { id: "request-device-code", title: "Solicitar código de dispositivo" },
+  { id: "receive-device-code", title: "Recibir código de dispositivo" },
+  { id: "request-device-activation", title: "Solicitar la activación del dispositivo" },
+  { id: "poll-the-token-endpoint", title: "Consultar el endpoint de token" },
+  { id: "user-authorization", title: "Autorización del usuario" },
+  { id: "receive-tokens", title: "Recibir tokens" },
+  { id: "call-your-api", title: "Llamar a tu API" },
+  { id: "refresh-tokens", title: "Tokens de actualización" },
+  { id: "troubleshooting", title: "Resolución de problemas" },
+  { id: "sample-implementations", title: "Implementaciones de ejemplo" },
+  { id: "limitations", title: "Limitaciones" }
+]
+
+<Recipe>
+  <Content>
+    Este tutorial muestra cómo llamar a tu API desde un dispositivo con entrada limitada mediante el Device Authorization Flow. Te recomendamos que inicies sesión para
+    seguir este Quickstart con ejemplos configurados para tu cuenta.
+
+    Para una experiencia interactiva, puedes usar el [Device Flow Playground](https://auth0.github.io/device-flow-playground/).
+
+    <Section id={sections[0].id} title={sections[0].title} stepNumber="1">
+      * Registra una aplicación nativa.
+      * Asegúrate de que el selector **Compatible con OIDC** esté activado. Para obtener más información, consulta Autenticación conforme con OIDC.
+      * Agrega **Código de dispositivo** a los tipos de concesión de la aplicación. Para obtener más información, consulta Actualizar tipos de concesión.
+      * Agrega **token de actualización** a los tipos de concesión de la aplicación si quieres habilitar los tokens de actualización.
+      * Configura y habilita al menos una conexión para la
+        aplicación.
+      * Registra tu API con Auth0.
+      * Habilita **Allow Offline Access** si usas tokens de actualización. Para obtener más información, consulta Configuración de la API.
+      * Configura los ajustes del código de usuario del dispositivo para definir el
+        conjunto de caracteres, el formato y la longitud de tu código de usuario generado aleatoriamente.
+    </Section>
+
+    <Section id={sections[1].id} title={sections[1].title} stepNumber="2">
+      Cuando el usuario inicia la aplicación del dispositivo y desea autorizarla, su aplicación debe solicitar un código de dispositivo a la Auth0 Authentication API para asociarlo con la sesión del usuario.
+
+      Para obtener el device code, tu aplicación debe llamar al [Authorize endpoint](https://auth0.com/docs/api/authentication#-post-oauth-device-code-) del Device Authorization Flow de la Authentication API:
+
+      <AuthCodeGroup>
+        ```bash cURL lines
+        curl --request post \
+          --url 'https://{yourDomain}/oauth/device/code' \
+          --header 'content-type: application/x-www-form-urlencoded'
+        ```
+
+        ```csharp C# lines
+        var client = new RestClient("https://{yourDomain}/oauth/device/code");
+        var request = new RestRequest(Method.POST);
+        request.AddHeader("content-type", "application/x-www-form-urlencoded");
+        IRestResponse response = client.Execute(request);
+        ```
+
+        ```go Go lines 
+        package main
+        import (
+        "fmt"
+        "net/http"
+        "io/ioutil"
+        )
+        func main() {
+        url := "https://{yourDomain}/oauth/device/code"
+        req, _ := http.NewRequest("post", url, nil)
+        req.Header.Add("content-type", "application/x-www-form-urlencoded")
+        res, _ := http.DefaultClient.Do(req)
+        defer res.Body.Close()
+        body, _ := ioutil.ReadAll(res.Body)
+        fmt.Println(res)
+        fmt.Println(string(body))
+        }
+        ```
+
+        ```java Java lines
+        HttpResponse<String> response = Unirest.post("https://{yourDomain}/oauth/device/code")
+          .header("content-type", "application/x-www-form-urlencoded")
+          .asString();
+        ```
+
+        ```javascript Node.JS lines
+        var axios = require("axios").default;
+        var options = {
+        method: 'post',
+        url: 'https://{yourDomain}/oauth/device/code',
+        headers: {'content-type': 'application/x-www-form-urlencoded'}
+        };
+        axios.request(options).then(function (response) {
+        console.log(response.data);
+        }).catch(function (error) {
+        console.error(error);
+        });
+        ```
+
+        ```objc Obj-C lines 
+        #import <Foundation/Foundation.h>
+        NSDictionary *headers = @{ @"content-type": @"application/x-www-form-urlencoded" };
+        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://{yourDomain}/oauth/device/code"]
+                                                          cachePolicy:NSURLRequestUseProtocolCachePolicy
+
+                                                      timeoutInterval:10.0];
+
+        [request setHTTPMethod:@"post"];
+        [request setAllHTTPHeaderFields:headers];
+        NSURLSession *session = [NSURLSession sharedSession];
+        NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:request
+                                                completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+
+                                                    if (error) {
+
+                                                        NSLog(@&quot;%@&quot;, error);
+
+                                                    } else {
+
+                                                        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *) response;
+
+                                                        NSLog(@&quot;%@&quot;, httpResponse);
+
+                                                    }
+
+                                                }];
+
+        [dataTask resume];
+        ```
+
+        ```php PHP lines 
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+        CURLOPT_URL => "https://{yourDomain}/oauth/device/code",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "post",
+        CURLOPT_HTTPHEADER => [
+        &quot;content-type: application/x-www-form-urlencoded&quot;
+
+        ],
+        ]);
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        curl_close($curl);
+        if ($err) {
+        echo "cURL Error #:" . $err;
+        } else {
+        echo $response;
+        }
+        ```
+
+        ```python Python lines
+        import http.client
+        conn = http.client.HTTPSConnection("")
+        headers = { 'content-type': "application/x-www-form-urlencoded" }
+        conn.request("post", "/{yourDomain}/oauth/device/code", headers=headers)
+        res = conn.getresponse()
+        data = res.read()
+        print(data.decode("utf-8"))
+        ```
+
+        ```ruby Ruby lines
+        require 'uri'
+        require 'net/http'
+        require 'openssl'
+        url = URI("https://{yourDomain}/oauth/device/code")
+        http = Net::HTTP.new(url.host, url.port)
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        request = Net::HTTP::Post.new(url)
+        request["content-type"] = 'application/x-www-form-urlencoded'
+        response = http.request(request)
+        puts response.read_body
+        ```
+
+        ```swift Swift lines 
+        import Foundation
+        let headers = ["content-type": "application/x-www-form-urlencoded"]
+        let request = NSMutableURLRequest(url: NSURL(string: "https://{yourDomain}/oauth/device/code")! as URL,
+                                            cachePolicy: .useProtocolCachePolicy,
+
+                                        timeoutInterval: 10.0)
+
+        request.httpMethod = "post"
+        request.allHTTPHeaderFields = headers
+        let session = URLSession.shared
+        let dataTask = session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) -> Void in
+        if (error != nil) {
+        print(error)
+
+        } else {
+        let httpResponse = response as? HTTPURLResponse
+
+        print(httpResponse)
+
+        }
+        })
+        dataTask.resume()
+        ```
+      </AuthCodeGroup>
+    </Section>
+
+    <Section id={sections[2].id} title={sections[2].title} stepNumber="3">
+      La aplicación del dispositivo debería recibir una respuesta HTTP 200 y un payload similar a este:
+
+      ```json lines
+      {
+        "device_code": "GmRh...k9eS",
+        "user_code": "WDJB-MJHT",
+        "verification_uri": "https://my-tenant.auth0.com/device",
+        "verification_uri_complete": "https://my-tenant.auth0.com/device?user_code=WDJB-MJHT",
+        "expires_in": 900,
+        "interval": 5
+      }
+      ```
+    </Section>
+
+    <Section id={sections[3].id} title={sections[3].title} stepNumber="4">
+      Después de que la aplicación del dispositivo reciba el `device_code` y el `user_code`, debe
+      indicar al usuario que vaya a `verification_uri` e introduzca el `user_code`.
+
+      <Frame>
+        <img src="/docs/images/cdy7uua7fh8z/3Q9q41wocl6SojRoiGefXT/a98582a3c86740aaeb3d957f2dc4afe6/request-device-activation.png" />
+      </Frame>
+
+      <Info>
+        El `device_code` no está pensado para el usuario directamente y no debe mostrarse durante
+        la interacción para evitar confundirlo.
+      </Info>
+
+      <Info>
+        Al crear una CLI, puedes omitir este paso y abrir de inmediato el navegador con
+        `verification_uri_complete`.
+      </Info>
+    </Section>
+
+    <Section id={sections[4].id} title={sections[4].title} stepNumber="5">
+      Mientras la aplicación de tu dispositivo espera a que el usuario la active, debe llamar periódicamente al [endpoint POST /oauth/token de la Authentication API](https://auth0.com/docs/api/authentication#-post-oauth-token-)
+      y gestionar la respuesta de forma adecuada.
+
+      <Info>
+        Asegúrate de que la aplicación de tu dispositivo espere al menos el tiempo indicado por `interval` (en segundos), o hasta
+        que reciba una respuesta exitosa, lo que sea mayor, para evitar problemas de latencia de red.
+      </Info>
+
+      ```bash
+      curl --request POST \ 
+        --url 'https://{yourDomain}/oauth/token' \
+        --header 'content-type: application/x-www-form-urlencoded' \
+        --data grant_type=urn:ietf:params:oauth:grant-type:device_code \
+        --data device_code=AUTH0_SCOPES \
+        --data 'client_id={yourClientId}'
+      ```
+    </Section>
+
+    <Section id={sections[5].id} title={sections[5].title} stepNumber="6">
+      El usuario escaneará el QR code o, de lo contrario, abrirá la página de activación e introducirá el user code:
+
+      <Frame>
+        <img src="/docs/images/cdy7uua7fh8z/7IwrVX4s5a36CvfY95rKCo/dfc962ecde65502945741b1dc8b5c879/Device_Activation_-_English.png" />
+      </Frame>
+
+      Se mostrará una página de confirmación para que el usuario confirme que se trata del dispositivo correcto:
+
+      <Frame>
+        <img src="/docs/images/cdy7uua7fh8z/5dwhOyM1HRNwfV3Co4Da2o/424a2bc1a1bb44a54c587a0bcddd8222/Device_Confirmation_-_English.png" />
+      </Frame>
+
+      El usuario completará la transaction al iniciar sesión. Este paso puede incluir uno o varios de los siguientes
+      procesos:
+
+      * Autenticar al usuario
+      * Redirigir al usuario a un proveedor de identidad para gestionar la authentication
+      * Comprobar si hay sesiones de SSO activas
+      * Obtener el consentimiento del usuario para el dispositivo, a menos que ya se haya otorgado previamente
+
+      <Frame>
+        <img src="/docs/images/cdy7uua7fh8z/3GqqaNB7sjcAYTQiTnEEsn/7199a9b319283686057ca32c853f7a05/Login_screen_-_English.png" />
+      </Frame>
+
+      Tras completarse correctamente la authentication y el consentimiento, se mostrará el prompt de confirmación:
+
+      <Frame>
+        <img src="/docs/images/cdy7uua7fh8z/2TsQpMa8fzifiojuEXLvDo/484a49b775ec5a6b3522983a425599fe/Success_message_-_English.png" />
+      </Frame>
+
+      En este punto, el usuario se ha autenticado y el dispositivo ha sido autorizado.
+    </Section>
+
+    <Section id={sections[6].id} title={sections[6].title} stepNumber="7">
+      Después de que el usuario autoriza la aplicación del dispositivo, esta recibe una respuesta HTTP 200 y el siguiente payload:
+
+      ```json lines
+      {
+        "access_token": "eyJz93a...k4laUWw",
+        "refresh_token": "GEbRxBN...edjnXbL",
+        "id_token": "eyJ0XAi...4faeEoQ",
+        "token_type": "Bearer",
+        "expires_in": 86400
+      }
+      ```
+
+      <Info>
+        Debe validar sus tokens antes de guardarlos. Para saber cómo hacerlo, lea Validate Access Tokens y Validate ID Tokens.
+      </Info>
+
+      Los tokens de acceso se utilizan para llamar al [endpoint Get User Info](https://auth0.com/docs/api/authentication#get-user-info) de la Authentication API (si su aplicación del dispositivo
+      solicitó el `scope` `openid`) o a la API especificada por el parámetro `audience`.
+      Si llama a su propia API, su aplicación del dispositivo debe verificar el token de acceso antes de usarlo.
+
+      Los tokens de ID contienen información del usuario que debe [decodificarse y extraerse](/es/docs/secure/tokens/id-tokens#id-token-payload). La Authentication API
+      solo devuelve un `id_token` si su aplicación del dispositivo solicitó el `scope` `openid`.
+
+      Los tokens de actualización se utilizan para obtener un nuevo token de acceso o
+      token de ID después de que el anterior haya caducado. La Authentication API solo devuelve un `refresh_token` si
+      la configuración **Allow Offline Access** está habilitada para la API especificada por el parámetro `audience`
+      y su aplicación del dispositivo solicitó el `scope` `offline_access`.
+    </Section>
+
+    <Section id={sections[7].id} title={sections[7].title} stepNumber="8">
+      Para llamar a tu API, la aplicación de tu dispositivo debe enviar el token de acceso como un token Bearer en el
+      encabezado `Authorization` de tu solicitud HTTP.
+
+      ```bash lines
+      curl --request GET \
+        --url https://myapi.com/api \
+        --header 'authorization: Bearer AUTH0_API_ACCESS_TOKEN' \
+        --header 'content-type: application/json'
+      ```
+    </Section>
+
+    <Section id={sections[8].id} title={sections[8].title} stepNumber="9">
+      Para obtener un nuevo token de acceso para un usuario, tu aplicación del dispositivo puede llamar al [endpoint POST /oauth/token de Authentication API](https://auth0.com/docs/api/authentication#-post-oauth-token-) con el
+      parámetro `refresh_token`.
+
+      ```bash lines
+      curl --request POST \
+        --url 'https://{yourDomain}/oauth/token' \
+        --header 'content-type: application/x-www-form-urlencoded' \
+        --data grant_type=refresh_token \
+        --data 'client_id={yourClientId}' \
+        --data 'client_secret={yourClientSecret}' \
+        --data refresh_token=AUTH0_REFRESH_TOKEN
+      ```
+
+      Si la solicitud se completó correctamente, la aplicación del dispositivo recibe una respuesta HTTP 200 con el siguiente payload:
+
+      ```json lines
+      {
+        "access_token": "eyJ...MoQ",
+        "expires_in": 86400,
+        "scope": "openid offline_access",
+        "id_token": "eyJ...0NE",
+        "token_type": "Bearer"
+      }
+      ```
+
+      Para obtener más información sobre los tokens de actualización, consulta [Tokens de actualización](https://auth0.com/docs/secure/tokens/refresh-tokens).
+    </Section>
+
+    <Section id={sections[9].id} title={sections[9].title} stepNumber="10">
+      Los registros del tenant se crean para cualquier interacción que tenga
+      lugar y pueden utilizarse para resolver problemas.
+
+      ### Respuestas de token
+
+      Mientras espera a que el usuario autorice el dispositivo, puede recibir varias respuestas HTTP 4xx.
+
+      #### Autorización pendiente
+
+      Verá este error mientras espera a que el usuario realice una acción. Continúe haciendo polling con el valor de
+      `interval` recuperado en el paso anterior de este tutorial.
+
+      ```json lines
+      `HTTP 403`
+      {
+      "error": "authorization_pending",
+      "error_description": "..."
+      }
+      ```
+
+      #### Ve más despacio
+
+      Estás haciendo `polling` demasiado rápido. Ve más despacio y usa el intervalo sugerido obtenido en el paso anterior de este
+      tutorial. Para evitar que aparezca este error debido a la latencia de la red, debes empezar a contar cada intervalo después de
+      recibir la respuesta de la última solicitud de `polling`.
+
+      ```json lines
+      `HTTP 429`
+      {
+      "error": "slow_down",
+      "error_description": "..."
+      }
+      ```
+
+      #### Token expirado
+
+      El usuario no ha autorizado el dispositivo con la suficiente rapidez, por lo que el `device_code` ha caducado. Su
+      aplicación debe informar al usuario de que el flujo ha caducado e indicarle que lo reinicie.
+
+      <Info>
+        El error `expired_token` se devuelve exactamente una vez. Después de eso, el endpoint devuelve el
+        error `invalid_grant`.
+      </Info>
+
+      ```json lines
+      `HTTP 403`
+      {
+      "error": "expired_token",
+      "error_description": "..."
+      }
+      ```
+
+      #### Acceso denegado
+
+      Si se te deniega el acceso, recibes:
+
+      ```json lines
+      `HTTP 403`
+      {
+      "error": "access_denied",
+      "error_description": "..."
+      }
+      ```
+
+      Esto puede ocurrir por diversos motivos, entre ellos:
+
+      * El usuario se negó a autorizar el dispositivo.
+      * El servidor de autorización rechazó la transacción.
+      * Una Action configurada denegó el acceso.
+    </Section>
+
+    <Section id={sections[10].id} title={sections[10].title} stepNumber="11">
+      Consulta los ejemplos a continuación para ver cómo implementar este flujo en aplicaciones reales.
+
+      * [Playground de
+        autorización de dispositivos](https://auth0.github.io/device-flow-playground/)
+      * [AppleTV (Swift)](https://github.com/pushpabrol/auth0-device-flow-appletv): Aplicación sencilla que muestra cómo se puede usar Auth0 con el
+        flujo de autorización de dispositivos desde un AppleTV.
+      * [CLI (Node.js)](https://gist.github.com/panva/652c61e7d847e0ed99926c324fa91b36): Implementación de ejemplo de una CLI que usa el flujo de
+        autorización de dispositivos en lugar del flujo de código de autorización. La principal diferencia es que tu CLI no necesita
+        alojar un servidor web ni escuchar en un puerto.
+    </Section>
+
+    <Section id={sections[11].id} title={sections[11].title} stepNumber="12">
+      Para usar el Device Authorization Flow, una aplicación de dispositivo debe:
+
+      * Admitir Server Name Indication (SNI)
+      * Ser una aplicación nativa
+      * Tener el [método de autenticación](/es/docs/secure/application-credentials#application-authentication-methods) configurado en **None**
+      * Ser [OIDC-conformant](/es/docs/get-started/applications/application-settings#oauth)
+      * No haber sido creada mediante registro dinámico de clientes
+
+      Además, el Device Authorization Flow no permite:
+
+      * Conexiones sociales que usen claves de desarrollador de Auth0, a menos que uses la nueva experiencia de Universal Login
+      * Acceder a parámetros de la cadena de consulta desde una página de inicio de sesión alojada o desde Actions.
+    </Section>
+
+    ## Próximos pasos
+
+    ¡Excelente trabajo! Si llegaste hasta aquí, ya deberías tener el inicio de sesión, el cierre de sesión y la información del perfil de usuario funcionando en tu aplicación.
+
+    Con esto concluye nuestro tutorial de inicio rápido, pero hay mucho más por explorar. Para saber más sobre lo que puedes hacer con Auth0, consulta:
+
+    * [Auth0 Dashboard](https://manage.auth0.com/dashboard/us/dev-gja8kxz4ndtex3rq) - Aprende a configurar y administrar tu tenant de Auth0 y tus aplicaciones
+    * [Auth0 Marketplace](https://marketplace.auth0.com/) - Descubre integraciones que puedes habilitar para ampliar las funcionalidades de Auth0
+  </Content>
+
+  <SideMenu sections={sections}>
+    <SideMenuSectionItem id={sections[0].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[1].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[2].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[3].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[4].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[5].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[6].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[7].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[8].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[9].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[10].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[11].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+  </SideMenu>
+</Recipe>

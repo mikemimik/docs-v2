@@ -1,0 +1,292 @@
+---
+description: Configurez Proof Key for Code Exchange (PKCE) et les modèles de mappage pour les connexions OpenID Connect et Okta Workforce.
+title: Configurer PKCE et le mappage des claims pour les connexions OIDC
+---
+
+Les [connexions d’entreprise](/fr-CA/docs/authenticate/identity-providers/enterprise-identity-providers/oidc) qui utilisent [OpenID Connect](/fr-CA/docs/authenticate/identity-providers/enterprise-identity-providers/oidc) ou O[kta Workforce](/fr-CA/docs/authenticate/identity-providers/enterprise-identity-providers/okta) comme <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=identity+provider">fournisseur d’identité</Tooltip> peuvent prendre en charge Proof Key for Code Exchange (PKCE), ainsi que le mappage des attributs et des tokens.
+
+<div id="configure-pkce-for-oidc-connections">
+  ## Configurer PKCE pour les connexions OIDC
+</div>
+
+<Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans avoir à recueillir ni à stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=OpenID">OpenID</Tooltip> Connect et les connexions Okta Workforce sont automatiquement configurés pour prendre en charge Proof Key for Code Exchange (PKCE).
+
+Si votre fournisseur d’identité OIDC (IdP) prend en charge PKCE à l’aide des métadonnées OIDC Discovery, Auth0 utilisera par défaut l’algorithme le plus fort disponible. Pour en savoir plus sur les métadonnées OIDC Discovery, consultez la [documentation d’OpenID](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata).
+
+<div id="view-pkce-configuration-for-a-connection">
+  ### Afficher la configuration PKCE d’une connexion
+</div>
+
+Vous pouvez afficher la configuration PKCE d’une connexion spécifique dans le <Tooltip tip="Auth0 Dashboard : interface principale d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> :
+
+1. Accédez à **Authentication &gt; Enterprise** et choisissez votre fournisseur OIDC (OpenID Connect ou Okta Workforce).
+2. Sélectionnez l’onglet **Settings**.
+3. Dans la section **General**, repérez le champ **Connection Profile**.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Vous pouvez gérer la configuration PKCE d’une connexion dans l’Auth0 Dashboard :
+
+    1. Accédez à [**Dashboard &gt; Authenticate &gt;Enterprise**](https://manage.auth0.com/#/connections/enterprise) et choisissez votre fournisseur OIDC (OpenID Connect ou Okta Workforce).
+    2. Sélectionnez l’onglet **Settings** et repérez le champ **Connection Profile**.
+    3. Réglez la propriété `pkce` sur l’une des [valeurs prises en charge](#supported-pkce-configuration-values) ci-dessous.
+    4. Sélectionnez **Save**.
+  </Tab>
+
+  <Tab title="Management API">
+    #### Utiliser le point de terminaison de découverte
+
+    ```bash
+    curl --request POST \
+    --url 'https://{yourDomain}/api/v2/connections' \
+    --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+    --data '{ 
+      "strategy": "oidc", 
+       "name": "CONNECTION_NAME", 
+       "options": { 
+         "type": "back_channel", 
+         "discovery_url": "https://IDP_DOMAIN/.well-known/openid-configuration", 
+         "client_id" : "IDP_CLIENT_ID", 
+         "client_secret" : "IDP_CLIENT_SECRET", 
+         "scopes": "openid profile", 
+         "connection_settings": { "pkce": "auto" }
+                   } 
+              };
+    ```
+
+    #### Sans point de terminaison de découverte
+
+    Sans `discovery_url`, l’objet `oidc_metadata` doit être rempli manuellement avec les champs nécessaires.
+
+    ```bash
+    curl --request POST \
+      --url 'https://{yourDomain}/api/v2/connections' \
+      --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+      --data '{
+        "strategy": "oidc",
+        "name": "CONNECTION_NAME",
+        "options": {
+          "type": "back_channel",
+          "client_id": "IDP_CLIENT_ID",
+          "client_secret": "IDP_CLIENT_SECRET",
+          "connection_settings": { "pkce": "auto" },
+          "issuer": "https://IDP_DOMAIN",
+          "authorization_endpoint": "https://IDP_DOMAIN/authorize",
+          "jwks_uri": "https://IDP_DOMAIN/.well-known/jwks.json",
+          "scopes": "openid profile",
+          "oidc_metadata": {
+            "issuer": "https://IDP_DOMAIN",
+            "authorization_endpoint": "https://IDP_DOMAIN/authorize",
+            "jwks_uri": "https://IDP_DOMAIN/.well-known/jwks.json",
+            "token_endpoint": "https://IDP_DOMAIN/token/refresh",
+            "code_challenge_methods_supported": ["plain", "S256"]
+          }
+        }
+      };
+    ```
+  </Tab>
+</Tabs>
+
+<div id="supported-pkce-configuration-values">
+  ### Valeurs de configuration PKCE prises en charge
+</div>
+
+Auth0 prend en charge les valeurs suivantes pour la configuration PKCE :
+
+| Valeur     | Description                                                                                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| `auto`     | Valeur par défaut. Utilise l’algorithme le plus robuste disponible.                                                   |
+| `s256`     | Utilise l’algorithme SHA-256. Auth0 ne prend actuellement pas en charge les jetons RS512.                             |
+| `plain`    | Utilise du texte brut, comme décrit dans la [spécification PKCE](https://www.rfc-editor.org/rfc/rfc7636#section-4.2). |
+| `disabled` | Désactive la prise en charge de PKCE.                                                                                 |
+
+<Warning>
+  Définir la propriété `pkce` sur une valeur autre que `auto` peut empêcher une connexion de fonctionner correctement si la valeur choisie n’est pas prise en charge par le fournisseur d’identité.
+
+  Ne définissez pas cette propriété sur `disabled`, sauf pour le dépannage de problèmes d’authentification.
+</Warning>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  **Limitation de Microsoft Entra ID**
+
+  Si vous utilisez une connexion OpenID Connect pour Microsoft Entra ID, vous devez définir `pkce` sur `s256`, car les métadonnées de la connexion n’exposent pas l’algorithme de hachage utilisé. À l’heure actuelle, la [connexion d’entreprise Microsoft Entra ID](/fr-CA/docs/authenticate/identity-providers/enterprise-identity-providers/azure-active-directory/v2) ne prend pas en charge PKCE.
+</Callout>
+
+<div id="map-claims-for-oidc-connections">
+  ## Mapper les claims pour les connexions OIDC
+</div>
+
+Les connexions OpenID Connect et Okta Workforce peuvent mapper automatiquement les claims reçus du fournisseur d’identité (IdP). Vous pouvez configurer ce mapping à l’aide d’un modèle de bibliothèque fourni par Auth0 ou en saisissant directement votre propre modèle.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Les claims mappés ne sont pas automatiquement ajoutés à un ID token Auth0. Pour ajouter des claims à un ID token, consultez [Créer des claims personnalisés](/fr-CA/docs/secure/tokens/json-web-tokens/create-custom-claims#create-custom-claims).
+</Callout>
+
+<div id="mapping-template-properties">
+  ### Propriétés du modèle de mappage
+</div>
+
+Les modèles de mappage prennent en charge les propriétés de l’objet `options.attribute_map` indiquées ci-dessous. Les modèles doivent être au format JSON et contenir des paires clé-valeur valides.
+
+| Propriété        | Obligatoire ? | Description                                                                                                                     |
+| ---------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `mapping_mode`   | Obligatoire   | Méthode utilisée pour mapper les claims entrants.                                                                               |
+| `userinfo_scope` | Facultatif    | Portées à demander à l’IdP lors de l’autorisation, qui déterminent quels claims sont disponibles à partir du endpoint UserInfo. |
+| `attributes`     | Obligatoire   | Objet contenant les détails du mappage des claims entrants.                                                                     |
+
+<div id="mapping-mode">
+  ### Mode de mappage
+</div>
+
+La propriété `mapping_mode` définit la méthode utilisée pour faire correspondre les claims reçues de l’IdP au profil utilisateur Auth0. `mapping_mode` prend en charge les valeurs suivantes :
+
+| Valeur     | Description                                                   |
+| ---------- | ------------------------------------------------------------- |
+| `use_map`  | Utilise le modèle fourni pour faire correspondre les données. |
+| `bind_all` | Copie tous les éléments de données fournis par l’IdP.         |
+
+<div id="restricted-claims">
+  #### Claims réservés
+</div>
+
+Certains claims sont réservés à l’usage d’Auth0; ils ne peuvent donc pas être utilisés comme clés d’attribut du profil utilisateur.
+
+Si vous définissez la propriété `mapping_mode` sur `bind_all`, votre IdP peut tenter d’associer des valeurs à un ou plusieurs de ces claims réservés. Bien que cela n’empêche pas les utilisateurs de s’authentifier sur votre connexion, les valeurs associées aux claims réservés ne sont **pas** associées au profil utilisateur Auth0.
+
+Si vous définissez `mapping_mode` sur `use_map`, vous pouvez associer le claim réservé entrant à un claim valide :
+
+```json lines
+"attribute_map": {
+        "mapping_mode": "use_map",
+        "attributes": {
+            "amr": "{context.tokenset.amr}", // `amr` est une revendication restreinte et ne sera pas mappée
+            "federated_amr": "{context.tokenset.amr}" // `federated_amr` n'est pas une revendication restreinte et sera mappée
+        }
+    }
+```
+
+Pour consulter la liste complète des claims restreints, consultez [Créer des claims personnalisés](/fr-CA/docs/secure/tokens/json-web-tokens/create-custom-claims).
+
+<div id="userinfo-scope">
+  ### Portée UserInfo
+</div>
+
+La propriété `userinfo_scope` définit les portées qu’Auth0 inclut dans la demande d’autorisation à l’IdP. Ces portées déterminent quels claims l’IdP rend disponibles à partir de son endpoint `UserInfo`. Lorsque le mappage d’attributs fait référence aux `context.userinfo properties`, Auth0 appelle l’endpoint `UserInfo` de l’IdP à l’aide du jeton d’accès accordé avec ces portées.
+
+Par exemple, si vous souhaitez demander les portées OIDC standard ainsi que la portée `groups` afin que les claims de groupe soient disponibles à partir de l’endpoint `UserInfo`, vous pouvez le configurer comme suit :
+
+```json lines
+"attribute_map": {
+    "mapping_mode": "use_map",
+    "userinfo_scope": "openid email profile groups",
+    "attributes": {
+        "name": "${context.tokenset.name}",
+        "groups": "${context.userinfo.groups}"
+    }
+}
+```
+
+<div id="attributes">
+  ### Attributs
+</div>
+
+La propriété `attributes` est un objet qui contient des informations de mapping permettant à Auth0 d’interpréter les claims entrants de l’IdP. Les informations de mapping doivent être fournies sous forme de paires clé-valeur.
+
+La clé de gauche correspond à un attribut du profil utilisateur Auth0. La valeur de droite représente le claim entrant de l’IdP, qui peut être exprimé sous forme de valeur littérale, d’objet de contexte dynamique ou d’une combinaison des deux. Les objets de contexte dynamiques sont des expressions de modèle écrites dans le format habituel `${variable}`.
+
+```json lines
+"attribute_map": {
+    . . .
+    "attributes": {
+        "name": "${context.tokenset.name}",
+        "email": "${context.tokenset.email}",
+        "username": "${context.tokenset.preferred_username}"
+    }
+}
+```
+
+<div id="literal-values">
+  #### Valeurs littérales
+</div>
+
+Une valeur littérale est une valeur statique associée à un attribut de profil précis pour tous les utilisateurs de votre connexion.
+
+Par exemple, si vous configurez une connexion OIDC SalesForce et souhaitez attribuer le même ID SFDC Community à tous les profils d’utilisateur, vous pouvez le faire comme suit :
+
+```json lines
+"attribute_map": {
+    . . .
+    "attributes": {
+        …
+        "sf_community_id": "3423409219032-32"
+    }
+}
+```
+
+<div id="context-object">
+  #### Objet de contexte
+</div>
+
+Vous pouvez associer des valeurs dynamiques à des attributs du profil utilisateur à l’aide de l’objet `context`. Cela vous permet de stocker des valeurs uniques pour chaque profil, plutôt que des valeurs littérales qui restent identiques pour tous les profils.
+
+L’objet `context` prend en charge les propriétés suivantes :
+
+| Propriété            | Description                                                                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `context.connection` | Contient les propriétés suivantes :<br /><br /><li> `id` : l’identifiant unique de la connexion (par exemple, `con_4423423423432423`).</li><br /><li> `strategy` : la stratégie de la connexion (par exemple, `oidc`).</li> |
+| `context.tokenset`   | Contient les propriétés suivantes :<br /><br /><li> `access_token` : le jeton d’accès validé complet envoyé par l’IdP.</li><br /><li>`<claim name>` : tout claim du jeton d’ID envoyé par l’IdP.</li>                       |
+| `context.userinfo`   | Contient les propriétés suivantes :<br /><br /><li> `<claim name>` : tout claim disponible fourni par le endpoint UserInfo de l’IdP.</li>                                                                       |
+
+<div id="examples">
+  ### Exemples
+</div>
+
+<div id="simple-user-claim-mapping">
+  #### Mappage simple des claims utilisateur
+</div>
+
+Cet exemple montre comment mapper des claims utilisateur courants au profil utilisateur Auth0 à partir des données du <Tooltip tip="ID token : jeton destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=ID+token">ID token</Tooltip> :
+
+```json lines
+"attribute_map": {
+    . . .
+    "attributes": {
+        "name": "${context.tokenset.name}",
+        "email": "${context.tokenset.email}",
+        "username": "${context.tokenset.preferred_username}"
+    }
+}
+```
+
+<div id="group-claim-mapping">
+  #### Mappage des claims de groupe
+</div>
+
+Cet exemple montre comment mapper les groupes dans le profil d’utilisateur Auth0 à partir de l’IdP entrant :
+
+```json lines
+"attribute_map": {
+    . . .
+    "attributes": {
+        "federated_groups": "${context.userinfo.groups}",
+        "federated_locale": "${context.userinfo.locale}",
+        "federated_zoneinfo": "${context.userinfo.zoneinfo}"
+    }
+}
+```
+
+<div id="combining-literal-values-and-context-objects">
+  #### Combiner des valeurs littérales et des objets de contexte
+</div>
+
+Cet exemple montre comment combiner des valeurs littérales et des expressions de modèle dynamiques pour associer une valeur complexe à un attribut du profil utilisateur Auth0 :
+
+```json lines
+"attribute_map":{
+    . . .
+    "attributes": {
+        "alt_id": "user_email|${context.tokenset.email}",
+        . . .
+    }
+}
+```

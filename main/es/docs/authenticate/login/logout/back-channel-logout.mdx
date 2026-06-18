@@ -1,0 +1,265 @@
+---
+title: Cierre de sesión OIDC por back-channel
+description: Describe la función de cierre de sesión OIDC por back-channel de Auth0.
+---
+
+Auth0 admite la [especificación OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html#Backchannel) en todos los tenants con una suscripción al plan empresarial.
+
+Esta especificación aprovecha el ID de sesión (`sid`) incluido en los <Tooltip tip="token de ID: Credencial destinada al propio cliente, en lugar de utilizarse para acceder a un recurso." cta="Ver glosario" href="/es/docs/glossary?term=ID+tokens">tokens de ID</Tooltip> y los tokens de cierre de sesión para coordinar la finalización de la sesión mediante comunicación back-channel. Los distintos ID de sesión representan sesiones individuales de un agente de usuario o de un dispositivo en tu tenant. Los tokens de cierre de sesión identifican al usuario final y la sesión que se debe cerrar.
+
+<div id="back-channel-communications">
+  ## Comunicaciones de back-channel
+</div>
+
+Para usar el cierre de sesión por Back-Channel, una aplicación debe exponer un URI de cierre de sesión por Back-Channel, accesible desde el servidor del tenant, donde la aplicación espera recibir las solicitudes con el token de cierre de sesión. Cuando una aplicación recibe esta solicitud, debe borrar el estado de la sesión local que coincida con los claims del token.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para que el cierre de sesión por back-channel funcione, las aplicaciones deben poder recibir comunicaciones de back-channel.
+</Callout>
+
+<div id="tokens-in-oidc-back-channel-logout-communications">
+  ### Tokens en las comunicaciones de cierre de sesión por back-channel de OIDC
+</div>
+
+Las aplicaciones no pueden depender de las <Tooltip tip="Cookie de sesión: entidad que, cuando está presente, permite considerar al usuario como autenticado." cta="Ver glosario" href="/es/docs/glossary?term=session+cookies">cookies de sesión</Tooltip> para determinar qué sesión deben cerrar cuando las comunicaciones se realizan mediante back-channel. En su lugar, el servicio depende de un identificador de sesión compartido (`sid`) presente en los tokens de ID y de cierre de sesión.
+
+Cuando los usuarios finales se autentican correctamente con Auth0 durante el inicio de sesión, el <Tooltip tip="Servidor de autorización: servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funciones disponibles para un usuario." cta="Ver glosario" href="/es/docs/glossary?term=authorization+server">servidor de autorización</Tooltip> emite tokens de acceso y tokens de ID. Los tokens de cierre de sesión se generan cuando una sesión se cierra, por ejemplo, mediante una acción de cierre de sesión o la revocación de la sesión. Tanto los tokens de ID como los de cierre de sesión contienen los claims que tu aplicación necesita para facilitar el flujo de cierre de sesión por back-channel. Para obtener más información sobre los claims, lee [Claims de JSON Web Token](/es/docs/secure/tokens/json-web-tokens/json-web-token-claims).
+
+<Frame>![Flujo de trabajo para el cierre de sesión back-channel](/docs/images/cdy7uua7fh8z/5jQ5HogFNeD9tqUGEJuJHE/663f1f52b285f7019fd1157f5a26caf0/2023-09-29_09-32-00.png)</Frame>
+
+1. Inicio de sesión - Durante la autenticación del usuario, el tenant de Auth0 agrega el `sid` al token de ID.
+2. Inicio de sesión - La aplicación almacena el identificador de sesión recibido en su propio almacén de sesiones y lo asocia con la sesión específica de la aplicación.
+3. Cierre de sesión - El IdP llama a la URL de devolución de llamada de cierre de sesión prerregistrada y envía el token de cierre de sesión a este endpoint. El token contiene el `user_id` (`sub`) y el `sid`, junto con otros parámetros.
+4. Cierre de sesión - El backend de la aplicación debe validar el token de cierre de sesión según la especificación de OIDC y extraer el `sid`. Después, puede usar este token para encontrar la sesión asociada a ese identificador y finalizarla según sea necesario.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  La respuesta esperada para un cierre de sesión correcto es `HTTP 200`. Si recibes `HTTP 400`, que indica una solicitud incorrecta o mal interpretada, puedes seguir nuestros consejos para solucionar problemas. Para obtener más información, lee [Configurar el cierre de sesión por back-channel](/es/docs/authenticate/login/logout/back-channel-logout/configure-back-channel-logout).
+</Callout>
+
+<div id="how-it-works">
+  ### Cómo funciona
+</div>
+
+Este caso de uso de ejemplo muestra cómo funciona el cierre de sesión por back-channel con más de una aplicación:
+
+<Frame>![Caso de uso de cierre de sesión por back-channel con varias aplicaciones](/docs/images/cdy7uua7fh8z/54mbNobsvLec0A2tz0DXUG/99ce79c9e93ffe526472d6250373778c/2023-06-20_09-39-12.png)</Frame>
+
+1. Durante la configuración de la aplicación, la aplicación A registra un URI de cierre de sesión por back-channel en Auth0.
+2. Durante la configuración de la aplicación, la aplicación B registra un URI de cierre de sesión por back-channel en Auth0.
+
+   <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+     Las URL de OIDC cierre de sesión por back-channel deben:
+
+     * Ser accesibles desde el IdP
+     * Usar endpoints con cifrado TLS
+     * [Validar los tokens de cierre de sesión](https://openid.net/specs/openid-connect-backchannel-1_0.html#Validation)
+   </Callout>
+3. Durante el inicio de sesión del usuario final, el usuario se autentica con Auth0 para acceder a la aplicación A.
+4. Auth0 envía un token de identidad con `sid` a la aplicación A. Para obtener más información, consulta [Estructura del token de ID](/es/docs/secure/tokens/id-tokens/id-token-structure).
+5. El usuario se autentica con Auth0 para acceder a la aplicación B.
+6. Auth0 envía un token de identidad con el mismo `sid` a la aplicación B. Tu aplicación debe almacenar la información de la sesión.
+7. Durante el cierre de sesión, la aplicación A u otras entidades inician el cierre de sesión en el front-channel.
+8. Auth0 finaliza la capa de sesión de Auth0 mediante la cookie de sesión.
+9. Auth0 llama al URI de cierre de sesión por back-channel de la aplicación A y envía el token de cierre de sesión.
+10. La aplicación A valida el token de cierre de sesión y finaliza la sesión.
+11. Auth0 llama al URI de cierre de sesión por back-channel de la aplicación B y envía el token de cierre de sesión.
+12. La aplicación B valida el token de cierre de sesión y finaliza la sesión.
+
+Las solicitudes de cierre de sesión por back-channel se colocan en una cola asíncrona y se procesan lo más rápido posible. En situaciones de alta carga, puede haber una pequeña demora antes de que se ejecute la solicitud de cierre de sesión, así que diseña tus aplicaciones para que puedan manejar esta consistencia eventual.
+
+<div id="sample-token">
+  #### Token de ejemplo
+</div>
+
+Tu aplicación debe poder analizar y validar <Tooltip tip="JSON Web Token (JWT): formato estándar del token de ID (y, a menudo, del token de acceso) utilizado para transmitir claims de forma segura entre dos partes." cta="Ver glosario" href="/es/docs/glossary?term=JWTs">JWTs</Tooltip> para utilizarlos como tokens de cierre de sesión con Auth0. Para obtener más información, consulta [Validar JSON Web Tokens](/es/docs/secure/tokens/json-web-tokens/validate-json-web-tokens).
+
+Una vez que tu aplicación valide y decodifique el token, el contenido será similar al del ejemplo siguiente:
+
+```json JSON lines
+{
+  "iss": "https://artex-dev.eu.auth0.com/",
+  "sub": "auth0|602e93db83fa6f00749a23e6",
+  "aud": "TuhNLv7ulXD3RfyLlSMbOvszzwJJFPpO",
+  "iat": 1698160928,
+  "exp": 1698161048,
+  "jti": "44a91215-dfb4-4dfe-a1eb-fcafa911deba",
+  "events": {
+    "http://schemas.openid.net/event/backchannel-logout": {}
+  },
+  "trace_id": "81b336a94a4a5707",
+  "sid": "375UIp_ID5mCTClIeBEHpXfGwq51tF_L"
+}
+```
+
+<div id="auth0-sdks">
+  ### SDKs de Auth0
+</div>
+
+Ya se incluyen un ejemplo completo y código listo para producción en la sección **Ejemplo de cierre de sesión por back-channel** de nuestro [SDK express-openid-connect](https://github.com/auth0/express-openid-connect/blob/master/EXAMPLES.md#11-back-channel-logout).
+
+<div id="implementation-examples">
+  ## Ejemplos de implementación
+</div>
+
+<div id="session-storage">
+  ### Almacenamiento de sesiones
+</div>
+
+El ejemplo de almacenamiento de sesiones está desarrollado en Node (Express) y se basa en la [aplicación web de ejemplo de Express OpenID Connect](https://github.com/auth0-samples/auth0-express-webapp-sample/tree/master/01-Login).
+
+En la pestaña de sesiones de tu aplicación, expón la ruta que configuraste para recibir el token de cierre de sesión. Valida el token y finaliza la sesión del usuario.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Este ejemplo usa un almacenamiento de sesiones en memoria con fines de demostración.
+</Callout>
+
+```javascript routes/index.js lines expandable
+const express = require('express');
+const router = express.Router();
+const { requiresAuth } = require('express-openid-connect');
+
+// middleware para validar el token de cierre de sesión
+const requiresValidLogoutToken = require('../middlewares/validateLogoutToken');
+
+// función auxiliar para eliminar sesiones de usuario
+const deleteUserSessions = require('../utils/sessions');
+
+// nueva ruta para recibir tokens de cierre de sesión por backchannel
+// debe configurarse en la pestaña Application -> Sessions
+// en el Auth0 Management Dashboard
+router.post(
+  '/backchannel-logout',
+  requiresValidLogoutToken,
+  function (req, res, next) {
+    // en este punto el token de cierre de sesión es válido, verificado por el middleware requiresValidLogoutToken
+    // se puede acceder a él desde el objeto de solicitud: req.logoutToken
+
+    // eliminar la sesión del usuario para cerrar su sesión
+    deleteUserSessions(
+      req.app.locals.sessionStore,
+      req.logoutToken.sub,
+      req.logoutToken.sid
+    );
+
+    res.sendStatus(200);
+  }
+);
+
+router.get('/', function (req, res, next) {
+  res.render('index', {
+    title: 'Auth0 Webapp sample Nodejs',
+    isAuthenticated: req.oidc.isAuthenticated(),
+    headline: process.env.APP_NAME,
+    backgroundColor: process.env.BACKGROUND_COLOR,
+    baseURL: process.env.BASE_URL,
+  });
+});
+
+router.get('/profile', requiresAuth(), function (req, res, next) {
+  res.render('profile', {
+    userProfile: JSON.stringify(req.oidc.user, null, 2),
+    title: 'Profile page',
+    headline: process.env.APP_NAME,
+    backgroundColor: process.env.BACKGROUND_COLOR,
+    baseURL: process.env.BASE_URL,
+  });
+});
+
+module.exports = router;
+```
+
+```javascript middlewares/validateLogoutToken.js lines expandable
+// Este middleware valida el token de cierre de sesión según se define aquí:
+// https://openid.net/specs/openid-connect-backchannel-1_0.html#Validation
+
+const jose = require('jose');
+
+async function requiresValidLogoutToken(req, res, next) {
+
+  // obtener el conjunto de claves remotas para la verificación del token
+  const JWKS = jose.createRemoteJWKSet(
+    new URL(process.env.ISSUER_BASE_URL + '/.well-known/jwks.json')
+  );
+
+  const logoutToken = req.body.logout_token;
+
+  if (!logoutToken) {
+    res.status(400).send('Need logout token');
+  }
+
+  try {
+    const { payload, protectedHeader } = await jose.jwtVerify(
+      logoutToken,
+      JWKS,
+      {
+        issuer: process.env.ISSUER_BASE_URL + '/',
+        audience: process.env.CLIENT_ID,
+        typ: 'JWT',
+        maxTokenAge: '2 minutes',
+      }
+    );
+
+    // Verificar que el token de cierre de sesión contenga un claim sub, un claim sid, o ambos
+    if (!payload.sub && !payload.sid) {
+      res
+        .status(400)
+        .send(
+          'Error: Logout token must contain either sub claim or sid claim, or both'
+        );
+    }
+
+    // Verificar que el token de cierre de sesión contenga un claim events
+    // cuyo valor sea un objeto JSON que contenga el nombre de miembro http://schemas.openid.net/event/backchannel-logout
+    if (!payload.events['http://schemas.openid.net/event/backchannel-logout']) {
+      res
+        .status(400)
+        .send(
+          'Error: Logout token must contain events claim with correct schema'
+        );
+    }
+
+    // Verificar que el token de cierre de sesión no contenga un claim nonce.
+    if (payload.nonce) {
+      res
+        .status(400)
+        .send('Error: Logout token must not contain a nonce claim');
+    }
+
+    // adjuntar el token de cierre de sesión válido al objeto de solicitud
+    req.logoutToken = payload;
+
+    // el token es válido, invocar el siguiente middleware
+    next();
+  } catch (error) {
+    res.status(400).send(`Error:  ${error.message}`);
+  }
+}
+
+module.exports = requiresValidLogoutToken;
+```
+
+<div id="logout-token-store">
+  ### Almacén de tokens de cierre de sesión
+</div>
+
+Un enfoque habitual para almacenar tokens consiste en definir un almacén de cierre de sesión como alternativa al modelo de almacén de sesiones. Su aplicación o aplicaciones mantienen una colección de tokens de cierre de sesión en la capa de persistencia.
+
+Cada vez que la aplicación necesita comprobar su estado de autenticación, consulta el almacén de tokens de cierre de sesión para determinar si su sesión sigue activa. El almacén de cierre de sesión elimina periódicamente la información obsoleta para conservar solo la necesaria.
+
+<Frame>![Almacén de tokens de cierre de sesión](/docs/images/cdy7uua7fh8z/2zTtcie1d0fjiSuxZ4huyV/dbcf45fb68a045bd1b1918315f8025f7/image__21_.png)</Frame>
+
+<div id="security-considerations">
+  ## Consideraciones de seguridad
+</div>
+
+Los tokens de cierre de sesión de back-channel se entregan a través de internet; por lo tanto, los endpoints de devolución de llamada que los reciben deben seguir prácticas recomendadas para garantizar un funcionamiento confiable y seguro. La siguiente lista de recomendaciones no es exhaustiva, y siempre debe tener en cuenta las circunstancias operativas y de deployment específicas para adaptarse según corresponda. En la lista siguiente, todas las apps que procesan tokens de cierre de sesión de back-channel se denominan “apps”.
+
+* Las apps deben poder almacenar el ID de sesión (claim `sid`) recibido durante el login del usuario para recuperarlo más adelante cuando reciban un token de cierre de sesión de back-channel.
+* Las apps deben verificar todos los tokens recibidos según las [prácticas recomendadas para la validación de JWT](/es/docs/secure/tokens/json-web-tokens/validate-json-web-tokens).
+* Las apps deben aceptar tokens emitidos únicamente por tenants de confianza. Un actor malicioso puede intentar enviar tokens emitidos por otros tenants de Auth0; esos intentos deben rechazarse.
+* Las apps deben aceptar tokens solo cuando contengan un valor `sid` (ID de sesión) que la app reconozca. Deben rechazarse los tokens que contengan un ID de sesión no válido, ya sea porque haya expirado o porque no se reconozca.
+* Las apps deben exponer los endpoints de devolución de llamada únicamente mediante TLS. No se permiten canales de comunicación sin cifrar.
+* Se recomienda que las apps acepten requests solo desde la lista publicada de [direcciones IP salientes](/es/docs/secure/security-guidance/data-security/allowlist).
+* Se recomienda que las apps sigan las prácticas recomendadas generales en materia de monitoreo, registro y límite de frecuencia; sin embargo, los detalles de estos temas quedan fuera del alcance de este documento.
+* Se recomienda que las apps eliminen periódicamente las sesiones obsoletas o expiradas.
+* Cualquier cambio en la dirección del endpoint debe sincronizarse con la configuración del tenant para garantizar que los tokens de cierre de sesión se entreguen siempre a la URL de devolución de llamada de cierre de sesión de back-channel correcta.

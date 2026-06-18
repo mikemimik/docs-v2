@@ -1,0 +1,50 @@
+---
+description: Obtén información sobre el flujo de intercambio de token personalizado.
+sidebarTitle: Resumen
+title: Flujo de Custom Token Exchange
+---
+
+Custom Token Exchange permite a las aplicaciones intercambiar un token de seguridad existente —denominado `subject_token`— por tokens de acceso, de ID y de actualización de Auth0 mediante una llamada al endpoint `/oauth/token`, de acuerdo con [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693).
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+El flujo de Custom Token Exchange se rige por una única [Custom Token Exchange Action](/es/docs/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger), que se selecciona específicamente en función del parámetro `subject_token_type` entrante, tal como se configura en un [Custom Token Exchange Profile](/es/docs/authenticate/custom-token-exchange/configure-custom-token-exchange).
+
+<Frame>![](/docs/images/custom-token-exchange/cte_how_it_works_diagram.png)</Frame>
+
+Como requisito previo para este flujo, debes definir un [Custom Token Exchange Profile](/es/docs/authenticate/custom-token-exchange/configure-custom-token-exchange#create-custom-token-exchange-profile) que asocie un `subject_token_type` específico con la Action que procesará las solicitudes.
+
+Cuando se activa el flujo de Custom Token Exchange:
+
+1. La aplicación envía una solicitud `POST` al endpoint `/oauth/token` con el token de seguridad que se va a intercambiar (el `subject_token`) y su correspondiente `subject_token_type`. La solicitud también puede incluir, de forma opcional, un `actor_token` y un `actor_token_type` para identificar a una entidad que actúa en nombre del usuario.
+2. Auth0 valida la solicitud y las credenciales del cliente.
+3. Se ejecuta la Custom Token Exchange Action asociada. Tu código personalizado debe decodificar y validar el `subject_token`, aplicar las políticas de autorización necesarias y establecer el usuario de la transaction para aprobar el intercambio. La Action también puede establecer un actor para la transaction mediante `api.authentication.setActor()`, lo que da como resultado un claim `act` en los tokens emitidos que identifica quién está actuando en nombre del usuario.
+4. A continuación, se ejecuta el resto del flujo estándar de Auth0 para generar un access token de Auth0 y, opcionalmente, un token de identidad y un token de actualización para el usuario establecido.
+5. Luego, la aplicación solicitante puede usar estos tokens recién emitidos para llamar de forma segura a las API en nombre del usuario establecido en la Action.
+
+<div id="get-started">
+  ## Primeros pasos
+</div>
+
+Para usar Custom Token Exchange, debes [crear un perfil de Custom Token Exchange](/es/docs/authenticate/custom-token-exchange/configure-custom-token-exchange#create-custom-token-exchange-profile). El flujo de trabajo general consta de tres pasos principales de configuración, seguidos de la llamada a tu API:
+
+1. [Crea e implementa una Action](/es/docs/authenticate/custom-token-exchange/configure-custom-token-exchange#create-action-for-the-profile) que contendrá la lógica para controlar el intercambio de tokens. En esta Action, escribe la lógica de código personalizada para:
+   * Decodificar y validar de forma segura el `subject_token` entrante.
+   * Realizar los pasos de autorización necesarios para la transacción.
+   * Establecer el usuario correspondiente para la transacción mediante los métodos disponibles en el [objeto de API de Custom Token Exchange Actions](/es/docs/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object).
+2. [Crea el perfil de Custom Token Exchange](/es/docs/authenticate/custom-token-exchange/configure-custom-token-exchange#create-custom-token-exchange-profile) en tu tenant. El perfil establece una relación uno a uno entre un `subject_token_type` específico que usarás en tus solicitudes y la Action que acabas de crear.
+3. [Habilita Custom Token Exchange para tu aplicación](/es/docs/authenticate/custom-token-exchange/configure-custom-token-exchange#enable-custom-token-exchange-for-your-application).
+
+Una vez que hayas creado el perfil de Custom Token Exchange, estarás listo para hacer lo siguiente:
+
+1. Llamar a tu API: ahora puedes hacer una solicitud `POST` al endpoint `/oauth/token` con los parámetros necesarios, incluidos el `subject_token` y el `subject_token_type` correspondiente a tu perfil configurado. Para obtener más información, consulta [Llama a tu API usando Custom Token Exchange](/es/docs/get-started/authentication-and-authorization-flow/token-exchange-flow/call-your-api-using-the-custom-token-exchange-flow).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Custom Token Exchange](/es/docs/authenticate/custom-token-exchange)
+* [Ejemplos de casos de uso](/es/docs/authenticate/custom-token-exchange/cte-example-use-cases)
+* [Configurar Custom Token Exchange](/es/docs/authenticate/custom-token-exchange/configure-custom-token-exchange)

@@ -1,0 +1,277 @@
+---
+description: Describe cómo configurar las notificaciones por SMS y voz para MFA.
+title: Configurar las notificaciones por SMS y voz para MFA
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+<Warning>
+  Unified Phone Experience centraliza toda la configuración de tus proveedores de telefonía en un solo lugar dentro de tu tenant, por lo que no necesitas configurar el mismo proveedor varias veces para distintos factores de autenticación por teléfono. Para obtener más información, consulta [Usa Unified Phone Experience de Auth0 para la autenticación multifactor](/es/docs/customize/phone-messages/unified-phone/use-auth0s-unified-phone-experience-for-multi-factor-authentication).
+</Warning>
+
+Si usas SMS o voz como factores de autenticación, cuando un usuario final intenta autenticarse en tu aplicación, se le envía un código por SMS o por voz, que deberá introducir para completar la transaction. Esto implica que conoce sus credenciales de inicio de sesión y que tiene en su poder el dispositivo que registró para usar <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación del usuario que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/es/docs/glossary?term=MFA">MFA</Tooltip>.
+
+Puedes configurar el factor SMS y voz desde el Dashboard o mediante la <Tooltip tip="Management API: un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/es/docs/glossary?term=Management+API">Management API</Tooltip> para enviar mensajes por SMS o voz, o para permitir que los usuarios finales elijan cómo quieren recibir el código. Puedes configurar tu proveedor de entrega con Actions, configurar tu cuenta de Twilio o, si solo quieres enviar SMS a los clientes, configurar el servicio predeterminado de entrega de mensajes de Auth0. Debes usar la experiencia de <Tooltip tip="Universal Login: tu aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/es/docs/glossary?term=Universal+Login">Universal Login</Tooltip> para habilitar las notificaciones de voz para MFA.
+
+<Card title="La disponibilidad varía según el plan de Auth0">
+  Tanto tu implementación de inicio de sesión como tu plan de Auth0 o acuerdo personalizado influyen en si esta funcionalidad está disponible. Para obtener más información, consulta [Precios](https://auth0.com/pricing).
+</Card>
+
+<div id="how-it-works">
+  ## Cómo funciona
+</div>
+
+Cuando SMS y voz están habilitados, los usuarios pueden registrarse para recibir el código por SMS o por voz:
+
+<Frame>![Configurar SMS y voz para la experiencia de usuario de MFA por voz](/docs/images/cdy7uua7fh8z/2Q4BViGl71sdrytUDgNJ10/693969bb00444c6bef030e90bb1015f2/2025-02-12_10-06-29.png)</Frame>
+
+Cuando solo habilitas SMS, el flujo es más sencillo:
+
+<Frame>![Configurar SMS y voz para la experiencia de usuario de MFA por SMS](/docs/images/cdy7uua7fh8z/64PgR0CO1Wjfie2Hxy1Ptw/e6dcf80c0739f8235b473c0291a01e63/2025-02-12_10-07-15.png)</Frame>
+
+Una vez que los usuarios se hayan registrado, la próxima vez que se autentiquen recibirán el mensaje de voz o SMS en su teléfono registrado.
+
+<div id="use-the-dashboard">
+  ## Usa el Dashboard
+</div>
+
+1. Ve a [Dashboard &gt; Security &gt; Multi-factor Auth](https://manage.auth0.com/#/multifactor-auth).
+2. Haz clic en **Phone Message** y activa el interruptor de la parte superior.
+3. Selecciona el proveedor de entrega de mensajes que prefieras.
+4. Para permitir que los usuarios se autentiquen con SMS y voz, debes habilitar los factores de SMS y voz y seleccionar el método de entrega que prefieras:
+
+   1. **Auth0**: No puedes usar este proveedor para enviar mensajes de voz. Envía mensajes SMS mediante el proveedor de entrega de SMS configurado internamente por Auth0. Solo puede usarse con fines de evaluación y prueba, y hay un máximo de 100 mensajes por tenant durante toda la vida útil del tenant. No se reciben códigos nuevos una vez alcanzado el límite de 100 mensajes.
+   2. **Twilio**: Envía los mensajes mediante la [Twilio Programmable SMS API](https://www.twilio.com/sms) para SMS o la [Twilio Programmable Voice API](https://www.twilio.com/voice) para voz. Usa Twilio Life Credentials, no Test Credentials, que solo están pensadas para enviar mensajes en un entorno de producción.
+   3. **Custom**: Envía los mensajes invocando una Action en [Send Phone Message Flow](/es/docs/customize/actions/explore-triggers/mfa-notifications-trigger).
+
+   También puedes dar a los usuarios la opción de recibir mensajes de texto SMS, llamadas de voz o ambos.
+
+<div id="twilio-configuration">
+  ### Configuración de Twilio
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Ten en cuenta que Twilio puede tardar hasta ocho (8) semanas en transferir y verificar importaciones masivas. Para obtener más información, visita el [Centro de ayuda de Twilio](https://help.twilio.com/articles/223179468-How-long-does-it-take-to-port-a-number-to-Twilio).
+</Callout>
+
+Si eliges enviar SMS a través de Twilio, sigue estos pasos para configurar tu factor de SMS.
+
+1. Crea una cuenta con Twilio. Necesitarás un [Twilio Account SID](https://www.twilio.com/help/faq/twilio-basics/what-is-an-application-sid) y un [Twilio Auth Token](https://www.twilio.com/help/faq/twilio-basics/what-is-the-auth-token-and-how-can-i-change-it). Estas son las credenciales de la API de Twilio que Auth0 usará para enviar un SMS al usuario.
+2. También es posible que debas habilitar permisos para tu región geográfica para [SMS](https://support.twilio.com/hc/en-us/articles/223181108-How-International-SMS-Permissions-work) o [voz](https://www.twilio.com/console/voice/calls/geo-permissions). Si usas voz, tu cuenta debe tener habilitado un número de teléfono de Twilio para realizar llamadas de voz. Puede ser un número de teléfono externo [verificado con Twilio](https://support.twilio.com/hc/en-us/articles/223180048-Adding-a-Verified-Phone-Number-or-Caller-ID-with-Twilio), o bien puedes comprar y configurar un número de teléfono de Twilio desde tu cuenta.
+3. Configura la conexión. Ve a [Dashboard &gt; Security - Multi-factor Auth](https://manage.auth0.com/#/security/mfa) y elige **Phone Message**.
+4. En **Choose your delivery provider**, elige **Twilio** y selecciona un método de entrega.
+5. Introduce tu **Twilio Account SID** y tu **Twilio Auth Token** en los campos correspondientes.
+6. Elige tu **SMS Source**.
+
+   1. Si eliges **Use From**, deberás introducir el número de teléfono **From** que los usuarios verán como remitente del SMS. También puedes configurarlo en Twilio.
+   2. Si eliges **Use Messaging Services**, deberás introducir un [Messaging Service SID](https://www.twilio.com/docs/sms/services/services-send-messages).
+   3. Si usas voz, siempre debes configurar **From**, incluso si usas **Message Services** para SMS. Asegúrate de que el número de teléfono esté configurado para enviar tanto mensajes SMS como mensajes de voz.
+7. Haz clic en **Save**.
+
+<div id="customize-sms-or-voice-message-templates">
+  ### Personaliza las plantillas de SMS o de mensajes de voz
+</div>
+
+Puedes personalizar tus plantillas de SMS y de mensajes de voz. Para obtener más información, consulta [Personalizar mensajes SMS y de voz](/es/docs/customize/customize-sms-or-voice-messages).
+
+<div id="use-the-management-api">
+  ## Usa la Management API
+</div>
+
+Puedes usar la Management API para configurar qué métodos de entrega de mensajes están habilitados mediante el endpoint `/api/v2/guardian/factors/phone/message-types`. El parámetro `message_types` es un arreglo que puede ser `["sms"]`, `["voice"]` o `["sms", "voice"]`. Necesitas un [token de acceso de la Management API](/es/docs/secure/tokens/access-tokens/management-api-access-tokens) con el scope `update:guardian_factors` como token bearer para llamar a la API:
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request PUT \
+    --url 'https://{yourDomain}/api/v2/guardian/factors/phone/message-types' \
+    --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+    --header 'content-type: application/json' \
+    --data '{ "message_types": ["sms", "voice"] }'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/guardian/factors/phone/message-types");
+  var request = new RestRequest(Method.PUT);
+  request.AddHeader("content-type", "application/json");
+  request.AddHeader("authorization", "Bearer MGMT_API_ACCESS_TOKEN");
+  request.AddParameter("application/json", "{ "message_types": ["sms", "voice"] }", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/guardian/factors/phone/message-types"
+
+  	payload := strings.NewReader("{ "message_types": ["sms", "voice"] }")
+
+  	req, _ := http.NewRequest("PUT", url, payload)
+
+  	req.Header.Add("content-type", "application/json")
+  	req.Header.Add("authorization", "Bearer MGMT_API_ACCESS_TOKEN")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.put("https://{yourDomain}/api/v2/guardian/factors/phone/message-types")
+    .header("content-type", "application/json")
+    .header("authorization", "Bearer MGMT_API_ACCESS_TOKEN")
+    .body("{ "message_types": ["sms", "voice"] }")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'PUT',
+    url: 'https://{yourDomain}/api/v2/guardian/factors/phone/message-types',
+    headers: {
+      'content-type': 'application/json',
+      authorization: 'Bearer MGMT_API_ACCESS_TOKEN'
+    },
+    data: {message_types: ['sms', 'voice']}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/guardian/factors/phone/message-types",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "PUT",
+    CURLOPT_POSTFIELDS => "{ "message_types": ["sms", "voice"] }",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer MGMT_API_ACCESS_TOKEN",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{ "message_types": ["sms", "voice"] }"
+
+  headers = {
+      'content-type': "application/json",
+      'authorization': "Bearer MGMT_API_ACCESS_TOKEN"
+      }
+
+  conn.request("PUT", "/{yourDomain}/api/v2/guardian/factors/phone/message-types", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/guardian/factors/phone/message-types")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Put.new(url)
+  request["content-type"] = 'application/json'
+  request["authorization"] = 'Bearer MGMT_API_ACCESS_TOKEN'
+  request.body = "{ "message_types": ["sms", "voice"] }"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+<div id="integrated-sms-messaging-providers">
+  ## Proveedores integrados de mensajería SMS
+</div>
+
+Auth0 admite de forma predeterminada el envío de mensajes a través de Twilio. Sin embargo, puedes usar otro proveedor de SMS y agregar lógica específica antes de enviar un mensaje, o enviar un mensaje distinto según el usuario o la aplicación. Para ello, configura MFA por SMS para usar una de nuestras [Actions](/es/docs/customize/actions) integradas en el [Send Phone Message Flow](/es/docs/customize/actions/explore-triggers/mfa-notifications-trigger).
+
+Los proveedores integrados de mensajería SMS incluyen:
+
+* [Amazon SNS](https://marketplace.auth0.com/integrations/amazon-sms-provider)
+* [ClickSend](https://marketplace.auth0.com/integrations/clicksend-sms)
+* [Esendex](https://marketplace.auth0.com/integrations/esendex-sms-provider)
+* [Infobip](https://marketplace.auth0.com/integrations/infobip-sms-provider)
+* [Mitto](https://marketplace.auth0.com/integrations/mitto-sms-provider)
+* [Telesign](https://marketplace.auth0.com/integrations/telesign-sms-verification)
+
+<div id="custom-phone-providers">
+  ## Proveedores de telefonía personalizados
+</div>
+
+También puedes configurar proveedores de telefonía personalizados mediante Actions. Para obtener más información, consulta [Configurar un proveedor de telefonía personalizado](/es/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider).
+
+<div id="security-considerations">
+  ## Consideraciones de seguridad
+</div>
+
+Al usar cualquier proveedor de mensajería telefónica, ten en cuenta que los atacantes que abusen del flujo de registro podrían ocasionarte pérdidas económicas.
+
+Auth0 limita a cada usuario a enviar hasta 10 mensajes SMS o de voz por hora, y los flujos de OTP por correo electrónico o autenticadores están limitados a cinco solicitudes cada cinco minutos. (La tasa de ráfaga es de 10, pero para nuevas solicitudes solo se enviará 1 mensaje de voz por hora). Para proteger aún más tu cuenta, considera lo siguiente:
+
+* Habilitar [Limitación de IP sospechosas](/es/docs/secure/attack-protection/suspicious-ip-throttling#signup-attempts). Auth0 bloqueará una IP si intenta realizar más de 50 solicitudes de registro por minuto.
+* Habilitar [flujo de logs](/es/docs/customize/log-streams) y crear alertas con tu herramienta de monitoreo favorita cuando veas picos en la cantidad de `gd_send_voice`, `gd_send_voice_failure`, `gd_send_sms` o `gd_send_sms_failure` [eventos de log](/es/docs/deploy-monitor/logs/log-event-type-codes).
+
+Los proveedores de mensajería telefónica cuentan con protecciones adicionales. Si usas Twilio, consulta la [guía para desarrolladores contra el fraude de Twilio](https://www.twilio.com/docs/usage/anti-fraud-developer-guide). Considera las siguientes opciones:
+
+* Limita los países a los que enviarás mensajes de [SMS](https://support.twilio.com/hc/en-us/articles/223181108-How-International-SMS-Permissions-work) y [Voice](https://support.twilio.com/hc/en-us/articles/223180228-International-Voice-Dialing-Geographic-Permissions-Geo-Permissions-and-How-They-Work). Esto es especialmente útil si hay países con mayor riesgo de [fraude telefónico](https://www.twilio.com/learn/voice-and-video/toll-fraud) o con tarifas de llamada más altas con los que normalmente no haces negocios.
+* Habilita los [triggers de uso](https://support.twilio.com/hc/en-us/articles/223132387-Protect-your-Twilio-project-from-Fraud-with-Usage-Triggers) de Twilio para proteger tu cuenta contra el fraude y los errores de programación.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Registrar y verificar autenticadores por SMS y voz](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Protección contra ataques](/es/docs/secure/attack-protection)
+* [Flujos de logs](/es/docs/customize/log-streams)

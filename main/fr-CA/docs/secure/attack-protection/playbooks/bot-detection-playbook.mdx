@@ -1,0 +1,56 @@
+---
+description: Guide d’utilisation de la fonctionnalité de surveillance Bot Detection d’Auth0 dans le Security Center
+title: guide pratique Bot Detection
+---
+
+<Card title="Avant de commencer">
+  Vous devez activer [Bot Detection](/fr-CA/docs/secure/attack-protection/bot-detection) et configurer un [fournisseur CAPTCHA](/fr-CA/docs/secure/attack-protection/bot-detection/configure-captcha).
+</Card>
+
+La [fonctionnalité de surveillance Bot Detection d’Auth0](/fr-CA/docs/secure/security-center#bot-detection) est un système d’alerte précoce pour détecter les botnets et les attaques. Vous trouverez ci-dessous des conseils pour repérer les bots qui tentent de se connecter à votre tenant.
+
+<div id="find-log-events-of-interest">
+  #### Trouver les événements de journal qui vous intéressent
+</div>
+
+Lorsque vous préparez une réponse, commencez par examiner les messages de journal liés à l’attaque potentielle. Pour une analyse plus poussée, activez la [diffusion des journaux](/fr-CA/docs/customize/log-streams) et connectez-la à l’outil externe de votre choix.
+
+Les [types d’événements de journal](/fr-CA/docs/deploy-monitor/logs/log-event-type-codes) suivants sont pertinents pour enquêter sur une hausse de l’activité des robots.
+
+| Type d’événement de journal | Description                                                                                                                                                                                                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pla`                       | Généré avant la connexion pour surveiller la détection de robots, même si cette détection est seulement en mode surveillance et n’utilise pas de CAPTCHA pour identifier les robots.                                                                 |
+| `fu`                        | Événements d’échec de connexion utilisateur en raison d’un nom d’utilisateur invalide, ce qui peut indiquer des tentatives d’énumération de noms d’utilisateur ou de prise de contrôle de compte.                                                    |
+| `fp`                        | Événements d’échec de connexion utilisateur en raison d’un mot de passe invalide, ce qui peut indiquer des tentatives d’attaques par bourrage d’identifiants.                                                                                        |
+| `pwd_leak`                  | Tentatives de connexion avec un mot de passe compromis, ce qui peut indiquer des tentatives d’attaques par bourrage d’identifiants.                                                                                                                  |
+| `limit_wc`                  | Événements de blocage d’adresse IP pour &gt;10 tentatives de connexion échouées sur un seul compte, ce qui indique que l’adresse IP appartient probablement à un robot.                                                                              |
+| `limit_sul`                 | Événements de blocage d’utilisateur pour &gt;20 tentatives de connexion par minute à partir de la même adresse IP, ce qui indique une activité probable de robot.                                                                                    |
+| `limit_mu`                  | Événements de blocage d’adresse IP pour &gt;100 tentatives de connexion échouées ou &gt;50 tentatives d’inscription à partir de la même adresse IP, ce qui indique une activité probable de robot.                                                   |
+| `fcoa`                      | Événements d’échec d’authentification inter-origine, ce qui indique que des attaquants utilisent l’automatisation pour prendre le contrôle de comptes.                                                                                               |
+| `scoa`                      | Événements d’authentification inter-origine réussie, ce qui indique que des attaquants utilisent l’automatisation pour prendre le contrôle de comptes lorsqu’ils proviennent d’un petit nombre d’adresses IP réparties entre plusieurs utilisateurs. |
+
+<div id="attack-response">
+  #### Réponse à l’attaque
+</div>
+
+Bien que le fait de régler le niveau de <Tooltip tip="Bot Detection : Forme de protection contre les attaques dans laquelle Auth0 bloque le trafic suspect de robots en activant un CAPTCHA pendant le processus de connexion." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=Bot+Detection">Bot Detection</Tooltip> à Élevé atténue immédiatement l’attaque, une stratégie globale doit concilier la tolérance au risque et les capacités techniques de votre entreprise avec l’expérience qu’auront vos utilisateurs au moment de se connecter. Lorsque vous intervenez, tenez compte de deux facteurs principaux :
+
+* **Friction pour l’utilisateur** : évaluez l’impact des mesures d’atténuation (p. ex. la fréquence des CAPTCHA) sur l’expérience utilisateur.
+* **Capacité technique** : évaluez votre capacité à mettre en œuvre le blocage d’adresses IP, des règles WAF et l’obligation d’utiliser la <Tooltip tip="Authentification multifacteur (MFA) : Processus d’authentification d’un utilisateur qui utilise un facteur en plus du nom d’utilisateur et du mot de passe, comme un code envoyé par SMS." cta="Voir le glossaire" href="/fr-CA/docs/glossary?term=MFA">MFA</Tooltip>.
+
+Auth0 recommande une approche de sécurité à plusieurs niveaux qui combine plusieurs techniques d’atténuation pour une protection optimale.
+
+<div id="mitigation-strategies">
+  #### Stratégies d’atténuation
+</div>
+
+Pour une protection optimale contre les attaques, envisagez les stratégies suivantes :
+
+* Activez CAPTCHA pour un ou plusieurs flux et augmentez sa fréquence au besoin, mais n’oubliez pas que CAPTCHA est un moyen de dissuasion, pas une solution.
+* Changez de fournisseur CAPTCHA si des attaquants contournent votre CAPTCHA actuel, ou envisagez de migrer vers Auth0 Auth Challenge ou un autre [fournisseur pris en charge](/fr-CA/docs/secure/attack-protection/bot-detection/configure-captcha).
+* Si vous soupçonnez une campagne de fraude à l’inscription, empêchez temporairement les nouvelles inscriptions à votre application à partir de points de terminaison publics non authentifiés.
+* Modifiez les règles de votre pare-feu d’application web auprès d’un fournisseur edge, ou utilisez les [listes de contrôle d’accès du tenant](/fr-CA/docs/secure/tenant-access-control-list) pour bloquer les adresses IP abusives, les numéros de système autonome, les emplacements géographiques, les [clients TLS](/fr-CA/docs/customize/custom-domains/self-managed-certificates/tls-ssl) ou des éléments d’en-tête HTTP comme les chaînes `user-agent`, et envisagez d’utiliser un [proxy inverse.](/fr-CA/docs/customize/custom-domains/self-managed-certificates#configure-reverse-proxy)
+* Resserrez les seuils de [Brute Force](/fr-CA/docs/secure/attack-protection/brute-force-protection) et de [Suspicious IP](/fr-CA/docs/secure/attack-protection/suspicious-ip-throttling) afin de réduire les limites de connexion autorisées et d’atténuer les attaques par force brute. Pour en savoir plus sur les attaques par force brute, consultez le [guide pratique Brute Force](/fr-CA/docs/secure/attack-protection/playbooks/brute-force-protection-playbook).
+* Désactivez les points de terminaison inutilisés en modifiant vos paramètres d’[authentification inter-origines](/fr-CA/docs/authenticate/login/cross-origin-authentication). Si vous soupçonnez des attaques par mots de passe compromis, consultez le [guide pratique Breached Password](/fr-CA/docs/secure/attack-protection/playbooks/breached-password-playbook).
+* Appliquez la [MFA step-up](/fr-CA/docs/secure/multi-factor-authentication/step-up-authentication) aux comptes compromis, y compris en exigeant la MFA pour les comptes potentiellement compromis.
+* Migrez vers des options de MFA plus robustes pour atténuer les attaques de pompage par SMS ou de fraude par surtaxation en remplaçant la MFA par SMS ou par appel vocal par OTP ou WebAuthn.

@@ -1,0 +1,448 @@
+---
+description: Aprende a autenticar a los usuarios mediante el flujo de contraseña del propietario del recurso con MFA.
+title: Autenticar mediante el flujo de contraseña del propietario del recurso con MFA
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Puedes usar la [API de MFA de Auth0](https://auth0.com/docs/api/authentication#multi-factor-authentication) para completar el flujo de autenticación con el [flujo de contraseña del propietario del recurso](/es/docs/get-started/authentication-and-authorization-flow/resource-owner-password-flow) (a veces llamado <Tooltip tip="Resource Owner: Entidad (como un usuario o una aplicación) capaz de conceder acceso a un recurso protegido." cta="Ver glosario" href="/es/docs/glossary?term=Resource+Owner">Resource Owner</Tooltip> Password Grant o ROPG) cuando <Tooltip tip="Resource Owner: Entidad (como un usuario o una aplicación) capaz de conceder acceso a un recurso protegido." cta="Ver glosario" href="/es/docs/glossary?term=MFA">MFA</Tooltip> está habilitada.
+
+<div id="prerequisites">
+  ## Requisitos previos
+</div>
+
+Para poder usar las API de MFA, primero debes habilitar el tipo de concesión MFA para tu aplicación. Ve a [Auth0 Dashboard &gt; Applications &gt; Advanced Settings &gt; Grant Types](https://manage.auth0.com/#/applications) y selecciona **MFA**.
+
+<div id="authenticate-user">
+  ## Autenticar al usuario
+</div>
+
+Cuando usas el flujo de contraseña del propietario del recurso para autenticarte, llamas al endpoint `/oauth/token` con el nombre de usuario y la contraseña del usuario.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/oauth/token' \
+    --header 'content-type: application/x-www-form-urlencoded' \
+    --data grant_type=password \
+    --data username=user@example.com \
+    --data password=pwd \
+    --data 'client_id={yourClientId}' \
+    --data 'client_secret={yourClientSecret}' \
+    --data audience=https://someapi.com/api \
+    --data 'scope=openid profile read:sample'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/oauth/token");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/x-www-form-urlencoded");
+  request.AddParameter("application/x-www-form-urlencoded", "grant_type=password&username=user%40example.com&password=pwd&client_id={yourClientId}&client_secret=%7ByourClientSecret%7D&audience=https%3A%2F%2Fsomeapi.com%2Fapi&scope=openid%20profile%20read%3Asample", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/oauth/token"
+
+  	payload := strings.NewReader("grant_type=password&username=user%40example.com&password=pwd&client_id={yourClientId}&client_secret=%7ByourClientSecret%7D&audience=https%3A%2F%2Fsomeapi.com%2Fapi&scope=openid%20profile%20read%3Asample")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/x-www-form-urlencoded")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.post("https://{yourDomain}/oauth/token")
+    .header("content-type", "application/x-www-form-urlencoded")
+    .body("grant_type=password&username=user%40example.com&password=pwd&client_id={yourClientId}&client_secret=%7ByourClientSecret%7D&audience=https%3A%2F%2Fsomeapi.com%2Fapi&scope=openid%20profile%20read%3Asample")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/oauth/token',
+    headers: {'content-type': 'application/x-www-form-urlencoded'},
+    data: new URLSearchParams({
+      grant_type: 'password',
+      username: 'user@example.com',
+      password: 'pwd',
+      client_id: '{yourClientId}',
+      client_secret: '{yourClientSecret}',
+      audience: 'https://someapi.com/api',
+      scope: 'openid profile read:sample'
+    })
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/oauth/token",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "grant_type=password&username=user%40example.com&password=pwd&client_id={yourClientId}&client_secret=%7ByourClientSecret%7D&audience=https%3A%2F%2Fsomeapi.com%2Fapi&scope=openid%20profile%20read%3Asample",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/x-www-form-urlencoded"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "grant_type=password&username=user%40example.com&password=pwd&client_id={yourClientId}&client_secret=%7ByourClientSecret%7D&audience=https%3A%2F%2Fsomeapi.com%2Fapi&scope=openid%20profile%20read%3Asample"
+
+  headers = { 'content-type': "application/x-www-form-urlencoded" }
+
+  conn.request("POST", "/{yourDomain}/oauth/token", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/oauth/token")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/x-www-form-urlencoded'
+  request.body = "grant_type=password&username=user%40example.com&password=pwd&client_id={yourClientId}&client_secret=%7ByourClientSecret%7D&audience=https%3A%2F%2Fsomeapi.com%2Fapi&scope=openid%20profile%20read%3Asample"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Cuando MFA está habilitado, la respuesta incluye un error `mfa_required` y un `mfa_token`.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El tiempo de expiración predeterminado de los tokens de acceso con la audiencia `https://{yourDomain}/mfa/*` es de 10 minutos. Este valor no se puede configurar.
+</Callout>
+
+```json lines
+{
+    "error": "mfa_required",
+    "error_description": "Multifactor authentication required",
+    "mfa_token": "Fe26...Ha"
+}
+```
+
+<div id="retrieve-enrolled-authenticators">
+  ## Obtener autenticadores inscritos
+</div>
+
+Después de recibir el error anterior, debes comprobar si el usuario tiene inscrito un factor de MFA o no. Llama al [endpoint MFA Authenticators](/es/docs/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api) con el token de MFA obtenido en la sección anterior.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request GET \
+    --url 'https://{yourDomain}/mfa/authenticators' \
+    --header 'authorization: Bearer MFA_TOKEN' \
+    --header 'content-type: application/json'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/mfa/authenticators");
+  var request = new RestRequest(Method.GET);
+  request.AddHeader("authorization", "Bearer MFA_TOKEN");
+  request.AddHeader("content-type", "application/json");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/mfa/authenticators"
+
+  	req, _ := http.NewRequest("GET", url, nil)
+
+  	req.Header.Add("authorization", "Bearer MFA_TOKEN")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.get("https://{yourDomain}/mfa/authenticators")
+    .header("authorization", "Bearer MFA_TOKEN")
+    .header("content-type", "application/json")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'GET',
+    url: 'https://{yourDomain}/mfa/authenticators',
+    headers: {authorization: 'Bearer MFA_TOKEN', 'content-type': 'application/json'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/mfa/authenticators",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "GET",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer MFA_TOKEN",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = {
+      'authorization': "Bearer MFA_TOKEN",
+      'content-type': "application/json"
+      }
+
+  conn.request("GET", "/{yourDomain}/mfa/authenticators", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/mfa/authenticators")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Get.new(url)
+  request["authorization"] = 'Bearer MFA_TOKEN'
+  request["content-type"] = 'application/json'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Obtendrás un array con los autenticadores disponibles. El array estará vacío si el usuario no tiene ningún factor inscrito.
+
+```json lines
+[
+    {
+        "id": "recovery-code|dev_O4KYL4FtcLAVRsCl",
+        "authenticator_type": "recovery-code",
+        "active": true
+    },
+    {
+        "id": "email|dev_NU1Ofuw3Cw0XCt5x",
+        "authenticator_type": "oob",
+        "active": true,
+        "oob_channel": "email",
+        "name": "email@address.com"
+    }
+]
+```
+
+<div id="enroll-mfa-factor">
+  ## Inscribir un factor de MFA
+</div>
+
+Si el usuario no está inscrito en MFA, use el token de MFA obtenido anteriormente para inscribir el factor mediante el endpoint MFA Associate. Consulte los siguientes enlaces para implementar este flujo según el factor de autenticación:
+
+* [SMS o voz](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Contraseña de un solo uso (OTP)](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
+* [Push](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-push-authenticators)
+* [Email](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-email-authenticators)
+
+<div id="challenge-user-with-mfa">
+  ## Desafiar al usuario con MFA
+</div>
+
+Si el usuario ya está inscrito en MFA, debes solicitarle un desafío con uno de los factores existentes. Usa el `authenticator_id` devuelto por el endpoint MFA Authenticators al llamar al endpoint MFA Challenge.
+
+Una vez completado el desafío, vuelve a llamar al endpoint `/oauth/token` para finalizar el flujo de autenticación y obtener los tokens de autenticación.
+
+Consulta los enlaces a continuación para implementar este flujo según el factor de autenticación:
+
+* [SMS o voz](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Contraseña de un solo uso (OTP)](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
+* [Push](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-push-authenticators)
+* [Email](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-email-authenticators)
+
+<div id="mfa-otp-code-limitations-and-restrictions">
+  ### Limitaciones y restricciones del código OTP de MFA
+</div>
+
+**Tiempo de expiración**: El tiempo de expiración de los códigos OTP de MFA es de 5 minutos. Este valor no se puede configurar.
+
+**Validación del código**: Después de que un usuario valida un código OTP de MFA, no se puede volver a usar.
+
+**Límite de frecuencia de validación del código**: Los intentos fallidos de validación del usuario están sujetos a un límite de frecuencia mediante un algoritmo de cubo. El cubo empieza con 10 intentos y se recarga a un ritmo de 1 intento cada 6 minutos.
+
+<div id="customize-mfa">
+  ## Personaliza MFA
+</div>
+
+<Warning>
+  La personalización de MFA con los flujos de concesión de contraseña del propietario del recurso, Embedded o token de actualización está en acceso anticipado. Al usar esta función, aceptas los términos aplicables de la prueba gratuita del [Master Subscription Agreement](https://www.okta.com/legal/) de Okta. Para obtener más información sobre las etapas de lanzamiento de Auth0, consulta [Product Release Stages](/es/docs/troubleshoot/product-lifecycle/product-release-stages). Para participar en el acceso anticipado, contacta al [equipo de soporte de Auth0](https://support.auth0.com/).
+</Warning>
+
+Personaliza tus flujos de MFA con la API de MFA. Con la API de MFA, puedes permitir que tus usuarios completen la inscripción y los desafíos con una selección específica de factores compatibles con tu aplicación.
+
+Cuando MFA está habilitado con el flujo de contraseña del propietario del recurso para autenticarse, llama al `endpoint /oauth/token` para solicitar un token de acceso. El servidor de autorización devuelve un error `mfa_required` que proporciona:
+
+* El `mfa_token` que necesitas para llamar a la API de MFA para la inscripción y los desafíos.
+* El parámetro `mfa_requirements`, que indica el tipo de factor que tu aplicación admite para los desafíos.
+
+```json
+{
+  "error": "mfa_required",
+  "error_description": "Multifactor authentication required",
+  "mfa_token": "Fe26...Ha",
+  "mfa_requirements": {
+    "challenge": [
+      { "type": "otp" },
+      { "type": "push-notification" },
+      { "type": "phone" },
+      { "type": "recovery-code" }
+    ]
+  }
+}
+```
+
+Usa el `mfa_token` para llamar al [`endpoint mfa/authenticator`](/es/docs/api/authentication/muti-factor-authentication/list-authenticators) y listar todos los factores en los que el usuario se ha inscrito, y haz coincidir el tipo que admite tu aplicación. También necesitas obtener el `authenticator_type` correspondiente para emitir desafíos:
+
+```json
+[
+  {
+    "type": "recovery-code",
+    "id": "recovery-code|dev_qpOkGUOxBpw6R16t",
+    "authenticator_type": "recovery-code",
+    "active": true
+  },
+  {
+    "type": "otp",
+    "id": "totp|dev_6NWz8awwC8brh2dN",
+    "authenticator_type": "otp",
+    "active": true
+  }
+]
+```
+
+Fuerza el desafío MFA llamando al endpoint [`request/mfa/challenge`](/es/docs/api/authentication/muti-factor-authentication/request-mfa-challenge).
+
+Personaliza aún más tu flujo de MFA con Auth0 Actions. Para obtener más información, consulta [Actions Triggers: post-challenge - objeto de API](/es/docs/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-api-object).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Inscribir y desafiar autenticadores de SMS y voz](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Inscribir y desafiar autenticadores OTP](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
+* [Inscribir y desafiar autenticadores push](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-push-authenticators)
+* [Inscribir y desafiar autenticadores de correo electrónico](/es/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-email-authenticators)
+* [Administrar factores de autenticación con Authentication API](/es/docs/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api)
+* [Factores de la autenticación multifactor](/es/docs/secure/multi-factor-authentication/multi-factor-authentication-factors)

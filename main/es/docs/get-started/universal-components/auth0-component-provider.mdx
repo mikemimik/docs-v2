@@ -1,0 +1,1529 @@
+---
+title: Configurar Auth0ComponentProvider
+description: Aprende cómo Auth0ComponentProvider sincroniza la autenticación, la internacionalización, los temas visuales, las notificaciones toast y las opciones de caché.
+sidebarTitle: Configurar Auth0ComponentProvider
+---
+
+<Warning>
+  Auth0 Universal Components se encuentra actualmente en acceso anticipado. Al usarlo, aceptas los términos aplicables de la prueba gratuita incluidos en [Okta&#39;s Master Subscription
+  Agreement](https://www.okta.com/agreements/). Para obtener más información, consulta [Product
+  Release Stages](/es/docs/troubleshoot/product-lifecycle/product-release-stages).
+</Warning>
+
+`Auth0ComponentProvider` es la capa de orquestación de [Auth0 Universal Components](/es/docs/get-started/universal-components/universal-components-overview). Auth0 SDKs gestionan las sesiones y los tokens, y `Auth0ComponentProvider` traduce ese estado de identidad en un contexto de interfaz funcional y acorde con la marca. `Auth0ComponentProvider` se asegura de que los componentes, como el registro en MFA, tengan los permisos, los datos en caché y el estilo necesarios.
+
+<div id="benefits">
+  ## Beneficios
+</div>
+
+`Auth0ComponentProvider` es el contenedor raíz obligatorio para todos los Auth0 Universal Components. Los beneficios de usar este contenedor son:
+
+* **Alineación de identidad**: Sirve de puente entre los [Auth0 SDKs](/es/docs/libraries) y la [My Account API](/es/docs/manage-users/my-account-api) para garantizar que las solicitudes se firmen con tokens con scope de usuario.
+* **Optimización del rendimiento**: Implementa una caché compartida de **TanStack Query**, ajustada específicamente para workflows de identidad, para evitar llamadas redundantes a la API y saltos de diseño.
+* **Consistencia del sistema de diseño**: Propaga variables de **Tailwind CSS** y temas compatibles con **Shadcn** por todo el árbol de componentes.
+* **Retroalimentación global**: Gestiona un sistema unificado de notificaciones toast para alertas de seguridad y el estado del workflow.
+
+<div id="integration-architecture">
+  ## Arquitectura de integración
+</div>
+
+Coloca `Auth0ComponentProvider` dentro de tu proveedor de autenticación (`Auth0Provider`). Esta configuración permite acceder al estado de autenticación y a los métodos de obtención de token necesarios para llamar a las API de Auth0.
+
+<div id="configure-auth0componentprovider">
+  ## Configura `Auth0ComponentProvider`
+</div>
+
+<Tabs>
+  <Tab title="React">
+    ```tsx App.tsx
+    import { Auth0Provider } from "@auth0/auth0-react";
+    import { Auth0ComponentProvider } from "@auth0/universal-components-react/spa";
+
+    function App() {
+      return (
+        <Auth0Provider
+          domain="your-tenant.auth0.com"
+          clientId="YOUR_CLIENT_ID"
+          authorizationParams={{ redirect_uri: window.location.origin }}
+          interactiveErrorHandler='popup' // Requerido para gestionar desafíos de autenticación escalonada mediante el popup de Universal Login
+        >
+          <Auth0ComponentProvider domain="your-tenant.auth0.com">
+            {/* Tu aplicación con Auth0 Universal Components */}
+          </Auth0ComponentProvider>
+        </Auth0Provider>
+      );
+    }
+    ```
+
+    ***
+
+    ## Propiedades
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td><code>domain</code></td>
+          <td><code>string</code></td>
+          <td>Sí</td>
+          <td>Dominio del tenant de Auth0 (&quot;YOUR&#95;AUTH0&#95;TENANT.auth0.com&quot;).</td>
+        </tr>
+
+        <tr>
+          <td><code>previewMode</code></td>
+          <td><code>boolean</code></td>
+          <td>No</td>
+          <td>Cuando <code>true</code>, omite la inicialización de la API del cliente. Se usa para vistas previas de documentación y demos.</td>
+        </tr>
+
+        <tr>
+          <td><code>i18n</code></td>
+          <td><code>I18nOptions</code></td>
+          <td>No</td>
+          <td>Configuración de internacionalización, incluida currentLanguage y fallbackLanguage.</td>
+        </tr>
+
+        <tr>
+          <td><code>themeSettings</code></td>
+          <td><code>ThemeSettings</code></td>
+          <td>No</td>
+          <td>Configuración del tema, incluido el modo (claro/oscuro), la variante del tema (default/minimal/rounded) y las variables CSS.</td>
+        </tr>
+
+        <tr>
+          <td><code>toastSettings</code></td>
+          <td><code>ToastSettings</code></td>
+          <td>No</td>
+          <td>Configuración de notificaciones toast, incluida la selección del proveedor (sonner/custom), la posición, la duración y los métodos toast personalizados.</td>
+        </tr>
+
+        <tr>
+          <td><code>cacheConfig</code></td>
+          <td><code>QueryCacheConfig</code></td>
+          <td>No</td>
+          <td>Controla el almacenamiento en caché de TanStack Query (dos min de datos obsoletos / cinco min de GC de forma predeterminada). Establece <code>enabled: false</code> para forzar datos actualizados.</td>
+        </tr>
+
+        <tr>
+          <td><code>loader</code></td>
+          <td><code>React.ReactNode</code></td>
+          <td>No</td>
+          <td>Componente de carga personalizado para mostrar durante la inicialización de la autenticación.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    ## Experiencia de usuario
+
+    ***
+
+    **i18n**
+
+    Usa las siguientes propiedades para alinear los Universal Components con el sistema de diseño y la configuración regional de tu aplicación.
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>currentLanguage</code>
+          </td>
+
+          <td>
+            <code>string</code>
+          </td>
+
+          <td>Sí</td>
+          <td>-</td>
+          <td>Código del idioma actual (p. ej., &quot;en&quot;, &quot;es&quot;, &quot;fr&quot;)</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>fallbackLanguage</code>
+          </td>
+
+          <td>
+            <code>string</code>
+          </td>
+
+          <td>No</td>
+
+          <td>
+            <code>&quot;en&quot;</code>
+          </td>
+
+          <td>Código del idioma de respaldo cuando no haya traducciones</td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    **themeSettings**
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>mode</code>
+          </td>
+
+          <td>
+            <code>&quot;light&quot; | &quot;dark&quot;</code>
+          </td>
+
+          <td>
+            <code>&quot;light&quot;</code>
+          </td>
+
+          <td>Modo de color del tema</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>theme</code>
+          </td>
+
+          <td>
+            <code>&quot;default&quot; | &quot;minimal&quot; | &quot;rounded&quot;</code>
+          </td>
+
+          <td>
+            <code>&quot;default&quot;</code>
+          </td>
+
+          <td>Variante de tema con distintos estilos</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>variables</code>
+          </td>
+
+          <td>
+            <code>StylingVariables</code>
+          </td>
+
+          <td>
+            <code>
+              {}
+            </code>
+          </td>
+
+          <td>Propiedades personalizadas de CSS para los temas común, claro y oscuro</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <Accordion title="Variables de CSS disponibles">
+      **Común (se aplica a todos los temas):**
+
+      **Tipografía:**
+
+      * `--font-size-page-header`
+      * `--font-size-page-description`
+      * `--font-size-heading`
+      * `--font-size-title`
+      * `--font-size-subtitle`
+      * `--font-size-body`
+      * `--font-size-paragraph`
+      * `--font-size-label`
+
+      **Radio de borde:**
+
+      * `--radius-xs` a `--radius-9xl`
+
+      **Claro y oscuro (colores y sombras específicos del tema):**
+
+      **Colores:**
+
+      * `--background`, `--foreground`
+      * `--card`, `--card-foreground`
+      * `--primary`, `--primary-foreground`
+      * `--secondary`, `--secondary-foreground`
+      * `--accent`, `--accent-foreground`
+      * `--muted`, `--muted-foreground`
+      * `--destructive`, `--destructive-foreground`
+      * `--popover`, `--popover-foreground`
+      * `--input`, `--border`, `--ring`
+      * `--color-page`
+      * `--color-info`, `--color-info-foreground`
+      * `--color-success`, `--color-success-foreground`
+      * `--color-warning`, `--color-warning-foreground`
+      * `--color-destructive-border`
+      * `--color-popover-border`
+      * `--color-input-foreground`
+      * `--color-input-muted`
+
+      **Sombras:**
+
+      * `--shadow-bevel-*` (xs, sm, md, lg, xl, 2xl)
+      * `--shadow-button-*` (resting, hover, focus)
+      * `--shadow-button-destructive-*`
+      * `--shadow-button-outlined-*`
+      * `--shadow-input-*` (resting, hover, focus)
+      * `--shadow-input-destructive-*`
+      * `--shadow-checkbox-*` (resting, hover)
+      * `--shadow-switch-*` (resting, hover, focus, thumb, thumb-dark)
+    </Accordion>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      Para ver ejemplos detallados de estilos y patrones de personalización, consulta [Personaliza
+      el estilo y los temas con Universal
+      Components](/es/docs/get-started/universal-components/universal-components-style).
+    </Callout>
+
+    ***
+
+    **toastSettings**
+
+    La configuración de Toast admite dos tipos de proveedor: **Sonner** (predeterminado) o **custom**. Cada proveedor tiene su propia estructura de configuración para una mayor seguridad de tipos.
+
+    <Tabs>
+      <Tab title="Proveedor de Sonner (Predeterminado)">
+        | Propiedad              | Tipo            | Predeterminado | Descripción                                                                                                                                                                               |
+        | ---------------------- | --------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+        | `provider`             | `"sonner"`      | `"sonner"`     | Usa la biblioteca de toasts Sonner integrada                                                                                                                                              |
+        | `settings.position`    | `ToastPosition` | `"top-right"`  | Posición en la que aparecen los toasts: &quot;top-left&quot;, &quot;top-right&quot;, &quot;bottom-left&quot;, &quot;bottom-right&quot;, &quot;top-center&quot;, &quot;bottom-center&quot; |
+        | `settings.duration`    | `number`        | `4000`         | Duración en milisegundos antes de que el toast se cierre automáticamente (valor predeterminado de Sonner)                                                                                 |
+        | `settings.maxToasts`   | `number`        | -              | Número máximo de toasts visibles a la vez                                                                                                                                                 |
+        | `settings.dismissible` | `boolean`       | `true`         | Si los toasts pueden cerrarse manualmente mediante la interacción del usuario (valor predeterminado de Sonner)                                                                            |
+        | `settings.closeButton` | `boolean`       | `true`         | Si se muestra un botón de cierre explícito en los toasts                                                                                                                                  |
+
+        ```tsx Sonner Provider Example
+        const toastSettings = {
+          provider: 'sonner', // Opcional, este es el valor predeterminado
+          settings: {
+            position: 'top-center',
+            duration: 6000,
+            maxToasts: 5,
+            dismissible: true,
+            closeButton: true
+          }
+        };
+        ```
+      </Tab>
+
+      <Tab title="Proveedor Custom">
+        | Propiedad         | Tipo                         | Obligatorio | Descripción                                          |
+        | ----------------- | ---------------------------- | ----------- | ---------------------------------------------------- |
+        | `provider`        | `"custom"`                   | Sí          | Usa tu implementación personalizada de toast         |
+        | `methods.success` | `(message: string) => void`  | No          | Controlador personalizado para toasts de éxito       |
+        | `methods.error`   | `(message: string) => void`  | No          | Controlador personalizado para toasts de error       |
+        | `methods.warning` | `(message: string) => void`  | No          | Controlador personalizado para toasts de advertencia |
+        | `methods.info`    | `(message: string) => void`  | No          | Controlador personalizado para toasts informativos   |
+        | `methods.dismiss` | `(toastId?: string) => void` | No          | Controlador personalizado para cerrar                |
+
+        ```tsx Custom Provider Example
+        const toastSettings = {
+          provider: 'custom',
+          methods: {
+            success: (message: string) => {
+              // Tu implementación personalizada de toast de éxito
+              myToastLibrary.success(message);
+            },
+            error: (message: string) => {
+              // Tu implementación personalizada de toast de error
+              myToastLibrary.error(message);
+            },
+            warning: (message: string) => {
+              // Tu implementación personalizada de toast de advertencia
+              myToastLibrary.warning(message);
+            },
+            info: (message: string) => {
+              // Tu implementación personalizada de toast informativo
+              myToastLibrary.info(message);
+            },
+            dismiss: (toastId?: string) => {
+              // Tu implementación personalizada para cerrar
+              myToastLibrary.dismiss(toastId);
+            }
+          }
+        };
+        ```
+
+        <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+          Todos los métodos personalizados son opcionales. Implementa solo los que necesites. Los métodos
+          reciben únicamente el texto del mensaje; tu implementación se encarga del estilo,
+          la posición y la duración.
+        </Callout>
+      </Tab>
+    </Tabs>
+
+    ***
+
+    ## Estado y rendimiento
+
+    Ajusta con precisión el almacenamiento en caché de TanStack Query para cada componente de Auth0. Los valores predeterminados mantienen los datos actualizados durante dos minutos, los recopilan como basura tras cinco minutos y omiten las recargas al enfocar la ventana.
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>enabled</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            <code>true</code>
+          </td>
+
+          <td>
+            Activa o desactiva por completo el almacenamiento en caché. Cuando se establece en <code>false</code>, se desactiva el uso de datos obsoletos y las entradas en caché se eliminan rápidamente.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>staleTime</code>
+          </td>
+
+          <td>
+            <code>number</code>
+          </td>
+
+          <td>
+            <code>120000</code>
+          </td>
+
+          <td>
+            Milisegundos antes de que los datos pasen a estar obsoletos. El valor predeterminado es de dos minutos. Auméntalo para paneles y redúcelo para flujos de trabajo críticos.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>gcTime</code>
+          </td>
+
+          <td>
+            <code>number</code>
+          </td>
+
+          <td>
+            <code>300000</code>
+          </td>
+
+          <td>
+            Milisegundos antes de que las consultas inactivas se eliminen mediante recolección de basura. El valor predeterminado es de cinco minutos.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>refetchOnWindowFocus</code>
+          </td>
+
+          <td>
+            <code>boolean | &quot;always&quot;</code>
+          </td>
+
+          <td>
+            <code>false</code>
+          </td>
+
+          <td>
+            Controla si las consultas se vuelven a obtener cuando el navegador recupera el foco. Usa{" "}
+            <code>&quot;always&quot;</code> para garantizar la máxima frescura.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Desactivar el almacenamiento en caché:** Pasa `{ enabled: false }`. Esto establece automáticamente `staleTime` en 0 y reduce la ventana de recolección de basura a cinco segundos, de modo que cada renderizado obtenga datos actualizados.
+
+      **Consejo:** Mantén activado el almacenamiento en caché, pero reduce `staleTime` al integrarlo con paneles de administración que requieren actualizaciones casi en tiempo real.
+    </Callout>
+
+    <Tabs>
+      <Tab title="Configurar TTL">
+        ```tsx
+        <Auth0ComponentProvider
+          domain="your-tenant.auth0.com"
+          cacheConfig={{
+            staleTime: 10 * 60 * 1000,
+            gcTime: 15 * 60 * 1000,
+            refetchOnWindowFocus: true,
+          }}
+        >
+          <App />
+        </Auth0ComponentProvider>
+        ```
+      </Tab>
+
+      <Tab title="Desactivar la caché">
+        ```tsx
+        <Auth0ComponentProvider
+          domain="your-tenant.auth0.com"
+          cacheConfig={{ enabled: false }}
+        >
+          <App />
+        </Auth0ComponentProvider>
+        ```
+      </Tab>
+    </Tabs>
+  </Tab>
+
+  <Tab title="Next.js">
+    ```tsx layout.tsx
+    import { Auth0ComponentProvider } from "@auth0/universal-components-react/rwa";
+
+    export default function RootLayout({ children }) {
+      return (
+        <html lang="en">
+          <body>
+            <Auth0ComponentProvider
+              mode="proxy"
+              domain="your-tenant.auth0.com"
+              proxyConfig={{ baseUrl: "/api/auth" }}
+            >
+              {children}
+            </Auth0ComponentProvider>
+          </body>
+        </html>
+      );
+    }
+    ```
+
+    ***
+
+    ## Propiedades
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td><code>domain</code></td>
+          <td><code>string</code></td>
+          <td>Sí</td>
+          <td>Dominio del tenant de Auth0 (por ejemplo, &quot;your-tenant.auth0.com&quot;). Obligatorio para el modo proxy.</td>
+        </tr>
+
+        <tr>
+          <td><code>mode</code></td>
+          <td><code>&#39;proxy&#39;</code></td>
+          <td>Sí</td>
+          <td>En Next.js, usa siempre el modo <code>&#39;proxy&#39;</code> para la autenticación en el servidor.</td>
+        </tr>
+
+        <tr>
+          <td><code>proxyConfig</code></td>
+          <td>`{ baseUrl: string }`</td>
+          <td>Sí</td>
+          <td>Configuración del proxy con la URL base de tu servidor proxy de autenticación.</td>
+        </tr>
+
+        <tr>
+          <td><code>previewMode</code></td>
+          <td><code>boolean</code></td>
+          <td>No</td>
+          <td>Cuando es <code>true</code>, omite la inicialización de la API del cliente. Se usa para vistas previas de la documentación y demos.</td>
+        </tr>
+
+        <tr>
+          <td><code>i18n</code></td>
+          <td><code>I18nOptions</code></td>
+          <td>No</td>
+          <td>Configuración de internacionalización, incluidos currentLanguage y fallbackLanguage.</td>
+        </tr>
+
+        <tr>
+          <td><code>themeSettings</code></td>
+          <td><code>ThemeSettings</code></td>
+          <td>No</td>
+          <td>Configuración del tema, incluido el modo (claro/oscuro), la variante del tema (default/minimal/rounded) y las variables CSS.</td>
+        </tr>
+
+        <tr>
+          <td><code>toastSettings</code></td>
+          <td><code>ToastSettings</code></td>
+          <td>No</td>
+          <td>Configuración de las notificaciones toast, incluida la selección del proveedor (sonner/custom), la posición, la duración y los métodos toast personalizados.</td>
+        </tr>
+
+        <tr>
+          <td><code>cacheConfig</code></td>
+          <td><code>QueryCacheConfig</code></td>
+          <td>No</td>
+          <td>Controla el almacenamiento en caché de TanStack Query (stale de dos min / GC de cinco min de forma predeterminada). Establece <code>enabled: false</code> para forzar datos actualizados.</td>
+        </tr>
+
+        <tr>
+          <td><code>loader</code></td>
+          <td><code>React.ReactNode</code></td>
+          <td>No</td>
+          <td>Componente de carga personalizado que se muestra durante la inicialización de la autenticación.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    ## Configurar el modo proxy
+
+    Para aplicaciones de Next.js, usa el modo proxy con autenticación del lado del servidor:
+
+    ```tsx layout.tsx
+    import { Auth0ComponentProvider } from "@auth0/universal-components-react/rwa";
+
+    export default function RootLayout({ children }) {
+      return (
+        <html lang="en">
+          <body>
+            <Auth0ComponentProvider
+              mode="proxy"
+              domain="your-tenant.auth0.com"
+              proxyConfig={{ baseUrl: "/api/auth" }}
+            >
+              {children}
+            </Auth0ComponentProvider>
+          </body>
+        </html>
+      );
+    }
+    ```
+
+    ***
+
+    ### Propiedades del modo proxy
+
+    Configuración para la autenticación en modo proxy. Obligatoria al usar Next.js.
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>baseUrl</code>
+          </td>
+
+          <td>
+            <code>string</code>
+          </td>
+
+          <td>Sí</td>
+
+          <td>
+            URL de tu servidor proxy de autenticación (p. ej., &quot;/api/auth&quot;). Las llamadas a la API
+            se añaden a esta ruta base.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    ## Experiencia de usuario
+
+    ***
+
+    **i18n**
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>currentLanguage</code>
+          </td>
+
+          <td>
+            <code>string</code>
+          </td>
+
+          <td>Sí</td>
+          <td>-</td>
+          <td>Código del idioma actual (p. ej., &quot;en&quot;, &quot;es&quot;, &quot;fr&quot;)</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>fallbackLanguage</code>
+          </td>
+
+          <td>
+            <code>string</code>
+          </td>
+
+          <td>No</td>
+
+          <td>
+            <code>&quot;en&quot;</code>
+          </td>
+
+          <td>Código de idioma de respaldo cuando no haya traducciones disponibles</td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    **themeSettings**
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>mode</code>
+          </td>
+
+          <td>
+            <code>&quot;light&quot; | &quot;dark&quot;</code>
+          </td>
+
+          <td>
+            <code>&quot;light&quot;</code>
+          </td>
+
+          <td>Modo de color del tema</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>theme</code>
+          </td>
+
+          <td>
+            <code>&quot;default&quot; | &quot;minimal&quot; | &quot;rounded&quot;</code>
+          </td>
+
+          <td>
+            <code>&quot;default&quot;</code>
+          </td>
+
+          <td>Variante del tema con diferentes estilos</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>variables</code>
+          </td>
+
+          <td>
+            <code>StylingVariables</code>
+          </td>
+
+          <td>
+            <code>
+              {}
+            </code>
+          </td>
+
+          <td>Propiedades personalizadas de CSS para los temas común, claro y oscuro</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <Accordion title="Variables de CSS disponibles">
+      **Común (se aplica a todos los temas):**
+
+      **Tipografía:**
+
+      * `--font-size-page-header`
+      * `--font-size-page-description`
+      * `--font-size-heading`
+      * `--font-size-title`
+      * `--font-size-subtitle`
+      * `--font-size-body`
+      * `--font-size-paragraph`
+      * `--font-size-label`
+
+      **Radio de borde:**
+
+      * `--radius-xs` a `--radius-9xl`
+
+      **Claro y oscuro (colores y sombras específicos del tema):**
+
+      **Colores:**
+
+      * `--background`, `--foreground`
+      * `--card`, `--card-foreground`
+      * `--primary`, `--primary-foreground`
+      * `--secondary`, `--secondary-foreground`
+      * `--accent`, `--accent-foreground`
+      * `--muted`, `--muted-foreground`
+      * `--destructive`, `--destructive-foreground`
+      * `--popover`, `--popover-foreground`
+      * `--input`, `--border`, `--ring`
+      * `--color-page`
+      * `--color-info`, `--color-info-foreground`
+      * `--color-success`, `--color-success-foreground`
+      * `--color-warning`, `--color-warning-foreground`
+      * `--color-destructive-border`
+      * `--color-popover-border`
+      * `--color-input-foreground`
+      * `--color-input-muted`
+
+      **Sombras:**
+
+      * `--shadow-bevel-*` (xs, sm, md, lg, xl, 2xl)
+      * `--shadow-button-*` (reposo, hover, focus)
+      * `--shadow-button-destructive-*`
+      * `--shadow-button-outlined-*`
+      * `--shadow-input-*` (reposo, hover, focus)
+      * `--shadow-input-destructive-*`
+      * `--shadow-checkbox-*` (reposo, hover)
+      * `--shadow-switch-*` (reposo, hover, focus, thumb, thumb-dark)
+    </Accordion>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      Para consultar ejemplos detallados de estilo y patrones de personalización, lee [Personaliza
+      el estilo y los temas con Universal
+      Components](/es/docs/get-started/universal-components/universal-components-style).
+    </Callout>
+
+    ***
+
+    **toastSettings**
+
+    La configuración de Toast admite dos tipos de proveedor: **Sonner** (predeterminado) o **custom**. Cada proveedor tiene su propia estructura de configuración para una mayor seguridad de tipos.
+
+    <Accordion title="Proveedor de Sonner (Predeterminado)">
+      | Propiedad              | Tipo            | Predeterminado | Descripción                                                                                                                                                                              |
+      | ---------------------- | --------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+      | `provider`             | `"sonner"`      | `"sonner"`     | Usa la biblioteca integrada de toast Sonner                                                                                                                                              |
+      | `settings.position`    | `ToastPosition` | `"top-right"`  | Posición en la que aparecen los toast: &quot;top-left&quot;, &quot;top-right&quot;, &quot;bottom-left&quot;, &quot;bottom-right&quot;, &quot;top-center&quot;, &quot;bottom-center&quot; |
+      | `settings.duration`    | `number`        | `4000`         | Duración en milisegundos antes de que el toast se cierre automáticamente (valor predeterminado de Sonner)                                                                                |
+      | `settings.maxToasts`   | `number`        | -              | Número máximo de toast visibles al mismo tiempo                                                                                                                                          |
+      | `settings.dismissible` | `boolean`       | `true`         | Si el usuario puede cerrar manualmente los toast mediante interacción (valor predeterminado de Sonner)                                                                                   |
+      | `settings.closeButton` | `boolean`       | `true`         | Si se debe mostrar un botón de cierre explícito en los toast                                                                                                                             |
+
+      ```tsx Sonner Provider Example
+      const toastSettings = {
+        provider: 'sonner', // Opcional, este es el valor por defecto
+        settings: {
+          position: 'top-center',
+          duration: 6000,
+          maxToasts: 5,
+          dismissible: true,
+          closeButton: true
+        }
+      };
+      ```
+    </Accordion>
+
+    <Accordion title="Proveedor personalizado">
+      | Propiedad         | Tipo                         | Obligatorio | Descripción                                       |
+      | ----------------- | ---------------------------- | ----------- | ------------------------------------------------- |
+      | `provider`        | `"custom"`                   | Sí          | Usa tu propia implementación de toast             |
+      | `methods.success` | `(message: string) => void`  | No          | Controlador personalizado de toast de éxito       |
+      | `methods.error`   | `(message: string) => void`  | No          | Controlador personalizado de toast de error       |
+      | `methods.warning` | `(message: string) => void`  | No          | Controlador personalizado de toast de advertencia |
+      | `methods.info`    | `(message: string) => void`  | No          | Controlador personalizado de toast informativo    |
+      | `methods.dismiss` | `(toastId?: string) => void` | No          | Controlador personalizado para cerrar             |
+
+      ```tsx Custom Provider Example
+      const toastSettings = {
+        provider: 'custom',
+        methods: {
+          success: (message: string) => {
+            // Tu implementación personalizada de toast de éxito
+            myToastLibrary.success(message);
+          },
+          error: (message: string) => {
+            // Tu implementación personalizada de toast de error
+            myToastLibrary.error(message);
+          },
+          warning: (message: string) => {
+            // Tu implementación personalizada de toast de advertencia
+            myToastLibrary.warning(message);
+          },
+          info: (message: string) => {
+            // Tu implementación personalizada de toast informativo
+            myToastLibrary.info(message);
+          },
+          dismiss: (toastId?: string) => {
+            // Tu implementación personalizada para descartar
+            myToastLibrary.dismiss(toastId);
+          }
+        }
+      };
+      ```
+
+      <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+        Todos los métodos personalizados son opcionales. Implementa solo los que necesites. Los métodos reciben únicamente el texto del mensaje; tu implementación se encarga del estilo, la posición y la duración.
+      </Callout>
+    </Accordion>
+
+    ***
+
+    ## Estado y rendimiento
+
+    Ajusta con precisión el almacenamiento en caché de TanStack Query para cada componente de Auth0. Los valores predeterminados mantienen los datos actualizados durante dos minutos, los recopilan como basura tras cinco minutos y omiten las recargas al enfocar la ventana.
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>enabled</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            <code>true</code>
+          </td>
+
+          <td>
+            Activa o desactiva por completo el almacenamiento en caché. Cuando se establece en <code>false</code>, se deshabilita el uso de datos obsoletos y las entradas en caché se eliminan rápidamente.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>staleTime</code>
+          </td>
+
+          <td>
+            <code>number</code>
+          </td>
+
+          <td>
+            <code>120000</code>
+          </td>
+
+          <td>
+            Milisegundos antes de que los datos pasen a estar obsoletos (dos minutos de forma predeterminada). Auméntalo para paneles y redúcelo para flujos de trabajo críticos.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>gcTime</code>
+          </td>
+
+          <td>
+            <code>number</code>
+          </td>
+
+          <td>
+            <code>300000</code>
+          </td>
+
+          <td>
+            Milisegundos antes de que las consultas inactivas se eliminen mediante recolección de basura (cinco minutos de forma predeterminada).
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>refetchOnWindowFocus</code>
+          </td>
+
+          <td>
+            <code>boolean | &quot;always&quot;</code>
+          </td>
+
+          <td>
+            <code>false</code>
+          </td>
+
+          <td>
+            Controla si las consultas se vuelven a obtener cuando el navegador recupera el foco. Usa{" "}
+            <code>&quot;always&quot;</code> para mantener una actualización estricta.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Desactivar el almacenamiento en caché:** Pasa `{ enabled: false }`. Esto establece automáticamente `staleTime` en 0 y reduce la ventana de recolección de basura a 5 segundos, para que en cada renderizado se obtengan datos nuevos.
+
+      **Consejo:** Mantén activado el almacenamiento en caché, pero reduce `staleTime` al integrarlo con paneles de administración que requieran actualizaciones casi en tiempo real.
+    </Callout>
+
+    <Accordion title="Ajustar el TTL">
+      ```tsx layout.tsx
+      <Auth0ComponentProvider
+        mode="proxy"
+        domain="your-tenant.auth0.com"
+        proxyConfig={{ baseUrl: "/api/auth" }}
+        cacheConfig={{
+          staleTime: 10 * 60 * 1000,
+          gcTime: 15 * 60 * 1000,
+          refetchOnWindowFocus: true,
+        }}
+      >
+        <App />
+      </Auth0ComponentProvider>
+      ```
+    </Accordion>
+
+    <Accordion title="Desactivar caché">
+      ```tsx layout.tsx
+      <Auth0ComponentProvider
+        mode="proxy"
+        domain="your-tenant.auth0.com"
+        proxyConfig={{ baseUrl: "/api/auth" }}
+        cacheConfig={{ enabled: false }}
+      >
+        <App />
+      </Auth0ComponentProvider>
+      ```
+    </Accordion>
+  </Tab>
+
+  <Tab title="shadcn">
+    ```tsx App.tsx
+    import { Auth0Provider } from "@auth0/auth0-react";
+    import { Auth0ComponentProvider } from "@auth0/universal-components-react/spa";
+
+    function App() {
+      return (
+        <Auth0Provider
+          domain="your-tenant.auth0.com"
+          clientId="YOUR_CLIENT_ID"
+          authorizationParams={{ redirect_uri: window.location.origin }}
+          interactiveErrorHandler='popup' // Requerido para gestionar desafíos de autenticación step-up mediante el popup de Universal Login
+        >
+          <Auth0ComponentProvider domain="your-tenant.auth0.com">
+            {/* Tu aplicación con Auth0 Universal Components */}
+          </Auth0ComponentProvider>
+        </Auth0Provider>
+      );
+    }
+    ```
+
+    ***
+
+    ## Propiedades
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td><code>domain</code></td>
+          <td><code>string</code></td>
+          <td>Sí</td>
+          <td>Dominio del tenant de Auth0 (p. ej., &quot;your-tenant.auth0.com&quot;).</td>
+        </tr>
+
+        <tr>
+          <td><code>authContext</code></td>
+          <td><code>ContextInterface</code></td>
+          <td>No</td>
+          <td>Contexto de autenticación personalizado para aplicaciones SPA que no usan `@auth0/auth0-react`. Proporciona funciones de autenticación, como `getAccessTokenSilently`.</td>
+        </tr>
+
+        <tr>
+          <td><code>previewMode</code></td>
+          <td><code>boolean</code></td>
+          <td>No</td>
+          <td>Cuando es <code>true</code>, omite la inicialización de la API del cliente. Se usa para previsualizaciones de la documentación y demostraciones.</td>
+        </tr>
+
+        <tr>
+          <td><code>i18n</code></td>
+          <td><code>I18nOptions</code></td>
+          <td>No</td>
+          <td>Configuración de internacionalización que incluye currentLanguage y fallbackLanguage.</td>
+        </tr>
+
+        <tr>
+          <td><code>themeSettings</code></td>
+          <td><code>ThemeSettings</code></td>
+          <td>No</td>
+          <td>Configuración del tema, incluido el modo (claro/oscuro), la variante del tema (default/minimal/rounded) y las variables CSS.</td>
+        </tr>
+
+        <tr>
+          <td><code>toastSettings</code></td>
+          <td><code>ToastSettings</code></td>
+          <td>No</td>
+          <td>Configuración de las notificaciones toast, incluida la selección del proveedor (sonner/custom), la posición, la duración y los métodos de toast personalizados.</td>
+        </tr>
+
+        <tr>
+          <td><code>cacheConfig</code></td>
+          <td><code>QueryCacheConfig</code></td>
+          <td>No</td>
+          <td>Controla la caché de TanStack Query (dos min sin actualizar / cinco min de GC de forma predeterminada). Establece <code>enabled: false</code> para forzar datos actualizados.</td>
+        </tr>
+
+        <tr>
+          <td><code>loader</code></td>
+          <td><code>React.ReactNode</code></td>
+          <td>No</td>
+          <td>Componente de carga personalizado que se muestra durante la inicialización de la autenticación.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    ## Experiencia de usuario
+
+    ***
+
+    **i18n**
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Por defecto</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>currentLanguage</code>
+          </td>
+
+          <td>
+            <code>string</code>
+          </td>
+
+          <td>Sí</td>
+          <td>-</td>
+          <td>Código del idioma actual (p. ej., &quot;en&quot;, &quot;es&quot;, &quot;fr&quot;)</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>fallbackLanguage</code>
+          </td>
+
+          <td>
+            <code>string</code>
+          </td>
+
+          <td>No</td>
+
+          <td>
+            <code>&quot;en&quot;</code>
+          </td>
+
+          <td>Código del idioma de respaldo si faltan traducciones</td>
+        </tr>
+      </tbody>
+    </table>
+
+    ***
+
+    **themeSettings**
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>mode</code>
+          </td>
+
+          <td>
+            <code>&quot;light&quot; | &quot;dark&quot;</code>
+          </td>
+
+          <td>
+            <code>&quot;light&quot;</code>
+          </td>
+
+          <td>Modo de color del tema</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>theme</code>
+          </td>
+
+          <td>
+            <code>&quot;default&quot; | &quot;minimal&quot; | &quot;rounded&quot;</code>
+          </td>
+
+          <td>
+            <code>&quot;default&quot;</code>
+          </td>
+
+          <td>Variante del tema con distintos estilos</td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>variables</code>
+          </td>
+
+          <td>
+            <code>StylingVariables</code>
+          </td>
+
+          <td>
+            <code>
+              {}
+            </code>
+          </td>
+
+          <td>Propiedades personalizadas de CSS para variables comunes y para los temas claro y oscuro</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <Accordion title="Variables de CSS disponibles">
+      **Común (se aplica a todos los temas):**
+
+      **Tipografía:**
+
+      * `--font-size-page-header`
+      * `--font-size-page-description`
+      * `--font-size-heading`
+      * `--font-size-title`
+      * `--font-size-subtitle`
+      * `--font-size-body`
+      * `--font-size-paragraph`
+      * `--font-size-label`
+
+      **Radio de borde:**
+
+      * `--radius-xs` hasta `--radius-9xl`
+
+      **Claro y oscuro (colores y sombras específicos de cada tema):**
+
+      **Colores:**
+
+      * `--background`, `--foreground`
+      * `--card`, `--card-foreground`
+      * `--primary`, `--primary-foreground`
+      * `--secondary`, `--secondary-foreground`
+      * `--accent`, `--accent-foreground`
+      * `--muted`, `--muted-foreground`
+      * `--destructive`, `--destructive-foreground`
+      * `--popover`, `--popover-foreground`
+      * `--input`, `--border`, `--ring`
+      * `--color-page`
+      * `--color-info`, `--color-info-foreground`
+      * `--color-success`, `--color-success-foreground`
+      * `--color-warning`, `--color-warning-foreground`
+      * `--color-destructive-border`
+      * `--color-popover-border`
+      * `--color-input-foreground`
+      * `--color-input-muted`
+
+      **Sombras:**
+
+      * `--shadow-bevel-*` (xs, sm, md, lg, xl, 2xl)
+      * `--shadow-button-*` (normal, hover, focus)
+      * `--shadow-button-destructive-*`
+      * `--shadow-button-outlined-*`
+      * `--shadow-input-*` (normal, hover, focus)
+      * `--shadow-input-destructive-*`
+      * `--shadow-checkbox-*` (normal, hover)
+      * `--shadow-switch-*` (normal, hover, focus, thumb, thumb-dark)
+    </Accordion>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      Para ver ejemplos detallados de estilos y patrones de personalización, lee [Personaliza
+      el estilo y los temas con Universal
+      Components](/es/docs/get-started/universal-components/universal-components-style).
+    </Callout>
+
+    ***
+
+    **toastSettings**
+
+    La configuración de Toast admite dos tipos de proveedor: **Sonner** (predeterminado) o **custom**. Cada proveedor tiene su propia estructura de configuración para una mayor seguridad de tipos.
+
+    <Tabs>
+      <Tab title="Proveedor Sonner (predeterminado)">
+        | Propiedad              | Tipo            | Predeterminado | Descripción                                                                                                                                                                               |
+        | ---------------------- | --------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+        | `provider`             | `"sonner"`      | `"sonner"`     | Usa la biblioteca de toasts Sonner integrada                                                                                                                                              |
+        | `settings.position`    | `ToastPosition` | `"top-right"`  | Posición en la que aparecen los toasts: &quot;top-left&quot;, &quot;top-right&quot;, &quot;bottom-left&quot;, &quot;bottom-right&quot;, &quot;top-center&quot;, &quot;bottom-center&quot; |
+        | `settings.duration`    | `number`        | `4000`         | Duración en milisegundos antes de que el toast se cierre automáticamente (valor predeterminado de Sonner)                                                                                 |
+        | `settings.maxToasts`   | `number`        | -              | Número máximo de toasts visibles a la vez                                                                                                                                                 |
+        | `settings.dismissible` | `boolean`       | `true`         | Indica si los toasts se pueden cerrar manualmente mediante la interacción del usuario (valor predeterminado de Sonner)                                                                    |
+        | `settings.closeButton` | `boolean`       | `true`         | Indica si se debe mostrar un botón de cierre en los toasts                                                                                                                                |
+
+        ```tsx Ejemplo de proveedor Sonner
+        const toastSettings = {
+          provider: 'sonner', // Opcional, este es el valor predeterminado
+          settings: {
+            position: 'top-center',
+            duration: 6000,
+            maxToasts: 5,
+            dismissible: true,
+            closeButton: true
+          }
+        };
+        ```
+      </Tab>
+
+      <Tab title="Proveedor Custom">
+        | Propiedad         | Tipo                         | Obligatorio | Descripción                                          |
+        | ----------------- | ---------------------------- | ----------- | ---------------------------------------------------- |
+        | `provider`        | `"custom"`                   | Sí          | Usa tu implementación personalizada de toast         |
+        | `methods.success` | `(message: string) => void`  | No          | controlador personalizado para toasts de éxito       |
+        | `methods.error`   | `(message: string) => void`  | No          | controlador personalizado para toasts de error       |
+        | `methods.warning` | `(message: string) => void`  | No          | controlador personalizado para toasts de advertencia |
+        | `methods.info`    | `(message: string) => void`  | No          | controlador personalizado para toasts informativos   |
+        | `methods.dismiss` | `(toastId?: string) => void` | No          | controlador personalizado para cerrar                |
+
+        ```tsx Ejemplo de proveedor Custom
+        const toastSettings = {
+          provider: 'custom',
+          methods: {
+            success: (message: string) => {
+              // Tu implementación personalizada de toast de éxito
+              myToastLibrary.success(message);
+            },
+            error: (message: string) => {
+              // Tu implementación personalizada de toast de error
+              myToastLibrary.error(message);
+            },
+            warning: (message: string) => {
+              // Tu implementación personalizada de toast de advertencia
+              myToastLibrary.warning(message);
+            },
+            info: (message: string) => {
+              // Tu implementación personalizada de toast informativo
+              myToastLibrary.info(message);
+            },
+            dismiss: (toastId?: string) => {
+              // Tu implementación personalizada para cerrar
+              myToastLibrary.dismiss(toastId);
+            }
+          }
+        };
+        ```
+
+        <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+          Todos los métodos personalizados son opcionales. Implementa solo los que necesites. Los métodos
+          reciben únicamente el texto del mensaje; tu implementación se encarga del estilo,
+          la posición y la duración.
+        </Callout>
+      </Tab>
+    </Tabs>
+
+    ***
+
+    ## Estado y rendimiento
+
+    Ajusta con precisión el almacenamiento en caché de TanStack Query para cada componente de Auth0. Los valores predeterminados mantienen los datos actualizados durante dos minutos, los recopilan como basura tras cinco minutos y omiten las recargas al enfocar la ventana.
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th>Tipo</th>
+          <th>Predeterminado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>
+            <code>enabled</code>
+          </td>
+
+          <td>
+            <code>boolean</code>
+          </td>
+
+          <td>
+            <code>true</code>
+          </td>
+
+          <td>
+            Activa o desactiva por completo el almacenamiento en caché. Cuando se establece en <code>false</code>, se desactiva el uso de datos obsoletos y las entradas en caché se eliminan rápidamente.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>staleTime</code>
+          </td>
+
+          <td>
+            <code>number</code>
+          </td>
+
+          <td>
+            <code>120000</code>
+          </td>
+
+          <td>
+            Milisegundos que tardan los datos en quedar obsoletos (dos minutos de forma predeterminada). Auméntalo para paneles y redúcelo para flujos de trabajo críticos.
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>gcTime</code>
+          </td>
+
+          <td>
+            <code>number</code>
+          </td>
+
+          <td>
+            <code>300000</code>
+          </td>
+
+          <td>
+            Milisegundos antes de que las consultas inactivas se eliminen mediante recolección de basura (5 minutos de forma predeterminada).
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <code>refetchOnWindowFocus</code>
+          </td>
+
+          <td>
+            <code>boolean | &quot;always&quot;</code>
+          </td>
+
+          <td>
+            <code>false</code>
+          </td>
+
+          <td>
+            Controla si las consultas se vuelven a solicitar cuando el navegador recupera el foco. Usa{" "}
+            <code>&quot;always&quot;</code> para mantener los datos siempre actualizados.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Desactiva el almacenamiento en caché:** Pasa `{ enabled: false }`. Esto establece automáticamente `staleTime` en 0 y reduce la ventana de recolección de basura a 5 segundos para que cada renderización obtenga datos actualizados.
+
+      **Consejo profesional:** Mantén el almacenamiento en caché habilitado, pero reduce `staleTime` al integrar con paneles de administración que requieren actualizaciones casi en tiempo real.
+    </Callout>
+
+    <Tabs>
+      <Tab title="Ajustar el TTL">
+        ```tsx App.tsx
+        <Auth0ComponentProvider
+          domain="your-tenant.auth0.com"
+          cacheConfig={{
+            staleTime: 10 * 60 * 1000,
+            gcTime: 15 * 60 * 1000,
+            refetchOnWindowFocus: true,
+          }}
+        >
+          <App />
+        </Auth0ComponentProvider>
+        ```
+      </Tab>
+
+      <Tab title="Deshabilitar la caché">
+        ```tsx App.tsx
+        <Auth0ComponentProvider
+          domain="your-tenant.auth0.com"
+          cacheConfig={{ enabled: false }}
+        >
+          <App />
+        </Auth0ComponentProvider>
+        ```
+      </Tab>
+    </Tabs>
+  </Tab>
+</Tabs>

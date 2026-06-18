@@ -1,0 +1,94 @@
+---
+description: Découvrez comment tirer parti de Cross App Access (XAA) pour effectuer des appels d’API au nom de l’utilisateur.
+sidebarTitle: Aperçu
+title: Cross App Access (XAA)
+---
+
+import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+
+<ReleaseStageNotice feature="Cross App Access (XAA)" stage="beta" contact="Auth0 Support" terms="true" />
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Ce guide suppose que vous utilisez Okta comme fournisseur d’identité d’entreprise (IdP) et que vous disposez d’un accès administratif à un tenant Okta que vous pouvez utiliser pour vos tests. Si ce n’est pas le cas, consultez [Créer et configurer votre tenant Okta](/fr-CA/docs/secure/call-apis-on-users-behalf/xaa/set-up-xaa-test-environment#create-and-configure-your-okta-tenant).
+</Callout>
+
+La connexion d’applications tierces et d’agents d’IA dans une entreprise crée deux problèmes majeurs : une visibilité limitée des TI sur le partage de données et des flux de consentement répétitifs pour les utilisateurs.
+
+Cross App Access (XAA) répond à ces défis en permettant aux administrateurs TI de définir de façon centralisée des contrôles d’accès qui encadrent la manière dont des applications SaaS, comme les agents d’IA, se connectent au nom d’un utilisateur. Les administrateurs gèrent ces connexions dans un tableau de bord central, comme l’Okta Admin Console, ce qui élimine les demandes de consentement OAuth intrusives pour les utilisateurs finaux. Résultat : une meilleure sécurité organisationnelle, une meilleure gouvernance et une meilleure expérience utilisateur.
+
+XAA met en œuvre le [Identity Assertion Authorization Grant](https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/), une extension OAuth en cours d’élaboration qui permet à un agent d’IA ou à une application (Requesting App) d’obtenir un jeton sécurisé par l’entremise de l’IdP d’entreprise. Ce jeton permet à la Requesting App d’appeler les API d’une autre application (Resource App) au nom de l’utilisateur final. Pour en savoir plus, consultez [Fonctionnement](#how-it-works).
+
+<div id="key-benefits">
+  ## Principaux avantages
+</div>
+
+XAA offre des avantages clés pour chaque rôle au sein de votre écosystème d’entreprise :
+
+* Pour les administrateurs TI d’entreprise : contrôle centralisé, visibilité et application des politiques régissant l’accès des applications aux données de l’entreprise et des utilisateurs.
+* Pour les fournisseurs SaaS et les développeurs : intégration normalisée et sécurisée de l’IA d’entreprise pour stimuler la croissance de l’écosystème.
+* Pour les utilisateurs finaux : connexions simplifiées et fluides entre les applications, éliminant les flux de consentement OAuth complexes.
+
+<div id="use-cases">
+  ## Cas d’utilisation
+</div>
+
+Les cas d’utilisation courants de XAA comprennent :
+
+* Connecter des agents d’IA à des applications d’entreprise : un employé utilise un agent d’IA pour consulter son application de calendrier et publier une mise à jour sur ses disponibilités dans l’application de messagerie d’entreprise. Au lieu d’obliger l’employé à passer par des flux de redirection et des écrans de consentement, l’agent d’IA utilise XAA pour obtenir un jeton d’accès auprès de l’IdP d’entreprise afin d’appeler de façon sécuritaire les API de l’application de calendrier et de l’application de messagerie, si la politique d’accès de l’entreprise l’autorise.
+* Connecter des applications SaaS : dans notre exemple précédent, l’application de calendrier d’entreprise et l’application de messagerie prennent toutes deux en charge XAA. Les employés peuvent facilement connecter l’application de messagerie pour accéder à l’API de l’application de calendrier, sans redirection de l’utilisateur ni consentement, tout en respectant les politiques d’accès de l’entreprise.
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Le flux XAA met en jeu les acteurs suivants :
+
+* Requesting App : l’application ou l’agent IA qui doit accéder à une ressource.
+* Resource App : l’application qui possède la ressource protégée et l’expose au moyen d’une API
+* Enterprise IdP : l’IdP, comme Okta, qui authentifie les employés.
+
+Une fois que l’utilisateur final s’est authentifié auprès de l’IdP d’entreprise, la Requesting App communique avec celui-ci pour demander l’accès à la Resource App au nom de l’utilisateur. Après avoir appliqué sa politique d’accès pour vérifier si cette connexion interapplications est autorisée, l’IdP d’entreprise génère une assertion appelée ID-JAG, que la Requesting App présente ensuite à la Resource App pour obtenir un jeton d’accès servant à consommer l’API. 
+
+Dans le diagramme suivant, Acme est le client d’entreprise dont les employés s’authentifient auprès de leur IdP d’entreprise, comme Okta, pour accéder à la Requesting App (Agent0) et à la Resource App (Todo0) :
+
+<Frame>![](/docs/images/xaa/xaa_high_level_diagram.png)</Frame>
+
+* Le serveur d’autorisation de la Resource App (Todo0) est fédéré à l’IdP d’entreprise au moyen d’OIDC afin de pouvoir générer des jetons d’accès pour les utilisateurs finaux authentifiés par cet IdP.
+* La Requesting App (Agent0) est enregistrée auprès du serveur d’autorisation de la Resource App en tant que client OAuth 2.0 avec un client&#95;id valide et des identifiants lui permettant de demander des jetons d’accès au serveur d’autorisation de la Resource App.
+* L’administrateur TI d’Acme a défini des contrôles d’accès XAA entre Agent0 et Todo0.
+
+<div id="end-to-end-xaa-flow">
+  ## Flux XAA de bout en bout
+</div>
+
+En gardant à l’esprit notre exemple d’Acme, le flux XAA de bout en bout comprend les étapes suivantes :
+
+1. L’employé d’Acme se connecte à la Requesting App (Agent0) au moyen du SSO avec l’IdP d’entreprise. La Requesting App obtient un ID token pour vérifier l’identité de l’employé d’Acme.
+2. La Requesting App présente une demande d’échange de jeton à l’IdP pour échanger l’ID token contre une cross-domain Identity Assertion JWT Authorization Grant, aussi appelée ID-JAG. L’IdP valide la demande et vérifie la politique XAA définie par l’administrateur TI d’Acme.
+3. Si la politique XAA l’autorise, l’IdP renvoie l’ID-JAG à la Requesting App.
+4. La Requesting App présente une demande de jeton au serveur d’autorisation de la Resource App (Todo0) en utilisant l’ID-JAG.
+5. Le serveur d’autorisation de la Resource App valide l’ID-JAG au moyen de la clé publique qu’il utilise aussi pour son flux OpenID Connect avec l’IdP. S’il est valide, le serveur d’autorisation renvoie un jeton d’accès.
+6. La Requesting App présente une demande à l’API de la Resource App avec le jeton d’accès.
+
+En tirant parti du flux XAA, les politiques de l’administrateur TI d’Acme régissent l’accès d’Agent0 à Todo0, sans nécessiter de redirection ni d’interaction de l’utilisateur final.
+
+<div id="beta-limitations">
+  ## Limites de la bêta
+</div>
+
+XAA Beta présente les limites suivantes :
+
+* La Requesting App doit être un client confidentiel et une application first-party dans votre tenant Auth0. Les clients publics, comme les SPA et les applications natives, ne sont pas pris en charge.
+* L’administration déléguée n’est pas prise en charge. Le client d’entreprise ne peut pas configurer directement de connexions SSO sur votre tenant Auth0. La prise en charge de [Self-Service SSO](/fr-CA/docs/authenticate/enterprise-connections/self-service-enterprise-configuration) est prévue dans une version ultérieure.
+* Il ne peut y avoir qu’une seule connexion activée pour XAA par issuer d’IdP en amont. Le même tenant Okta ne peut pas être utilisé pour plus d’une connexion d’entreprise activée pour XAA.
+* La prise en charge des Organizations est limitée :
+  * Une connexion a une affectation 1:1 avec une Organization. Plusieurs Organizations ne peuvent pas être associées à la même connexion pour l’accès XAA.
+  * Lorsque la Requesting App est configurée pour exiger l’utilisation des Organizations, les utilisateurs doivent déjà être membres de l’Organization cible.
+* Si le paramètre `resource` n’est pas précisé dans la requête ID-JAG, l’API cible est déterminée par `tenant.default_audience`.
+* Aucune création dynamique d’utilisateurs : l’utilisateur doit s’être connecté auparavant à votre Resource App à l’aide de la connexion Okta configurée. Sinon, la requête visant à échanger l’assertion ID-JAG contre un jeton d’accès échouera avec une erreur `User not found error`.
+
+<div id="rate-limits">
+  ## Limites de débit
+</div>
+
+Dans la version bêta de XAA, les échanges ID-JAG sur le point de terminaison `/token` de votre tenant Auth0 seront soumis à une limite de 5 RPS.
