@@ -1,0 +1,86 @@
+---
+description: Aprende a configurar un proveedor telefónico personalizado con el proveedor de Auth0 para Terraform
+title: Configura un proveedor telefónico personalizado con Terraform
+---
+
+Puedes configurar un [proveedor telefónico personalizado](/docs/es/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider) con el proveedor de Auth0 para Terraform. El proveedor de Auth0 para Terraform se utiliza para interactuar con la [Auth0 Management API](https://auth0.com/docs/api/management/v2) y configurar un tenant de Auth0. Para obtener más información, consulta la documentación del [Auth0 Provider](https://registry.terraform.io/providers/auth0/auth0/latest/docs) de Terraform.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  * Si usas Terraform para configurar un proveedor telefónico personalizado, elimina el [proveedor telefónico](/docs/es/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider) personalizado existente de tu tenant de Auth0.
+  * Auth0 permite un máximo de una Action de Actions asociada a los siguientes triggers: custom-phone-provider y custom-email-provider.
+</Callout>
+
+Los siguientes pasos describen cómo configurar un proveedor telefónico personalizado con Terraform:
+
+1. Crea un [`auth0_action`](https://registry.terraform.io/providers/auth0/auth0/latest/docs/resources/phone_provider):
+
+```terraform lines
+resource "auth0_action" "custom_phone_provider" {
+  name    = "Custom Phone Provider"
+  runtime = "node22"
+  deploy  = true
+  code    = <<-EOT
+    /**
+    * Manejador que se ejecuta al enviar una notificación telefónica
+    * @param {Event} event - Detalles sobre el usuario y el contexto en el que está iniciando sesión.
+    * @param {CustomPhoneProviderAPI} api - Métodos y utilidades para modificar el comportamiento del envío de una notificación telefónica.
+    */
+    exports.onExecuteCustomPhoneProvider = async (event, api) => {
+      // El código va aquí
+      return;
+    };
+  EOT
+  supported_triggers {
+    id      = "custom-phone-provider"
+    version = "v1"
+  }
+}
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para vincular un `auth0_action` de Terraform a un `auth0_trigger_action`, establece `deploy = true` en `auth0_action`. Para obtener más información, consulta la documentación de Terraform sobre [auth0&#95;action](https://registry.terraform.io/providers/auth0/auth0/latest/docs/resources/action).
+</Callout>
+
+2. Vincula el `auth0_action` al `auth0_trigger_action` custom-phone-provider:
+
+```terraform lines
+resource "auth0_trigger_action" "custom_phone_provider" {
+  trigger = "custom-phone-provider"
+  actions {
+    id           = auth0_action.custom_phone_provider.id
+    display_name = auth0_action.custom_phone_provider.name
+  }
+  depends_on = [
+    auth0_action.custom_phone_provider
+  ]
+}
+```
+
+3. Configura el recurso `auth0_phone_provider` para que use `auth0_action`:
+
+```terraform lines
+resource "auth0_phone_provider" "custom_phone_provider" {
+  depends_on = [auth0_trigger_actions.custom_phone_provider] # Asegúrese de que el Action se cree primero con `custom-phone-provider` como supported_triggers
+  name       = "custom"                         # Indica una implementación personalizada
+  disabled   = false                            # Deshabilita el phone provider predeterminado
+  configuration {
+    delivery_methods = ["text", "voice"]
+  }
+  credentials {}
+},
+```
+
+Para obtener más información, consulta la documentación de Terraform sobre [auth0&#95;phone&#95;provider](https://registry.terraform.io/providers/auth0/auth0/latest/docs/resources/phone_provider).
+
+<div id="troubleshoot">
+  ## Solucionar problemas
+</div>
+
+**Escenario: El proveedor telefónico personalizado configurado con Terraform no surte efecto y el <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> muestra una Action distinta.**
+
+Es posible que tengas varias Actions de proveedor personalizado con `deploy: true`. Auth0 permite como máximo una Action para las Actions asociadas a los siguientes triggers: `custom-phone-provider` y `custom-email-provider`.
+
+* Si te encuentras con este caso, te recomendamos que [consultes tus Actions](https://auth0.com/docs/api/management/v2/actions/get-actions) para identificar cualquier duplicado que debas eliminar.
+* Si te encuentras con este caso después de haber administrado tus proveedores personalizados mediante varios métodos (Terraform, Auth0 Dashboard, <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> y/o Auth0 SDKs), conviene restablecer la configuración del proveedor personalizado. Te recomendamos no usar varios métodos para administrar tu proveedor personalizado.
+
+Para restablecer el proveedor telefónico personalizado, ve a [Auth0 Dashboard &gt; Branding &gt; Phone Provider](https://manage.auth0.com/#/phone/templates/phone/provider). Luego, selecciona el botón **Reset** en Provider Configuration para restaurar tu proveedor personalizado a su configuración predeterminada.

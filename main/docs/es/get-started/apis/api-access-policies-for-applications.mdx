@@ -1,0 +1,152 @@
+---
+title: "Políticas de acceso a APIs para aplicaciones"
+description: Aprende a configurar las políticas de acceso a APIs para aplicaciones.
+validatedOn: 2026-01-26
+---
+
+Las políticas de acceso a APIs para aplicaciones te permiten controlar cómo las aplicaciones acceden a las APIs que registraste en Auth0. Estas políticas definen cómo las aplicaciones interactúan con una API, por ejemplo, si pueden obtener correctamente un token de acceso para acceder a sus recursos.
+
+Puedes configurar la política de acceso a APIs de cada aplicación para cada API registrada en el Auth0 Dashboard. Para obtener más información, consulta [Configurar la política de acceso de aplicaciones a APIs](#configure-api-application-access-policy).
+
+<div id="user-delegated-access-vs-client-access">
+  ## Acceso delegado por el usuario vs. acceso del cliente
+</div>
+
+Puede configurar por separado las políticas de acceso a la API de la aplicación para el acceso delegado por el usuario y el acceso del cliente (máquina a máquina):
+
+* **Acceso del cliente**: se utiliza para el acceso máquina a máquina, que corresponde al [Client Credentials Flow](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow).
+* **Acceso delegado por el usuario**: se utiliza para todos los flujos de acceso que generan un token de acceso asociado a un usuario final, lo que permite a la aplicación acceder a una API en nombre del usuario. Los flujos de acceso delegado por el usuario no incluyen el Client Credentials Flow. Para obtener más información sobre los flujos de acceso delegado por el usuario, consulte [Flujos de autenticación y autorización](/docs/es/get-started/authentication-and-authorization-flow).
+
+<div id="application-api-access-policies">
+  ## Políticas de acceso a API para aplicaciones
+</div>
+
+Las políticas de acceso a API para aplicaciones son las siguientes:
+
+| Política                | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Flujo de acceso                                                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `All apps allowed`      | Cuando se configura para una API, cualquier aplicación de tu tenant puede obtener un token de acceso para la API. No se requiere ninguna autorización específica.                                                                                                                                                                                                                                                                                                                   | Es el valor predeterminado para el acceso delegado por el usuario cuando creas una API. Solo puedes configurar `allow_all` para el acceso delegado por el usuario. |
+| `Per-app authorization` | Cuando se configura para una API, solo las aplicaciones que tengan definida una autorización de cliente pueden obtener un token de acceso para la API. La autorización de cliente establece los permisos máximos que una aplicación puede solicitar a la API. Para obtener más información sobre cómo crear y administrar autorizaciones de cliente, consulta [Application Access to APIs: Client Grants](/docs/es/get-started/applications/application-access-to-apis-client-grants). | Es el valor predeterminado para el Client Credentials Flow cuando creas una API.                                                                                   |
+| `No apps allowed`       | Cuando se configura para una API, ninguna aplicación puede obtener un token de acceso para la API, independientemente de cualquier otra configuración o autorización. El acceso queda completamente restringido.                                                                                                                                                                                                                                                                    | Puedes configurar `deny_all` tanto para el acceso de usuarios como para el de clientes.                                                                            |
+
+Al configurar la política de acceso de aplicaciones de una API, Auth0 recomienda usar `Per-app authorization`, ya que sigue el principio de mínimo privilegio. Para obtener más información, consulta [Application Access to APIs: Client Grants](/docs/es/get-started/applications/application-access-to-apis-client-grants).
+
+Cuando estableces la política de acceso de aplicaciones de una API en `Per-app authorization`, debes proporcionar explícitamente los scopes requeridos como parte de la solicitud del token. Esto no se aplica a las solicitudes de token de actualización: si omites los scopes, el servidor de autorización asume que la aplicación quiere todos los scopes que se le concedieron en el token de acceso original. Como resultado, el servidor de autorización devuelve un token de acceso con los mismos scopes concedidos originalmente por el propietario del recurso.
+
+<div id="configure-api-application-access-policy">
+  ## Configurar la política de acceso de las aplicaciones a la API
+</div>
+
+Puedes configurar la política de acceso de las aplicaciones a una API mediante el Auth0 Dashboard o la Management API.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    Para configurar la política de acceso de las aplicaciones a una API:
+
+    1. Ve a [Dashboard &gt;  Applications &gt; APIs](https://manage.auth0.com/#/apis) y selecciona tu API.
+    2. Selecciona la pestaña **Settings** y desplázate hacia abajo hasta **Application Access Policy** para configurar las políticas de **User-Delegated Access** y **Client Access**.
+       * Configura la política de **User-Delegated Access** como **All apps allowed**, **Per-app authorization** o **No apps allowed**.
+         * **All apps allowed**: Las aplicaciones pueden acceder a la API en nombre del usuario.
+         * **Per-app authorization**: Las aplicaciones deben tener una autorización de cliente para acceder a la API en nombre del usuario.
+         * **No apps allowed**: Se les deniega a las aplicaciones el acceso a la API en nombre del usuario.
+       * Configura la política de **Client Access** como **Per-app authorization** o **No apps allowed**.
+         * **Per-app authorization**: Las aplicaciones de máquina a máquina pueden acceder a esta API siempre que tengan la autorización de cliente correspondiente.
+         * **No apps allowed**: Restringe el acceso de máquina a máquina a esta API.
+    3. Selecciona **Save** para guardar la **Application Access Policy**.
+
+    Cuando **Per-app authorization** sea la política configurada para la API, selecciona la pestaña **Application Access** y luego **Edit** para autorizar **User-Delegated Access**, **Client Access** o ambos para cada aplicación.
+
+    * Para **User-Delegated Access**, selecciona **Grant Access** y luego los permisos deseados. También puedes seleccionar **Always grant all permissions**.
+    * Para **Client Access**, selecciona **Grant Access** y luego los permisos deseados. También puedes seleccionar **Always grant all permissions**. En **Organization Support**, selecciona:
+      * **None**: El acceso de máquina a máquina no puede limitarse a una organización.
+      * **Optional**: El acceso de máquina a máquina puede limitarse a una organización.
+      * **Required**: El acceso de máquina a máquina debe limitarse a una organización.
+  </Tab>
+
+  <Tab title="Management API">
+    Puedes configurar la política de acceso de las aplicaciones a una API actualizando su propiedad `subject_type_authorization` en la colección `resource-servers` de la [Management API](/docs/es/api/management/v2/resource-servers/patch-resource-servers-by-id).
+
+    El objeto `subject_type_authorization` contiene dos objetos anidados, `user` y `client`, cada uno con un atributo `policy` que puedes establecer en una de las tres políticas de acceso definidas en [Application API access policies](#application-api-access-policies).
+
+    **API existente**
+
+    Para configurar la política de acceso de las aplicaciones para una API existente, haz una solicitud `PATCH` al endpoint `/resource-servers/{id}`:
+
+    ```bash lines
+    curl --location --request PATCH 'https://{yourDomain}/api/v2/resource-servers/{RESOURCE_SERVER_ID}' \
+    --header 'Content-Type: application/json' \
+    --header 'Authorization: Bearer {YOUR_MANAGEMENT_API_TOKEN}' \
+    --data '{
+        "subject_type_authorization": {
+            "user": {
+                "policy": "require_client_grant"
+            },
+            "client": {
+                "policy": "deny_all"
+            }
+        }
+    }'
+    ```
+
+    **API nueva**
+
+    Para configurar la política de acceso de las aplicaciones al crear una API nueva, haz una solicitud `POST` al endpoint `/resource-servers`:
+
+    ```bash lines
+    curl --location 'https://{yourDomain}/api/v2/resource-servers' \
+    --header 'Content-Type: application/json' \
+    --header 'Authorization: Bearer {YOUR_MANAGEMENT_API_TOKEN}' \
+    --data '{
+      "name": "{YOUR_NEW_API_NAME}",
+      "identifier": "{YOUR_NEW_API_IDENTIFIER}",
+      "scopes": [
+        {
+          "value": "{SCOPE_VALUE}",
+          "description": "{SCOPE_DESCRIPTION}"
+        }
+      ],
+      "subject_type_authorization": {
+        "user": {
+          "policy": "require_client_grant"
+        },
+        "client": {
+          "policy": "deny_all"
+        }
+      }
+    }'
+    ```
+  </Tab>
+</Tabs>
+
+<div id="api-access-policies-and-third-party-applications">
+  ## Políticas de acceso a la API y aplicaciones de terceros
+</div>
+
+Las [aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications) siempre requieren una autorización de cliente explícita para acceder a cualquier API, independientemente de la política de acceso configurada para la API.
+
+| **Política de acceso a la API**      | **Aplicaciones propias**         | **Aplicaciones de terceros**     |
+| ------------------------------------ | -------------------------------- | -------------------------------- |
+| **Permitir todo**                    | Acceso concedido                 | Requiere autorización de cliente |
+| **Requerir autorización de cliente** | Requiere autorización de cliente | Requiere autorización de cliente |
+| **Denegar**                          | Acceso denegado                  | Acceso denegado                  |
+
+También puedes configurar [permisos predeterminados para todas las aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/configure-third-party-applications#default-permissions-for-all-third-party-applications):
+
+1. Ve a **Aplicaciones &gt; APIs** y selecciona la API.
+2. En la pestaña **Configuración**, ve a **Permisos predeterminados para aplicaciones de terceros**.
+3. Selecciona **Autorizado** para **Acceso delegado por el usuario** o **Acceso del cliente** y, a continuación, selecciona los scopes que deseas conceder.
+4. Selecciona **Guardar**.
+
+Para obtener más información, consulta [Configurar políticas de acceso a la API para aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/configure-third-party-applications#configure-api-access-policies).
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Es posible que algunos tenants existentes tengan aplicaciones de terceros con un comportamiento de política de acceso diferente. Para obtener más información, consulta [Modo permisivo para aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/permissive-mode).
+</Callout>
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Acceso de la aplicación a las API: autorizaciones de cliente](/docs/es/get-started/applications/application-access-to-apis-client-grants)
+* [Aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications)
+* [Controles de seguridad para aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/security-controls)

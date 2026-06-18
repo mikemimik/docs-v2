@@ -1,0 +1,270 @@
+---
+description: Aprende a habilitar las conexiones de organización mediante el Auth0 Dashboard y la Management API.
+title: Habilitar conexiones de organización
+validatedOn: 2026-04-13
+---
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+<Warning>
+  La gestión de conexiones de organización mediante nuevos endpoints y atributos está en acceso anticipado como parte de [My Organization API and Embeddable UI Components](/docs/es/manage-users/my-organization-api). Al usar esta funcionalidad, aceptas los términos aplicables de la prueba gratuita del [Master Subscription Agreement de Okta](https://www.okta.com/legal/). Para obtener más información sobre el ciclo de lanzamiento de productos de Auth0, consulta [Product Release Stages](/docs/es/troubleshoot/product-lifecycle/product-release-stages).
+</Warning>
+
+Puedes habilitar conexiones específicas para cada [organización](/docs/es/manage-users/organizations/organizations-overview) para ofrecer a los usuarios distintas opciones de inicio de sesión. Después de habilitar una conexión, se agrega al prompt de inicio de sesión de la organización, y los usuarios pueden autenticarse mediante esa conexión para acceder a tus aplicaciones.
+
+Para habilitar una conexión para una organización, la conexión **debe** existir previamente en tu tenant. Entre las conexiones compatibles se incluyen las [conexiones de base de datos](/docs/es/authenticate/database-connections), las [conexiones sociales](/docs/es/authenticate/identity-providers/social-identity-providers) y las [conexiones empresariales](/docs/es/authenticate/identity-providers/enterprise-identity-providers).
+
+<div id="organization-properties">
+  ## Propiedades de la organización
+</div>
+
+Al usar organizaciones, algunas conexiones tienen propiedades adicionales que puedes configurar:
+
+| **Propiedad**                                        | **Tipos de conexión**            | **Descripción**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nombre de la conexión de la organización             | Todos los tipos de conexión      | Este nombre lo proporciona el administrador de la organización mediante la [My Organization API](/docs/es/manage-users/my-organization-api). Si no se ha completado, especifica el nombre que quieres que los administradores de la organización vean al consultar esta conexión.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Nivel de acceso del administrador de la organización | Todos los tipos de conexión      | Esta propiedad determina qué nivel de acceso tienen los administradores de la organización a esta conexión. Los valores disponibles son: <ul><li>**Ninguno**: Lo administra el administrador del tenant y no es visible ni editable mediante la My Organization API.</li> <li>**Solo lectura**: Lo administra el administrador del tenant y es visible mediante la My Organization API.</li> <li>**Limitado**: Los administradores de la organización pueden editar configuraciones seleccionadas que no sean sensibles mediante la My Organization API.</li> <li>**Completo**: Los administradores de la organización pueden editar todas las configuraciones permitidas para esta conexión, con sujeción a las restricciones definidas por el [Connection Profile](/docs/es/authenticate/enterprise-connections/connection-profile).</li></ul>                                                                         |
+| Membresía en la autenticación                        | Todos los tipos de conexión      | Cuando está habilitada, esta propiedad asigna automáticamente la membresía de la organización a los usuarios finales la primera vez que se autentican con la conexión. La membresía en la autenticación es útil en casos en los que puede asumirse que todos los usuarios con capacidad para autenticarse con una conexión específica son miembros de una organización.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Registro en la organización                          | Solo conexiones de base de datos | Esta propiedad determina si los usuarios finales pueden acceder a un enlace de registro en el prompt de inicio de sesión que les permita obtener membresía en una organización. Para usar el registro en la organización, también debes habilitar la Membresía en la autenticación. El registro en la organización es útil en casos en los que los usuarios necesitan acceso de autoservicio para unirse a organizaciones, por ejemplo: <ul><li>Cuando las organizaciones se usan para representar poblaciones de usuarios con membresía abierta, como espacios de trabajo.</li> <li>En casos de uso business-to-business-to-consumer (B2B2C) en los que los usuarios pueden registrarse libremente para obtener cuentas.</li></ul>                                                                                                                                                                                   |
+| Mostrar la conexión como botón                       | Solo conexiones empresariales    | Opcional. Esta propiedad determina si una conexión específica se muestra o no como opción en el prompt de inicio de sesión de la organización. Los usuarios finales también pueden autenticarse usando el perfil de autenticación [Identifier First with Home Realm Discovery](/docs/es/authenticate/login/auth0-universal-login/identifier-first) en combinación con el flujo de inicio de sesión de la organización [Prompt for Credentials](/docs/es/manage-users/organizations/login-flows-for-organizations#configure-the-login-flow-for-your-application). Esto solo funciona si **no** proporcionas un `org_id` con la solicitud de autorización.  <Callout icon="file-lines" color="#0EA5E9" iconType="regular"> Si esta opción está deshabilitada, los usuarios finales aún pueden autenticarse a través de la conexión enviando directamente el parámetro de conexión en la solicitud de autorización. </Callout> |
+
+<div id="configure-organization-connections">
+  ## Configurar conexiones de organización
+</div>
+
+Puede configurar las conexiones de organización mediante el <Tooltip tip="Auth0 Dashboard: el principal producto de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o la <Tooltip tip="Management API: un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
+
+<Tabs>
+  <Tab title="Auth0 Dashboard">
+    #### Auth0 Dashboard
+
+    Para habilitar una conexión en Auth0 Dashboard:
+
+    1. Ve a [Auth0 Dashboard &gt; Organizations](https://manage.auth0.com/#/organizations) y selecciona la organización que quieres configurar.
+    2. Selecciona la pestaña **Connections** y, después, **Add Connections**.
+    3. Elige la conexión que quieres habilitar y selecciona **Add Connection**.
+    4. En la sección Organization Connection, configura ambas propiedades necesarias para usar una conexión a través de la API My Organization:
+
+    * Busca **Organization Connection Name**. Si no está completado, especifica el nombre que quieres que los administradores de la organización vean al consultar esta conexión.
+    * Busca **Organization Admin Access Level** y, si no está completado, elige el nivel de acceso que quieres que los administradores de la organización tengan para esta conexión a través de la API My Organization.
+
+    5. En la sección Authentication, busca **Membership On Authentication** y elige si quieres habilitar o deshabilitar la membresía automática. Cuando está habilitada, la membresía automática agrega automáticamente como miembros de la organización a todos los usuarios que inician sesión con la conexión.
+    6. **Solo para conexiones de base de datos**: En la sección Organization Signup, elige si quieres habilitar o deshabilitar el registro de autoservicio. Cuando está habilitado, los usuarios pueden acceder a un enlace de registro en el prompt de inicio de sesión para crear su cuenta y obtener automáticamente membresía en la organización.
+
+       * Para habilitar esta propiedad, primero debes habilitar **Membership On Authentication**.
+       * **Nota**: Organization Signup tiene prioridad sobre la configuración de registro de la conexión de base de datos. Cuando Organization Signup está habilitado, los usuarios aún pueden registrarse en una organización o aceptar una invitación a una organización, incluso si el registro está deshabilitado a nivel de la conexión de base de datos.
+    7. **Solo para conexiones empresariales**: En la sección Connection button, habilita opcionalmente la propiedad **Display connection as a button** para mostrar la conexión como una opción en el prompt de inicio de sesión de la organización.
+
+       <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+         Si todas las conexiones habilitadas dentro de la organización son conexiones empresariales y todas están ocultas, Auth0 devuelve un error que dice `Message: no connections enabled for the organization are visible` cuando los usuarios acceden a la aplicación.
+       </Callout>
+    8. Selecciona **Save**.
+  </Tab>
+
+  <Tab title="Management API">
+    #### Management API
+
+    Para habilitar una conexión mediante la Management API:
+
+    Realiza una llamada `POST` al endpoint `Create Organization Connections`. Asegúrate de reemplazar los siguientes valores de marcador de posición con la información correspondiente:
+
+    * Reemplaza `{orgId}` por tu ID de organización.
+    * Reemplaza `{mgmtApiAccessToken}` por tu token de acceso de la Management API.
+    * Reemplaza `{connectionId}` por un ID de conexión específico.
+    * Reemplaza `{assignMembershipOption}` por `true` o `false` según la selección de Membership on Authentication.
+    * Reemplaza `{isEnabled}` por `true` o `false` según quieras habilitar la conexión o no.
+    * **Solo para conexiones de base de datos**: Reemplaza `{isSignupEnabled}` por `true` o `false` según la selección de registro.
+    * **Solo para conexiones empresariales**: Reemplaza `{showAsButtonOption}` por `true` o `false` según la selección de Connection Button.
+    * **Para usar My Organization API**: Reemplaza `{organizationAccessLevel}` y `{organizationConnectionName}` por los valores correspondientes.
+
+    <AuthCodeGroup>
+      ```bash cURL lines
+      curl --request POST \
+        --url https://%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections \
+        --header 'authorization: Bearer {yourMgmtApiAccessToken}' \
+        --header 'cache-control: no-cache' \
+        --header 'content-type: application/json' \
+        --data '{ "connection_id": "{connectionId}", "assign_membership_on_login": "{assignMembershipOption}", "is_enabled": "{isEnabled}", "is_signup_enabled": "{isSignupEnabled}", "show_as_button": "{showAsButtonOption}", "organization_access_level": "{organizationAccessLevel}", "organization_connection_name": "{organizationConnectionName}"}'
+      ```
+
+      ```csharp C# lines
+      var client = new RestClient("https://%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections");
+      var request = new RestRequest(Method.POST);
+      request.AddHeader("content-type", "application/json");
+      request.AddHeader("authorization", "Bearer {yourMgmtApiAccessToken}");
+      request.AddHeader("cache-control", "no-cache");
+      request.AddParameter("application/json", "{ \"connection_id\": \"{connectionId}\", \"assign_membership_on_login\": \"{assignMembershipOption}\", \"is_enabled\": \"{isEnabled}\", \"is_signup_enabled\": \"{isSignupEnabled}\", \"show_as_button\": \"{showAsButtonOption}\", \"organization_access_level\": \"{organizationAccessLevel}\", \"organization_connection_name\": \"{organizationConnectionName}\" }", ParameterType.RequestBody);
+      IRestResponse response = client.Execute(request);
+      ```
+
+      ```go Go lines expandable
+      package main
+
+      import (
+      	"fmt"
+      	"strings"
+      	"net/http"
+      	"io/ioutil"
+      )
+
+      func main() {
+
+      	url := "https://%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections"
+
+      	payload := strings.NewReader("{ \"connection_id\": \"{connectionId}\", \"assign_membership_on_login\": \"{assignMembershipOption}\", \"is_enabled\": \"{isEnabled}\", \"is_signup_enabled\": \"{isSignupEnabled}\", \"show_as_button\": \"{showAsButtonOption}\", \"organization_access_level\": \"{organizationAccessLevel}\", \"organization_connection_name\": \"{organizationConnectionName}\" }")
+
+      	req, _ := http.NewRequest("POST", url, payload)
+
+      	req.Header.Add("content-type", "application/json")
+      	req.Header.Add("authorization", "Bearer {yourMgmtApiAccessToken}")
+      	req.Header.Add("cache-control", "no-cache")
+
+      	res, _ := http.DefaultClient.Do(req)
+
+      	defer res.Body.Close()
+      	body, _ := ioutil.ReadAll(res.Body)
+
+      	fmt.Println(res)
+      	fmt.Println(string(body))
+
+      }
+      ```
+
+      ```java Java lines
+      HttpResponse<String> response = Unirest.post("https://%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections")
+        .header("content-type", "application/json")
+        .header("authorization", "Bearer {yourMgmtApiAccessToken}")
+        .header("cache-control", "no-cache")
+        .body("{ \"connection_id\": \"{connectionId}\", \"assign_membership_on_login\": \"{assignMembershipOption}\", \"is_enabled\": \"{isEnabled}\", \"is_signup_enabled\": \"{isSignupEnabled}\", \"show_as_button\": \"{showAsButtonOption}\", \"organization_access_level\": \"{organizationAccessLevel}\", \"organization_connection_name\": \"{organizationConnectionName}\" }")
+        .asString();
+      ```
+
+      ```javascript Node.JS lines
+      var axios = require("axios").default;
+
+      var options = {
+        method: 'POST',
+        url: 'https://%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections',
+        headers: {
+          'content-type': 'application/json',
+          authorization: 'Bearer {yourMgmtApiAccessToken}',
+          'cache-control': 'no-cache'
+        },
+        data: '{ "connection_id": "{connectionId}", "assign_membership_on_login": "{assignMembershipOption}", "is_enabled": "{isEnabled}", "is_signup_enabled": "{isSignupEnabled}", "show_as_button": "{showAsButtonOption}", "organization_access_level": "{organizationAccessLevel}", "organization_connection_name": "{organizationConnectionName}" }'
+      };
+
+      axios.request(options).then(function (response) {
+        console.log(response.data);
+      }).catch(function (error) {
+        console.error(error);
+      });
+      ```
+
+      ```php PHP lines expandable
+      $curl = curl_init();
+
+      curl_setopt_array($curl, [
+        CURLOPT_URL => "https://%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS => "{ \"connection_id\": \"{connectionId}\", \"assign_membership_on_login\": \"{assignMembershipOption}\", \"is_enabled\": \"{isEnabled}\", \"is_signup_enabled\": \"{isSignupEnabled}\", \"show_as_button\": \"{showAsButtonOption}\", \"organization_access_level\": \"{organizationAccessLevel}\", \"organization_connection_name\": \"{organizationConnectionName}\" }",
+        CURLOPT_HTTPHEADER => [
+          "authorization: Bearer {yourMgmtApiAccessToken}",
+          "cache-control: no-cache",
+          "content-type: application/json"
+        ],
+      ]);
+
+      $response = curl_exec($curl);
+      $err = curl_error($curl);
+
+      curl_close($curl);
+
+      if ($err) {
+        echo "cURL Error #:" . $err;
+      } else {
+        echo $response;
+      }
+      ```
+
+      ```python Python lines
+      import http.client
+
+      conn = http.client.HTTPSConnection("")
+
+      payload = "{ \"connection_id\": \"{connectionId}\", \"assign_membership_on_login\": \"{assignMembershipOption}\", \"is_enabled\": \"{isEnabled}\", \"is_signup_enabled\": \"{isSignupEnabled}\", \"show_as_button\": \"{showAsButtonOption}\", \"organization_access_level\": \"{organizationAccessLevel}\", \"organization_connection_name\": \"{organizationConnectionName}\" }"
+
+      headers = {
+          'content-type': "application/json",
+          'authorization': "Bearer {yourMgmtApiAccessToken}",
+          'cache-control': "no-cache"
+          }
+
+      conn.request("POST", "%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections", payload, headers)
+
+      res = conn.getresponse()
+      data = res.read()
+
+      print(data.decode("utf-8"))
+      ```
+
+      ```ruby Ruby lines
+      require 'uri'
+      require 'net/http'
+      require 'openssl'
+
+      url = URI("https://%7ByourAuth0Domain%7D/api/v2/organizations/%7BorgId%7D/connections")
+
+      http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+      request = Net::HTTP::Post.new(url)
+      request["content-type"] = 'application/json'
+      request["authorization"] = 'Bearer {yourMgmtApiAccessToken}'
+      request["cache-control"] = 'no-cache'
+      request.body = "{ \"connection_id\": \"{connectionId}\", \"assign_membership_on_login\": \"{assignMembershipOption}\", \"is_enabled\": \"{isEnabled}\", \"is_signup_enabled\": \"{isSignupEnabled}\", \"show_as_button\": \"{showAsButtonOption}\", \"organization_access_level\": \"{organizationAccessLevel}\", \"organization_connection_name\": \"{organizationConnectionName}\" }"
+
+      response = http.request(request)
+      puts response.read_body
+      ```
+    </AuthCodeGroup>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Encuentra tu dominio de Auth0**
+
+      Si tu dominio de Auth0 se compone del nombre de tu tenant, tu subdominio regional (a menos que tu tenant esté en la región de EE. UU. y se haya creado antes de junio de 2020) y `.auth0.com`. Por ejemplo, si el nombre de tu tenant fuera `travel0`, el nombre de tu dominio de Auth0 sería `travel0.us.auth0.com`. (Si tu tenant estuviera en EE. UU. y se hubiera creado antes de junio de 2020, entonces tu nombre de dominio sería `https://travel0.auth0.com`.)
+
+      Si usas [dominios personalizados](/docs/es/customize/custom-domains), este debe ser el nombre de tu dominio personalizado.
+    </Callout>
+
+    | **Valor**                      | **Descripción**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+    | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `{orgId}`                      | ID de la organización para la que desea habilitar una conexión.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+    | `{mgmtApiAccessToken}`         | [Token de acceso para la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) con el scope `create:organization_connections`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+    | `{connectionId}`               | ID de la conexión que desea habilitar para la organización especificada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+    | `{assignMembershipOption}`     | Indica si desea que a los usuarios que inicien sesión con esta conexión se les asigne automáticamente la pertenencia a la organización. Cuando se establece en `true`, la pertenencia se asignará automáticamente. Cuando se establece en `false`, no se asignará automáticamente.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+    | `{isEnabled}`                  | Habilita o deshabilita una conexión para una organización. Al deshabilitar una conexión, es posible conservar los valores de `show_as_button`, `assign_membership_on_login`, etc., y mantener la conexión deshabilitada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+    | `{isSignupEnabled}`            | Determina si los usuarios pueden acceder a un enlace de registro de autoservicio en el prompt de inicio de sesión. Cuando se establece en `true`, el enlace de registro se muestra en el prompt. Cuando se establece en `false`, el enlace permanece oculto. **Nota**: Para habilitar esta opción, también debes establecer `{assignMembershipOption}` en `true`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+    | `{showAsButtonOption}`         | Indica si quiere que una conexión empresarial específica aparezca como opción en el prompt de inicio de sesión de la organización. Cuando se establece en `true`, la conexión aparece como un botón en el prompt. Cuando se establece en `false`, la conexión se oculta en el prompt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+    | `{organizationAccessLevel}`    | Determina qué tipo de acceso tendrá un administrador de la organización al usar la API My Organization. Cuando se establece en `none`, la conexión será administrada por el administrador del tenant y no será visible ni editable a través de la API My Organization. Cuando se establece en `read-only`, la conexión será administrada por el administrador del tenant y será visible a través de la API My Organization, pero no se podrá editar. Cuando se establece en `limited`, los administradores de la organización pueden editar determinadas configuraciones no sensibles a través de la API My Organization. Cuando se establece en `full`, los administradores de la organización pueden editar todas las configuraciones permitidas para esta conexión, según las restricciones definidas en el [Perfil de conexión](/docs/es/authenticate/enterprise-connections/connection-profile). |
+    | `{organizationConnectionName}` | Este nombre lo proporciona el administrador de la organización a través de la API My Organization. Si no se completa, especifique el nombre que desea que los administradores de la organización vean al consultar esta conexión.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+    ##### Códigos de estado de respuesta
+
+    Los posibles códigos de estado de respuesta son los siguientes:
+
+    | **Código de estado** | **Código de error**  | **Mensaje**                                                                                              | **Causa**                                                                                       |
+    | -------------------- | -------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+    | `201`                |                      | Conexión agregada correctamente a una organización.                                                      |                                                                                                 |
+    | `401`                |                      | Token no válido.                                                                                         |                                                                                                 |
+    | `401`                |                      | Se recibió una firma no válida para la validación del JSON Web Token.                                    |                                                                                                 |
+    | `401`                |                      | El cliente no es global.                                                                                 |                                                                                                 |
+    | `403`                | `insufficient_scope` | Scope insuficiente; se requiere alguno de los siguientes: `create:organizations_connections`.            | Se intentó leer o escribir un campo no permitido con los scopes del token bearer proporcionado. |
+    | `429`                |                      | Demasiadas solicitudes. Revise los headers X-RateLimit-Limit, X-RateLimit-Remaining y X-RateLimit-Reset. |                                                                                                 |
+  </Tab>
+</Tabs>

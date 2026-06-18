@@ -1,0 +1,406 @@
+---
+description: Aprende a crear una página de error personalizada para los eventos de error de autorización.
+title: Personalizar las páginas de error
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Cuando se produce un error de autorización y tu URL de callback es válida, el <Tooltip tip="Servidor de autorización: servidor centralizado que ayuda a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funciones disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Authorization+Server">Servidor de autorización</Tooltip> devuelve a tu URL de callback los parámetros de error y estado correspondientes. Si tu URL de callback no es válida, tu aplicación mostrará la [página de error predeterminada de Auth0](/docs/es/authenticate/login/auth0-universal-login/error-pages).
+
+Tu aplicación también puede mostrar la página de error predeterminada de Auth0 por motivos distintos de una URL de callback no válida, por ejemplo:
+
+* Faltan parámetros obligatorios al llamar al [endpoint de Login](https://auth0.com/docs/api/authentication#login) de la Auth0 Authentication API.
+* El usuario abre un enlace caducado de restablecimiento de contraseña (cuando se usa la experiencia de Classic Login).
+* El usuario accede a una página de inicio de sesión guardada en marcadores y no se ha especificado una [ruta de inicio de sesión predeterminada](/docs/es/authenticate/login/auth0-universal-login/configure-default-login-routes).
+
+<div id="parameters">
+  ## Parámetros
+</div>
+
+Si eliges configurar una página de error personalizada, el servidor de autorización devolverá parámetros añadidos a la URL como una cadena de consulta.
+
+| Parámetro           | Descripción                                                                    |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `client_id`         | Identificador de la aplicación de Auth0.                                       |
+| `connection`        | Conexión utilizada en el momento del error.                                    |
+| `lang`              | Idioma configurado para usarse en el momento del error.                        |
+| `error`             | Código del error.                                                              |
+| `error_description` | Descripción del error.                                                         |
+| `tracking`          | Identificador utilizado por Auth0 para localizar errores en los logs internos. |
+
+Los parámetros que se muestran varían según el tipo de error y son específicos de la solicitud. Por ejemplo, si la solicitud que produjo el error no contenía un `client_id`, el servidor de autorización no devolverá el parámetro `client_id`.
+
+<div id="display-a-custom-error-page">
+  ## Mostrar una página de error personalizada
+</div>
+
+Si deseas mostrar una página de error personalizada, tienes dos opciones:
+
+1. Redirigir a los usuarios a una página de error personalizada mediante Auth0 Dashboard o la Management API de Auth0.
+2. Configurar Auth0 para que muestre una página de error personalizada en tu lugar mediante la Management API.
+
+<div id="redirect-users-to-a-custom-error-page-using-the-dashboard">
+  ### Redirige a los usuarios a una página de error personalizada con el Dashboard
+</div>
+
+Usa el Dashboard para configurar Auth0 de forma que redirija a los usuarios a una página de error personalizada:
+
+1. Ve a [Auth0 Dashboard &gt; Tenant Settings](https://manage.auth0.com/#/tenant/).
+2. Busca la sección **Error Pages**.
+3. Selecciona la opción **Redirect users to your own error page**.
+4. Introduce la URL de la página de error que quieres que vean tus usuarios y selecciona **Save**.
+
+<div id="redirect-users-to-a-custom-error-page-using-the-management-api">
+  ### Redirige a los usuarios a una página de error personalizada con la Management API
+</div>
+
+Usa el <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> endpoint [Actualizar la configuración del tenant](https://auth0.com/docs/api/management/v2/#!/Tenants/patch_settings). Reemplaza el valor del marcador de posición `{mgmtApiAccessToken}` por tu <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> de la Management API y actualiza el valor del campo `url` en el cuerpo JSON para que apunte a la ubicación de la página de error.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request PATCH \
+    --url 'https://{yourDomain}/api/v2/tenants/settings' \
+    --header 'authorization: Bearer {mgmtApiAccessToken}' \
+    --header 'content-type: application/json' \
+    --data '{"error_page": {"html": "", "show_log_link":false, "url": "http://www.example.com"}}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/tenants/settings");
+  var request = new RestRequest(Method.PATCH);
+  request.AddHeader("authorization", "Bearer {mgmtApiAccessToken}");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"error_page": {"html": "", "show_log_link":false, "url": "http://www.example.com"}}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/tenants/settings"
+
+  	payload := strings.NewReader("{"error_page": {"html": "", "show_log_link":false, "url": "http://www.example.com"}}")
+
+  	req, _ := http.NewRequest("PATCH", url, payload)
+
+  	req.Header.Add("authorization", "Bearer {mgmtApiAccessToken}")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.patch("https://{yourDomain}/api/v2/tenants/settings")
+    .header("authorization", "Bearer {mgmtApiAccessToken}")
+    .header("content-type", "application/json")
+    .body("{"error_page": {"html": "", "show_log_link":false, "url": "http://www.example.com"}}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'PATCH',
+    url: 'https://{yourDomain}/api/v2/tenants/settings',
+    headers: {
+      authorization: 'Bearer {mgmtApiAccessToken}',
+      'content-type': 'application/json'
+    },
+    data: {error_page: {html: '', show_log_link: false, url: 'http://www.example.com'}}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/tenants/settings",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "PATCH",
+    CURLOPT_POSTFIELDS => "{"error_page": {"html": "", "show_log_link":false, "url": "http://www.example.com"}}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer {mgmtApiAccessToken}",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"error_page": {"html": "", "show_log_link":false, "url": "http://www.example.com"}}"
+
+  headers = {
+      'authorization': "Bearer {mgmtApiAccessToken}",
+      'content-type': "application/json"
+      }
+
+  conn.request("PATCH", "/{yourDomain}/api/v2/tenants/settings", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/tenants/settings")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Patch.new(url)
+  request["authorization"] = 'Bearer {mgmtApiAccessToken}'
+  request["content-type"] = 'application/json'
+  request.body = "{"error_page": {"html": "", "show_log_link":false, "url": "http://www.example.com"}}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+| Valor                   | Descripción                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `MGMT_API_ACCESS_TOKEN` | [Token de acceso para la Management API](https://auth0.com/docs/api/management/v2/tokens) con el scope `update:tenant_settings`. |
+| `show_log_link`         | Indica si se muestra un enlace al error en los logs de tu tenant. Los valores válidos son `true` y `false`.                      |
+| `url`                   | Ubicación de la página de error personalizada a la que quieres redirigir.                                                        |
+
+<div id="render-a-custom-error-page">
+  ### Mostrar una página de error personalizada
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Cuando los errores se muestran dentro del widget de Classic Login (por ejemplo, un enlace de restablecimiento de contraseña vencido), no se mostrará una página de error personalizada alojada por Auth0, aunque esté configurada.
+</Callout>
+
+Usa el endpoint [Actualizar la configuración del tenant](https://auth0.com/docs/api/management/v2/#!/Tenants/patch_settings) de la Management API. Reemplaza el valor del marcador de posición `{mgmtApiAccessToken}` por tu token de acceso de la Management API y actualiza el valor del campo `html` en el cuerpo JSON con una cadena que contenga el HTML de tu página.
+
+Puedes usar la sintaxis de Liquid para incluir las siguientes variables:
+
+* `{client_id}`
+* `{connection}`
+* `{lang}`
+* `{error}`
+* `{error_description}`
+* `{tracking}`
+
+<AuthCodeGroup>
+  ```bash cURL lines
+  curl --request PATCH \
+    --url https://login.auth0.com/api/v2/tenants/settings \
+    --header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+    --header 'content-type: application/json' \
+    --data '{"error_page": {"html": "<h1>{{error | escape }} {{error_description | escape }} This error was generated {{'\''now'\'' | date: '\''%Y %h'\''}}.</h1>", "show_log_link": false, "url": ""}}'
+  ```
+
+  ```csharp C# lines
+  var client = new RestClient("https://login.auth0.com/api/v2/tenants/settings");
+  var request = new RestRequest(Method.PATCH);
+  request.AddHeader("authorization", "Bearer MGMT_API_ACCESS_TOKEN");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{\"error_page\": {\"html\": \"
+
+  # {{error | escape }} {{error_description | escape }} This error was generated {{'now' | date: '%Y %h'}}.
+
+  \", \"show_log_link\": false, \"url\": \"\"}}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go lines expandable
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://login.auth0.com/api/v2/tenants/settings"
+
+  	payload := strings.NewReader("{\"error_page\": {\"html\": \"<h1>{{error | escape }} {{error_description | escape }} This error was generated {{'now' | date: '%Y %h'}}.</h1>\", \"show_log_link\": false, \"url\": \"\"}}")
+
+  	req, _ := http.NewRequest("PATCH", url, payload)
+
+  	req.Header.Add("authorization", "Bearer MGMT_API_ACCESS_TOKEN")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java lines
+  HttpResponse<String> response = Unirest.patch("https://login.auth0.com/api/v2/tenants/settings")
+    .header("authorization", "Bearer MGMT_API_ACCESS_TOKEN")
+    .header("content-type", "application/json")
+    .body("{\"error_page\": {\"html\": \"<h1>{{error | escape }} {{error_description | escape }} This error was generated {{'now' | date: '%Y %h'}}.</h1>\", \"show_log_link\": false, \"url\": \"\"}}")
+    .asString();
+  ```
+
+  ```javascript Node.JS lines
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'PATCH',
+    url: 'https://login.auth0.com/api/v2/tenants/settings',
+    headers: {
+      authorization: 'Bearer MGMT_API_ACCESS_TOKEN',
+      'content-type': 'application/json'
+    },
+    data: {
+      error_page: {
+        html: '<h1>{{error | escape }} {{error_description | escape }} This error was generated {{\'now\' | date: \'%Y %h\'}}.</h1>',
+        show_log_link: false,
+        url: ''
+      }
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP lines expandable
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://login.auth0.com/api/v2/tenants/settings",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "PATCH",
+    CURLOPT_POSTFIELDS => "{\"error_page\": {\"html\": \"<h1>{{error | escape }} {{error_description | escape }} This error was generated {{'now' | date: '%Y %h'}}.</h1>\", \"show_log_link\": false, \"url\": \"\"}}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer MGMT_API_ACCESS_TOKEN",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python lines
+  import http.client
+
+  conn = http.client.HTTPSConnection("login.auth0.com")
+
+  payload = "{\"error_page\": {\"html\": \"<h1>{{error | escape }} {{error_description | escape }} This error was generated {{'now' | date: '%Y %h'}}.</h1>\", \"show_log_link\": false, \"url\": \"\"}}"
+
+  headers = {
+      'authorization': "Bearer MGMT_API_ACCESS_TOKEN",
+      'content-type': "application/json"
+      }
+
+  conn.request("PATCH", "/api/v2/tenants/settings", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby lines
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://login.auth0.com/api/v2/tenants/settings")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Patch.new(url)
+  request["authorization"] = 'Bearer MGMT_API_ACCESS_TOKEN'
+  request["content-type"] = 'application/json'
+  request.body = "{\"error_page\": {\"html\": \"<h1>{{error | escape }} {{error_description | escape }} This error was generated {{'now' | date: '%Y %h'}}.</h1>\", \"show_log_link\": false, \"url\": \"\"}}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+| Valor                   | Descripción                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `MGMT_API_ACCESS_TOKEN` | [Token de acceso para la Management API](https://auth0.com/docs/api/management/v2/tokens) con el scope `update:tenant_settings`. |
+| `show_log_link`         | Indica si se muestra un enlace al error en los logs de tu tenant. Los valores válidos son `true` y `false`.                      |
+| `html`                  | HTML de la página de error personalizada que quieres mostrar.                                                                    |
+
+Para evitar vulnerabilidades de XSS, sanitiza tu plantilla personalizada con los filtros [escape](https://shopify.github.io/liquid/filters/escape/) y [strip&#95;html](https://shopify.github.io/liquid/filters/strip_html/) de Liquid.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Auth0 Universal Login](/docs/es/authenticate/login/auth0-universal-login)

@@ -1,0 +1,117 @@
+---
+description: Découvrez comment utiliser les connexions Passwordless avec la méthode d’authentification par SMS.
+title: Authentification sans mot de passe par SMS
+---
+
+Vous pouvez configurer l’authentification <Tooltip tip="Passwordless : forme d’authentification qui n’utilise pas de mot de passe comme premier facteur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Passwordless">Passwordless</Tooltip> pour envoyer un code à usage unique (OTP) à un utilisateur par SMS. Pour en savoir plus, consultez [Configurer l’e-mail ou le SMS pour l’authentification sans mot de passe](/docs/fr-CA/authenticate/login/auth0-universal-login/passwordless-login/email-or-sms).
+
+Auth0 prend en charge l’utilisation de [Twilio](https://www.twilio.com) et d’un fournisseur de téléphonie personnalisé pour envoyer des OTP. Si vous souhaitez utiliser un fournisseur de téléphonie personnalisé avec Auth0 Actions, consultez [Configurer un fournisseur de téléphonie personnalisé](/docs/fr-CA/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider) ou [Configurer un fournisseur de téléphonie personnalisé avec Terraform](/docs/fr-CA/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/configure-a-custom-phone-provider-with-terraform).
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Lorsqu’un nouvel utilisateur reçoit un code et le saisit pour la première fois dans votre application, son profil utilisateur est créé dans la connexion `sms` avant qu’Auth0 l’authentifie.
+
+Si le numéro de téléphone auquel l’OTP a été envoyé correspond à un utilisateur existant, Auth0 authentifie l’utilisateur :
+
+<div id="embedded-login">
+  ### Connexion intégrée
+</div>
+
+<Frame>![Processus SMS pour l’authentification sans mot de passe](/docs/images/cdy7uua7fh8z/7A1AOmvvAQXheVt9swOtqM/cd38a66a41e3be5f95d9fb0a473b9079/Embedded-login.png)</Frame>
+
+<div id="universal-login">
+  ### Universal Login
+</div>
+
+<Frame>![Schéma du flux d’authentification Passwordless par SMS avec Universal Login](/docs/images/cdy7uua7fh8z/5EmFoTLgH2ByPcFYdsQvXA/fdaf1add4592c70cda7e12e6b1ae60dd/Unvirsal-login.png)</Frame>
+
+<div id="configure-the-phone-provider">
+  ## Configurer le fournisseur téléphonique
+</div>
+
+1. Dans l’Auth0 Dashboard, accédez à [Branding &gt; Phone Provider](https://manage.auth0.com/#/phone/templates/phone/provider).
+2. Activez la bascule Phone Message Provider.
+
+   <Frame>![Auth0 Dashboard > Branding > Phone Provider > Activer Phone Message Provider](/docs/images/cdy7uua7fh8z/1k93jvdxDq2FZLiRdvr5aR/d917431cd0265943c5118174a8673118/2025-02-24_16-43-14.png)</Frame>
+3. Sélectionnez votre fournisseur de messages téléphoniques.
+
+   1. Pour utiliser Twilio, consultez [Configurer Twilio comme Phone Messaging Provider](/docs/fr-CA/customize/phone-messages/configure-phone-messaging-providers/configure-twilio-as-a-phone-messaging-provider).
+   2. Pour utiliser un fournisseur personnalisé, consultez [Configurer un fournisseur de téléphonie personnalisé](/docs/fr-CA/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider) pour utiliser Auth0 Actions.
+4. Sélectionnez votre mode d’envoi.
+5. **Enregistrez** vos modifications.
+
+<div id="legacy-sms-gateway">
+  ## Passerelle SMS Legacy
+</div>
+
+Si le fournisseur de téléphonie personnalisé d’Auth0 Action ne peut pas répondre à votre cas d’utilisation, vous pouvez gérer la passerelle SMS personnalisée des [connexions SMS Passwordless](/docs/fr-CA/authenticate/passwordless) avec <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>. Pour en savoir plus, consultez [Configurer une passerelle SMS personnalisée pour les connexions Passwordless](/docs/fr-CA/authenticate/passwordless/authentication-methods/use-sms-gateway-passwordless).
+
+<div id="configure-passwordless-sms-settings">
+  ### Configurer les paramètres SMS Passwordless
+</div>
+
+1. Dans **Message**, saisissez le texte du corps du SMS.
+
+   <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+     L’espace réservé `@@password@@` sera automatiquement remplacé par le code à usage unique envoyé à l’utilisateur.
+   </Callout>
+2. Ajustez les paramètres **OTP Expiry** et **OTP Length**.
+
+   * Seul le dernier code à usage unique (ou lien) émis sera accepté. Dès qu’un nouveau code est émis, tous les précédents sont invalidés. Une fois utilisé, le plus récent est lui aussi invalidé.
+   * Seules trois tentatives infructueuses de saisie du code à usage unique sont permises. Après cela, il faudra demander un nouveau code.
+   * Le code à usage unique émis sera valide pendant trois minutes (par défaut) avant d’expirer.
+   * Si vous choisissez de prolonger la durée de validité de votre code à usage unique, vous devriez aussi augmenter sa longueur. Sinon, un attaquant disposera de plus de temps pour tenter de deviner un code court.
+3. Déterminez si vous voulez **Disable Sign Ups**. Si vous activez ce paramètre, vous pouvez autoriser l’accès passwordless uniquement aux utilisateurs existants, mais cela peut exposer votre application au risque d’attaques d’énumération d’utilisateurs. Pour en savoir plus, consultez [les bonnes pratiques pour les connexions Passwordless](/docs/fr-CA/authenticate/passwordless/best-practices).
+4. Sélectionnez **Save**.
+
+<div id="multi-language-support">
+  #### Prise en charge multilingue
+</div>
+
+La zone **Message** prend en charge plusieurs langues.
+
+Pour définir une langue, appelez le [point de terminaison Get Code or Link de l’API d’authentification Auth0](https://auth0.com/docs/api/authentication#get-code-or-link) et définissez la valeur de l’en-tête `x-request-language`. Si cet en-tête n’est pas défini, la langue est déterminée à partir de l’en-tête `accept-language`, qui est automatiquement défini par le navigateur.
+
+<div id="message-syntax">
+  #### Syntaxe du message
+</div>
+
+La zone **Message** accepte la syntaxe Liquid. Vous pouvez utiliser cette syntaxe, combinée aux valeurs des paramètres, pour créer par programmation des éléments du message.
+
+Par exemple, vous pouvez faire référence au paramètre `request_language` pour changer la langue du message :
+
+```liquid lines
+{% if request_language contains 'dutch' %}
+   Hier is uw verificatie code: {{ password }}
+{% endif %}
+{% if request_language contains 'fr-FR' %}
+   Ceci est votre code: {{ password }}
+{% endif %}
+```
+
+Les paramètres suivants sont disponibles lors de la définition du modèle de message :
+
+| Paramètre            | Description                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| `password` ou `code` | Le mot de passe à utiliser.                                    |
+| `phone_number`       | Le numéro de téléphone de l’utilisateur.                       |
+| `application.name`   | Le nom de l’application avec laquelle l’utilisateur s’inscrit. |
+| `request_language`   | La langue souhaitée pour le contenu du message.                |
+
+Pour en savoir plus sur l’utilisation de Liquid, consultez [Liquid for Designers sur GitHub](https://github.com/Shopify/liquid/wiki/Liquid-for-Designers).
+
+<div id="enable-applications">
+  ### Activer les applications
+</div>
+
+Passez à l’affichage **Applications**, puis activez les applications pour lesquelles vous souhaitez utiliser Passwordless SMS.
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Unified Phone Experience d’Auth0](/docs/fr-CA/customize/phone-messages/unified-phone)
+* [Utiliser Unified Phone Experience avec Passwordless](/docs/fr-CA/customize/phone-messages/unified-phone/unified-phone-experience-passwordless)
+* [Configurer Unified Phone Experience d’Auth0](/docs/fr-CA/customize/phone-messages/unified-phone/configure-unified-phone)

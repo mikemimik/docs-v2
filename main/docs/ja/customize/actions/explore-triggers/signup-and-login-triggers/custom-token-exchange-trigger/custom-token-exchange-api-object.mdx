@@ -1,0 +1,527 @@
+---
+#
+# このファイルは自動生成されています。
+# 手動で編集しないでください。
+#
+description: custom-token-exchange Action トリガーの API オブジェクトについて説明します。
+title: 'Actions トリガー: custom-token-exchange - API オブジェクト'
+validatedOn: 2026-06-03
+---
+
+custom-token-exchange Actions トリガーの API オブジェクトには、次のものが含まれます。
+
+<div id="apiaccess">
+  ## `api.access`
+</div>
+
+トークン交換リクエストに対するアクセスを制御します。たとえば、リクエストを拒否できます。
+
+<div id="apiaccessdenycode-reason">
+  ### `api.access.deny(code, reason)`
+</div>
+
+現在のトークン交換を拒否としてマークします。
+
+無効なサブジェクトトークンが原因でリクエストを拒否する場合は、代わりに api.access.rejectInvalidSubjectToken を使用することを推奨します。
+これにより、サブジェクトトークンに対するブルートフォースの試行と、その他の理由によるリクエストの拒否を区別できます。
+
+<ResponseField name="code" type="string">
+  トークン交換の拒否理由を示すエラーコードです。invalid&#95;request、server&#95;error、または任意のカスタムコードを指定できます
+</ResponseField>
+
+<ResponseField name="reason" type="string">
+  トークン交換リクエストを拒否する理由を人が理解できる形で説明したものです。
+</ResponseField>
+
+```js
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+
+  // 1. subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+
+  // 2. ユーザーに認可ポリシーを適用する
+  const isAuthorized = await authorizeAccess(subject_token.sub);
+  if (!isAuthorized) {
+    api.access.deny('Unauthorized_login', 'User cannot login due to reason: X');
+  }
+
+  // ユーザーが認可されている場合は、以降の処理を続行する
+
+};
+```
+
+<div id="apiaccessrejectinvalidsubjecttokenreason">
+  ### `api.access.rejectInvalidSubjectToken(reason)`
+</div>
+
+リクエストで渡されたサブジェクトトークンを無効としてマークします。これにより、リクエストは
+&quot;invalid&#95;request&quot; エラーコードで拒否されます。
+
+これにより、無効なサブジェクトトークンが渡されたことが攻撃対策機能に通知され、
+サブジェクトトークンに対するブルートフォース攻撃を防ぐための保護を適用できるようになります。
+
+<ResponseField name="reason" type="string">
+  トークン交換リクエストを拒否する理由を、人が理解できる形で説明したものです。
+</ResponseField>
+
+```js
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+
+  try {
+    // subject_token を検証する
+    const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+    // トランザクションのユーザーを設定する
+    api.authentication.setUserById(subject_token.id);
+
+  } catch (error) {
+    if (error.message === 'Invalid Token') {
+      // subject_token が無効な場合
+      console.error('Invalid Token error');
+      api.access.rejectInvalidSubjectToken('Invalid subject_token');
+    } else {
+      // その他の予期しないエラーが発生した場合はサーバーエラーをスローする
+      throw error;
+    }
+  }
+
+};
+```
+
+<div id="apiauthentication">
+  ## `api.authentication`
+</div>
+
+サブジェクトトークンの認証結果を示し、トークンの発行先となるユーザーを指定します。
+
+<div id="apiauthenticationsetuserbyiduser_id">
+  ### `api.authentication.setUserById(user_id)`
+</div>
+
+userId を指定して、subject&#95;token に対応するユーザーを特定します。トークン交換リクエストでは、このユーザーに対するトークンが発行されます。
+指定するユーザーは、既存のユーザーである必要があります。
+注: カスタムトークン交換 Action では、`api.authentication.setUserByConnection` と `api.authentication.setUserById` のどちらか一方のみを呼び出す必要があります。
+
+<ResponseField name="user_id" type="string">
+  ユーザーの ID。既存のユーザーである必要があります。
+</ResponseField>
+
+```js
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+
+  // 1. subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+
+  // 2. ユーザーに認可ポリシーを適用する
+  const isAuthorized = await authorizeAccess(subject_token.sub);
+  if (!isAuthorized) {
+    api.access.deny('Unauthorized_login', 'User cannot login due to reason: X');
+  }
+
+  // 3. トランザクションのユーザーを設定する
+  api.authentication.setUserById(subject_token.sub);
+
+  return;
+};
+```
+
+<div id="apiauthenticationsetuserbyconnectionconnection_name-user_attributes-options">
+  ### `api.authentication.setUserByConnection(connection_name, user_attributes, options)`
+</div>
+
+接続とユーザー属性を指定して、subject&#95;token に対応するユーザーを指定します。
+トークン交換リクエストは、このユーザーに対するトークンを発行します。
+
+このユーザーは、既存ユーザーでも新規ユーザーでもかまいません。ユーザーが存在しない場合は作成されます。
+ユーザーがすでに存在するかどうかは、user&#95;profile の user&#95;id プロパティを使って判定されます。
+
+注: カスタムトークン交換Actionでは、api.authentication.setUserByConnection または api.authentication.setUserById のいずれか一方のみを必ず呼び出す必要があります。
+
+<ResponseField name="connection_name" type="string">
+  ユーザーを保存する接続の名前。
+</ResponseField>
+
+<ResponseField name="user_attributes" type="customtokenexchangesetuserbyconnectionuserattributes">
+  user&#95;id を含み、必要に応じて email、name などの他の属性も含む、ユーザーのプロファイル属性。
+
+  user&#95;id フィールドは必須で、接続内でユーザーを一意に識別する値である必要があります。
+  これは、ユーザーが存在するかどうか、または作成する必要があるかどうかを判断するために使用されます。既存ユーザーの場合、この user&#95;id は
+  正規化されたユーザープロファイルの identities 配列を確認することで特定できます。
+
+  ユーザーがすでに存在する場合、次のユーザー属性は更新できません: email, email&#95;verified, phone, phone&#95;verified, username。
+  これらが既存ユーザーの値と一致しない場合は、エラーが返されます。
+
+  <Expandable title="user_attributes のプロパティ" defaultOpen>
+    <ResponseField name="email" type="string" post={["optional"]}>
+      ユーザーのメールアドレス。
+    </ResponseField>
+
+    <ResponseField name="email_verified" type="boolean" post={["optional"]}>
+      このメールアドレスが確認済み (`true`) か、未確認 (`false`) か。
+    </ResponseField>
+
+    <ResponseField name="family_name" type="string" post={["optional"]}>
+      ユーザーの姓。
+    </ResponseField>
+
+    <ResponseField name="given_name" type="string" post={["optional"]}>
+      ユーザーの名。
+    </ResponseField>
+
+    <ResponseField name="name" type="string" post={["optional"]}>
+      ユーザーの氏名。
+    </ResponseField>
+
+    <ResponseField name="nickname" type="string" post={["optional"]}>
+      ユーザーのニックネーム。
+    </ResponseField>
+
+    <ResponseField name="phone_number" type="string" post={["optional"]}>
+      ユーザーの電話番号 (E.164 の推奨形式に従う) 。
+    </ResponseField>
+
+    <ResponseField name="phone_verified" type="boolean" post={["optional"]}>
+      この電話番号が確認済み (`true`) か、未確認 (`false`) か。
+    </ResponseField>
+
+    <ResponseField name="picture" type="string" post={["optional"]}>
+      ユーザーのプロフィール画像を指す URI。
+    </ResponseField>
+
+    <ResponseField name="user_id" type="string">
+      接続内でのユーザーの一意の識別子。
+    </ResponseField>
+
+    <ResponseField name="username" type="string" post={["optional"]}>
+      ユーザーのユーザー名。
+    </ResponseField>
+
+    <ResponseField name="verify_email" type="boolean" post={["optional"]}>
+      作成後にユーザーへ確認メールを送信するか (`true`)、送信しないか (`false`)。
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="options" type="customtokenexchangesetuserbyconnectionoptions">
+  setUserByConnection コマンドの動作を制御するオプション。
+
+  * `creationBehavior` - 接続内に指定された user&#95;id を持つユーザーが存在しない場合に適用される動作。
+    `create_if_not_exists` を指定すると、指定されたユーザー属性を使用して新しいユーザーが作成されます。
+    `none` を指定すると、ユーザーは作成されず、ユーザーが存在しない場合はエラーが返されます。
+
+  * `updateBehavior` - 接続内に指定された user&#95;id を持つユーザーがすでに存在する場合に適用される動作。
+    `replace` を指定すると、既存ユーザーの属性は指定された
+    ユーザー属性で置き換えられます。`none` を指定すると、既存ユーザーは変更されません。
+
+  <Expandable title="options のプロパティ" defaultOpen>
+    <ResponseField name="creationBehavior" type="string">
+      接続内に指定された user&#95;id を持つユーザーが存在しない場合に適用される動作。
+
+      許可される値: `create_if_not_exists`, `none`
+    </ResponseField>
+
+    <ResponseField name="updateBehavior" type="string">
+      接続内に指定された user&#95;id を持つユーザーがすでに存在する場合に適用される動作。
+
+      許可される値: `none`, `replace`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```js Set user by connection with full profile attributes
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+
+  // 1. subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+
+  // 2. ユーザーに認可ポリシーを適用する
+  const isAuthorized = await authorizeAccess(subject_token.sub);
+  if (!isAuthorized) {
+    api.access.deny('Unauthorized_login', 'User cannot login due to reason: X');
+  }
+
+  // 3. トランザクションのユーザーを設定する
+  api.authentication.setUserByConnection(
+    'My Connection',
+    {
+      user_id: subject_token.sub,
+      email: subject_token.email,
+      email_verified: subject_token.email_verified,
+      phone_number: subject_token.phone_number,
+      phone_verified: subject_token.phone_number_verified,
+      username: subject_token.preferred_username,
+      name: subject_token.name,
+      given_name: subject_token.given_name,
+      family_name: subject_token.family_name,
+      nickname: subject_token.nickname,
+      verify_email: false
+    },
+    {
+      creationBehavior: 'create_if_not_exists',
+      updateBehavior: 'none'
+    }
+  );
+
+  return;
+};
+```
+
+```js Create a user without verifying email
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+
+  // subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+
+  // ユーザーを作成するが、メールアドレスを確認しない
+  api.authentication.setUserByConnection(
+    'My Connection',
+    {
+      user_id: subject_token.sub,
+      email: subject_token.email,
+      email_verified: false,
+      verify_email: false
+    },
+    {
+      creationBehavior: 'create_if_not_exists',
+      updateBehavior: 'none'
+    }
+  );
+
+  return;
+};
+```
+
+<div id="apiauthenticationsetorganizationorganization_id_or_name">
+  ### `api.authentication.setOrganization(organization_id_or_name)`
+</div>
+
+token exchange に関連付けられたユーザーの organization を設定します。
+
+<ResponseField name="organization_id_or_name" type="string">
+  ユーザーに設定する organization の ID または名前です。
+</ResponseField>
+
+```js
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+
+  // 1. subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+
+  // 2. ユーザーに認可ポリシーを適用する
+  const isAuthorized = await authorizeAccess(subject_token.sub);
+  if (!isAuthorized) {
+    api.access.deny('Unauthorized_login', 'User cannot login due to reason: X');
+  }
+
+  // 3. トランザクションのorganizationを設定する
+  api.authentication.setOrganization('org_xS525r979AS33MSf');
+
+  // 4. トランザクションのユーザーを設定する。setUserByConnection()を使用することもできます
+  api.authentication.setUserById(subject_token.sub);
+
+  return;
+};
+```
+
+<div id="apiauthenticationsetactoractor">
+  ### `api.authentication.setActor(actor)`
+</div>
+
+トークン交換で、`subject` の代理として動作するエンティティを表す actor を設定します。
+`setUserById` または `SetUserByConnection` コマンドとあわせて使用する必要があります。`setActor` の呼び出しは任意です。
+リクエストで `actor_token` を受け取っても、`act` claim が自動的に生成されることはありません。Action でこのメソッドを明示的に呼び出す必要があります。
+トランザクションに actor が設定されている場合、リフレッシュトークンは発行されません。
+
+<ResponseField name="actor" type="actorparams">
+  委譲チェーンを表すネストされたオブジェクトです。追加の `act` レベルは最大 4 つまで使用できます
+   (ルート actor を含めて actor は合計 5 つまで) 。各レベルで `sub` フィールドは必須です。さらに最大 5 つの
+  カスタムプロパティ (string、boolean、または number の値) を指定できます。
+
+  <Expandable title="actor プロパティ" defaultOpen>
+    <ResponseField name="sub" type="string" />
+
+    <ResponseField name="act" type="dictionary" post={["optional"]}>
+      <Expandable title="act プロパティ" defaultOpen>
+        <ResponseField name="sub" type="string" />
+
+        <ResponseField name="act" type="dictionary" post={["optional"]}>
+          <Expandable title="act プロパティ" defaultOpen>
+            <ResponseField name="sub" type="string" />
+
+            <ResponseField name="act" type="dictionary" post={["optional"]}>
+              <Expandable title="act プロパティ">
+                <ResponseField name="sub" type="string" />
+
+                <ResponseField name="act" type="dictionary" post={["optional"]}>
+                  <Expandable title="act プロパティ">
+                    <ResponseField name="sub" type="string" />
+
+                    <ResponseField name="act" type="undefined" post={["optional"]} />
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```js
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+
+  // 1. subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+  const actor_token = await validateToken(event.transaction.actor_token, jwksUri);
+
+  // 2. transactionのactorを設定する
+  api.authentication.setActor({ sub: actor_token.sub });
+
+  // 3. transactionのユーザーを設定する
+  api.authentication.setUserById(subject_token.sub);
+
+  return;
+};
+```
+
+<div id="apiuser">
+  ## `api.user`
+</div>
+
+サブジェクトトークンに対応するユーザーの変更をリクエストします。
+
+<div id="apiusersetappmetadatakey-value">
+  ### `api.user.setAppMetadata(key, value)`
+</div>
+
+サブジェクトトークンに対応するユーザーの、アプリケーション固有のメタデータを設定します。
+
+<ResponseField name="key" type="string">
+  設定するメタデータのプロパティです。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  メタデータのプロパティの値です。メタデータのプロパティを削除するには、この値を `null` に設定します。
+</ResponseField>
+
+```js
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+  // subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+
+  // トランザクションのユーザーを設定する
+  api.authentication.setUserById(subject_token.id);
+
+  // subject_tokenに含まれる情報に基づいてユーザーグループを設定する
+  api.user.setAppMetadata('group', subject_token.group);
+
+  return;
+};
+```
+
+<div id="apiusersetusermetadatakey-value">
+  ### `api.user.setUserMetadata(key, value)`
+</div>
+
+サブジェクトトークンに対応するユーザーの一般的なメタデータを設定します。
+
+<ResponseField name="key" type="string">
+  設定するメタデータのプロパティです。
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  メタデータのプロパティの値です。この値を `null` に設定すると、メタデータのプロパティを削除できます。
+</ResponseField>
+
+```js
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+  // subject_tokenを検証する
+  const subject_token = await validateToken(event.transaction.subject_token, jwksUri);
+
+  // トランザクションのユーザーを設定する
+  api.authentication.setUserById(subject_token.id);
+
+  // subject_tokenに含まれる情報をもとにユーザーのpreferred_localeを設定する
+  api.user.setUserMetadata('preferred_locale', subject_token.locale);
+
+  return;
+};
+```
+
+<div id="apicache">
+  ## `api.cache`
+</div>
+
+実行をまたいで保持されるデータを保存・取得します。
+
+<div id="apicachedeletekey">
+  ### `api.cache.delete(key)`
+</div>
+
+指定されたキーに、キャッシュされた値を表すレコードが存在する場合は削除します。
+
+<ResponseField name="key" type="string">
+  削除するキャッシュレコードのキー。
+</ResponseField>
+
+<div id="apicachegetkey">
+  ### `api.cache.get(key)`
+</div>
+
+指定されたキーにあるキャッシュ済みの値を表すレコードが存在する場合は、
+そのレコードを取得します。レコードが見つかった場合、キャッシュされた値は
+返されるオブジェクトの `value` プロパティに格納されています。
+
+<ResponseField name="key" type="string">
+  キャッシュに保存されているレコードのキー。
+</ResponseField>
+
+<div id="apicachesetkey-value-options">
+  ### `api.cache.set(key, value, options)`
+</div>
+
+指定したキーに、文字列値をキャッシュへ保存または更新します。
+
+このキャッシュに保存された値は、設定されたトリガーの範囲内でのみ有効です。これらの値には、[Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations) が適用されます。
+
+この方法で保存された値の有効期間は、指定された
+`ttl` または `expires_at` の値までの *最大* となります。有効期間が指定されていない場合は、デフォルトで
+15 分の有効期間が使用されます。有効期間は
+[Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations) に記載されている最大時間を超えることはできません。
+
+**重要**: このキャッシュは、短期間のみ保持される一時的なデータ向けに設計されています。指定された有効期間内であっても、
+後続のトランザクションでは項目を利用できない場合があります。
+
+<ResponseField name="key" type="string">
+  保存するレコードのキー。
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  保存するレコードの値。
+</ResponseField>
+
+<ResponseField name="options" type="cachesetoptions" post={["optional"]}>
+  キャッシュの動作を調整するためのオプション。
+
+  <Expandable title="options のプロパティ" defaultOpen>
+    <ResponseField name="expires_at" type="number" post={["optional"]}>
+      Unix エポックからの経過時間をミリ秒で表した絶対的な有効期限です。
+      キャッシュされたレコードはそれより前に削除されることがありますが、
+      指定された `expires_at` を超えて保持されることはありません。
+
+      *注*: `ttl` にも値が
+      指定されている場合、この値は指定しないでください。両方のオプションが指定された場合は、
+      2 つのうち早いほうの有効期限が使用されます。
+    </ResponseField>
+
+    <ResponseField name="ttl" type="number" post={["optional"]}>
+      このキャッシュエントリの有効期間をミリ秒で表した値です。
+      キャッシュされた値はそれより前に削除されることがありますが、
+      指定された `ttl` を超えて保持されることはありません。
+
+      *注*: `expires_at` にも値が
+      指定されている場合、この値は指定しないでください。両方のオプションが指定された場合は、
+      2 つのうち早いほうの有効期限が使用されます。
+    </ResponseField>
+  </Expandable>
+</ResponseField>

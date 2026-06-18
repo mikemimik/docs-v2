@@ -1,0 +1,201 @@
+---
+description: Aprende a revocar la clave de firma de la aplicación de tu tenant mediante el Auth0 Dashboard o la Management API.
+title: Revocar claves de firma
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+Puedes revocar la clave de firma de la aplicación o la API de tu tenant mediante el <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o la <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>. La clave de firma se usa para firmar <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=ID+tokens">tokens de ID</Tooltip>, <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip>, aserciones <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip> y aserciones <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=WS-Fed">WS-Fed</Tooltip> que se envían a tu aplicación o API. Para obtener más información, consulta [Claves de firma](/docs/es/get-started/tenant-settings/signing-keys).
+
+<div id="prerequisites">
+  ## Requisitos previos
+</div>
+
+* Antes de poder revocar una clave de firma utilizada anteriormente, primero debes haber rotado la clave. Para obtener más información, lee [Rotate Signing Keys](/docs/es/get-started/tenant-settings/signing-keys/rotate-signing-keys) o consulta la sección **Rotar y revocar la clave de firma** a continuación.
+* Asegúrate de haber actualizado tu aplicación o API con la nueva clave antes de revocar la clave anterior.
+
+<Warning>
+  No puedes reutilizar una clave de firma después de revocarla, así que asegúrate de que realmente quieres revocarla.
+</Warning>
+
+<div id="use-the-dashboard">
+  ## Usar el Dashboard
+</div>
+
+<div id="revoke-previously-used-signing-key">
+  ### Revocar la clave de firma usada anteriormente
+</div>
+
+1. Ve a [Dashboard &gt; Settings &gt; Signing Keys](https://manage.auth0.com/#/tenant/signing_keys).
+2. En la sección **List of Valid Keys**, busca la clave **Previously Used**, abre el menú de más opciones (**...**) y selecciona **Revoke Key**.
+   La sección **List of Valid Keys** muestra la clave de firma actual que usa tu tenant, además de la siguiente clave de firma que se asignará si decides rotar tus claves de firma. Si ya has rotado tus claves de firma, esta sección también muestra las claves usadas anteriormente.
+   La sección **List of Revoked Keys** muestra las tres últimas claves revocadas de tu tenant.
+3. Selecciona **Revoke** para confirmar.
+
+<div id="rotate-and-revoke-signing-key">
+  ### Rotar y revocar la clave de firma
+</div>
+
+1. Ve al [Dashboard &gt; Settings &gt; Signing Keys](https://manage.auth0.com/#/tenant/signing_keys).
+2. En la sección **Rotation Settings**, busca la sección **Rotate &amp; Revoke Signing Key** y selecciona **Rotate &amp; Revoke Key**.
+3. Selecciona **Rotate &amp; Revoke** para confirmar.
+
+<div id="use-the-management-api">
+  ## Usar la Management API
+</div>
+
+<Warning>
+  Solo puedes revocar la clave de firma que se usó anteriormente.
+</Warning>
+
+1. Para obtener una lista de las claves de firma, haz una llamada `GET` al endpoint [Get all Application Signing Keys](https://auth0.com/docs/api/management/v2#!/Keys/get_signing_keys).
+2. Haz una llamada `PUT` al endpoint [Revoke an Application Signing Key by its Key ID](https://auth0.com/docs/api/management/v2#!/Keys/put_signing_keys). Asegúrate de reemplazar los valores de marcador de posición `{yourKeyId}` y `{yourMgmtApiAccessToken}` por el ID de tu clave de firma y tu token de acceso de la Management API, respectivamente.
+
+<AuthCodeGroup>
+  ```bash cURL
+     curl --request PUT \
+  --url 'https://{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke' \
+  --header 'authorization: Bearer {yourMgmtApiAccessToken}'
+
+  ```
+
+  ```csharp C#
+     var client = new RestClient("https://{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke");
+  var request = new RestRequest(Method.PUT);
+  request.AddHeader("authorization", "Bearer {yourMgmtApiAccessToken}");
+  IRestResponse response = client.Execute(request);
+
+  ```
+
+  ```go Go
+     package main
+
+  import (
+     "fmt"
+     "net/http"
+     "io/ioutil"
+  )
+
+  func main() {
+
+     url := "https://{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke"
+
+     req, _ := http.NewRequest("PUT", url, nil)
+
+     req.Header.Add("authorization", "Bearer {yourMgmtApiAccessToken}")
+
+     res, _ := http.DefaultClient.Do(req)
+
+     defer res.Body.Close()
+     body, _ := ioutil.ReadAll(res.Body)
+
+     fmt.Println(res)
+     fmt.Println(string(body))
+
+  }
+
+  ```
+
+  ```java Java
+     HttpResponse response = Unirest.put("https://{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke")
+     .header("authorization", "Bearer {yourMgmtApiAccessToken}")
+     .asString();
+
+  ```
+
+  ```javascript Node.JS
+     var axios = require("axios").default;
+
+  var options = {
+  method: 'PUT',
+  url: 'https://{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke',
+  headers: {authorization: 'Bearer {yourMgmtApiAccessToken}'}
+  };
+
+  axios.request(options).then(function (response) {
+  console.log(response.data);
+  }).catch(function (error) {
+  console.error(error);
+  });
+
+  ```
+
+  ```php PHP
+     $curl = curl_init();
+
+  curl_setopt_array($curl, [
+  CURLOPT_URL => "https://{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "PUT",
+  CURLOPT_HTTPHEADER => [
+     "authorization: Bearer {yourMgmtApiAccessToken}"
+  ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+  echo "cURL Error #:" . $err;
+  } else {
+  echo $response;
+  }
+
+  ```
+
+  ```python Python
+     import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer {yourMgmtApiAccessToken}" }
+
+  conn.request("PUT", "/{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+
+  ```
+
+  ```ruby Ruby
+     require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/keys/signing/%7ByourKeyId%7D/revoke")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Put.new(url)
+  request["authorization"] = 'Bearer {yourMgmtApiAccessToken}'
+
+  response = http.request(request)
+  puts response.read_body
+
+  ```
+</AuthCodeGroup>
+
+| Valor                   | Descripción                                                                                                                                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `YOUR_KEY_ID`           | ID de la clave de firma que se va a revocar. Para obtener información sobre cómo encontrar el ID de tu clave de firma, consulta [Ubicar conjuntos de claves web JSON](/docs/es/secure/tokens/json-web-tokens/locate-json-web-key-sets). |
+| `MGMT_API_ACCESS_TOKEN` | [token de acceso para la Management API](https://auth0.com/docs/api/management/v2/tokens) con el scope `update:signing_keys`.                                                                                                        |
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Rotar las claves de firma](/docs/es/get-started/tenant-settings/signing-keys/rotate-signing-keys)
+* [Ver los certificados de firma](/docs/es/get-started/tenant-settings/signing-keys/view-signing-certificates)
+* [Cambiar los algoritmos de firma de la aplicación](/docs/es/get-started/applications/change-application-signing-algorithms)

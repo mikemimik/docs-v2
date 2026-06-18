@@ -1,0 +1,168 @@
+---
+description: Décrit la fonctionnalité de migration des utilisateurs du Login by Auth0 WordPress Plugin
+title: Migration des utilisateurs dans le Login by Auth0 WordPress Plugin
+---
+
+La fonctionnalité de migration des utilisateurs s’appuie sur une fonctionnalité de base d’Auth0 appelée Bases de données personnalisées, combinée aux points de terminaison d’URL du plugin Login by Auth0, pour permettre aux utilisateurs de s’authentifier à l’aide de comptes d’utilisateur WordPress existants. Pour en savoir plus sur les bases de données personnalisées, consultez [Connexions de base de données personnalisées](/docs/fr-CA/authenticate/database-connections/custom-db).
+
+<div id="how-it-works">
+  ## Fonctionnement
+</div>
+
+Lorsque vous activez la migration des données, le plugin expose deux points de terminaison sécurisés qui permettent à Auth0 d’authentifier les utilisateurs au moyen de comptes WordPress. Ces points de terminaison sont protégés par un jeton secret et peuvent être configurés pour n’autoriser que les adresses IP utilisées par Auth0.
+
+Le flux de connexion fonctionne comme suit :
+
+1. Un utilisateur tente de se connecter au moyen d’un formulaire de connexion Auth0 (intégré à votre site ou hébergé par Auth0).
+2. Si Auth0 ne trouve pas d’utilisateur associé aux identifiants fournis dans votre connexion de base de données, il appelle alors le point de terminaison de migration de votre site WordPress en transmettant les identifiants de l’utilisateur et le jeton de migration.
+3. Le plugin repère un utilisateur dans votre base de données WordPress à l’aide du nom d’utilisateur ou de l’adresse courriel fournis, puis vérifie le mot de passe.
+4. Si l’utilisateur peut être authentifié avec succès, Auth0 crée l’utilisateur dans la connexion de base de données de votre site, l’authentifie et ouvre sa session.
+5. À sa prochaine ouverture de session, l’utilisateur utilisera le compte Auth0, et le point de terminaison de migration sera ignoré.
+
+La migration des utilisateurs doit être configurée lorsque le site est connecté à Auth0 pour la première fois. Toute tentative d’activer ou de désactiver des scripts de base de données personnalisés pour une connexion de base de données qui a déjà eu des utilisateurs échouera. Consultez la section **Dépannage** pour en savoir plus sur le passage d’un mode à l’autre.
+
+<div id="set-up-and-configuration">
+  ## Configuration initiale et configuration
+</div>
+
+La façon la plus simple de mettre en place la migration des utilisateurs consiste à utiliser l’assistant de configuration lors de l’installation initiale du plugin. Pour en savoir plus sur le processus, consultez [Install Login by Auth0](/docs/fr-CA/customize/integrations/cms/wordpress-plugin/install-login-by-auth0).
+
+Si l’assistant de configuration de la migration des utilisateurs n’a pas pu aller jusqu’au bout, ou si vous souhaitez voir le processus plus en détail, suivez les étapes ci-dessous. Encore une fois, on repart ici de zéro avec une connexion à la base de données qui ne contient aucun utilisateur. Le processus suivant doit être effectué sur un site sans trafic ou avec le mode maintenance activé.
+
+1. [Créez et configurez correctement une Application](/docs/fr-CA/customize/integrations/cms/wordpress-plugin/configure-login-by-auth0), puis créez et activez une Database Connection vide pour l’Application. Il peut s’agir des mêmes éléments que ceux créés dans le cadre du processus standard du Setup Wizard, ou vous pouvez les créer à partir de zéro. Pour en savoir plus sur le Setup Wizard, consultez [Install Login by Auth0](/docs/fr-CA/customize/integrations/cms/wordpress-plugin/install-login-by-auth0).
+2. Dans l’écran **Auth0 &gt; Settings** de WordPress, assurez-vous que le Domain, le Client ID et le Client Secret de l’Application sont enregistrés dans les bons champs de l’onglet **Basic**.
+3. Dans la vue **Advanced**, activez le paramètre **User Migration Endpoints**, puis sélectionnez **Save Changes**. Si vous utilisez des paramètres définis par constantes, définissez `AUTH0_ENV_MIGRATION_WS` sur `true` et `AUTH0_ENV_MIGRATION_TOKEN` sur une chaîne aléatoire sécurisée d’au moins 16 caractères, sans guillemets simples ni barres obliques inverses.
+4. Sous les paramètres, vous devriez maintenant voir un **Security Token**. Gardez cette page ouverte, car vous aurez besoin de cette valeur plus tard dans le processus.
+5. Dans le Auth0 Dashboard, accédez à la Database Connection que vous souhaitez utiliser et activez **Requires Username** ainsi que **Import Users to Auth0**.
+6. Sélectionnez la vue **Custom Database**, puis activez **Use my own database**.
+7. Deux onglets devraient apparaître sous ce paramètre dans **Database Action Scripts** : un pour **Login** et un pour **Get User**.
+8. Sélectionnez la vue **Login**, supprimez le code existant, [copiez le code db-login.js du GitHub repository](https://raw.githubusercontent.com/auth0/wp-auth0/4.4.0/lib/scripts-js/db-login.js), puis collez-le dans l’éditeur de code.
+9. **Cette étape s’applique aux versions 3.10.0 et antérieures :** repérez `{THE_WS_URL}` et remplacez-le par l’URL du site de votre instance WordPress, suivie de `/index.php?a0_action=migration-ws-login`. L’URL du site se trouve dans l’écran **Settings &gt; General** de wp-admin. Vous pouvez le vérifier en collant l’URL complète dans votre navigateur. Vous devriez voir `{"status":401,"error":"Unauthorized"}`.
+10. **Cette étape s’applique aux versions 3.10.0 et antérieures :** repérez `{THE_WS_TOKEN}` et remplacez-le par le token qui apparaît sous le paramètre **User Migration Endpoints**.
+11. Il ne devrait y avoir aucune erreur dans l’éditeur. Si tout semble correct, cliquez sur **Save** en haut.
+12. **Cette étape s’applique à la version 3.11.0 et aux versions ultérieures :** faites défiler la page jusqu’à **Paramètres** et ajoutez les variables de configuration suivantes :
+
+    * `endpointUrl` défini sur l’URL du site de votre instance WordPress (**wp-admin &gt; Réglages &gt; Général &gt; champ « Site URL »**), suivie de `/index.php?a0_action=`.
+    * `migrationToken` défini sur la valeur du token de sécurité indiquée à l’étape 4 ci-dessus.
+    * `userNamespace` défini sur le nom de votre Application dans Auth0, ou sur toute autre valeur ne contenant que des lettres, des chiffres et des tirets.
+
+    <Frame>![Paramètres de la base de données personnalisée du WordPress Plugin](/docs/images/cdy7uua7fh8z/1icr0yX47nODUrzP7B6Xl2/b43621c3b6641f68bcb14ac38b237c11/auth0-custom-database-config.png)</Frame>
+13. Cliquez sur le bouton **Try** en haut et utilisez un compte d’utilisateur WordPress valide dans le formulaire qui s’affiche. Vous devriez voir &quot;The profile is&quot;, suivi des données de l’utilisateur. Sinon, veuillez consulter la section **Troubleshooting** ci-dessous.
+14. Sélectionnez la vue **Get User**, effacez le code existant, [copiez le code db-get-user.js du GitHub repository](https://raw.githubusercontent.com/auth0/wp-auth0/4.4.0/lib/scripts-js/db-get-user.js), puis collez-le dans l’éditeur de code.
+15. **Cette étape s’applique à la version 3.10.0 et aux versions antérieures :** Recherchez `{THE_WS_URL}` et remplacez-le par l’URL du site de votre instance WordPress, suivie de /index.php?a0&#95;action=`migration-ws-get-user`. L’URL du site se trouve dans l’écran **Settings &gt; General** de wp-admin. Vous pouvez le tester en collant l’URL complète dans votre navigateur. Vous devriez voir `{"status":401,"error":"Unauthorized"}`.
+16. **Cette étape s’applique à la version 3.10.0 et aux versions antérieures :** Recherchez `{THE_WS_TOKEN}` et remplacez-le par le token indiqué sous le paramètre **User Migration Endpoints**.
+17. Il ne devrait y avoir aucune erreur dans l’éditeur. Si tout semble bon, cliquez sur **Save**.
+18. Cliquez sur le bouton **Try** en haut et utilisez l’adresse courriel d’un compte d’utilisateur WordPress valide dans le formulaire qui s’affiche. Vous devriez voir &quot;The profile is&quot;, suivi des données de l’utilisateur. Sinon, veuillez consulter la section **Troubleshooting** ci-dessous.
+19. Dans une nouvelle session de navigateur, accédez à une login page sur le site WordPress et tentez de vous connecter (l’utilisateur ne doit pas déjà exister dans la base de données). Vous remarquerez que le login process est un peu plus long que d’habitude au début, mais il devrait réussir. Les connexions suivantes seront plus rapides.
+20. (FACULTATIF) Pour activer une sécurité supplémentaire pour les endpoints de migration, accédez à l’écran **Auth0 &gt; Settings** dans WordPress, activez l’option, puis cliquez sur **Save Changes**. Tentez de vous connecter avec un autre utilisateur pour vérifier qu’Auth0 peut toujours atteindre les endpoints.
+
+À cette étape, la configuration de la migration des utilisateurs est terminée, et les utilisateurs WordPress existants seront migrés progressivement vers la connexion de base de données d’Auth0.
+
+<div id="troubleshooting">
+  ## Dépannage
+</div>
+
+Les problèmes liés à la migration des utilisateurs proviennent généralement de quelques sources :
+
+* URL ou jeton incorrect dans les scripts de base de données personnalisés.
+* Liste d’autorisation IP activée, mais avec des adresses IP incorrectes.
+* Points de terminaison restreints ou mis en cache sur votre instance WordPress.
+
+Pour commencer à dépanner le problème, le mieux est d’utiliser le bouton **Try** du script **Login**, qui se trouve dans la vue **Custom Database** de la connexion de base de données utilisée dans [Auth0 Dashboard &gt; Authentication &gt; Database](https://manage.auth0.com/#/connections/database). Voici les messages d’erreur que vous pourriez voir et les étapes à suivre pour corriger le problème.
+
+<div id="unexpected-token-in-json-at-position-0">
+  ### Unexpected token &lt; in JSON at position 0
+</div>
+
+Cela signifie que le script personnalisé ne reçoit pas les données dans un format qu’il peut utiliser. La cause la plus probable est une URL de point de terminaison incorrecte dans le script de base de données.
+
+D’abord, copiez l’URL à la ligne 10 du script et collez-la dans votre navigateur. Si le point de terminaison est correct, il devrait afficher l’un des deux messages ci-dessous :
+
+`{"status":401,"error":"Unauthorized"}`
+
+`// ou`
+
+`{"status":403,"error":"Forbidden"}`
+
+Si vous voyez la page d’accueil ou une erreur 404, c’est que l’URL est incorrecte. Repérez l’URL de votre site sous **Réglages &gt; Général &gt; URL du site** dans l’interface d’administration WordPress. Ajoutez `/index.php?a0_action=migration-ws-login` à la fin pour le script Login et `/index.php?a0_action=migration-ws-get-user` à la fin pour le script Get User.
+
+* **Pour les versions 3.10.0 et antérieures** : la valeur de l’URL devrait apparaître directement dans le script, comme premier paramètre de l’appel `request.post`.
+* **Pour les versions 3.11.0 et ultérieures** : la valeur du jeton devrait être enregistrée dans une variable de configuration. Ajoutez ce qui suit à la première ligne de la fonction et utilisez le bouton **Try** pour voir ce qui est enregistré pour `endpointUrl` :
+
+`callback(null, configuration);`
+
+Si vous êtes certain que les URL sont correctes et que le problème persiste, vérifiez auprès de votre hébergeur pour vous assurer que ces URL ne sont ni mises en cache ni restreintes d’aucune façon.
+
+<div id="wrong-email-or-password">
+  ### Mauvaise adresse courriel ou mauvais mot de passe
+</div>
+
+Il s’agit de l’erreur par défaut affichée quand un autre problème survient. La façon la plus simple de vérifier ce qui se passe consiste à afficher temporairement l’erreur renvoyée (celles-ci sont opaques par défaut afin d’éviter d’afficher des renseignements qui pourraient être utiles à des attaquants).
+
+À la ligne 30 du script Login, remplacez :
+
+`callback(null);`
+
+par :
+
+`callback(wpUser.error);`
+
+Enregistrez le script, puis essayez de nouveau la connexion. Vous devriez voir l’un des messages suivants et pouvoir cerner le problème à l’aide des étapes ci-dessous. Une fois le problème résolu, remettez le script comme il était au départ.
+
+<div id="forbidden">
+  ### Interdit
+</div>
+
+Cela signifie que les points de terminaison de migration sont désactivés dans votre installation WordPress. Dans WordPress, accédez à **Auth0 &gt; Settings &gt; Advanced** et activez **User Migration Endpoints**. Assurez-vous que le jeton qui s’y affiche est le même que celui utilisé dans les deux scripts de base de données personnalisée :
+
+* **Pour les versions 3.10.0 et antérieures** : la valeur du jeton devrait apparaître dans le script lui-même après `access_token:`
+* **Pour les versions 3.11.0 et ultérieures** : la valeur du jeton devrait être enregistrée dans une variable de configuration. Ajoutez ce qui suit à la première ligne de la fonction et utilisez le bouton **Try** pour voir ce qui est stocké dans `migrationToken` :
+
+`callback(null, configuration);`
+
+<div id="unauthorized">
+  ### Non autorisé
+</div>
+
+Cela signifie que la liste d’autorisation IP pour la migration est activée, mais que l’adresse IP entrante ne figure pas dans la liste. Juste sous le script Login, vous devriez voir une liste d’adresses IP :
+
+<Frame>![Migration d’utilisateurs WordPress - adresses IP d’Auth0](/docs/images/cdy7uua7fh8z/3RnxoRlvXm8FmNfu02fXVn/3672806c9cbf2bfe28503be8b8a63eda/auth0-incoming-ip-addresses.png)</Frame>
+
+Assurez-vous que toutes ces adresses IP figurent dans WordPress, sous **Auth0 &gt; Settings &gt; Advanced**, dans le plugin :
+
+<Frame>![Migration d’utilisateurs WordPress - liste d’autorisation IP](/docs/images/cdy7uua7fh8z/3w6C1IrsSC9hoivpSY122l/d117857524ef8d7872f364d3a7dbabda/migration-ip-whitelist-setting-field.png)</Frame>
+
+Si une ou plusieurs des adresses IP listées dans Auth0 ne figurent pas dans WordPress, ajoutez celles qui manquent dans le champ et enregistrez la page Settings. De plus, [créez une publication dans la Auth0 Community](https://community.auth0.com/tags/wordpress) (et ajoutez l’étiquette &quot;wordpress&quot;) avec la ou les adresses IP manquantes afin que nous puissions corriger le problème.
+
+<div id="unauthorized-missing-authorization-header">
+  ### Non autorisé : en-tête Authorization manquant
+</div>
+
+Le <Tooltip tip="Jeton de sécurité : artefact signé numériquement utilisé pour prouver que l'utilisateur a bien été authentifié." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=security+token">jeton de sécurité</Tooltip> est soit absent du script de base de données (ligne 16), soit votre serveur ne traite pas correctement les en-têtes. Vérifiez le script Login et assurez-vous que le jeton existe et correspond à celui qui se trouve dans WordPress. Si le jeton est bien présent et valide, vous devrez communiquer avec votre hébergeur pour permettre l’analyse de l’en-tête `Authorization`. Pour obtenir de l’aide sur le dépannage du serveur, consultez [Apache 2.4 + PHP-FPM et les en-têtes Authorization sur stackoverflow.com](https://stackoverflow.com/questions/17018586/apache-2-4-php-fpm-and-authorization-headers). Pour voir comment le jeton est récupéré, consultez le [code du plugin dans le GitHub repository.](https://github.com/auth0/wp-auth0/blob/master/lib/WP_Auth0_Routes.php#L138)
+
+<div id="invalid-token">
+  ### Jeton invalide
+</div>
+
+Le jeton de sécurité du script de base de données est incorrect. Vérifiez la ligne 16 du script Login et assurez-vous que le jeton correspond à celui qui se trouve dans WordPress.
+
+<div id="invalid-credentials">
+  ### Identifiants invalides
+</div>
+
+L’adresse courriel et/ou le mot de passe utilisés sont incorrects. Vérifiez que vous avez saisi la bonne adresse courriel et le bon mot de passe. Vous pouvez réinitialiser le mot de passe de l’utilisateur afin de vous assurer qu’il s’agit du bon.
+
+<div id="cannot-change-email-or-incorrect-user-data">
+  ### Impossible de modifier l’adresse courriel ou données utilisateur incorrectes
+</div>
+
+Si vous utilisez plus d’une connexion de base de données personnalisée dans votre tenant Auth0 et que vous n’arrivez pas à modifier l’adresse courriel, ou que des données utilisateur sont enregistrées pour le mauvais utilisateur, il est probable qu’il y ait des ID utilisateur en chevauchement dans Auth0. Ce problème a été corrigé pour les nouveaux sites qui installent la version 3.11.0, mais pour les connexions créées auparavant, il faudra le corriger manuellement en procédant de l’une des façons suivantes :
+
+* Si vous n’avez aucune donnée utilisateur enregistrée à conserver (si vous utilisez seulement la connexion pour permettre la connexion et que vous ne stockez aucune métadonnée), vous pouvez créer une nouvelle connexion de base de données personnalisée en suivant les étapes ci-dessus (en utilisant les notes de la version 3.11.0) et basculer l’Application vers cette nouvelle connexion (assurez-vous de désactiver l’ancienne connexion). La migration redémarrera et il n’y aura aucune incidence sur l’expérience utilisateur.
+* Si vous avez des données dans Auth0 qui doivent être conservées, vous pouvez [utiliser notre extension User Import/Export](/docs/fr-CA/manage-users/user-migration/user-import-export-extension) pour ajuster les données utilisateur.
+  1. Créez une nouvelle connexion de base de données personnalisée en suivant les étapes ci-dessus (en utilisant les notes de la version 3.11.0).
+  2. Exportez tous les utilisateurs de la connexion existante (nous vous recommandons de mettre votre site en mode maintenance pendant la transition, afin qu’aucun utilisateur ne soit oublié).
+  3. Modifiez tous les ID utilisateur pour ajouter l’espace de noms utilisé lors de la création de la nouvelle connexion. Les ID utilisateur devraient passer de quelque chose comme `auth0|123` à `auth0|Your-WP-Site-Name|123`. Ajustez tous les autres champs nécessaires pour respecter le schéma d’importation. Pour en savoir plus, consultez [Bulk User Import Database Schema and Examples](/docs/fr-CA/manage-users/user-migration/bulk-user-import-database-schema-and-examples).
+  4. Activez la nouvelle connexion et désactivez l’ancienne connexion pour votre application.
+  5. Importez les nouvelles données utilisateur dans la nouvelle connexion et effectuez des tests.
+* Si vous avez un compte payant, vous pouvez contacter notre équipe de soutien pour exécuter un script de mise à jour de base de données afin de convertir les ID utilisateur en une version avec espace de noms et d’ajouter en même temps l’espace de noms à votre script de base de données (étape 12 dans **configuration initiale et configuration** ci-dessus).

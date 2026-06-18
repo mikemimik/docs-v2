@@ -1,0 +1,76 @@
+---
+description: 機密アプリケーションとパブリックアプリケーションの違いについて説明します。
+sidebarTitle: 概要
+title: 機密アプリケーションとパブリックアプリケーション
+---
+
+[OAuth 2.0 specification](https://tools.ietf.org/html/rfc6749#section-2.1) によると、アプリケーションはコンフィデンシャルまたはパブリックのいずれかに分類できます。主な違いは、そのアプリケーションが資格情報 (<Tooltip tip="Client ID: Auth0 が登録済みリソースに付与する識別子です。" cta="用語集を見る" href="/docs/ja/glossary?term=client+ID">client ID</Tooltip> やシークレットなど) を安全に保持できるかどうかです。これにより、アプリケーションが使用できる認証の種類が決まります。
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  コンフィデンシャル/パブリックとファーストパーティ/サードパーティは、それぞれ独立した分類です。コンフィデンシャルまたはパブリックは、アプリケーションの認証能力 (シークレットを保持できるかどうか) を表します。ファーストパーティまたはサードパーティは、信頼関係 (そのアプリケーションを誰が所有・運用しているか) を表します。詳しくは、[First-Party and Third-Party Applications](/docs/ja/get-started/applications/first-party-and-third-party-applications) をご覧ください。
+</Callout>
+
+Auth0 Dashboard でアプリケーションを作成すると、Auth0 は新しいアプリケーションに割り当てる Auth0 のアプリケーションタイプを確認し、その情報をもとに、そのアプリケーションがコンフィデンシャルかパブリックかを判断します。
+
+詳しくは、[Check if Application is Confidential or Public](/docs/ja/get-started/applications/confidential-and-public-applications/view-application-type) をご覧ください。
+
+<div id="confidential-applications">
+  ## 機密アプリケーション
+</div>
+
+機密アプリケーションは、資格情報を安全に保持し、権限のない第三者に漏らさずに扱えます。シークレットを保存するために、信頼できるバックエンドサーバーが必要です。
+
+<div id="grant-types">
+  ### グラントタイプ
+</div>
+
+機密アプリケーションは信頼できるバックエンドサーバーを使用し、Auth0 Authentication API の [Get Token](https://auth0.com/docs/api/authentication#get-token) エンドポイントを呼び出して認証を行う際に、Client ID と <Tooltip tip="Client Secret: クライアント（アプリケーション）が認可サーバーに対して認証するために使用する Secret。これはクライアントと認可サーバーだけが知っているべきもので、推測できないよう十分にランダムである必要があります。" cta="用語集を見る" href="/docs/ja/glossary?term=Client+Secret">Client Secret</Tooltip> (または登録済みの別の資格情報) の指定が必要なグラントタイプを使用できます。機密アプリケーションでは、Client Secret Post、Client Secret Basic、または [Private Key JWT](/docs/ja/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt) 認証方式を使用できます。
+
+以下は機密アプリケーションと見なされます。
+
+* 安全なバックエンドを備え、[認可コードフロー](/docs/ja/get-started/authentication-and-authorization-flow/authorization-code-flow)、[Resource Owner Password Flow](/docs/ja/get-started/authentication-and-authorization-flow/resource-owner-password-flow)、またはレルム対応の <Tooltip tip="リソース所有者: 保護されたリソースへのアクセスを許可できるエンティティ（ユーザーやアプリケーションなど）。" cta="用語集を見る" href="/docs/ja/glossary?term=Resource+Owner">Resource Owner</Tooltip> Password Flow を使用する Web アプリケーション
+* [クライアント認証情報フロー](/docs/ja/get-started/authentication-and-authorization-flow/client-credentials-flow) を使用する machine-to-machine (M2M) アプリケーション
+
+<div id="id-tokens">
+  ### ID トークン
+</div>
+
+機密アプリケーションはシークレットを保持できるため、次の 2 つの方法のいずれかで署名された <Tooltip tip="ID トークン: リソースへのアクセスではなく、クライアント自体のための資格情報。" cta="用語集を見る" href="/docs/ja/glossary?term=ID+tokens">ID トークン</Tooltip> を発行できます。
+
+* クライアントシークレットを使用する対称署名 (`HS256`)
+* 秘密キーを使用する非対称署名 (`RS256`)
+
+<div id="public-applications">
+  ## パブリックアプリケーション
+</div>
+
+パブリックアプリケーションでは、資格情報を安全に保持することが**できません**。
+
+<div id="grant-types">
+  ### グラントタイプ
+</div>
+
+パブリックアプリケーションで使用できるのは、client secret を必要としないグラントタイプに限られます。必要な資格情報の機密性を保てないため、client secret を送信できません。
+
+以下がパブリックアプリケーションです。
+
+* [PKCE を使用した Authorization Code フロー](/docs/ja/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce)を使用する、Native のデスクトップまたはモバイル アプリケーション
+* [Implicit Flow](/docs/ja/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post)グラントを使用する、JavaScript ベースのクライアントサイド Web アプリケーション (シングルページアプリなど)
+
+<div id="id-tokens">
+  ### ID トークン
+</div>
+
+パブリックアプリケーションはシークレットを保持できないため、それらに発行される[ID トークン](/docs/ja/secure/tokens/id-tokens)は、次の条件を満たしている必要があります。
+
+* 秘密キー (`RS256`) を使用して非対称署名されていること
+* トークンの署名に使用した秘密キーに対応する公開キーで検証されること
+
+<div id="learn-more">
+  ## さらに詳しく
+</div>
+
+* [アプリケーションの種類がConfidentialかPublicかを確認する](/docs/ja/get-started/applications/confidential-and-public-applications/view-application-type)
+* [ファーストパーティアプリケーションとサードパーティアプリケーション](/docs/ja/get-started/applications/first-party-and-third-party-applications)
+* [サードパーティアプリケーション](/docs/ja/get-started/applications/third-party-applications)
+* [ユーザーの同意とサードパーティアプリケーション](/docs/ja/get-started/applications/third-party-applications/user-consent-and-third-party-applications)

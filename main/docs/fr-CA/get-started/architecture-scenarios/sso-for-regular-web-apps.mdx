@@ -1,0 +1,76 @@
+---
+description: Scénario d’application Web régulière nécessitant l’authentification des utilisateurs au moyen de l’authentification unique OpenID Connect (OIDC).
+title: Applications Web régulières avec authentification unique
+---
+
+Dans ce scénario, nous allons créer une application web pour une entreprise fictive appelée ExampleCo. L’application est destinée aux employés et aux sous-traitants d’ExampleCo. Les employés utiliseront leur annuaire d’entreprise existant (Active Directory), tandis que les sous-traitants seront gérés dans un répertoire d’utilisateurs distinct.
+
+<Info>
+  ### En bref
+
+  * Auth0 prend en charge des normes ouvertes comme OAuth 2.0 et <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker les renseignements de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OpenID+Connect+%28OIDC%29">OpenID Connect (OIDC)</Tooltip> pour l’authentification et l’autorisation (consultez [Quel protocole utiliser](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1#which-protocol-to-use))
+  * OIDC prend en charge plusieurs flux d’autorisation; celui qui convient le mieux aux applications Web est le flux de code d’autorisation (consultez [Flux d’authentification](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1#authentication-flow))
+  * Votre application sera configurée dans Auth0 comme une application (consultez [Application](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-2#application))
+  * Les fournisseurs d’identité seront configurés dans Auth0 comme une connexion (consultez [Connexions](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-2#connections))
+  * Auth0 fournit un widget Lock qui permet aux utilisateurs de se connecter à l’application (consultez [Connexion de l’utilisateur](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#user-login))
+  * L’application web doit gérer l’état de la session pour conserver l’information selon laquelle l’utilisateur est connecté. En parallèle, Auth0 et le fournisseur d’identité gèrent aussi les informations de session. (consultez [Gestion de session](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#session-management))
+  * À l’inverse, la déconnexion d’un utilisateur implique aussi trois couches de gestion de session (consultez [Déconnexion de l’utilisateur](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#user-logout))
+  * Le contrôle d’accès peut être géré au moyen de l’extension Auth0 Authorization Extension (consultez [Contrôle d’accès](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#access-control))
+</Info>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Par application Web régulière, nous entendons une application qui repose principalement sur le serveur, les requêtes de page `GET` et `POST`, ainsi que sur des témoins pour maintenir l’état. Cela contraste avec une SPA Web (application monopage), qui repose largement sur du code JavaScript côté client appelant une API.
+</Callout>
+
+<div id="the-premise">
+  ## Le contexte
+</div>
+
+ExampleCo est une jeune entreprise de services-conseils. À l’heure actuelle, elle compte environ 100 employés et confie aussi plusieurs activités à des sous-traitants externes. La plupart des employés travaillent au bureau principal de l’entreprise, mais certaines équipes travaillent à distance. De plus, certains employés se déplacent fréquemment chez les clients et travaillent sur des appareils mobiles.
+
+Tous les employés et les sous-traitants externes doivent remplir leurs feuilles de temps chaque semaine à l’aide de feuilles de calcul. Le système actuel est inefficace, et l’entreprise a décidé de passer à une solution plus efficace et mieux automatisée.
+
+L’entreprise a évalué plusieurs applications de feuilles de temps offertes sur le marché et a conclu qu’il serait plus rentable de développer sa propre solution à l’interne, puisqu’elle recherche pour le moment une application très simple. L’application sera développée à l’aide d’ASP.NET Core, puisque ses développeurs utilisent déjà cette technologie et qu’ils pourront la rendre prête d’ici environ une semaine.
+
+<div id="goals-requirements">
+  ### Objectifs et exigences
+</div>
+
+ExampleCo veut lancer rapidement la nouvelle solution; elle a donc choisi de commencer simplement et de la faire évoluer au fil des commentaires de ses employés.
+
+L’application ne devrait être accessible qu’aux utilisateurs connectés. Chaque utilisateur aura un rôle et, selon ce rôle, pourra effectuer certaines actions et consulter des données précises.
+
+<Info>
+  ### Authentification vs autorisation
+
+  ExampleCo veut **authentifier** et **autoriser** chaque utilisateur. L’authentification concerne l’identité : il s’agit de vérifier que l’utilisateur est bien celui qu’il prétend être. L’autorisation consiste à déterminer à quelles ressources un utilisateur devrait avoir accès et ce qu’il est autorisé à faire avec celles-ci.
+</Info>
+
+L’application de feuilles de temps d’ExampleCo doit prendre en charge deux rôles : Utilisateur et Admin :
+
+* Une personne ayant le rôle Utilisateur peut ajouter des entrées de feuille de temps en précisant la date, l’application et le nombre d’heures travaillées. Le rôle Admin a également ce droit.
+* Les personnes ayant le rôle Utilisateur ne devraient avoir accès qu’à leurs propres entrées de feuilles de temps.
+* Une personne ayant le rôle Admin peut aussi :
+
+  * Approuver ou rejeter les entrées de feuille de temps d’autres utilisateurs.
+  * Modifier la liste déroulante des valeurs de l’application (ajouter, modifier, supprimer).
+
+Chaque utilisateur devra remplir ses feuilles de temps d’ici la fin de la semaine. Il pourra soit enregistrer ses feuilles de temps chaque jour, soit ajouter en une seule fois toutes les entrées de la semaine. Les feuilles de temps devront être examinées et approuvées par un Admin. Les entrées rejetées devront être mises à jour par chaque employé, puis soumises de nouveau pour approbation.
+
+L’entreprise utilise Active Directory pour tous ses employés, et ceux-ci ouvriront une session dans l’application Timesheet à l’aide de leurs informations d’identification Active Directory. Les contractuels externes peuvent se connecter avec un nom d’utilisateur et un mot de passe. Les contractuels ne figurent pas dans l’annuaire d’entreprise d’ExampleCo.
+
+ExampleCo veut réduire au minimum les contraintes liées à la connexion des utilisateurs, tout en maintenant un niveau de sécurité adapté à l’opération : soumettre des entrées de feuille de temps présente moins de risques que les approuver. Toutefois, les feuilles de temps approuvées servent à la facturation des clients; la sécurité est donc clairement une exigence. La stratégie d’authentification devrait être suffisamment souple pour s’adapter à la croissance de l’entreprise. Par exemple, elle devrait pouvoir ajouter facilement des exigences d’authentification supplémentaires, comme l’<Tooltip tip="Authentification multifacteur (MFA) : processus d’authentification de l’utilisateur qui utilise un facteur en plus du nom d’utilisateur et du mot de passe, comme un code par SMS." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=multi-factor+authentication">authentification multifacteur</Tooltip>, pour les Admins.
+
+La solution devrait être accessible à la fois aux employés physiquement présents au bureau de l’entreprise et à ceux qui travaillent à distance, sans les contraintes d’une connexion VPN. L’application devrait donc être déployée chez un fournisseur infonuagique comme Heroku ou Microsoft Azure.
+
+<Frame>![Schéma de la solution](/docs/images/cdy7uua7fh8z/7hg1vqzNEJ2RG1JYw0pxFp/d5e88b45ef76d06b1e8d35ab49186e1d/solution-diagram.png)</Frame>
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Vue d’ensemble de la solution (applications web + SSO)](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1)
+* [Configuration d’Auth0 (applications web + SSO)](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-2)
+* [Implémentation de l’application (applications web + SSO)](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3)
+* [Implémentation d’ASP.NET Core (applications web + SSO)](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/implementation-aspnetcore)
+* [Conclusion (applications web + SSO)](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps/part-4)

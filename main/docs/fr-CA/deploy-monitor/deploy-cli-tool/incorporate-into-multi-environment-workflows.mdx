@@ -1,0 +1,115 @@
+---
+description: Découvrez comment prendre en charge des flux de travail multi-tenant et multi-environnement lorsque vous utilisez Auth0 Deploy CLI.
+title: Intégration à des flux de travail multi-environnement
+---
+
+Deploy CLI prend en charge le travail dans un contexte multi-tenant et multi-environnement. Lorsqu’il est intégré à vos flux de travail de développement CI/CD, il peut servir à propager les changements apportés à Auth0 depuis le développement de fonctionnalités jusqu’à la production.
+
+En général, le flux de travail recommandé est le suivant :
+
+1. Créez un tenant Auth0 distinct pour chaque environnement (développement, staging, production).
+2. Créez un seul dépôt de fichiers de configuration des ressources pour tous les environnements.
+3. Ajoutez une étape à votre pipeline CI/CD qui, lors du déploiement dans les environnements, applique les configurations des ressources Auth0 au tenant Auth0 approprié.
+
+<div id="tenant-to-environment">
+  ## Correspondance entre les tenants et les environnements
+</div>
+
+Il est recommandé d’avoir un tenant/compte Auth0 distinct pour chaque environnement que vous utilisez. Par exemple :
+
+| Environnement | Tenant          |
+| ------------- | --------------- |
+| Développement | `travel0-dev`   |
+| Test          | `travel0-uat`   |
+| Préproduction | `travel0-stage` |
+| Production    | `travel0-prod`  |
+
+<div id="resource-configuration-repository">
+  ## Dépôt de configurations des ressources
+</div>
+
+Une fois exporté, l’état de votre tenant Auth0 sera représenté par un ensemble de fichiers de configuration des ressources, au [format YAML ou répertoire](/docs/fr-CA/deploy-monitor/deploy-cli-tool/available-resource-configuration-formats). Dans un contexte multi-environnement, on s’attend à avoir un seul dépôt de configurations des ressources appliqué à tous les environnements. En pratique, il peut s’agir d’un répertoire dans la base de code de votre projet ou d’une base de code entièrement distincte.
+
+Vous devriez avoir au moins une branche pour chaque tenant dans votre dépôt, ce qui vous permet d’apporter des modifications sans les déployer. De cette façon, les changements ne seront déployés que lorsque vous fusionnerez la branche de travail dans la branche principale (comme `main` ou `master`). Avec cette configuration, vous pouvez avoir une tâche d’intégration continue pour chaque environnement qui déploie automatiquement les changements vers l’environnement ciblé chaque fois que la branche principale reçoit des mises à jour.
+
+Votre flux de travail pourrait ressembler à ceci :
+
+1. Apportez des modifications à l’environnement de développement.
+2. Fusionnez les modifications dans l’environnement de test (ou uat).
+3. Testez les modifications dans uat. Lorsque tout est prêt, transférez-les et fusionnez-les dans l’environnement de staging.
+4. Testez le staging. Lorsque tout est prêt, transférez les changements et fusionnez-les en production.
+
+Par mesure de précaution, vous pourriez configurer votre environnement de production pour qu’il se déploie uniquement lorsqu’il est déclenché manuellement.
+
+<div id="unidirectional-flow">
+  ## Flux unidirectionnel
+</div>
+
+Le flux de travail multi-environnement fonctionne mieux lorsque les changements sont propagés « vers le haut » dans un seul sens. Les modifications apportées aux fichiers de configuration des ressources devraient d’abord être appliquées à l’environnement de niveau le plus bas (comme le développement), puis déployées progressivement dans tous les autres environnements jusqu’à Production. Cette approche unidirectionnelle garantit des tests et des validations suffisants pour les changements apportés à votre tenant. Une fois cette façon de faire établie, il est recommandé de ne pas appliquer de configurations directement à Production par d’autres moyens, comme le <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> ou la <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, à moins que ces changements ne soient ensuite consignés dans une exportation de Deploy CLI. Sinon, ils risquent d’être écrasés.
+
+<div id="environment-specific-values">
+  ## Valeurs propres à l’environnement
+</div>
+
+Bien qu’il soit prévu que tous les environnements partagent le même ensemble de fichiers de configuration des ressources, les valeurs propres à l’environnement peuvent être définies au moyen de fichiers de configuration d’outil distincts et du [remplacement dynamique de mots-clés](/docs/fr-CA/deploy-monitor/deploy-cli-tool/keyword-replacement).
+
+<div id="separate-configuration-files">
+  ## Fichiers de configuration distincts
+</div>
+
+Le fait de définir un fichier de configuration d’outil distinct pour chaque environnement permet de garder les fichiers de configuration des ressources indépendants de l’environnement, tout en répondant aux besoins propres à chacun. Au minimum, vous devrez fournir des informations d’authentification distinctes pour chaque environnement, mais il est aussi possible d’exclure certaines ressources, d’activer la suppression et d’effectuer un remplacement dynamique de mots-clés pour chaque environnement.
+
+<div id="example-file-structure">
+  ### Exemple d’arborescence de fichiers
+</div>
+
+```text lines
+project-root
+│
+└───auth0
+│   │   config-dev.json   # Fichier de configuration de l'environnement de développement
+│   │   config-test.json  # Fichier de configuration de l'environnement de test
+│   │   config-prod.json  # Fichier de configuration de l'environnement de production
+│   │   ... tous les autres fichiers de configuration des ressources
+│
+└───src
+    │   ... le code de votre projet
+```
+
+<div id="dynamic-values-with-keyword-replacement">
+  ## Valeurs dynamiques avec remplacement de mots-clés
+</div>
+
+Une fois que des fichiers de configuration distincts sont utilisés pour chaque environnement, le remplacement de mots-clés au moyen de la propriété de configuration `AUTH0_KEYWORD_REPLACE_MAPPINGS` peut servir à définir des valeurs de remplacement dynamiques selon l’environnement. Par exemple, il peut être nécessaire d’avoir un ensemble distinct d’origines autorisées pour vos clients. Pour en savoir plus, consultez [remplacement dynamique de mots-clés](/docs/fr-CA/deploy-monitor/deploy-cli-tool/keyword-replacement).
+
+<div id="example-config-devjson">
+  ### Exemple de config-dev.json
+</div>
+
+```json lines
+{
+  "AUTH0_DOMAIN": "travel0-dev.us.auth0.com",
+  "AUTH0_CLIENT_ID": "PdwQpGy62sHcsV6ufZNEVrV4GDlDhm74",
+  "AUTH0_ALLOW_DELETE": true,
+  "AUTH0_KEYWORD_REPLACE_MAPPINGS": {
+    "ENV": "dev",
+    "ALLOWED_ORIGINS": ["http://localhost:3000", "http://dev.travel0.com"]
+  }
+}
+```
+
+<div id="example-config-prodjson">
+  ### Exemple de config-prod.json
+</div>
+
+```json lines
+{
+  "AUTH0_DOMAIN": "travel0.us.auth0.com",
+  "AUTH0_CLIENT_ID": "vZCEFsDYzXc1x9IomB8dF185e4cdVah5",
+  "AUTH0_ALLOW_DELETE": false,
+  "AUTH0_KEYWORD_REPLACE_MAPPINGS": {
+    "ENV": "prod",
+    "ALLOWED_ORIGINS": ["http://travel0.com"]
+  }
+}
+```

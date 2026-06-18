@@ -1,0 +1,88 @@
+---
+description: Playbook para usar la función de monitoreo de Fuerza Bruta de Auth0 en Security Center
+title: Fuerza Bruta Protection Playbook
+---
+
+<Card title="Antes de empezar">
+  Debes configurar [Fuerza Bruta Protection](/docs/es/secure/attack-protection/brute-force-protection) y configurar logs y [alertas de umbral](/docs/es/secure/security-center/security-alerts).
+</Card>
+
+Los atacantes pueden emplear técnicas de fuerza bruta ([TT1110](https://attack.mitre.org/techniques/T1110/)) para acceder a sistemas sensibles. Aunque suelen ser poco sofisticados, la mayoría de los ataques de fuerza bruta se pueden frustrar fácilmente, pero defenderse de ellos puede requerir muchos recursos. A continuación, se presentan algunas técnicas comunes de ataques de fuerza bruta, así como orientación sobre cómo identificar e investigar posibles ataques contra tu tenant.
+
+<div id="find-log-events-of-interest">
+  ### Encontrar eventos de log de interés
+</div>
+
+Antes de bloquear direcciones IP o responder de otra forma a un ataque, identifique posibles vulneraciones revisando los mensajes de log relevantes. El ataque puede provenir de un conjunto limitado de direcciones IP o de un único número de sistema autónomo o país.
+
+Los siguientes tipos de eventos de log son relevantes al investigar un ataque de fuerza bruta. Se encuentran en los [registros del tenant de Auth0](/docs/es/secure/attack-protection/view-attack-protection-events).
+
+<Accordion title="Tipos de eventos de log">
+  1. `f`: Inicio de sesión fallido del usuario
+  2. `fu`: Inicio de sesión fallido del usuario debido a un nombre de usuario no válido
+  3. `fp`: Inicio de sesión fallido del usuario debido a una contraseña no válida
+  4. `pwd_leak`: Intento de inicio de sesión con una contraseña filtrada
+  5. `signup_pwd_leak`: Intento de registro con una contraseña filtrada
+  6. `limit_wc`: IP bloqueada por &gt;10 intentos de inicio de sesión fallidos en una sola cuenta
+  7. `limit_sul`: Usuario bloqueado por &gt;20 inicios de sesión por minuto desde la misma dirección IP
+  8. `limit_mu`: IP bloqueada por &gt;100 intentos de inicio de sesión fallidos o &gt;50 intentos de registro
+  9. `fcoa`: Autenticación de origen cruzado fallida
+  10. `scoa`: Autenticación de origen cruzado exitosa
+</Accordion>
+
+<div id="password-guessing">
+  ### Adivinación de contraseñas
+</div>
+
+Los atacantes, con poco conocimiento previo de las políticas de tu tenant, pueden intentar adivinar contraseñas repetidamente ([TT1110.001](https://attack.mitre.org/techniques/T1110/001/)) para acceder a las cuentas. Dado que los atacantes solo están intentando averiguar si existe un usuario con una contraseña desconocida, tus [logs de Auth0](/docs/es/deploy-monitor/logs/log-event-type-codes) mostrarán muchos eventos de log `fp`, `fu` y `fcoa`. Para obtener más información, consulta el [Playbook de Breached Password](/docs/es/secure/attack-protection/playbooks/breached-password-playbook).
+
+<div id="password-spraying">
+  ### Pulverización de contraseña
+</div>
+
+Los atacantes prueban muchas contraseñas de uso común ([TT1110.003](https://attack.mitre.org/techniques/T1110/003/)) para obtener acceso a cuentas de usuario legítimas. Esto suele activar las protecciones contra ataques de fuerza bruta de Auth0 y dejar muchos eventos de log `fp`, `fu` y `fcoa` en tus logs.
+
+<div id="credential-stuffing">
+  ### Credential stuffing
+</div>
+
+Credential stuffing ([TT1110.004](https://attack.mitre.org/techniques/T1110/004/)) es más eficaz cuando se usa contra tenants que emplean contraseñas, pero ningún factor adicional. Al aprovechar filtraciones de contraseñas e intentar iniciar sesión en la cuenta de una víctima con un diccionario de contraseñas filtradas, los ataques de credential stuffing generan eventos de log `fp` y eventos de log `pwd_leak`.
+
+<div id="signup-attacks">
+  ### Ataques de registro
+</div>
+
+Los atacantes pueden intentar registrar una gran cantidad de cuentas en un período corto como parte de un ataque de enumeración de nombres de usuario ([T1087](https://attack.mitre.org/techniques/T1087/)), en el que tratan de averiguar si existe una cuenta de usuario en tu tenant, o como parte de campañas de fraude en el registro. El objetivo es crear muchas cuentas para aprovechar los incentivos de registro o crear cuentas antiguas para usarlas en ataques posteriores. Los ataques de registro generan los eventos de log `fs`, `ss` y `signup_pwd_leak`.
+
+<div id="detection-using-the-auth0-management-api">
+  ### Detección con la Auth0 Management API
+</div>
+
+La [Auth0 Management API](/docs/es/deploy-monitor/logs/retrieve-log-events-using-mgmt-api) permite consultar los logs del tenant mediante la [sintaxis de las consultas de búsqueda en logs](/docs/es/deploy-monitor/logs/log-search-query-syntax) para tipos de log dentro del intervalo de tiempo de interés. Los casos de uso más avanzados se admiten con herramientas de agregación de logs, como almacenes de datos o SIEM, aprovechando los flujos de logs de Auth0.
+
+Al usar la Auth0 <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=management+API">Management API</Tooltip>, el posible intervalo del ataque se especifica como `date:[startdate to enddate]` en formato `YYYY-MM-DD`. Por ejemplo, `2024-10-01`. Usa `*` para representar la fecha actual.
+
+Al limitar el intervalo de interés a una posible ventana de ataque, puedes recuperar todos los eventos de log del tipo que te interesa. A continuación, se muestra una consulta de ejemplo que busca ataques de fuerza bruta desde el 1 de octubre de 2024 hasta la fecha:
+
+```text wrap lines
+date:[2024-10-01 TO *] AND (type:"f" OR type:"fu" OR type:"fp" OR type:"pwd_leak" OR type:"limit_wc" OR type:"limit_sul" OR type:"limit_mu" OR type:"fcoa")
+```
+
+Para un análisis avanzado o para correlacionar actividades de inicio de sesión con aplicaciones externas a Auth0, habilite el flujo de logs hacia la herramienta externa que prefiera. Revise la [documentación de Management API](https://auth0.com/docs/api/management/v2/logs/get-logs) para entender cómo extraer de su tenant un subconjunto de eventos de log para analizarlos.
+
+<div id="mitigation-strategies">
+  #### Estrategias de mitigación
+</div>
+
+Para una protección óptima frente a ataques, considera las siguientes estrategias:
+
+* Habilita [Detección de contraseñas vulnerada](/docs/es/secure/attack-protection/breached-password-detection) o Credential Guard para protegerte frente a credenciales comprometidas con una fricción mínima para el usuario, teniendo en cuenta que ninguna de las dos protege contra ataques de diccionario.
+* Activa CAPTCHA para uno o más flujos y aumenta su frecuencia según sea necesario, pero recuerda que CAPTCHA es un elemento disuasorio, no una solución.
+* Cambia tu proveedor de CAPTCHA si los atacantes logran eludir tu CAPTCHA actual, o considera migrar a Auth Challenge de Auth0 o a otro [proveedor compatible](/docs/es/secure/attack-protection/bot-detection/configure-captcha).
+* Deshabilita temporalmente la creación de cuentas para todos, incluidos los actores maliciosos.
+* Modifica las reglas de tu firewall de aplicación web con un proveedor perimetral, o usa [listas de control de acceso del tenant](/docs/es/secure/tenant-access-control-list), para bloquear IP abusivas, números de sistemas autónomos, ubicaciones geográficas, [clientes TLS](/docs/es/customize/custom-domains/self-managed-certificates/tls-ssl) o elementos de encabezado HTTP como cadenas `user-agent`, y considera emplear un [proxy inverso.](/docs/es/customize/custom-domains/self-managed-certificates#configure-reverse-proxy)
+* Ajusta los umbrales de [Brute Force](/docs/es/secure/attack-protection/brute-force-protection) y [IP sospechosa](/docs/es/secure/attack-protection/suspicious-ip-throttling) para reducir los límites de conexión permitidos y mitigar ataques de fuerza bruta.
+* Deshabilita los endpoints no utilizados modificando tu configuración de [Autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication) si observas eventos `fcoa` y `scoa` con frecuencia, recordando que Auth0 no recomienda usar autenticación de origen cruzado.
+* Exige [step-up MFA](/docs/es/secure/multi-factor-authentication/step-up-authentication) para las cuentas comprometidas, incluso requiriendo <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación del usuario que usa un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> para cuentas potencialmente comprometidas.
+* Migra a opciones de MFA más seguras sustituyendo la MFA basada en SMS o voz por [OTP](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-otp-notifications-for-mfa) o [Webauthn](/docs/es/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-device-biometrics-for-mfa) para mitigar ataques de SMS pumping o fraude telefónico.
+* Implementa protecciones antifraude de seguridad de tu proveedor de SMS/voz, como [Preventing Fraud in Verify](https://www.twilio.com/docs/verify/preventing-toll-fraud) de Twilio, cuando uses MFA por SMS/voz.

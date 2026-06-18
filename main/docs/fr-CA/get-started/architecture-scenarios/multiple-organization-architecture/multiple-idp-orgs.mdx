@@ -1,0 +1,49 @@
+---
+description: Découvrez les Organisations à fournisseurs d’identité (IdP) multiples, dans lesquelles chaque Organisation Auth0 possède plus d’une connexion Auth0.
+title: Organisations à fournisseurs d’identité multiples
+---
+
+Dans le scénario des Organisations à <Tooltip tip="fournisseur d’identité (IdP) : Service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseurs d’identité</Tooltip> (IdP) multiples, chaque organisation qui utilise la fonctionnalité [Organisations Auth0](/docs/fr-CA/manage-users/organizations/organizations-overview) utilise plus d’une [connexion Auth0](/docs/fr-CA/authenticate/identity-providers). À bien des égards, la mise en œuvre de ce scénario est identique à celle des [Organisations à fournisseur d’identité unique. E](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations)n fait, la fonctionnalité Organisations Auth0 permet de combiner les deux approches et de passer facilement de l’une à l’autre. Toutefois, il faut tenir compte de quelques éléments supplémentaires.
+
+<div id="connections">
+  ## Connexions
+</div>
+
+En plus des renseignements habituellement inclus dans [Autorisation](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/authorization), vous pouvez ajouter des détails sur la [connexion Auth0](/docs/fr-CA/authenticate/identity-providers) précise par laquelle l’authentification du premier facteur de l’utilisateur a été effectuée. Sans que cela soit explicitement requis, vous pouvez ajouter ces renseignements à un <Tooltip tip="ID Token : jeton destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+Token">ID Token</Tooltip> et/ou à un <Tooltip tip="Access Token : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">Access Token</Tooltip> sous forme de revendication personnalisée afin de fournir à votre application et/ou à votre API un contexte supplémentaire pouvant servir au contrôle d’accès.
+
+Comme l’illustre l’exemple suivant, les revendications personnalisées sont généralement ajoutées au moyen de la fonctionnalité d’extensibilité Rule, qui peut accéder aux détails de la connexion à l’aide de l’objet [`context`](/docs/fr-CA/customize/rules/context-object) :
+
+```js lines
+context.idToken['http://travel0.net/connection'] = context.connection;     // Revendication du nom de connexion
+context.accessToken['http://travel0.net/connection'] = context.connection; // Revendication du nom de connexion
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  L’objet de contexte des Rules donne accès à divers aspects de la connexion utilisée pour authentifier un utilisateur à l’aide du premier facteur, notamment le nom de la `connection`, le `connectionID` et le `connectionStrategy`. Il fournit également à l’extensibilité des Rules des renseignements supplémentaires qui peuvent être utilisés dans le cadre de toute [application centralisée des politiques](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/authorization).
+</Callout>
+
+<div id="database-connection">
+  ### Connexion de base de données
+</div>
+
+Bien qu’Auth0 vous permette de [provisionner](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/provisioning) plusieurs [connexions de base de données et connexions de base de données personnalisées](/docs/fr-CA/authenticate/database-connections), nous vous déconseillons d’associer plus d’une connexion de ce type à une organisation Auth0. Comme les connexions de base de données et les connexions de base de données personnalisées ne prennent actuellement pas en charge le Home Realm Discovery, un composant clé de l’[authentification par identifiant d’abord](/docs/fr-CA/authenticate/login/auth0-universal-login/identifier-first), la nouvelle expérience de <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur le serveur d’autorisation d’Auth0, pour vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> ne peut pas choisir entre elles si plus d’une est définie.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  **Bonne pratique**
+
+  Si vous définissez une connexion de base de données personnalisée pour une organisation Auth0, assurez-vous qu’une seule connexion de base de données personnalisée, et une seule, y est associée à tout moment.
+</Callout>
+
+<div id="enterprise-connection">
+  ### Connexion d’entreprise
+</div>
+
+Si votre application d’entreprise utilise la [fédération d’entreprise](/docs/fr-CA/authenticate/enterprise-connections), vous pouvez activer l’[authentification avec identifiant d’abord et Home Realm Discovery](/docs/fr-CA/authenticate/login/auth0-universal-login/identifier-first) dans son Authentication Profile. Une fois cette option activée, Home Realm Discovery détecte les adresses courriel d’un domaine connu et les redirige automatiquement vers la page de connexion Workforce appropriée.
+
+Pour en savoir plus, consultez [Authentification avec identifiant d’abord](/docs/fr-CA/manage-users/organizations/login-flows-for-organizations#identifier-first-authentication) dans [Flux de connexion pour les organisations](/docs/fr-CA/manage-users/organizations/login-flows-for-organizations).
+
+<div id="social-connection">
+  ### Connexion sociale
+</div>
+
+Outre les considérations décrites dans la section [Authentification](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture/single-identity-provider-organizations/authentication), il n’y a aucun autre élément à prendre en compte lorsque des connexions sociales sont utilisées dans un scénario d’organisation avec plusieurs IdP.

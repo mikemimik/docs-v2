@@ -1,0 +1,539 @@
+---
+description: Describe cómo administrar las inscripciones de factores autenticadores de MFA para aplicaciones que usan la Auth0 MFA API.
+title: Administrar factores de autenticación con Authentication API
+validatedOn: 2026-02-27
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+<Card title="Antes de empezar">
+  * Habilita el tipo de concesión **MFA** para tu aplicación. Para obtener más información, consulta [Update Grant Types](/docs/es/get-started/applications/update-grant-types).
+</Card>
+
+Auth0 proporciona varios [endpoints de API](https://auth0.com/docs/api/authentication#multi-factor-authentication) para ayudarte a gestionar los autenticadores que usas con una aplicación para la <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación de usuario que usa un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=multi-factor+authentication">autenticación multifactor</Tooltip> (MFA). Puedes usar estos endpoints para crear una interfaz de usuario completa que permita a los usuarios gestionar los factores de sus autenticadores.
+
+<div id="get-mfa-api-access-tokens">
+  ## Obtener tokens de acceso para la API de MFA
+</div>
+
+Para llamar a la API de MFA y administrar inscripciones, primero debes obtener un <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip> para la API de MFA.
+
+Para usar la API de MFA como parte de un flujo de autenticación, puedes seguir los pasos detallados en [Autenticar con Resource Owner Password Grant y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa). Si estás creando una interfaz de usuario para administrar factores de autenticación, tendrás que obtener un token que puedas usar con la API de MFA en cualquier momento, no solo durante la autenticación.
+
+Un token de acceso de MFA, o un token de acceso con la <Tooltip tip="Audiencia: Identificador único de la audiencia de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audiencia</Tooltip> `https://{yourDomain}/mfa/`, autentica y desencadena simultáneamente una [solicitud de desafío](https://auth0.com/docs/api/authentication/muti-factor-authentication/request-mfa-challenge) de MFA. La habilitación de factores en tu tenant y la inscripción de tus usuarios determinan si se inicia el desafío de MFA:
+
+* Si tu tenant permite la inscripción en varios factores y tus usuarios se inscriben en un factor válido (excepto email), como una contraseña de un solo uso (OTP), el usuario recibe el desafío de MFA al iniciar sesión.
+* Si tus usuarios no están inscritos en ningún factor de autenticación, o solo están inscritos con el factor `email`, se emite el token de MFA y el usuario no recibe ningún desafío.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El tiempo de expiración predeterminado de los tokens de acceso con la audiencia `https://{yourDomain}/mfa/*` es de 10 minutos. Este valor no se puede configurar.
+</Callout>
+
+<div id="universal-login">
+  ### Universal Login
+</div>
+
+Si usas [Universal Login](/docs/es/authenticate/login/auth0-universal-login), redirige al endpoint Authorize y especifica la audiencia `https://{yourDomain}/mfa/`.
+
+<Warning>
+  Cuando se especifica `https://{yourDomain}/mfa/` como audiencia, se exige MFA. Si los usuarios finales habilitan **Remember this browser** mientras `.../mfa/` está especificado como audiencia, la configuración no tendrá ningún efecto.
+
+  Auth0 recomienda que los administradores del tenant [creen una Action](/docs/es/customize/actions/write-your-first-action) que establezca `allowRememberBrowser` en false. Esto ocultará **Remember this browser** en la experiencia del usuario final.
+</Warning>
+
+<div id="resource-owner-password-grant">
+  ### Concesión de contraseña del Resource Owner
+</div>
+
+Si estás usando la concesión de contraseña del <Tooltip tip="Resource Owner: Entidad (como un usuario o aplicación) capaz de conceder acceso a un recurso protegido." cta="Ver glosario" href="/docs/es/glossary?term=Resource+Owner">Resource Owner</Tooltip> (ROPG), tienes 3 opciones:
+
+* Solicita la audiencia `https://{yourDomain}/mfa/` al iniciar sesión y usa un [token de actualización](/docs/es/secure/tokens/refresh-tokens) para renovarlo más adelante.
+* Si necesitas listar y eliminar autenticadores, pídele al usuario que [se autentique de nuevo](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa) con `/oauth/token`, especificando la audiencia `https://{yourDomain}/mfa/`. Los usuarios deberán completar MFA antes de poder listar o eliminar factores de autenticación.
+* Si solo necesitas listar autenticadores, pídele al usuario que [se autentique de nuevo](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa) usando `/oauth/token` con nombre de usuario y contraseña. El endpoint devolverá un error `mfa_required` y un `mfa_token` que puedes usar para listar autenticadores. Los usuarios deberán proporcionar su contraseña para ver sus autenticadores.
+
+<div id="scopes">
+  ### Scopes
+</div>
+
+Cuando solicitas un token para la audiencia de MFA, puedes solicitar los siguientes scopes:
+
+| Scope                   | Descripción                                         |
+| ----------------------- | --------------------------------------------------- |
+| `enroll`                | Para registrar un nuevo autenticador.               |
+| `read:authenticators`   | Para obtener la lista de autenticadores existentes. |
+| `remove:authenticators` | Para eliminar un autenticador.                      |
+
+<div id="list-authenticators">
+  ## Listar autenticadores
+</div>
+
+Para obtener una lista de los autenticadores de un usuario, puedes llamar al endpoint MFA Authenticators:
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request GET \
+    --url 'https://{yourDomain}/mfa/authenticators' \
+    --header 'authorization: Bearer MFA_TOKEN'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/mfa/authenticators");
+  var request = new RestRequest(Method.GET);
+  request.AddHeader("authorization", "Bearer MFA_TOKEN");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/mfa/authenticators"
+
+  	req, _ := http.NewRequest("GET", url, nil)
+
+  	req.Header.Add("authorization", "Bearer MFA_TOKEN")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.get("https://{yourDomain}/mfa/authenticators")
+    .header("authorization", "Bearer MFA_TOKEN")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'GET',
+    url: 'https://{yourDomain}/mfa/authenticators',
+    headers: {authorization: 'Bearer MFA_TOKEN'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/mfa/authenticators",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "GET",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer MFA_TOKEN"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer MFA_TOKEN" }
+
+  conn.request("GET", "/{yourDomain}/mfa/authenticators", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/mfa/authenticators")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Get.new(url)
+  request["authorization"] = 'Bearer MFA_TOKEN'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+La respuesta debería incluir información sobre los tipos de autenticador:
+
+```json lines
+[
+  {
+    "authenticator_type": "recovery-code",
+    "id": "recovery-code|dev_IsBj5j3H12VAdOIj",
+    "active": true
+  },
+  {
+    "authenticator_type": "otp",
+    "id": "totp|dev_nELLU4PFUiTW6iWs",
+    "active": true,
+  },
+  {
+    "authenticator_type": "oob",
+    "oob_channel": "sms",
+    "id": "sms|dev_sEe99pcpN0xp0yOO",
+    "name": "+1123XXXXX",
+    "active": true
+  }
+]
+```
+
+A efectos de crear una interfaz de usuario para que los usuarios finales gestionen sus factores, debes ignorar los autenticadores cuyo valor de `active` sea `false`. Esos autenticadores no han sido confirmados por los usuarios, por lo que no pueden usarse para una verificación de MFA.
+
+La API de MFA mostrará las siguientes inscripciones según el tipo de autenticador:
+
+| Autenticador           | Actions                                                                                                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Push y OTP**         | Si push está habilitado, Auth0 también crea una inscripción de OTP. Verás ambas al listar las inscripciones.                                                                                  |
+| **SMS y Voz**          | Si tanto SMS como voz están habilitados, cuando un usuario se inscribe con SMS o voz, Auth0 crea automáticamente dos autenticadores para el número de teléfono: uno para SMS y otro para voz. |
+| **Correo electrónico** | Todos los correos electrónicos verificados aparecerán como autenticadores.                                                                                                                    |
+
+<div id="enroll-authenticators">
+  ## Registrar autenticadores
+</div>
+
+Consulta los siguientes enlaces para obtener detalles sobre cómo registrar autenticadores para distintos factores:
+
+* [SMS o voz](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Contraseña de un solo uso (OTP)](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
+* [Push](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-push-authenticators)
+* [Correo electrónico](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-email-authenticators)
+
+También puedes usar el [flujo de Universal Login](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-developer-resources/create-custom-enrollment-tickets) para registrar usuarios en cualquier momento.
+
+<div id="delete-authenticators">
+  ## Eliminar autenticadores
+</div>
+
+Para eliminar un autenticador asociado, envía una solicitud `DELETE` al endpoint de autenticadores de MFA y sustituye `AUTHENTICATOR_ID` por el ID del autenticador correspondiente. Puedes obtener el ID al enumerar los autenticadores.
+
+Si se usó un `mfa_token` para enumerar autenticadores, los usuarios deberán [completar MFA para obtener un token de acceso](https://auth0.com/docs/api/authentication/muti-factor-authentication/verify-mfa-with-otp) con una audiencia de `https://{yourDomain}/mfa/` para poder eliminar un autenticador.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request DELETE \
+    --url 'https://{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID' \
+    --header 'authorization: Bearer ACCESS_TOKEN'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID");
+  var request = new RestRequest(Method.DELETE);
+  request.AddHeader("authorization", "Bearer ACCESS_TOKEN");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID"
+
+  	req, _ := http.NewRequest("DELETE", url, nil)
+
+  	req.Header.Add("authorization", "Bearer ACCESS_TOKEN")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.delete("https://{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID")
+    .header("authorization", "Bearer ACCESS_TOKEN")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'DELETE',
+    url: 'https://{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID',
+    headers: {authorization: 'Bearer ACCESS_TOKEN'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "DELETE",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer ACCESS_TOKEN"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer ACCESS_TOKEN" }
+
+  conn.request("DELETE", "/{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/mfa/authenticators/AUTHENTICATOR_ID")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Delete.new(url)
+  request["authorization"] = 'Bearer ACCESS_TOKEN'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Si el autenticador se eliminó correctamente, se devuelve una respuesta 204.
+
+Cuando eliminas un autenticador, se realizan las siguientes acciones según el tipo de autenticador:
+
+| Autenticador      | Acción                                                                                                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Push and OTP**  | Cuando un usuario registra un autenticador push, Auth0 también registra OTP. Si eliminas cualquiera de los dos, el otro también se eliminará.                                                              |
+| **SMS and voz** | Cuando un usuario registra SMS o voz, Auth0 crea dos autenticadores: SMS y voz. Si eliminas cualquiera de los dos, el otro también se eliminará.                                                         |
+| **Email**         | Todos los correos electrónicos verificados aparecen como autenticadores, pero no puedes eliminarlos. Solo puedes eliminar los autenticadores de correo electrónico que se hayan registrado explícitamente. |
+
+<div id="regenerate-recovery-codes">
+  ## Regenerar códigos de recuperación
+</div>
+
+Para eliminar un código de recuperación y generar uno nuevo, obtén un [token de acceso de la Management API](https://auth0.com/docs/api/management/v2/tokens) de Auth0 y usa el <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> [endpoint de regeneración del código de recuperación](https://auth0.com/docs/api/management/v2/#!/Users/post_recovery_code_regeneration).
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration' \
+    --header 'authorization: Bearer MANAGEMENT_API_TOKEN'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("authorization", "Bearer MANAGEMENT_API_TOKEN");
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration"
+
+  	req, _ := http.NewRequest("POST", url, nil)
+
+  	req.Header.Add("authorization", "Bearer MANAGEMENT_API_TOKEN")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse<String> response = Unirest.post("https://{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration")
+    .header("authorization", "Bearer MANAGEMENT_API_TOKEN")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration',
+    headers: {authorization: 'Bearer MANAGEMENT_API_TOKEN'}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer MANAGEMENT_API_TOKEN"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  headers = { 'authorization': "Bearer MANAGEMENT_API_TOKEN" }
+
+  conn.request("POST", "/{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration", headers=headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users/USER_ID/recovery-code-regeneration")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["authorization"] = 'Bearer MANAGEMENT_API_TOKEN'
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Obtendrás un nuevo código de recuperación que el usuario final deberá guardar, por ejemplo:
+
+```json lines
+{  
+   "recovery_code": "FA45S1Z87MYARX9RG6EVMAPE"
+}
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Registrar y verificar autenticadores de SMS y voz](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Registrar y verificar autenticadores OTP](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
+* [Registrar y verificar autenticadores push](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-push-authenticators)
+* [Registrar y verificar autenticadores de correo electrónico](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-email-authenticators)
+* [Verificar con códigos de recuperación](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/challenge-with-recovery-codes)

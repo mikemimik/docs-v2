@@ -1,0 +1,195 @@
+---
+description: Aprende a configurar el inicio de sesión único (SSO) para Auth0 con Amazon Web Services (AWS).
+title: Configurar Amazon Web Services para inicio de sesión único
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+Al integrar Auth0 con AWS, permitirás que tus usuarios inicien sesión en AWS con cualquier <Tooltip tip="Proveedor de identidad (IdP): Servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+provider">proveedor de identidad</Tooltip> compatible.
+
+Para configurar AWS para <Tooltip tip="Inicio de sesión único (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=SSO">SSO</Tooltip>, debes completar los siguientes pasos:
+
+1. Crea un proveedor de identidad externo en AWS.
+2. Configura el addon SAML2 Web App para tu aplicación de Auth0.
+3. Completa la configuración del proveedor de identidad en AWS.
+4. Crea un rol de IAM de AWS.
+5. Asigna el rol de AWS a un usuario.
+
+<div id="create-an-external-identity-provider-in-aws">
+  ## Crear un proveedor de identidad externo en AWS
+</div>
+
+1. Configura un proveedor de identidad externo en AWS con la guía de AWS [Connect to your External Identity Provider](https://docs.aws.amazon.com/singlesignon/latest/userguide/manage-your-identity-source-idp.html), con una diferencia.
+
+   1. En lugar de descargar el archivo de metadatos de AWS, haz clic en **Show Individual Metadata Values**.
+   2. Copia los valores de **AWS SSO issuer URL** y **AWS SSO ACS URL**. Los usarás en la siguiente sección.
+2. Deja esta página abierta en el navegador, ya que tendrás que completar la configuración en una sección posterior.
+
+<div id="configure-saml-sso-for-auth0">
+  ## Configura SAML SSO para Auth0
+</div>
+
+Configura el add-on SAML2 Web App para tu aplicación desde el <Tooltip tip="Auth0 Dashboard: la interfaz principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Para saber cómo hacerlo, consulta [Configurar Auth0 como proveedor de identidad para Amazon Web Services](/docs/es/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider/configure-saml2-web-app-addon-for-aws).
+
+<div id="complete-aws-identity-provider-configuration">
+  ## Completa la configuración del proveedor de identidad de AWS
+</div>
+
+1. Vuelve a la página del proveedor de identidad de AWS SSO que tienes abierta en el navegador.
+2. Carga el archivo de metadatos que descargaste y guardaste en la sección anterior.
+3. Revisa y **confirma** que vas a cambiar la fuente de identidad.
+
+<div id="create-aws-iam-role">
+  ## Crear un rol de AWS IAM
+</div>
+
+Para usar el proveedor, debes crear un rol de IAM y usar el proveedor en la política de confianza del rol.
+
+1. En la barra lateral, en **Access Management**, ve a [**Roles**](https://console.aws.amazon.com/iam/home#/roles). Haz clic en **Create Role**.
+2. En la página siguiente, se te pedirá que selecciones el tipo de entidad de confianza. Selecciona **SAML 2.0 Federation**.
+3. Cuando se te solicite, configura como **SAML provider** el proveedor que creaste anteriormente. Selecciona **Allow programmatic and AWS Management Console access**. Haz clic en **Next** para continuar.
+4. En la página **Attach Permission Policies**, selecciona las políticas adecuadas para adjuntarlas al rol. Estas definen los permisos que tendrán en AWS los usuarios a los que se les conceda este rol. Por ejemplo, para conceder a tus usuarios acceso de solo lectura a IAM, filtra y selecciona la política `IAMReadOnlyAccess`. Cuando hayas terminado, haz clic en **Next Step**.
+5. La tercera pantalla de **Create Role** es **Add Tags**. Puedes usar etiquetas para organizar los roles que crees si vas a crear una gran cantidad de ellos.
+6. En la página **Review**, establece el **Role Name** y revisa la configuración. Proporciona valores para los siguientes parámetros:
+
+   | Campo                | Descripción                  |
+   | -------------------- | ---------------------------- |
+   | **Role name**        | Nombre descriptivo del rol.  |
+   | **Role description** | Descripción del uso del rol. |
+7. Revisa la información de **Trusted entities** y **Policies** y, a continuación, haz clic en **Create Role**.
+
+<div id="map-aws-role-to-a-user">
+  ## Asignar un rol de AWS a un usuario
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Para ver un ejemplo de cómo definir una rule del lado del servidor que asigna un rol en un caso de uso avanzado, consulta el [tutorial de Amazon API Gateway](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-5).
+</Callout>
+
+Los **roles de AWS** especificados se asociarán con una **política de IAM** que determina el tipo de acceso permitido a un recurso, incluidas las consolas de AWS. Para obtener más información sobre roles y políticas, consulta [Creating IAM Roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create.html).
+
+1. Para mapear un rol de AWS a un usuario, crea una [rule](/docs/es/customize/rules):
+
+   ```javascript lines
+   function (user, context, callback) {
+
+     user.awsRole = 'arn:aws:iam::951887872838:role/TestSAML,arn:aws:iam::951887872838:saml-provider/MyAuth0';
+     user.awsRoleSession = user.name;
+
+     context.samlConfiguration.mappings = {
+       'https://aws.amazon.com/SAML/Attributes/Role': 'awsRole',
+       'https://aws.amazon.com/SAML/Attributes/RoleSessionName': 'awsRoleSession'
+     };
+
+     callback(null, user, context);
+
+   }
+   ```
+
+   En el fragmento de código anterior, `user.awsRole` identifica el rol de AWS y el IdP. El identificador del rol de AWS aparece antes de la coma y el identificador del IdP, después.
+
+   1. Tu rule puede obtener estos dos valores de varias formas. Puedes obtenerlos desde la consola de IAM seleccionando en la barra lateral izquierda los elementos que creaste en AWS en los pasos anteriores. Tanto el proveedor de identidad como el rol que creaste tienen un ARN disponible para copiar si los seleccionas en la consola.
+   2. En el ejemplo anterior, ambos valores están codificados de forma fija en la rule. Como alternativa, también podrías almacenar estos valores en el perfil de usuario o derivarlos a partir de otros atributos. Por ejemplo, si usas Active Directory, puedes mapear propiedades asociadas a los usuarios, como `group`, al rol de AWS correspondiente:
+
+      ```text lines
+      var awsRoles = {
+        'DomainUser': 'arn:aws:iam::951887872838:role/TestSAML,arn:aws:iam::95123456838:saml-provider/MyAuth0',
+        'DomainAdmins': 'arn:aws:iam::957483571234:role/SysAdmins,arn:aws:iam::95123456838:saml-provider/MyAuth0'
+      };
+      user.awsRole = awsRoles[user.group];
+      user.awsRoleSession = user.email;
+
+      context.samlConfiguration.mappings = {
+        'https://aws.amazon.com/SAML/Attributes/Role': 'awsRole',
+        'https://aws.amazon.com/SAML/Attributes/RoleSessionName': 'awsRoleSession',
+      };
+      ```
+
+<div id="map-multiple-roles">
+  ### Mapear varios roles
+</div>
+
+También puedes asignar un arreglo al mapeo de roles (es decir, tendrías `awsRoles = [ role1, role2 ]` en lugar de `awsRoles: role1`)
+
+Por ejemplo, supongamos que tienes grupos de Active Directory con la siguiente estructura:
+
+```javascript lines
+var user = {
+  app_metadata: {
+    ad_groups: {
+      "admins": "some info not aws related",
+      "aws_dev_Admin": "arn:aws:iam::123456789111:role/Admin,arn:aws:iam::123456789111:saml-provider / Auth0",
+      "aws_prod_ReadOnly": "arn:aws:iam::123456789999:role/ReadOnly,arn:aws:iam::123456789999:saml-provider / Auth0"
+    }
+  }
+};
+```
+
+Tu rule podría quedar así:
+
+```javascript lines
+function (user, context, callback) {
+
+  var userGroups = user.app_metadata.ad_groups;
+
+  function awsFilter(group) {
+    return group.startsWith('aws_');
+  }
+
+  function mapGroupToRole(awsGroup) {
+    return userGroups[awsGroup];
+  }
+
+  user.awsRole = Object.keys(userGroups).filter(awsFilter).map(mapGroupToRole);
+  user.awsRoleSession = 'myawsuser'; // único por usuario http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html
+
+  context.samlConfiguration.mappings = {
+    'https://aws.amazon.com/SAML/Attributes/Role': 'awsRole',
+    'https://aws.amazon.com/SAML/Attributes/RoleSessionName': 'awsRoleSession'
+  };
+
+  callback(null, user, context);
+
+}
+```
+
+<div id="configure-session-expiration">
+  ## Configurar la expiración de la sesión
+</div>
+
+Para ampliar el tiempo que puede transcurrir antes de que caduque la sesión de AWS (3600 segundos), usa una [rule](/docs/es/customize/rules). Tu rule establece el [atributo **SessionDuration**](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_saml_assertions.html), que modifica la duración de la sesión.
+
+{/* codeblockOld.header.login.logInButton codeblockOld.header.login.configureSnippet */}
+
+export const codeExample = `function (user, context, callback) {
+    if(context.clientID !== '{yourClientId}'){
+      return callback(null, user, context);
+    }
+
+  user.awsRole = '{yourArn}';
+  user.awsRoleSession = '{yourRoleSession}';
+  user.time = 1000; // tiempo hasta que expire, en segundos
+
+  context.samlConfiguration.mappings = {
+    'https://aws.amazon.com/SAML/Attributes/Role': '{yourAwsRoleName}',
+    'https://aws.amazon.com/SAML/Attributes/RoleSessionName': '{yourAwsRoleSessionName}',
+    'https://aws.amazon.com/SAML/Attributes/SessionDuration': 'time'   };
+
+  callback(null, user, context);
+}`;
+
+<AuthCodeBlock children={codeExample} language="javascript" />
+
+<div id="test-configuration">
+  ## Probar la configuración
+</div>
+
+1. Ve a [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y haz clic en el nombre de tu aplicación.
+2. En la pestaña **Addons**, selecciona el add-on **SAML2 Web App**.
+3. En la pestaña **Usage**, busca la **URL de inicio de sesión del proveedor de identidad**. Deberías ser redirigido a la página de inicio de sesión de la cuenta de Auth0. Si inicias sesión correctamente, se te redirigirá a AWS.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar Amazon Web Services como proveedor de servicios SAML](/docs/es/authenticate/single-sign-on/outbound-single-sign-on/configure-auth0-saml-identity-provider/configure-saml2-web-app-addon-for-aws)

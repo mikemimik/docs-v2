@@ -1,0 +1,74 @@
+---
+description: Comprende el concepto de los scopes y cómo se usan con las APIs.
+title: Scopes de API
+validatedOn: 2026-02-09
+---
+
+Como desarrollador de APIs, necesitas:
+
+1. Decidir a qué información te gustaría que las aplicaciones pudieran acceder en nombre de un usuario.
+2. Definir estos niveles de acceso como scopes personalizados. (Para saber qué son los scopes, lee [Scopes](/docs/es/get-started/apis/scopes).)
+3. Identificar estos scopes para que las aplicaciones que hacen llamadas puedan usarlos.
+
+<div id="ways-to-use-api-scopes">
+  ## Formas de usar scopes de API
+</div>
+
+Puedes usar scopes de API de distintas maneras:
+
+* En una API en la que la aplicación que realiza la llamada es una aplicación de terceros, o externa. En este caso, la aplicación solicitará autorización al usuario para acceder a los scopes solicitados, y el usuario aprobará o denegará la solicitud.
+* En una API en la que la aplicación que realiza la llamada es una aplicación propia, o una aplicación registrada en el mismo dominio de Auth0 que la API a la que llama. En este caso, de forma predeterminada no se solicita el consentimiento del usuario, aunque puedes configurar que sea obligatorio.
+* En una API en la que la aplicación que realiza la llamada es un servicio de back-end, ya sea de terceros o propia, y no hay ningún usuario. En este caso, nunca se solicita el consentimiento del usuario.
+
+Todos estos ejemplos usan scopes para limitar el acceso mediante el uso de un token. Si lo deseas, tu API también puede usar lógica adicional, más allá del token, para aplicar un control de acceso más amplio.
+
+Para ver un ejemplo de cómo solicitar acceso personalizado a la API para tu aplicación, consulta [Sample Use Cases: Scopes and Claims](/docs/es/get-started/apis/scopes/sample-use-cases-scopes-and-claims).
+
+<div id="example-an-api-called-by-a-third-party-application">
+  ### Ejemplo: una API a la que llama una aplicación de terceros
+</div>
+
+Supongamos que estás creando una API que proporciona información de cuentas bancarias a aplicaciones de pago en línea. En distintos momentos, las aplicaciones pueden necesitar consultar saldos de cuentas o transferir fondos. Para ello, creas dos `scopes` para tu API: uno que autoriza el acceso de lectura al saldo de una cuenta (`read:balance`) y otro que autoriza las transferencias de fondos (`transfer:funds`). Tu API está registrada en Auth0.
+
+La aplicación que llama solicitará autorización al usuario para acceder a los `scopes` solicitados, y el usuario aprobará o rechazará la solicitud. La aplicación puede solicitar acceso de lectura al saldo del usuario incluyendo el `scope` `read:balance` en la solicitud, acceso para realizar transferencias de fondos incluyendo el `scope` `transfer:funds` en la solicitud, o acceso tanto para consultar el saldo del usuario como para transferir fondos incluyendo en la solicitud los `scopes` `read:balance` y `transfer:funds`.
+
+Ahora, cuando la aplicación llame a tu API, incluirá un token que verifica que el usuario ha autorizado el acceso a sus datos y que también indica qué `scopes` ha aprobado. Tu API debe respetar los `scopes` aprobados y solo proporcionar a la aplicación que llama la información que el usuario haya autorizado.
+
+<div id="example-an-api-called-by-a-first-party-application">
+  ### Ejemplo: Una API llamada por una aplicación propia
+</div>
+
+Supongamos que estás creando una API que proporciona datos a una aplicación de eventos que también has desarrollado. [Implementas el control de acceso basado en roles (RBAC)](/docs/es/manage-users/access-control/rbac), creando un rol de `organizer` y otro de `participant`. Los usuarios con el rol de `organizer` necesitan crear y actualizar eventos, mientras que los usuarios con el rol de `participant` necesitan ver eventos y registrarse en ellos. Para ello, creas cuatro scopes para tu API: uno que autoriza la creación de eventos (`create:events`), otro que autoriza la actualización de eventos (`update:events`), otro que autoriza el acceso de solo lectura a los eventos (`view:events`) y otro que autoriza el registro en eventos (`register:events`). Tanto tu API como la aplicación de eventos están registradas en Auth0, y la opción **Allow Skipping User Consent** para aplicaciones propias está habilitada para tu API. Has instalado la Authorization Extension, configurado un rol `organizer`, creado para él los scopes `create:events` y `update:events`, y se lo has asignado al Usuario A. También has configurado un rol `participant`, creado para él los scopes `view:events` y `register:events`, y se lo has asignado al Usuario B.
+
+El Usuario A se autentica en la aplicación que realiza la llamada, que solicita los scopes necesarios, pero como se trata de una aplicación propia, no se solicitará el consentimiento del usuario. La aplicación puede solicitar cualquier combinación de los scopes `create:events`, `update:events`, `view:events` y `register:events`, pero al Usuario A se le reconoce el rol de `organizer` y, por lo tanto, solo se le conceden los scopes `create:events` y `update:events`.
+
+Ahora, cuando la aplicación llame a tu API, incluirá un token que verifica que tiene autorización únicamente para los scopes asociados al rol del usuario autenticado.
+
+<div id="example-an-api-called-by-a-back-end-service">
+  ### Ejemplo: una API llamada por un servicio de back-end
+</div>
+
+Supongamos que trabajas para un hospital y tienes una API que genera grandes volúmenes de datos de diagnóstico por imagen cada vez que a un paciente le hacen una resonancia magnética. Almacenas esos datos localmente durante seis meses, pero el hospital necesita conservar las imágenes a largo plazo para cumplir con la normativa. Por eso, el hospital cuenta con un servicio que, cada noche, copia los datos de imagen a una solución externa de almacenamiento en frío y elimina todos los datos médicos locales una vez transcurridos seis meses.
+
+Para ello, creas dos scopes para tu API: uno que autoriza el acceso de lectura a tus datos de imagen (`read:images`) y otro que autoriza el acceso de eliminación a tus datos de imagen (`delete:images`). Tu API y el servicio automatizado están registrados en Auth0, y has autorizado al servicio automatizado a solicitar tokens para tu API.
+
+El servicio automatizado que realiza la llamada solicitará los scopes necesarios, pero, como no hay ningún usuario, no se solicitará consentimiento. El servicio puede solicitar acceso de lectura a tus datos de imagen incluyendo el scope `read:images` en la solicitud, acceso de eliminación incluyendo el scope `delete:images` en la solicitud, o tanto acceso de lectura como de eliminación incluyendo los scopes `read:images` y `delete:images` en la solicitud.
+
+Ahora, cuando el servicio automatizado llame a tu API, incluirá un token que verificará que tiene autorización para los scopes solicitados.
+
+<div id="limit-api-scopes">
+  ## Limitar los scopes de la API
+</div>
+
+Una aplicación puede incluir en su solicitud cualquier scope definido para una API. Sin embargo, en lugar de permitir que se soliciten todos los scopes disponibles, puedes controlar cómo las aplicaciones acceden a tus APIs mediante [políticas de acceso a la API para aplicaciones](/docs/es/get-started/apis/api-access-policies-for-applications).
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Casos prácticos: Scopes y Claims](/docs/es/get-started/apis/scopes/sample-use-cases-scopes-and-claims)
+* [Agregar permisos a la API](/docs/es/get-started/apis/add-api-permissions)
+* [Personalizar los mensajes de consentimiento](/docs/es/customize/login-pages/customize-consent-prompts)
+* [Configurar una API lógica para varias APIs](/docs/es/get-started/apis/set-logical-api)
+* [Obtener tokens de acceso de la Management API para producción](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production)
+* [Obtener tokens de acceso de la Management API para pruebas](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-testing)

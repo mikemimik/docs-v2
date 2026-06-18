@@ -1,0 +1,124 @@
+---
+title: "Solicitudes de autorización push (PAR)"
+description: "Envía los parámetros de autorización en una solicitud POST segura desde el backend para evitar que los valores sensibles queden expuestos en el navegador."
+---
+
+import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
+
+<div id="endpoint">
+  ## Endpoint
+</div>
+
+`POST /oauth/par`
+
+<Note>
+  Para usar las funciones de Highly Regulated Identity, debes tener un Enterprise Plan con el complemento de Highly Regulated Identity. Consulta [Auth0 Pricing](https://auth0.com/pricing) para obtener más información.
+</Note>
+
+El flujo de código de autorización con [Pushed Authorization Requests (PAR)](https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par) usa el endpoint `/oauth/par` para permitir que las aplicaciones envíen los parámetros de autorización que normalmente se envían en una solicitud `GET` a `/authorize`. PAR usa un método `POST` desde el backend para mantener seguros los valores de los parámetros. El endpoint `/oauth/par` acepta todos los parámetros de autorización que pueden proporcionarse a `/authorize`. Si la llamada al endpoint `/oauth/par` es válida, Auth0 responderá con un valor `redirect_uri` que puede usarse como parámetro para el endpoint `/authorize`.
+
+Si la llamada al endpoint `/oauth/par` es válida, Auth0 responderá con un valor `redirect_uri` que también se usa como parámetro para el endpoint `/authorize`. Para obtener más información sobre cómo configurar PAR, consulta [Configure Pushed Authorization Requests (PAR)](https://auth0.com/docs/get-started/applications/configure-par).
+
+<div id="remarks">
+  ### Observaciones
+</div>
+
+* Para llamar al endpoint PAR, debes:
+  * Establecer el tipo de contenido de la solicitud como `application/x-www-form-urlencoded`
+  * Usar `strings` en todos los parámetros enviados
+  * Incluir en la solicitud un parámetro adicional para la autenticación de la aplicación (p. ej., `client_secret`, o `client_assertion` y `client_assertion_type` para la autenticación de cliente mediante JSON Web Token, o enviar los encabezados `client-certificate` y `client-certificate-ca-verified` cuando uses Mutual TLS).
+* Usa el parámetro `authorization_details` para solicitar permisos para cada recurso. Por ejemplo, puedes especificar una matriz de objetos JSON para transmitir información detallada sobre la autorización. Cada objeto JSON debe contener un atributo `type`. El resto queda a tu criterio.
+
+<div id="headers">
+  ## Encabezados
+</div>
+
+<ParamField header="DPoP" type="string">
+  Una prueba DPoP para la solicitud. Es opcional y solo se requiere si su aplicación utiliza Demonstrating Proof-of-Possession.
+</ParamField>
+
+<div id="body-parameters">
+  ## Parámetros del cuerpo
+</div>
+
+<ParamField body="authorization_details" type="string">
+  Permisos solicitados para cada recurso, similares a los scopes.
+</ParamField>
+
+<ParamField body="audience" type="string">
+  El identificador único de la API de destino a la que quieres acceder.
+</ParamField>
+
+<ParamField body="resource" type="string">
+  El identificador de la API de destino (servidor de recursos) a la que quieres acceder. Debe coincidir con un identificador de API registrado en tu tenant de Auth0. Se utiliza como alternativa a `audience` cuando el [Resource Parameter Compatibility Profile](https://auth0.com/docs/get-started/tenant-settings#settings-advanced) del tenant está configurado en `compatibility`.
+</ParamField>
+
+<ParamField body="response_type" type="string" required>
+  Especifica el tipo de token; por ejemplo, `code` o `code id_token`. Obligatorio.
+</ParamField>
+
+<ParamField body="client_id" type="string" required>
+  El `client_id` de tu aplicación. Obligatorio.
+</ParamField>
+
+<ParamField body="redirect_uri" type="string" required>
+  La URL a la que Auth0 redirigirá una vez concedida la autorización. Obligatorio.
+</ParamField>
+
+<ParamField body="state" type="string">
+  Un valor opaco que se utiliza para prevenir ataques CSRF. Recomendado.
+</ParamField>
+
+<ParamField body="scope" type="string">
+  Scopes de OIDC y scopes personalizados de la API. Recomendado.
+</ParamField>
+
+<ParamField body="code_challenge" type="string">
+  Desafío generado a partir de `code_verifier`. Recomendado.
+</ParamField>
+
+<ParamField body="code_challenge_method" type="string">
+  Método utilizado para generar el desafío, normalmente `S256`. Recomendado.
+</ParamField>
+
+<ParamField body="nonce" type="string">
+  Se utiliza para prevenir ataques de repetición de tokens. Recomendado para `response_type=id_token`.
+</ParamField>
+
+<ParamField body="connection" type="string">
+  El nombre de la conexión configurada para tu aplicación.
+</ParamField>
+
+<ParamField body="prompt" type="string">
+  Se utiliza para forzar un prompt específico; por ejemplo, `prompt=consent`.
+</ParamField>
+
+<ParamField body="organization" type="string">
+  ID de la organización que se usará al autenticar a un usuario.
+</ParamField>
+
+<ParamField body="dpop_jkt" type="string">
+  La huella digital JWK [RFC7638](https://www.rfc-editor.org/rfc/rfc7638.html) de la clave pública de prueba de posesión, mediante la función hash SHA-256. Solo cuando se utiliza Demonstrating Proof-of-Possession (DPoP).
+</ParamField>
+
+<div id="response-schema">
+  ## Esquema de la respuesta
+</div>
+
+<ResponseSchema>
+  <ResponseField name="request_uri" type="string">
+    El URI que se utilizará en el endpoint de autorización.
+  </ResponseField>
+
+  <ResponseField name="expires_in" type="integer">
+    Número de segundos durante los cuales `request_uri` es válido.
+  </ResponseField>
+</ResponseSchema>
+
+<div id="response-messages">
+  ## Mensajes de respuesta
+</div>
+
+| Estado | Descripción                                                                                 |
+| ------ | ------------------------------------------------------------------------------------------- |
+| 201    | Solicitud realizada correctamente; devuelve el URI de la solicitud y la hora de expiración. |

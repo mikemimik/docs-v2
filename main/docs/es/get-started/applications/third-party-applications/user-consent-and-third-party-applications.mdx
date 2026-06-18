@@ -1,0 +1,142 @@
+---
+title: Consentimiento del usuario y aplicaciones de terceros
+description: "Descubre cómo Auth0 gestiona el consentimiento del usuario cuando las aplicaciones solicitan acceso a las API en su nombre."
+validatedOn: 2026-03-31
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+OAuth permite que las aplicaciones accedan a las API en nombre del usuario. Antes de que una aplicación pueda actuar en nombre de un usuario, este debe aprobar explícitamente los permisos solicitados. Este paso de aprobación se denomina consentimiento del usuario.
+
+En las [aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications), el consentimiento del usuario siempre es obligatorio. El usuario debe aprobar cada solicitud de autorización. En el caso de las [aplicaciones propias](/docs/es/get-started/applications/first-party-and-third-party-applications), el consentimiento puede omitirse si así se configura, ya que usted controla la aplicación y confía en que actuará adecuadamente.
+
+<div id="consent-dialog">
+  ## Cuadro de diálogo de consentimiento
+</div>
+
+Cuando una aplicación de terceros redirige a un usuario al endpoint `/authorize` y solicita acceso a una API, Auth0 muestra un cuadro de diálogo de consentimiento con la lista de los permisos que solicita la aplicación.
+
+La siguiente solicitud de autorización muestra un cuadro de diálogo de consentimiento en el que se pide al usuario que apruebe los permisos `read:posts` y `write:posts` para la API:
+
+```http wrap lines
+GET /authorize?
+  client_id=tpc_THIRD_PARTY_CLIENT_ID
+  &redirect_uri=https://partner.example.com/callback
+  &response_type=code
+  &scope=read:posts write:posts
+  &audience=https://social.example.com
+  &code_challenge=CODE_CHALLENGE
+  &code_challenge_method=S256
+  &state=STATE_VALUE
+```
+
+<Frame>![Authorization - consentimiento del usuario y aplicaciones - cuadro de diálogo de consentimiento](/docs/images/cdy7uua7fh8z/5Cz3aZKw8RRVlMkc5Zl6x7/62ac54cbc470286d5c2139d47c604ebc/2025-02-28_14-57-52.png)</Frame>
+
+Si el usuario lo aprueba, Auth0 crea una concesión de usuario que representa el consentimiento del usuario para esta combinación de aplicación, API y scopes solicitados. La aplicación recibe un código de autorización como de costumbre.
+
+Una vez otorgado el consentimiento, el usuario no volverá a ver el cuadro de diálogo de consentimiento en los inicios de sesión posteriores hasta que el consentimiento se revoque explícitamente.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Las aplicaciones de terceros con controles de seguridad reforzados no admiten scopes de OIDC (`openid`, `profile`, `email`) en esta versión. El cuadro de diálogo de consentimiento solo muestra scopes de API. La compatibilidad de OIDC para aplicaciones de terceros está prevista para una versión futura.
+</Callout>
+
+<div id="scope-descriptions">
+  ## Descripciones de scopes
+</div>
+
+De forma predeterminada, la página de consentimiento usa los nombres de los scopes para solicitar el consentimiento del usuario. Como se muestra a continuación, defina los scopes con el formato `action:resource_name` para que se muestren claramente:
+
+<Frame>![Authorization - Consentimiento del usuario y aplicaciones - Scopes de consentimiento](/docs/images/cdy7uua7fh8z/3Z4Ofbj5yF7eg5cLfcauh9/556bab9e627b0ff68b20664d149f1483/Blog_API_Permissions_-_English.png)</Frame>
+
+La página de consentimiento agrupa los scopes de la misma API y muestra todas las acciones en una sola línea. Por ejemplo, la configuración anterior da como resultado **Posts: leer y escribir tus publicaciones**.
+
+Para mostrar el campo **Descripción** en lugar del nombre del scope, establezca en `true` el indicador `use_scope_descriptions_for_consent` del tenant:
+
+<AuthCodeGroup>
+  ```bash cURL wrap lines
+  curl --request PATCH \
+    --url 'https://YOUR_DOMAIN/api/v2/tenants/settings' \
+    --header 'Authorization: Bearer YOUR_MANAGEMENT_API_TOKEN' \
+    --header 'Content-Type: application/json' \
+    --data '{ "flags": { "use_scope_descriptions_for_consent": true } }'
+  ```
+</AuthCodeGroup>
+
+Esta configuración afecta a las solicitudes de consentimiento de todas las API del tenant.
+
+<div id="handle-rejected-permissions">
+  ## Gestionar permisos rechazados
+</div>
+
+Cuando un usuario rechaza el consentimiento, el comportamiento depende de la [política de redirección](/docs/es/get-started/applications/third-party-applications/security-controls#redirect-protection) de la aplicación:
+
+* **`open_redirect_protection`** (predeterminado para aplicaciones de terceros): Auth0 muestra una página de error en lugar de redirigir. Esto evita ataques de redirección abierta.
+* **`allow_always`**: Auth0 redirige a `redirect_uri` con un error `access_denied`:
+
+```http wrap lines
+HTTP/1.1 302 Found
+Location: https://partner.example.com/callback?
+    error=access_denied
+    &state=STATE_VALUE
+```
+
+<div id="skip-consent-for-first-party-applications">
+  ## Omitir el consentimiento para aplicaciones propias
+</div>
+
+Las aplicaciones propias pueden omitir el cuadro de diálogo de consentimiento cuando la API tiene habilitada la opción **Allow Skipping User Consent**.
+
+Para ir al control **Allow Skipping User Consent**, selecciona **Applications &gt; APIs &gt; (selecciona la API) &gt; Settings &gt; Access Settings**.
+
+Las aplicaciones de terceros siempre requieren consentimiento y no pueden omitir el cuadro de diálogo de consentimiento.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Incluso cuando se omite el consentimiento para aplicaciones propias, puede seguir apareciendo un prompt de confirmación de inicio de sesión cuando la aplicación usa un URI de devolución de llamada no verificable (como `localhost` o un esquema de URI personalizado). Esto protege a los usuarios contra la suplantación de aplicaciones en el mismo dispositivo. Para obtener más información, consulta [Medidas contra la suplantación de aplicaciones](/docs/es/secure/security-guidance/measures-against-app-impersonation).
+</Callout>
+
+<div id="revoke-consent">
+  ## Revocar el consentimiento
+</div>
+
+Para revocar el consentimiento de un usuario para una aplicación específica:
+
+1. Vaya a **Auth0 Dashboard &gt; User Management &gt; Users**.
+2. Seleccione el usuario.
+3. Seleccione la pestaña **Authorized Applications**.
+4. Seleccione **Revoke** junto a la aplicación.
+
+<div id="password-based-flows">
+  ## Flujos basados en contraseña
+</div>
+
+Al usar el [flujo de contraseña del propietario del recurso](/docs/es/get-started/authentication-and-authorization-flow/resource-owner-password-flow), no aparece ningún cuadro de diálogo de consentimiento, ya que el usuario proporciona su contraseña directamente a la aplicación, lo que equivale a concederle acceso total a su cuenta.
+
+<div id="force-consent">
+  ## Forzar el consentimiento
+</div>
+
+Para obligar a los usuarios a dar su consentimiento en cada inicio de sesión (aunque ya tengan una concesión existente), incluye `prompt=consent` en la solicitud a `/authorize`:
+
+```http wrap lines
+GET /authorize?
+  client_id=tpc_THIRD_PARTY_CLIENT_ID
+  &redirect_uri=https://partner.example.com/callback
+  &response_type=code
+  &scope=read:posts write:posts
+  &audience=https://social.example.com
+  &prompt=consent
+  &code_challenge=CODE_CHALLENGE
+  &code_challenge_method=S256
+  &state=STATE_VALUE
+```
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications)
+* [Aplicaciones propias y de terceros](/docs/es/get-started/applications/first-party-and-third-party-applications)
+* [Controles de seguridad para aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/security-controls)
+* [Tipos de concesión de aplicaciones](/docs/es/get-started/applications/application-grant-types)
+* [Medidas contra la suplantación de aplicaciones](/docs/es/secure/security-guidance/measures-against-app-impersonation)

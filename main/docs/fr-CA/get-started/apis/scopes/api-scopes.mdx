@@ -1,0 +1,74 @@
+---
+description: Comprenez le principe des scopes et leur utilisation avec les API.
+title: Scopes d’API
+validatedOn: 2026-02-09
+---
+
+En tant que développeur d’API, vous devez :
+
+1. Déterminer quelles informations vous souhaitez permettre aux applications d’accéder au nom d’un utilisateur.
+2. Définir ces niveaux d’accès comme des scopes personnalisés. (Pour en savoir plus sur les scopes, consultez [Scopes](/docs/fr-CA/get-started/apis/scopes).)
+3. Indiquer ces scopes afin que les applications appelantes puissent les utiliser.
+
+<div id="ways-to-use-api-scopes">
+  ## Façons d’utiliser les scopes d’API
+</div>
+
+Vous pouvez utiliser les scopes d’API de différentes façons :
+
+* Dans une API où l’application appelante est une application tierce, ou externe. Dans ce cas, l’application appelante demandera à l’utilisateur l’autorisation d’accéder aux scopes demandés, et l’utilisateur approuvera ou rejettera la demande.
+* Dans une API où l’application appelante est une application de première partie, c’est-à-dire une application enregistrée sous le même domaine Auth0 que l’API qu’elle appelle. Dans ce cas, par défaut, le consentement de l’utilisateur n’est pas demandé, mais vous pouvez le configurer pour qu’il soit requis.
+* Dans une API où l’application appelante est un service backend, qu’il soit tiers ou de première partie, et où il n’existe aucun utilisateur. Dans ce cas, le consentement de l’utilisateur n’est jamais demandé.
+
+Tous ces exemples utilisent des scopes pour limiter l’accès au moyen d’un jeton. Si vous le souhaitez, votre API peut aussi utiliser une logique supplémentaire au-delà du jeton pour appliquer un contrôle d’accès plus étendu.
+
+Pour voir un exemple montrant comment demander l’accès à une API personnalisée pour votre application, consultez [Exemples de cas d’utilisation : scopes et claims](/docs/fr-CA/get-started/apis/scopes/sample-use-cases-scopes-and-claims).
+
+<div id="example-an-api-called-by-a-third-party-application">
+  ### Exemple : Une API appelée par une application tierce
+</div>
+
+Supposons que vous créez une API qui fournit des renseignements sur des comptes bancaires à des applications de paiement en ligne. À différents moments, les applications peuvent devoir consulter les soldes des comptes ou transférer des fonds. Pour ce faire, vous créez deux scopes pour votre API : un qui autorise l’accès en lecture au solde d’un compte (`read:balance`) et un autre qui autorise les transferts de fonds (`transfer:funds`). Votre API est enregistrée dans Auth0.
+
+Une application appelante demandera à l’utilisateur l’autorisation d’accéder aux scopes demandés, et l’utilisateur approuvera ou rejettera la requête. L’application peut demander un accès en lecture au solde de l’utilisateur en incluant le scope `read:balance` dans sa requête, un accès pour effectuer des transferts de fonds en incluant le scope `transfer:funds` dans sa requête, ou un accès permettant à la fois de lire le solde de l’utilisateur et de transférer des fonds en incluant les scopes `read:balance` et `transfer:funds` dans sa requête.
+
+Lorsque l’application appellera votre API, elle inclura un jeton qui confirme que l’utilisateur a autorisé l’accès à son contenu et qui indique également quels scopes l’utilisateur a approuvés. Votre API doit respecter les scopes approuvés et ne transmettre à l’application appelante que les renseignements autorisés par l’utilisateur.
+
+<div id="example-an-api-called-by-a-first-party-application">
+  ### Exemple : une API appelée par une application de première partie
+</div>
+
+Supposons que vous développiez une API qui fournit des données à une application d’événements, que vous avez également développée. Vous [implémentez le contrôle d’accès basé sur les rôles (RBAC)](/docs/fr-CA/manage-users/access-control/rbac), en créant un rôle `organizer` et un rôle `participant`. Les utilisateurs ayant le rôle `organizer` doivent pouvoir créer et mettre à jour des événements, tandis que les utilisateurs ayant le rôle `participant` doivent pouvoir consulter les événements et s’y inscrire. Pour ce faire, vous créez quatre scopes pour votre API : un qui autorise la création d’événements (`create:events`), un qui autorise la mise à jour d’événements (`update:events`), un qui autorise l’accès en lecture seule aux événements (`view:events`) et un qui autorise l’inscription aux événements (`register:events`). Votre API et votre application d’événements sont toutes deux enregistrées dans Auth0, et l’option **Allow Skipping User Consent** pour les applications de première partie est activée pour votre API. Vous avez installé l’Authorization Extension, configuré un rôle `organizer` et créé les scopes `create:events` et `update:events` qui lui sont associés, puis vous l’avez attribué à l’utilisateur A. Vous avez également configuré un rôle `participant` et créé les scopes `view:events` et `register:events` qui lui sont associés, puis vous l’avez attribué à l’utilisateur B.
+
+L’utilisateur A s’authentifie auprès de l’application appelante, qui demande les scopes nécessaires, mais comme il s’agit d’une application de première partie, le consentement de l’utilisateur n’est pas demandé. L’application peut demander n’importe quelle combinaison des scopes `create:events`, `update:events`, `view:events` et `register:events`, mais l’utilisateur A est reconnu comme ayant le rôle `organizer` et, par conséquent, seuls les scopes `create:events` et `update:events` lui sont accordés.
+
+Lorsque l’application appelle ensuite votre API, elle inclut un jeton qui confirme qu’elle n’a l’autorisation que pour les scopes associés au rôle de l’utilisateur authentifié.
+
+<div id="example-an-api-called-by-a-back-end-service">
+  ### Exemple : une API appelée par un service back-end
+</div>
+
+Supposons que vous travaillez pour un hôpital et que vous disposez d’une API qui produit de grandes quantités de données d’imagerie chaque fois qu’un patient passe une IRM. Vous stockez ces données d’imagerie localement pendant six mois, mais l’hôpital doit conserver les images à long terme pour se conformer aux exigences réglementaires. C’est pourquoi l’hôpital utilise un service qui, chaque nuit, copie les données d’imagerie vers une solution de stockage à froid hors site et supprime toutes les données médicales locales après six mois de conservation.
+
+Pour ce faire, vous créez deux scopes pour votre API : une qui autorise l’accès en lecture à vos données d’imagerie (`read:images`) et une qui autorise leur suppression (`delete:images`). Votre API et votre service automatisé sont enregistrés auprès d’Auth0, et vous avez autorisé le service automatisé à demander des jetons pour votre API.
+
+Le service automatisé qui effectue l’appel demandera les scopes nécessaires, mais comme il n’y a pas d’utilisateur, aucun consentement ne sera demandé. Le service peut demander l’accès en lecture à vos données d’imagerie en incluant le scope `read:images` dans sa requête, l’accès en suppression en incluant le scope `delete:images` dans sa requête, ou les deux, en incluant les scopes `read:images` et `delete:images` dans sa requête.
+
+Désormais, lorsque le service automatisé appellera votre API, il inclura un jeton qui confirme qu’il est autorisé à utiliser les scopes demandés.
+
+<div id="limit-api-scopes">
+  ## Limiter les scopes d’API
+</div>
+
+Une application peut inclure n’importe quel scope défini pour une API dans sa requête. Toutefois, au lieu d’autoriser la demande de tous les scopes disponibles, vous pouvez contrôler la façon dont les applications accèdent à vos API à l’aide des [politiques d’accès à l’API pour les applications](/docs/fr-CA/get-started/apis/api-access-policies-for-applications).
+
+<div id="learn-more">
+  ## En savoir plus
+</div>
+
+* [Exemples de cas d’utilisation : scopes et claims](/docs/fr-CA/get-started/apis/scopes/sample-use-cases-scopes-and-claims)
+* [Ajouter des permissions d’API](/docs/fr-CA/get-started/apis/add-api-permissions)
+* [Personnaliser les écrans de consentement](/docs/fr-CA/customize/login-pages/customize-consent-prompts)
+* [Configurer une API logique pour plusieurs API](/docs/fr-CA/get-started/apis/set-logical-api)
+* [Obtenir des jetons d’accès à la Management API pour la production](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production)
+* [Obtenir des jetons d’accès à la Management API pour les tests](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-testing)

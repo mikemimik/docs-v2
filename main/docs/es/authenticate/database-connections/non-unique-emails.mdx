@@ -1,0 +1,125 @@
+---
+description: Cómo configurar Non-Unique Emails y los identificadores asociados
+title: Non-Unique Emails
+---
+
+Non-Unique Emails permite que varias cuentas de usuario de una misma conexión de base de datos usen una sola dirección de correo electrónico, mientras que otro atributo (como el nombre de usuario o el número de teléfono) actúa como identificador principal. Tanto si eres un padre que administra las cuentas de varios hijos con una sola dirección de correo electrónico como si eres una pequeña empresa con un correo electrónico por sucursal, Non-Unique Emails te permite ofrecer una experiencia segura de inicio de sesión y restablecimiento de contraseña para cada cuenta.
+
+<div id="considerations">
+  ### Consideraciones
+</div>
+
+Revisa lo siguiente para asegurarte de que Non-Unique Emails sea adecuado para tu caso de uso.
+
+<div id="primary-identifier-requirements">
+  #### Requisitos del identificador principal
+</div>
+
+El correo electrónico no puede usarse como identificador principal al usar Non-Unique Emails. Debes configurar otro atributo como identificador principal, que se usará para la autenticación, el restablecimiento de contraseña y la gestión de la cuenta.
+
+Para obtener más información sobre identificadores y atributos, consulta [Flexible Identifiers](/docs/es/authenticate/database-connections/flexible-identifiers-and-attributes).
+
+<div id="password-resets">
+  #### Restablecimiento de contraseña
+</div>
+
+Los usuarios finales deben proporcionar su nombre de usuario, número de teléfono o el atributo que su administrador haya configurado como atributo principal al restablecer su contraseña. Auth0 usa ese identificador principal para localizar y restablecer la cuenta asociada a una dirección de correo electrónico compartida.
+
+<div id="irreversible-settings">
+  #### Ajustes irreversibles
+</div>
+
+Una vez que el atributo de correo electrónico se configura como no único en una conexión, no se puede volver a cambiar para que sea único. Además, solo se pueden crear nuevas conexiones de base de datos con compatibilidad para correo electrónico no único; no puedes cambiar una conexión existente y debes actualizar tu aplicación para usar el identificador principal que elijas.
+
+<div id="flexible-identifiers">
+  #### Flexible Identifiers
+</div>
+
+Flexible Identifiers deben estar habilitados en la conexión de base de datos para usar Non-Unique Emails y no pueden deshabilitarse una vez creada la conexión. Cuando habilitas Non-Unique Emails con la <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>, Flexible Identifiers se configuran automáticamente.
+
+<div id="api-behavior-changes">
+  ### Cambios en el comportamiento de la API
+</div>
+
+`GET /api/v2/users-by-email` devuelve todos los usuarios que comparten la misma dirección de correo electrónico.
+
+`DELETE /api/v2/connections/{id}/users` no es compatible con conexiones con correo electrónico no único.
+
+`POST /dbconnections/change_password` no funciona con conexiones con correo electrónico no único porque requiere una dirección de correo electrónico única para localizar la cuenta de usuario. Los usuarios deben usar flujos que utilicen el identificador principal para restablecer sus contraseñas.
+
+<div id="enable-non-unique-emails-in-the-auth0-dashboard">
+  ### Habilita correos electrónicos no únicos en el Auth0 Dashboard
+</div>
+
+1. Ve a **Authentication &gt; Database** y crea una nueva conexión.
+2. Ve a la sección **Choose one or more attributes as user identifiers**, activa **Email Address** en **On** y luego habilita el interruptor **Allow non-unique email addresses** que aparece.
+3. Elige **nombre de usuario** o el número de teléfono y actívalo también en **On** para que funcione como identificador principal en los flujos de inicio de sesión y restablecimiento de contraseña.
+4. Después de confirmar que el correo electrónico no se usará como identificador, selecciona **Create** para guardar la conexión.
+
+<Frame>![](/docs/images/cdy7uua7fh8z/f65T5K61TGU92hyxFFOHW/ebe7b880185e192ffa8ce4944224205a/image__6_.png)</Frame>
+
+<div id="enable-non-unique-emails-via-the-management-api">
+  ### Habilita Non-Unique Emails mediante la Management API
+</div>
+
+Usa el endpoint `POST /api/v2/connections` de la Management API para crear una conexión de base de datos que admita Non-Unique Emails.
+
+Al crear la conexión:
+
+* Establece **unique: false** en el objeto `options.attributes.email` para permitir varias cuentas con la misma dirección de correo electrónico. Establece **identifier.active: false** para asegurarte de que el correo electrónico no pueda funcionar como identificador principal cuando no es único.
+* Elige otro atributo como identificador principal y establece **identifier.active: true** en el atributo que hayas elegido.
+
+Sin un identificador principal distinto del correo electrónico, los flujos de autenticación y de restablecimiento de contraseña no funcionan correctamente. Asegúrate de que al menos un atributo esté configurado como identificador activo.
+
+<div id="example-request">
+  #### Ejemplo de solicitud
+</div>
+
+A continuación se muestra un ejemplo del cuerpo de la solicitud para crear una conexión de base de datos que utiliza un nombre de usuario como identificador principal y admite correos electrónicos no únicos:
+
+```json lines expandable
+{
+ "name": "new-non-unique",
+ "strategy": "authO",
+ "options": {
+  "attributes": {
+   "email": {
+     "unique": false,
+     "signup" : {
+       "status": "required"
+     },
+     "identifier": {
+      "active": false
+     },
+     "profile_required": true
+   ｝，
+   "username": {
+    "signup": {
+     "status": "required"
+   },
+   "identifier": {
+    "active": true
+   ｝，
+   "profile_required": true
+   }
+  }
+ }
+}
+```
+
+<div id="shared-email-risk-disclaimer">
+  ### Descargo de responsabilidad sobre los riesgos de los correos electrónicos compartidos
+</div>
+
+Aunque la funcionalidad **Non-Unique Emails** incluye medidas de protección, como no permitir el correo electrónico como identificador principal y exigir que los restablecimientos de contraseña se realicen mediante un nombre de usuario o un número de teléfono**,** sigue existiendo un riesgo inherente cuando varias cuentas de usuario comparten la misma dirección de correo electrónico. Por ejemplo:
+
+* Todas las comunicaciones por correo electrónico (p. ej., enlaces de restablecimiento de contraseña, notificaciones) se entregarán en la misma bandeja de entrada, independientemente de qué usuario haya iniciado la acción.
+* Esto podría generar confusión entre los usuarios o acceso no deseado a enlaces enviados por correo electrónico si la bandeja de entrada es compartida.
+
+Al habilitar esta funcionalidad, usted reconoce y acepta la responsabilidad de garantizar que:
+
+* Los escenarios de correo electrónico compartido sean adecuados para su caso de uso.
+* Se informe y capacite adecuadamente a los usuarios finales.
+* El diseño de su aplicación tenga en cuenta posibles solapamientos en los flujos de trabajo basados en correo electrónico.
+
+Esta contrapartida ofrece flexibilidad, pero requiere una implementación cuidadosa y una comunicación clara con sus usuarios.

@@ -1,0 +1,188 @@
+---
+mode: wide
+description: Este tutorial muestra cómo usar el módulo nginx-openid-connect para añadir autenticación y autorización a tu servidor NGINX.
+title: NGINX Plus
+---
+
+import { Recipe, Content, Section, SideMenu, SideMenuSectionItem, SignUpForm } from "/snippets/recipe.jsx";
+import { LoggedInForm } from "/snippets/Login.jsx";
+import Nginx from "/snippets/quickstart/webapp/nginx-plus/nginx.conf.mdx";
+import OpenidConnectionConfiguration from "/snippets/quickstart/webapp/nginx-plus/openid_connection_configuration.conf.mdx";
+import OpenidConnect from "/snippets/quickstart/webapp/nginx-plus/openid_connect.server_conf.mdx";
+import Frontend from "/snippets/quickstart/webapp/nginx-plus/frontend.conf.mdx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+export const sections = [
+  { id: "system-requirements", title: "Requisitos del sistema" },
+  { id: "install-and-enable-nginx-plus-module-njs-module", title: "Instala y habilita el módulo nginx-plus-module-njs" },
+  { id: "checkout-nginx-openid-connect-template-repository", title: "Clona el repositorio de plantillas nginx-openid-connect" },
+  { id: "configure-nginx-with-your-auth0-application-details", title: "Configura NGINX con los datos de tu aplicación de Auth0" },
+  { id: "configure-accept-encoding-header-for-token-and-jwks-endpoints", title: "Configura el encabezado Accept-Encoding para los endpoints de token y JWKS" },
+  { id: "copy-openid-connect-configuration-files", title: "Copia los archivos de configuración de OpenID Connect" },
+  { id: "configure-auth0-application-settings", title: "Configura Application Settings de Auth0" },
+  { id: "pass-headers-to-upstream-application", title: "Pasa los encabezados a la aplicación upstream" }
+]
+
+<Recipe>
+  <Content>
+    Este tutorial muestra cómo usar el módulo nginx-openid-connect para añadir autenticación y autorización a
+    tu servidor NGINX. Te recomendamos iniciar sesión para seguir esta guía de inicio rápido con ejemplos configurados para tu cuenta.
+
+    <Section id={sections[0].id} title={sections[0].title} stepNumber="1">
+      Este tutorial y el proyecto base se han probado con lo siguiente:
+
+      * NGINX Plus R24
+    </Section>
+
+    <Section id={sections[1].id} title={sections[1].title} stepNumber="2">
+      Primero, debes instalar el módulo `nginx-plus-module-njs` para NGINX Plus.
+
+      Sigue la guía de instalación de módulos dinámicos para instalar los paquetes en el sistema operativo de tu host.
+
+      En las distribuciones de Linux que usan el gestor de paquetes `yum`, puedes instalar el módulo así:
+
+      ```sh lines
+      sudo yum install nginx-plus-module-njs jq
+      ```
+
+      Una vez instalado, debes habilitarlo en NGINX añadiendo la siguiente línea cerca del principio de tu
+      archivo `/etc/nginx/nginx.conf`:
+
+      ```sh lines
+      load_module modules/ngx_http_js_module.so;
+      ```
+    </Section>
+
+    <Section id={sections[2].id} title={sections[2].title} stepNumber="3">
+      Clona el repositorio `nginx-openid-connect`. Este repositorio incluye una plantilla de configuración.
+
+      ```sh lines
+      git clone https://github.com/nginxinc/nginx-openid-connect
+      ```
+    </Section>
+
+    <Section id={sections[3].id} title={sections[3].title} stepNumber="4">
+      Ejecuta el script configure.sh dentro de la carpeta nginx-openid-connect para completar la plantilla de configuración de
+      tu aplicación de Auth0:
+
+      ```sh lines
+      ./configure.sh --auth_jwt_key request \
+      --client_id {yourClientId} \
+      --pkce_enable \
+      https://{yourDomain}/.well-known/openid-configuration
+      ```
+
+      A continuación, agrega la [URL de cierre de sesión de tu tenant](https://auth0.com/docs/api/authentication#auth0-logout) a tu
+      archivo `openid_connect_configuration.conf`.
+    </Section>
+
+    <Section id={sections[4].id} title={sections[4].title} stepNumber="5">
+      Agrega la cabecera `Accept-Encoding` y establece el valor en `gzip` en tu
+      archivo `openid_connect.server_conf`.
+    </Section>
+
+    <Section id={sections[5].id} title={sections[5].title} stepNumber="6">
+      Copia tus cuatro archivos de configuración a la carpeta `conf.d`.
+
+      ```sh lines
+      sudo cp openid_connect.js \ 
+      frontend.conf \
+      openid_connect_configuration.conf \
+      openid_connect.server_conf /etc/nginx/conf.d
+      ```
+    </Section>
+
+    <Section id={sections[6].id} title={sections[6].title} stepNumber="7">
+      En el Auth0 Dashboard:
+
+      1. Ve a **Applications** &gt; **Applications** y, a continuación, selecciona tu aplicación de la lista.
+      2. Cambia a la vista **Settings**.
+      3. En la sección **Application URIs**, agrega `https://{yourDomain}/_codexch`
+         a **Allowed Callback URLs**.
+      4. Cambia a la vista **Credentials**.
+
+      En la sección **Application Authentication**, establece **Authentication Method** en None.
+    </Section>
+
+    <Section id={sections[7].id} title={sections[7].title} stepNumber="8">
+      Agrega cabeceras adicionales del token de ID (JWT) al servidor upstream en tu
+      archivo `/etc/nginx/conf.d/frontend.conf`.
+    </Section>
+
+    ## Próximos pasos
+
+    ¡Excelente trabajo! Si has llegado hasta aquí, ahora deberías tener en funcionamiento en tu aplicación el inicio de sesión, el cierre de sesión y la información del perfil del usuario.
+
+    Esto concluye nuestra guía de inicio rápido, pero aún queda mucho por explorar. Para obtener más información sobre lo que puedes hacer con Auth0, consulta:
+
+    * [Auth0 Dashboard](https://manage.auth0.com/dashboard/us/dev-gja8kxz4ndtex3rq) - Aprende a configurar y administrar tu tenant de Auth0 y tus aplicaciones
+    * [Auth0 Marketplace](https://marketplace.auth0.com/) - Descubre integraciones que puedes habilitar para ampliar la funcionalidad de Auth0
+  </Content>
+
+  <SideMenu sections={sections}>
+    <SideMenuSectionItem id={sections[0].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[1].id}>
+      <AuthCodeGroup>
+        <Nginx />
+
+        <OpenidConnectionConfiguration />
+
+        <OpenidConnect />
+
+        <Frontend />
+      </AuthCodeGroup>
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[2].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[3].id}>
+      <AuthCodeGroup>
+        <OpenidConnectionConfiguration />
+
+        <Nginx />
+
+        <OpenidConnect />
+
+        <Frontend />
+      </AuthCodeGroup>
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[4].id}>
+      <AuthCodeGroup>
+        <OpenidConnect />
+
+        <Nginx />
+
+        <OpenidConnectionConfiguration />
+
+        <Frontend />
+      </AuthCodeGroup>
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[5].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[6].id}>
+      <SignUpForm />
+    </SideMenuSectionItem>
+
+    <SideMenuSectionItem id={sections[7].id}>
+      <AuthCodeGroup>
+        <Frontend />
+
+        <Nginx />
+
+        <OpenidConnectionConfiguration />
+
+        <OpenidConnect />
+      </AuthCodeGroup>
+    </SideMenuSectionItem>
+  </SideMenu>
+</Recipe>

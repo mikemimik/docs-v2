@@ -1,0 +1,323 @@
+---
+title: Agrega el inicio de sesión a tu aplicación Flutter para Windows
+sidebarTitle: Flutter Windows
+description: Esta guía muestra cómo integrar Auth0 en una aplicación de escritorio de Flutter para Windows con el Auth0 Flutter SDK (beta).
+mode: wide
+'og:title': 'Auth0 Flutter SDK Quickstarts: Agrega el inicio de sesión a tu aplicación Flutter para Windows'
+'twitter:title': 'Auth0 Flutter SDK Quickstarts: Agrega el inicio de sesión a tu aplicación Flutter para Windows'
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+export const envSnippet = `AUTH0_DOMAIN={yourDomain}
+AUTH0_CLIENT_ID={yourClientId}`;
+
+<Note>
+  **Requisitos previos:**
+
+  * Flutter SDK 3.24.0+ y Dart 3.5.0+.
+  * Windows 10 o una versión posterior.
+  * Visual Studio 2022 con la carga de trabajo **Desktop development with C++**.
+  * Una cuenta de Auth0: [regístrate gratis](https://auth0.com/signup).
+
+  Esta característica está en **beta** (`auth0_flutter` 2.1.0-beta.1). La API puede cambiar antes de su disponibilidad general.
+</Note>
+
+Esta guía te muestra cómo añadir inicio de sesión, cierre de sesión y la visualización del perfil de usuario a una aplicación de escritorio de Flutter para Windows con el SDK `auth0_flutter` y OAuth 2.0 [Flujo de código de autorización + PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
+
+<div id="get-started">
+  ## Primeros pasos
+</div>
+
+<Steps>
+  <Step title="Crear un proyecto de Flutter para Windows" stepNumber={1}>
+    Crea un nuevo proyecto de Flutter con compatibilidad para Windows.
+
+    ```shellscript
+    flutter create --platforms=windows my_app
+    cd my_app
+    ```
+
+    Asegúrate de que Windows esté disponible:
+
+    ```shellscript
+    flutter devices
+    ```
+
+    Deberías ver un dispositivo de escritorio con Windows en la lista.
+
+    <Tip>
+      Ejecuta `flutter doctor` para comprobar que tu entorno esté configurado correctamente y que se detecte Visual Studio 2022 con el desarrollo de escritorio en C++.
+    </Tip>
+  </Step>
+
+  <Step title="Instala el SDK de Auth0 para Flutter" stepNumber={2}>
+    Añade la versión beta del SDK que incluye compatibilidad con Windows:
+
+    ```shellscript
+    flutter pub add auth0_flutter:2.1.0-beta.1
+    flutter pub add flutter_dotenv
+    ```
+
+    Tu `pubspec.yaml` debe incluir lo siguiente:
+
+    <Snippet file="quickstart/native/flutter-windows/pubspec.yaml.mdx" />
+
+    <Tip>
+      El Auth0 Flutter SDK requiere **Flutter 3.24.0+** y **Dart 3.5.0+**. Además, la plataforma Windows requiere **Visual Studio 2022** con la carga de trabajo de desarrollo de aplicaciones de escritorio con C++.
+    </Tip>
+  </Step>
+
+  <Step title="Configura Auth0" stepNumber={3}>
+    Cree o configure una aplicación de Auth0 con las URL de devolución de llamada necesarias para la autenticación en aplicaciones de escritorio de Windows.
+
+    <Tabs>
+      <Tab title="Configuración rápida">
+        Cree una aplicación **Native** en su Auth0 Dashboard con la siguiente configuración:
+
+        | Campo                 | Valor                     |
+        | --------------------- | ------------------------- |
+        | Allowed Callback URLs | `auth0flutter://callback` |
+        | Allowed Logout URLs   | `auth0flutter://callback` |
+
+        Sus credenciales:
+
+        * **Domain:** `{yourDomain}`
+        * **Client ID:** `{yourClientId}`
+      </Tab>
+
+      <Tab title="CLI">
+        ```shellscript
+        auth0 apps create \
+          --name "My Flutter Windows App" \
+          --type native \
+          --callbacks "auth0flutter://callback" \
+          --logout-urls "auth0flutter://callback"
+        ```
+      </Tab>
+
+      <Tab title="Dashboard">
+        1. Vaya a [Auth0 Dashboard](https://manage.auth0.com/) → **Applications &gt; Applications**.
+        2. Seleccione **Create Application**.
+        3. Asígnele el nombre &quot;My Flutter Windows App&quot; y elija **Native** como tipo de aplicación.
+        4. Vaya a la pestaña **Settings** de su nueva aplicación.
+        5. Establezca **Allowed Callback URLs** en `auth0flutter://callback`.
+        6. Establezca **Allowed Logout URLs** en `auth0flutter://callback`.
+        7. Desplácese hacia abajo y haga clic en **Save Changes**.
+        8. Copie los valores de **Domain** y **Client ID** de la parte superior de **Application Settings**.
+      </Tab>
+    </Tabs>
+
+    <Info>
+      La URL `auth0flutter://callback` es un esquema personalizado que redirige la devolución de llamada del navegador de vuelta a su aplicación de escritorio una vez finalizada la autenticación.
+    </Info>
+  </Step>
+
+  <Step title="Configurar las variables de entorno" stepNumber={4}>
+    Crea un archivo `.env` en la raíz de tu proyecto:
+
+    <AuthCodeBlock children={envSnippet} language="shellscript" filename=".env" />
+
+    Agrega el archivo `.env` a los assets de Flutter en `pubspec.yaml`:
+
+    <Snippet file="quickstart/native/flutter-windows/pubspec-assets.yaml.mdx" />
+
+    <Warning>
+      No incluyas nunca tu archivo `.env` en el control de versiones. Agrégalo a `.gitignore`.
+    </Warning>
+  </Step>
+
+  <Step title="Configura el runner de Windows" stepNumber={5}>
+    El flujo de autenticación de Windows requiere configurar la devolución de llamada en el ejecutor de tu aplicación. El plugin de Flutter no recibe automáticamente las activaciones del esquema de protocolo del sistema operativo; debes agregar el control de instancia única y el reenvío de URI.
+
+    Reemplaza el contenido de `windows/runner/main.cpp`:
+
+    <Snippet file="quickstart/native/flutter-windows/main.cpp.mdx" />
+
+    Este código:
+
+    * Fuerza una sola instancia mediante un mutex de Windows.
+    * Captura los URI `auth0flutter://callback` que se pasan como argumentos de línea de comandos.
+    * Reenvía los URI de ejecuciones secundarias a la instancia en ejecución mediante una tubería con nombre.
+    * Establece la variable de entorno `PLUGIN_STARTUP_URL` para que el plugin de Auth0 la lea.
+  </Step>
+
+  <Step title="Registrar el esquema de URL personalizado" stepNumber={6}>
+    Registra `auth0flutter` como un esquema de URL personalizado para que Windows redirija los URI de devolución de llamada a tu aplicación.
+
+    Crea un archivo `windows/url_scheme.reg`:
+
+    <Snippet file="quickstart/native/flutter-windows/url_scheme.reg.mdx" />
+
+    Reemplaza `C:\path\to\your\app.exe` por la ruta real de tu ejecutable compilado. Durante el desarrollo, normalmente es:
+
+    ```text
+    build\windows\x64\runner\Debug\my_app.exe
+    ```
+
+    Haz doble clic en el archivo `.reg` para importarlo en el Registro de Windows.
+
+    <Info>
+      Para usarlo en producción, registra el esquema de URL personalizado mediante programación en el instalador de tu aplicación (MSIX, Inno Setup, etc.) en lugar de depender de un archivo `.reg`.
+    </Info>
+
+    **Comprueba que el esquema funcione:**
+
+    Abre el Símbolo del sistema y ejecuta:
+
+    ```shellscript
+    start auth0flutter://test
+    ```
+
+    Tu app debería abrirse (o ponerse en primer plano si ya está en ejecución).
+  </Step>
+
+  <Step title="Implementa el inicio de sesión y el cierre de sesión" stepNumber={7}>
+    Crea `lib/auth_service.dart` para gestionar la autenticación de Windows:
+
+    <Snippet file="quickstart/native/flutter-windows/auth_service.dart.mdx" />
+
+    <Info>
+      Actualmente, el SDK de Auth0 Flutter para Windows no admite la gestión de credenciales. Debes almacenar manualmente las credenciales si necesitas que las sesiones se mantengan al reiniciar la aplicación.
+    </Info>
+  </Step>
+
+  <Step title="Mostrar información del perfil del usuario" stepNumber={8}>
+    Crea la interfaz principal de la aplicación en `lib/main.dart`:
+
+    <Snippet file="quickstart/native/flutter-windows/main.dart.mdx" />
+  </Step>
+
+  <Step title="Ejecuta tu aplicación" stepNumber={9}>
+    Compila y ejecuta la app:
+
+    ```shellscript
+    flutter run -d windows
+    ```
+
+    **Flujo esperado:**
+
+    1. La app se inicia con un botón de **Iniciar sesión**.
+    2. Selecciona **Iniciar sesión**. El navegador del sistema abre la página de Auth0 Universal Login.
+    3. Completa la autenticación en el navegador.
+    4. El navegador redirige a `auth0flutter://callback` → tu app pasa al primer plano.
+    5. Se muestran el nombre, el correo electrónico y la foto de perfil del usuario.
+
+    <Warning>
+      Asegúrate de que el esquema de URL personalizado esté registrado (Paso 6) antes de hacer la prueba. Sin él, la devolución de llamada del navegador no podrá llegar a tu aplicación.
+    </Warning>
+  </Step>
+</Steps>
+
+<Check>
+  **Verificación**
+
+  Ahora deberías tener una experiencia de inicio de sesión de Auth0 totalmente funcional en tu aplicación de Flutter para Windows. La aplicación abre el navegador del sistema para Auth0 Universal Login, recibe la devolución de llamada mediante el esquema de URL personalizado y muestra el perfil del usuario autenticado.
+</Check>
+
+***
+
+<div id="troubleshoot-advanced-use">
+  ## Solución de problemas y uso avanzado
+</div>
+
+<Accordion title="Problemas comunes y soluciones">
+  ### El navegador se abre, pero la aplicación no recibe la devolución de llamada
+
+  **Síntoma**: El login con Auth0 se completa correctamente en el navegador, pero la aplicación nunca recibe las credenciales.
+
+  **Solución:**
+
+  1. Abre el Editor del Registro → `HKEY_CURRENT_USER\Software\Classes\auth0flutter\shell\open\command` y confirma la ruta a tu archivo `.exe`.
+  2. Prueba con `start auth0flutter://test` en el Símbolo del sistema; tu aplicación debería iniciarse.
+  3. Asegúrate de que `windows/runner/main.cpp` incluya el servidor de canalización y el código del mutex.
+  4. Comprueba que no haya instancias antiguas ejecutándose en el Administrador de tareas.
+  5. Reconstruye por completo: `flutter clean && flutter run -d windows`.
+
+  ### La autenticación agota el tiempo de espera después de 5 minutos
+
+  **Síntoma**: El login parece quedarse bloqueado y, al final, falla.
+
+  **Solución:** La aplicación nunca recibió la URI de devolución de llamada. Verifica lo siguiente:
+
+  1. La entrada del registro apunta a la ruta correcta del ejecutable.
+  2. El nombre del mutex `auth0flutter_single_instance_mutex` es coherente en `main.cpp`.
+  3. Ningún firewall ni antivirus está bloqueando la canalización con nombre.
+  4. Cierra todas las instancias antiguas y reconstruye.
+
+  ### Se inicia una segunda instancia de la aplicación en lugar de reenviar la URI
+
+  **Síntoma**: Se abre una nueva ventana en vez de que la aplicación existente reciba la devolución de llamada.
+
+  **Solución:**
+
+  1. Cierra todas las instancias en ejecución en el Administrador de tareas.
+  2. Asegúrate de que el nombre del mutex sea coherente en `main.cpp`.
+  3. Reconstruye con el siguiente comando: `flutter clean && flutter run -d windows`.
+
+  ### No se encuentra WindowsWebAuthentication
+
+  **Síntoma**: Error de compilación que hace referencia a `windowsWebAuthentication`.
+
+  **Solución:** Asegúrate de que tu `pubspec.yaml` especifique la versión beta:
+
+  ```yaml
+  dependencies:
+    auth0_flutter: 2.1.0-beta.1
+  ```
+
+  Ejecuta `flutter pub get` para actualizar.
+
+  ### Error de discrepancia en la URL de devolución de llamada
+
+  **Síntoma**: Error &quot;redirect&#95;uri&#95;mismatch&quot; de Auth0.
+
+  **Solución:**
+
+  1. Verifica que **Allowed Callback URLs** en [Auth0 Dashboard](https://manage.auth0.com/) → Application Settings sea exactamente `auth0flutter://callback`.
+  2. Asegúrate de que el parámetro `appCustomURL` de tu código coincida con `'auth0flutter://callback'`.
+  3. Comprueba que no haya barras diagonales finales ni espacios en blanco.
+</Accordion>
+
+<Accordion title="Uso de un servidor intermediario">
+  Cuando Auth0 redirige directamente a un esquema personalizado, el navegador puede mostrar un aviso o dejar una pestaña en blanco. Para una experiencia más fluida, usa un servidor HTTPS intermediario:
+
+  1. Configura un endpoint del servidor (por ejemplo, `https://your-app.example.com/callback`) que redirija a `auth0flutter://callback?code=...&state=...`.
+  2. En [Auth0 Dashboard](https://manage.auth0.com/) → Application Settings, establece **Allowed Callback URLs** como `https://your-app.example.com/callback`.
+  3. Pasa ambas URL al método de login:
+
+  ```dart
+  final result = await auth0.windowsWebAuthentication().login(
+    appCustomURL: 'auth0flutter://callback',
+    redirectUrl: 'https://your-app.example.com/callback',
+  );
+  ```
+
+  La página del servidor puede mostrar &quot;Redirigiendo...&quot; y cerrarse sola para una experiencia más limpia.
+</Accordion>
+
+<Accordion title="Scopes personalizados y audience">
+  Solicita scopes adicionales o un audience para la API:
+
+  ```dart
+  final result = await auth0.windowsWebAuthentication().login(
+    appCustomURL: 'auth0flutter://callback',
+    scopes: {'openid', 'profile', 'email', 'read:messages'},
+    audience: 'https://your-api.example.com',
+  );
+  ```
+
+  Configura la API en [Auth0 Dashboard](https://manage.auth0.com/) → **Applications &gt; APIs** antes de usar el parámetro `audience`.
+</Accordion>
+
+***
+
+<div id="next-steps">
+  ## Próximos pasos
+</div>
+
+* [Auth0 Flutter SDK en GitHub](https://github.com/auth0/auth0-flutter) — código fuente y gestor de incidencias.
+* [Auth0 Flutter SDK en pub.dev](https://pub.dev/packages/auth0_flutter) — referencia de la API.
+* [Quickstart de Flutter (Android, iOS, macOS, Web)](https://auth0.com/docs/quickstart/native/flutter) — guías para otras plataformas.
+* [Prácticas recomendadas para el almacenamiento de tokens](https://auth0.com/docs/secure/tokens/token-storage) — gestión segura de credenciales.
+* [Auth0 Universal Login](https://auth0.com/docs/authenticate/login/auth0-universal-login) — personaliza la experiencia de inicio de sesión.

@@ -1,0 +1,1135 @@
+---
+#
+# CE FICHIER EST GÉNÉRÉ AUTOMATIQUEMENT.
+# NE LE MODIFIEZ PAS MANUELLEMENT.
+#
+description: Découvrez l’objet API du déclencheur post-login d’Actions.
+title: 'Déclencheurs Actions : post-login - Objet API'
+validatedOn: 2026-06-03
+---
+
+L’objet API du déclencheur post-login d’Actions comprend :
+
+<div id="apiaccess">
+  ## `api.access`
+</div>
+
+Modifiez l’accès de l’utilisateur au moment de sa connexion, par exemple en rejetant la tentative de connexion.
+
+<div id="apiaccessdenyreason">
+  ### `api.access.deny(reason)`
+</div>
+
+Marque la tentative de connexion en cours comme refusée. Cela empêchera l’utilisateur final de terminer
+le flux de connexion. Cela n’annulera *PAS* les autres effets secondaires liés à l’utilisateur (comme les modifications
+des métadonnées) demandés par cette Action. Le flux de connexion s’arrêtera immédiatement après
+l’exécution de cette action, et aucune autre Action ne sera exécutée.
+
+<ResponseField name="reason" type="string">
+  Une explication claire du rejet de la connexion. Celle-ci peut être affichée
+  directement dans les interfaces destinées à l’utilisateur final.
+</ResponseField>
+
+<div id="apiaccesstoken">
+  ## `api.accessToken`
+</div>
+
+Demande des modifications au jeton d’accès en cours d’émission.
+
+<div id="apiaccesstokensetcustomclaimkey-value">
+  ### `api.accessToken.setCustomClaim(key, value)`
+</div>
+
+Définit un revendication personnalisé sur le jeton d’accès qui sera émis à la fin du flux de connexion.
+
+<ResponseField name="key" type="string">
+  Nom du revendication (notez qu’il peut devoir s’agir d’une URL pleinement qualifiée).
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  Valeur du revendication.
+</ResponseField>
+
+<div id="apiaccesstokenaddscopescope">
+  ### `api.accessToken.addScope(scope)`
+</div>
+
+Ajoute un scope au jeton d’accès qui sera émis à la fin du flux de connexion.
+
+<ResponseField name="scope" type="string">
+  Le scope à ajouter.
+</ResponseField>
+
+<div id="apiaccesstokenremovescopescope">
+  ### `api.accessToken.removeScope(scope)`
+</div>
+
+Supprime un scope du jeton d’accès qui sera émis à la fin du processus de connexion.
+
+<ResponseField name="scope" type="string">
+  Le scope à supprimer.
+</ResponseField>
+
+<div id="apiauthentication">
+  ## `api.authentication`
+</div>
+
+Permet de demander des modifications à l’état d’authentification de la session de l’utilisateur actuel.
+
+<div id="apiauthenticationchallengewithfactor-options">
+  ### `api.authentication.challengeWith(factor, options)`
+</div>
+
+Demande un défi d’authentification multifacteur à l’aide du facteur fourni et, au besoin, de facteurs supplémentaires.
+
+Lorsqu’un défi multifacteur est demandé, les Actions suivantes ne sont pas exécutées tant que l’utilisateur n’a pas
+réussi ce défi. Un utilisateur aura satisfait au défi dans l’une ou l’autre des situations suivantes :
+
+1. Il réussit le défi pour le facteur par défaut.
+2. Il réussit le défi pour l’un des facteurs facultatifs décrits dans `additionalFactors`.
+
+Si l’un des facteurs demandés a déjà fait l’objet d’un défi réussi dans la transaction en cours, il sera
+ignoré.
+
+Si un facteur demandé n’est pas activé dans le tenant, il sera ignoré. Si un facteur demandé n’a pas été
+configuré par l’utilisateur, il sera ignoré. Si aucun des facteurs demandés n’est activé ou configuré, la transaction
+d’authentification échouera (c.-à-d. que la connexion ne se terminera pas).
+
+<Note>
+  Cette méthode affichera un écran de défi de facteur si l’utilisateur n’a pas déjà satisfait
+  aux exigences du défi. Si `additionalFactors` sont fournis, l’utilisateur pourra
+  sélectionner un autre facteur s’il le souhaite.
+</Note>
+
+<ResponseField name="factor" type="factorselector">
+  Un objet décrivant le type de facteur et les options à utiliser pour le défi initial.
+
+  <Expandable title="propriétés du facteur" defaultOpen>
+    <ResponseField name="type" type="string">
+      Un type de facteur d’authentification comme `push-notification`, `phone`, `email`, `otp`, `webauthn-roaming`, `webauthn-platform` et `recovery-code`.
+
+      Valeurs autorisées : `otp`, `email`, `webauthn-platform`, `webauthn-roaming`, `recovery-code`
+    </ResponseField>
+
+    <ResponseField name="options" type="dictionary" post={["optional"]}>
+      Options supplémentaires permettant de configurer un facteur d’un type donné.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="options" type="challengewithoptions" post={["optional"]}>
+  Options supplémentaires pouvant aussi inclure `additionalFactors` comme propriété. Les options propres à un facteur (par exemple `otpFallback` pour `push-notification`) doivent être définies dans `factor.options`.
+
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="additionalFactors" type="array of objects" post={["optional"]} />
+  </Expandable>
+</ResponseField>
+
+```js Challenge with a specific factor
+api.authentication.challengeWith({
+  type: 'phone',
+  options: { preferredMethod: 'both' }
+});
+```
+
+```js Challenge with additional factors
+api.authentication.challengeWith({
+  type: 'otp'
+}, {
+  additionalFactors: [{
+    type: 'push-notification'
+  }, {
+    type: 'phone'
+  }]
+});
+```
+
+```js Challenge with push notification and disable OTP fallback
+api.authentication.challengeWith({
+  type: 'push-notification',
+  options: { otpFallback: false }
+});
+```
+
+<div id="apiauthenticationchallengewithanyfactors">
+  ### `api.authentication.challengeWithAny(factors)`
+</div>
+
+Demande une défi d’authentification multifacteur à l’aide de l’un des facteurs fournis (en affichant d’abord un écran de sélection du facteur).
+
+Lorsqu’une défi d’authentification multifacteur est demandée, les Actions suivantes ne s’exécuteront pas tant que l’utilisateur n’y aura pas répondu. Un utilisateur aura satisfait à l’défi dans l’une ou l’autre des situations suivantes :
+
+1. Il réussit l’défi pour l’un des facteurs.
+
+Si l’un des facteurs demandés a déjà été vérifié avec succès dans la transaction en cours, il sera ignoré.
+
+Si un facteur demandé n’est pas activé sur le tenant, il sera ignoré. Si un facteur demandé n’a pas été configuré par l’utilisateur, il sera ignoré. Si aucun des facteurs demandés n’est activé ou configuré, la transaction d’authentification échouera (c.-à-d. que la connexion ne se terminera pas).
+
+<Note>
+  Cette méthode affichera l’écran de sélection du facteur si l’utilisateur n’a pas déjà satisfait aux exigences de l’défi. S’il existe un facteur de préférence, il est recommandé d’utiliser la méthode `api.authentication.challengeWith()`. L’écran de sélection du facteur ne s’affichera pas si un seul facteur est transmis ou s’il est le seul valide.
+</Note>
+
+<ResponseField name="factors" type="array of objects">
+  Un tableau de facteurs.
+</ResponseField>
+
+<div id="apiauthenticationenrollwithfactor-options">
+  ### `api.authentication.enrollWith(factor, options)`
+</div>
+
+Demande une inscription à l’authentification multifacteur à l’aide du facteur fourni et, au besoin, de facteurs supplémentaires.
+
+Lorsqu’une inscription à l’authentification multifacteur est demandée, les Actions subséquentes ne seront pas exécutées tant que l’utilisateur n’aura pas
+terminé cette inscription.
+
+Si l’un des facteurs demandés a déjà été inscrit ou a déjà fait l’objet d’une demande de vérification réussie dans la transaction en cours, il sera
+ignoré.
+
+Si un facteur qui n’est pas activé dans le tenant est demandé, il sera ignoré.
+Si un facteur auquel l’utilisateur est déjà inscrit est demandé, il sera ignoré.
+Si aucun des facteurs demandés n’est activé et non inscrit, la transaction
+d’authentification échouera (c.-à-d. que le login ne se terminera pas).
+
+<ResponseField name="factor" type="enrollmentfactorselector">
+  Un objet qui décrit le type de facteur à utiliser pour les invites d’inscription initiales ainsi que ses options.
+
+  <Expandable title="propriétés du facteur" defaultOpen>
+    <ResponseField name="type" type="string">
+      Un type de facteur d’authentification comme `push-notification`, `phone`, `otp`, `webauthn-roaming`, `webauthn-platform` et `recovery-code`.
+
+      Valeurs possibles :
+
+      * `otp`
+      * `webauthn-platform`
+      * `webauthn-roaming`
+      * `recovery-code`
+      * `push`
+      * `push-notification`
+    </ResponseField>
+
+    <ResponseField name="options" type="dictionary" post={["optional"]}>
+      Options supplémentaires pour configurer un facteur d’un type donné.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="options" type="enrollwithoptions" post={["optional"]}>
+  Options supplémentaires pouvant aussi inclure `additionalFactors` comme propriété.
+
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="additionalFactors" type="array of objects" post={["optional"]} />
+  </Expandable>
+</ResponseField>
+
+```js Enroll with additional factors
+api.authentication.enrollWith({
+  type: 'otp'
+}, {
+  additionalFactors: [{
+    type: 'push-notification'
+  }, {
+    type: 'phone'
+  }]
+});
+```
+
+<div id="apiauthenticationenrollwithanyfactors">
+  ### `api.authentication.enrollWithAny(factors)`
+</div>
+
+Demande une inscription à l’authentification multifacteur à l’aide de l’un des facteurs fournis (en affichant d’abord un
+écran de sélection du facteur).
+
+Lorsqu’une inscription à l’authentification multifacteur est demandée, les Actions suivantes ne seront pas exécutées tant que cette inscription n’aura pas été
+complétée par l’utilisateur.
+
+Si l’un des facteurs demandés a déjà été inscrit avec succès dans la transaction en cours, il sera
+ignoré.
+
+Si un facteur qui n’est pas activé dans le tenant est demandé, il sera ignoré.
+Si un facteur auquel l’utilisateur est déjà inscrit est demandé, il sera ignoré.
+Si aucun des facteurs demandés n’est à la fois activé et non inscrit, la transaction
+d’authentification échouera (c.-à-d. que la connexion ne se terminera pas).
+
+<Note>
+  S’il y a un facteur privilégié, la méthode `api.authentication.enrollWith()`
+  est à privilégier. L’écran de sélection du facteur ne sera pas affiché si un seul facteur est transmis ou est valide.
+</Note>
+
+<ResponseField name="factors" type="array of objects">
+  Un tableau de facteurs supplémentaires.
+</ResponseField>
+
+<div id="apiauthenticationrecordmethodprovider_url">
+  ### `api.authentication.recordMethod(provider_url)`
+</div>
+
+Indique qu’une méthode d’authentification personnalisée a été complétée dans la session
+en cours. Cette méthode sera ensuite disponible dans le tableau `event.authentication.methods`
+lors des connexions ultérieures.
+
+**IMPORTANT** : Cette API est uniquement disponible dans la fonction `onContinuePostLogin`
+pour les Actions `PostLogin`. Autrement dit, elle peut être utilisée pour enregistrer
+qu’une méthode d’authentification personnalisée a été complétée après avoir redirigé l’utilisateur au moyen de
+`api.redirect.sendUserTo()`.
+
+<ResponseField name="provider_url" type="string">
+  Une URL `http:` ou `https:` qui représente de façon unique la méthode
+  d’authentification complétée.
+</ResponseField>
+
+<div id="apiauthenticationsetprimaryuserprimary_user_id">
+  ### `api.authentication.setPrimaryUser(primary_user_id)`
+</div>
+
+Modifiez l’utilisateur principal pour la transaction de connexion.
+
+Dans les scénarios où il faut lier des utilisateurs, l’identité utilisateur utilisée pour amorcer la connexion peut ne plus
+exister en tant qu’utilisateur distinct. Cette identité peut désormais être une identité secondaire d’un utilisateur existant. Dans
+de telles situations, la fonction `setPrimaryUser()` peut être utilisée pour indiquer que le sujet de la
+connexion doit être modifié.
+
+**IMPORTANT** : Lier des comptes de façon non sécurisée peut permettre à des acteurs malveillants d’accéder à des
+comptes d’utilisateurs légitimes.
+
+**IMPORTANT** : L’identité utilisée pour authentifier la connexion *doit* figurer parmi les identités secondaires
+de l’utilisateur indiqué par `primary_user_id`. Sinon, la connexion échouera et les jetons ne seront pas émis.
+
+<ResponseField name="primary_user_id" type="string">
+  L’ID utilisateur de l’utilisateur pour lequel des jetons doivent être émis (la revendication `sub`).
+</ResponseField>
+
+<div id="apiidtoken">
+  ## `api.idToken`
+</div>
+
+Permet de modifier le jeton d’identification en cours d’émission.
+
+<div id="apiidtokensetcustomclaimkey-value">
+  ### `api.idToken.setCustomClaim(key, value)`
+</div>
+
+Définit une revendication personnalisée dans le jeton d’identification qui sera émis à la fin du flux de connexion.
+
+<ResponseField name="key" type="string">
+  Nom de la revendication (notez qu’il peut s’agir d’une URL pleinement qualifiée).
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  La valeur de la revendication.
+</ResponseField>
+
+<div id="apimultifactor">
+  ## `api.multifactor`
+</div>
+
+Définissez ou supprimez l’exigence d’authentification multifacteur pour une tentative de connexion.
+
+<div id="apimultifactorenableprovider-options">
+  ### `api.multifactor.enable(provider, options)`
+</div>
+
+Active l’authentification multifacteur pour ce flux de connexion. Lorsqu’elle est activée, les utilisateurs doivent répondre à la
+demande de vérification multifacteur configurée. La demande de vérification multifacteur proprement dite sera reportée à la
+fin du flux de connexion.
+
+<ResponseField name="provider" type="string">
+  Le nom du fournisseur multifacteur à utiliser ou la valeur `"any"` pour utiliser l’un
+  des fournisseurs configurés.
+
+  Valeurs autorisées : `duo`, `none`, `guardian`, `google-authenticator`, `any`
+</ResponseField>
+
+<ResponseField name="options" type="object" post={["optional"]}>
+  Options supplémentaires pour activer les demandes de vérification multifacteur.
+
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="allowRememberBrowser" type="boolean" post={["optional"]}>
+      Lorsque le fournisseur est défini sur `google-authenticator` ou `duo`, l’utilisateur reçoit une demande d’authentification multifacteur une fois
+      tous les 30 jours. Lorsque le fournisseur est défini sur `guardian`, l’invite d’authentification multifacteur affiche la case à cocher d’inscription
+      afin que les utilisateurs puissent choisir de s’inscrire ou non. La valeur par défaut est `false`. Pour en savoir plus,
+      consultez [Customize Multi-Factor Authentication Pages](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa).
+    </ResponseField>
+
+    <ResponseField name="providerOptions" type="object" post={["optional"]}>
+      Options supplémentaires pour configurer la défi, offertes uniquement pour le fournisseur `duo`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiredirect">
+  ## `api.redirect`
+</div>
+
+Configurer et lancer des redirections externes.
+
+<div id="apiredirectencodetokenoptions">
+  ### `api.redirect.encodeToken(options)`
+</div>
+
+Crée un jeton de session pouvant servir de cible de redirection dans un paramètre de chaîne de requête (via `sendUserTo`)
+et contenant des données dont l’authenticité doit pouvoir être prouvée par le point de terminaison cible. Le point de terminaison cible
+peut vérifier l’authenticité et l’intégrité des données en validant la signature du JWT
+à l’aide d’un secret partagé.
+
+Le secret partagé doit être stocké comme **secret** de l’Action et sera accessible à
+`event.secrets['<secret_name>']`.
+
+<ResponseField name="options" type="tokencreationoptions">
+  Configure la façon dont les données sensibles sont encodées dans les paramètres de requête de l’URL
+  résultante.
+
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="expiresInSeconds" type="number" post={["optional"]}>
+      Nombre de secondes avant l’expiration de ce jeton
+    </ResponseField>
+
+    <ResponseField name="payload" type="dictionary">
+      Les données destinées à être transmises à la cible de redirection et dont l’authenticité
+      et l’intégrité doivent pouvoir être prouvées.
+    </ResponseField>
+
+    <ResponseField name="secret" type="string">
+      Un secret qui sera utilisé pour signer un JWT partagé avec la cible de redirection. La
+      valeur du secret doit être stockée comme **secret** et récupérée à l’aide de
+      `event.secrets['<secret_name>']`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiredirectsendusertourl-options">
+  ### `api.redirect.sendUserTo(url, options)`
+</div>
+
+Déclenche, dans le pipeline de connexion, une redirection du navigateur vers l’`url` cible immédiatement après
+la fin de cette action. La méthode utilitaire `createUrl` est fournie pour simplifier l’encodage
+des données en tant que paramètre de requête dans l’`url` cible, afin que l’authenticité et
+l’intégrité des données puissent être vérifiées par le point de terminaison cible.
+
+<ResponseField name="url" type="string" />
+
+<ResponseField name="options" type="sendusertooptions" post={["optional"]}>
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="query" type="dictionary" post={["optional"]}>
+      Un objet représentant des paramètres de chaîne de requête supplémentaires qui doivent être ajoutés à
+      l’URL de redirection.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiredirectvalidatetokenoptions">
+  ### `api.redirect.validateToken(options)`
+</div>
+
+Récupère les données encodées dans un token JWT transmis au point de terminaison `/continue`, tout en vérifiant
+l’authenticité et l’intégrité de ces données.
+
+<ResponseField name="options" type="validatesessiontokenoptions">
+  Options pour récupérer les données encodées dans un token JWT transmis au point de terminaison
+  `/continue` à la suite d’une redirection.
+
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="secret" type="string" />
+
+    <ResponseField name="tokenParameterName" type="string" post={["optional"]}>
+      Le nom du paramètre de requête ou du corps qui a été envoyé au point de terminaison `/continue`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apiuser">
+  ## `api.user`
+</div>
+
+Modifiez les métadonnées de l’utilisateur qui se connecte.
+
+<div id="apiusersetappmetadatakey-value">
+  ### `api.user.setAppMetadata(key, value)`
+</div>
+
+Définit des métadonnées propres à l’application pour l’utilisateur qui se connecte.
+
+Remarque : cette méthode ne doit pas être utilisée dans les callbacks. L’appel de cette méthode ne met pas à jour les métadonnées immédiatement.
+Vous pouvez l’appeler plusieurs fois dans plusieurs actions du même flux, et le moteur regroupera les
+modifications pour mettre à jour les métadonnées en une seule fois avant la fin du flux. Cette fonction fonctionne uniquement avec des métadonnées
+au format objet.
+
+<ResponseField name="key" type="string">
+  La propriété de métadonnées à définir.
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  La valeur de la propriété de métadonnées. Elle peut être définie à `null` pour supprimer la
+  propriété de métadonnées.
+</ResponseField>
+
+<div id="apiusersetusermetadatakey-value">
+  ### `api.user.setUserMetadata(key, value)`
+</div>
+
+Définit des métadonnées générales pour l’utilisateur qui se connecte.
+
+Remarque : cette méthode ne doit pas être utilisée dans les callbacks. L’appel de cette méthode ne met pas immédiatement à jour les métadonnées.
+Vous pouvez l’appeler plusieurs fois dans plusieurs Actions du même flux, et le moteur regroupera les
+modifications pour mettre à jour les métadonnées en une seule fois avant la fin du flux. Cette fonction accepte uniquement des métadonnées au format objet.
+
+<ResponseField name="key" type="string">
+  La propriété de métadonnées à définir.
+</ResponseField>
+
+<ResponseField name="value" type="unknown">
+  La valeur de la propriété de métadonnées. Elle peut être définie à `null` pour supprimer la
+  propriété de métadonnées.
+</ResponseField>
+
+<div id="apicache">
+  ## `api.cache`
+</div>
+
+Modifiez le cache.
+
+<div id="apicachedeletekey">
+  ### `api.cache.delete(key)`
+</div>
+
+Supprime l’enregistrement correspondant à la valeur en cache associée à la
+clé fournie, s’il existe.
+
+<ResponseField name="key" type="string">
+  La clé de l’enregistrement du cache à supprimer.
+</ResponseField>
+
+<div id="apicachegetkey">
+  ### `api.cache.get(key)`
+</div>
+
+Récupère un enregistrement décrivant une valeur mise en cache à la clé fournie,
+si elle existe. Si un enregistrement est trouvé, la valeur mise en cache se trouve
+dans la propriété `value` de l&#39;objet renvoyé.
+
+<ResponseField name="key" type="string">
+  La clé de l&#39;enregistrement stocké dans le cache.
+</ResponseField>
+
+<div id="apicachesetkey-value-options">
+  ### `api.cache.set(key, value, options)`
+</div>
+
+Stocke ou met à jour une valeur de type chaîne dans le cache à la clé spécifiée.
+
+Les valeurs stockées dans ce cache sont limitées au déclencheur dans lequel
+elles sont définies. Elles sont soumises aux [Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations).
+
+Les valeurs stockées de cette façon auront une durée de vie pouvant aller *jusqu’aux*
+valeurs `ttl` ou `expires_at` indiquées. Si aucune durée de vie n’est précisée, une
+durée de vie par défaut de 15 minutes sera utilisée. Les durées de vie ne peuvent pas dépasser la
+durée maximale indiquée dans [Actions Cache Limits](https://auth0.com/docs/customize/actions/limitations).
+
+**Important** : Ce cache est conçu pour des données éphémères de courte durée. Il est possible que des éléments ne soient pas
+disponibles dans des transactions ultérieures, même si leur durée de vie n’est pas encore expirée.
+
+<ResponseField name="key" type="string">
+  La clé de l’enregistrement à stocker.
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  La valeur de l’enregistrement à stocker.
+</ResponseField>
+
+<ResponseField name="options" type="cachesetoptions" post={["optional"]}>
+  Options permettant d’ajuster le comportement du cache.
+
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="expires_at" type="number" post={["optional"]}>
+      L’heure d’expiration absolue, en millisecondes depuis l’époque Unix.
+      Bien que les enregistrements mis en cache puissent être évincés plus tôt, ils ne
+      resteront jamais au-delà de la valeur `expires_at` fournie.
+
+      *Remarque* : Cette valeur ne doit pas être fournie si une valeur a aussi été
+      fournie pour `ttl`. Si les deux options sont fournies, la
+      date d’expiration la plus rapprochée des deux sera utilisée.
+    </ResponseField>
+
+    <ResponseField name="ttl" type="number" post={["optional"]}>
+      La durée de vie de cette entrée de cache, en millisecondes.
+      Bien que les valeurs mises en cache puissent être évincées plus tôt, elles ne
+      resteront jamais au-delà de la valeur `ttl` fournie.
+
+      *Remarque* : Cette valeur ne doit pas être fournie si une valeur a aussi été
+      fournie pour `expires_at`. Si les deux options sont fournies, la
+      date d’expiration la plus rapprochée des deux sera utilisée.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apisamlresponse">
+  ## `api.samlResponse`
+</div>
+
+Configurez des paramètres SAML personnalisés et des attributs.
+
+<div id="apisamlresponsesetattributeattribute-value">
+  ### `api.samlResponse.setAttribute(attribute, value)`
+</div>
+
+Définit des attributs dans l’assertion SAML émise pour l’utilisateur authentifié.
+
+<ResponseField name="attribute" type="string">
+  L’attribut SAML à définir.
+</ResponseField>
+
+<ResponseField name="value" type="samlattributevalue">
+  La valeur de la déclaration SAML. Si vous définissez cette valeur sur `null` ou
+  `undefined`, la déclaration sera supprimée de l’assertion.
+</ResponseField>
+
+<div id="apisamlresponsesetaudienceaudience">
+  ### `api.samlResponse.setAudience(audience)`
+</div>
+
+Audience de l’assertion SAML.
+Par défaut, il s’agit de issuer dans SAMLRequest.
+
+<ResponseField name="audience" type="string" />
+
+<div id="apisamlresponsesetrecipientrecipient">
+  ### `api.samlResponse.setRecipient(recipient)`
+</div>
+
+Destinataire de l’assertion SAML (SubjectConfirmationData).
+Par défaut, il s’agit de l’AssertionConsumerUrl de la SAMLRequest ou de l’URL de rappel si aucune SAMLRequest n’a été envoyée.
+
+<ResponseField name="recipient" type="string" />
+
+<div id="apisamlresponsesetcreateupnclaimcreateupnclaim">
+  ### `api.samlResponse.setCreateUpnClaim(createUpnClaim)`
+</div>
+
+Indique si une revendication UPN doit être créée. Par défaut, cette valeur est true.
+
+<ResponseField name="createUpnClaim" type="boolean" />
+
+<div id="apisamlresponsesetpassthroughclaimswithnomappingpassthroughclaimswithnomapping">
+  ### `api.samlResponse.setPassthroughClaimsWithNoMapping(passthroughClaimsWithNoMapping)`
+</div>
+
+Si cette valeur est true (par défaut), pour chaque revendication qui n’est pas mappé au profil commun, Auth0 le transmet dans l’assertion de sortie.
+Si cette valeur est false, ces revendications ne seront pas mappés.
+
+<ResponseField name="passthroughClaimsWithNoMapping" type="boolean" />
+
+<div id="apisamlresponsesetmapunknownclaimsasismapunknownclaimsasis">
+  ### `api.samlResponse.setMapUnknownClaimsAsIs(mapUnknownClaimsAsIs)`
+</div>
+
+Si passthroughClaimsWithNoMapping est défini sur true et que cette valeur est false (par défaut), Auth0 ajoute le préfixe `http://schema.auth0.com` à chaque revendication non mappé au profil commun.
+Si true, le revendication est transmis tel quel.
+
+<ResponseField name="mapUnknownClaimsAsIs" type="boolean" />
+
+<div id="apisamlresponsesetmapidentitiesmapidentities">
+  ### `api.samlResponse.setMapIdentities(mapIdentities)`
+</div>
+
+Si la valeur est `true` (par défaut), des renseignements supplémentaires sont ajoutés au jeton, comme le fournisseur (Google, ADFS, AD, etc.) et le jeton d’accès, s’il est disponible.
+
+<ResponseField name="mapIdentities" type="boolean" />
+
+<div id="apisamlresponsesetsignaturealgorithmsignaturealgorithm">
+  ### `api.samlResponse.setSignatureAlgorithm(signatureAlgorithm)`
+</div>
+
+Algorithme de signature utilisé pour signer l’assertion SAML ou la réponse.
+La valeur par défaut est rsa-sha256.
+
+<ResponseField name="signatureAlgorithm" type="string">
+  Valeurs autorisées : `rsa-sha256`
+</ResponseField>
+
+<div id="apisamlresponsesetdigestalgorithmdigestalgorithm">
+  ### `api.samlResponse.setDigestAlgorithm(digestAlgorithm)`
+</div>
+
+Algorithme de hachage utilisé pour calculer le condensé de l’assertion SAML ou de la réponse.
+La valeur par défaut est sha256.
+
+<ResponseField name="digestAlgorithm" type="string">
+  Valeurs autorisées : `sha256`
+</ResponseField>
+
+<div id="apisamlresponsesetdestinationdestination">
+  ### `api.samlResponse.setDestination(destination)`
+</div>
+
+Destination de la réponse SAML. Si elle n’est pas précisée, la valeur utilisée sera `AssertionConsumerUrl` du `SAMLRequest`, ou l’URL de rappel s’il n’y a pas de `SAMLRequest`.
+
+<ResponseField name="destination" type="string" />
+
+<div id="apisamlresponsesetlifetimeinsecondslifetimeinseconds">
+  ### `api.samlResponse.setLifetimeInSeconds(lifetimeInSeconds)`
+</div>
+
+Durée de validité du jeton.
+La valeur par défaut est de 3600 secondes (1 heure).
+
+<ResponseField name="lifetimeInSeconds" type="number" />
+
+<div id="apisamlresponsesetsignresponsesignresponse">
+  ### `api.samlResponse.setSignResponse(signResponse)`
+</div>
+
+Indique si la réponse SAML doit être signée.
+Par défaut, l’assertion SAML est signée, mais pas la réponse SAML.
+Si cette valeur est true, la SAML Response sera signée à la place de l’assertion SAML.
+Valeur par défaut : false.
+
+<ResponseField name="signResponse" type="boolean" />
+
+<div id="apisamlresponsesetnameidentifierformatnameidentifierformat">
+  ### `api.samlResponse.setNameIdentifierFormat(nameIdentifierFormat)`
+</div>
+
+La valeur par défaut est urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified.
+
+<ResponseField name="nameIdentifierFormat" type="string" />
+
+<div id="apisamlresponsesetnameidentifierprobesnameidentifierprobes">
+  ### `api.samlResponse.setNameIdentifierProbes(nameIdentifierProbes)`
+</div>
+
+Auth0 essaiera chacun des attributs de ce tableau dans l’ordre.
+Si l’un d’eux a une valeur, celle-ci sera utilisée comme sujet/NameID.
+
+L’ordre est le suivant :
+
+* http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier (à partir de user&#95;id),
+  * http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress (à partir de email),
+  * http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name (à partir de name).
+
+<ResponseField name="nameIdentifierProbes" type="tableau de chaînes" />
+
+<div id="apisamlresponsesetauthncontextclassrefauthncontextclassref">
+  ### `api.samlResponse.setAuthnContextClassRef(authnContextClassRef)`
+</div>
+
+La valeur par défaut est urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified.
+
+<ResponseField name="authnContextClassRef" type="string" />
+
+<div id="apisamlresponsesetsigningcertsigningcert">
+  ### `api.samlResponse.setSigningCert(signingCert)`
+</div>
+
+Indique facultativement le certificat de clé publique utilisé pour valider les requêtes SAML.
+S&#39;il est défini, les requêtes SAML devront être signées.
+Voici un exemple de valeur : &quot;-----BEGIN CERTIFICATE-----\nMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END CERTIFICATE-----\n&quot;.
+
+<ResponseField name="signingCert" type="string" />
+
+<div id="apisamlresponsesetincludeattributenameformatincludeattributenameformat">
+  ### `api.samlResponse.setIncludeAttributeNameFormat(includeAttributeNameFormat)`
+</div>
+
+Lorsque cette option est définie sur true, nous déduisons le NameFormat en fonction du nom de l’attribut. Les valeurs de NameFormat sont urn:oasis:names:tc:SAML:2.0:attrname-format:uri, urn:oasis:names:tc:SAML:2.0:attrname-format:basic et urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified.
+Si elle est définie sur false, le NameFormat de l’attribut n’est pas défini dans l’assertion.
+La valeur par défaut est true.
+
+<ResponseField name="includeAttributeNameFormat" type="boolean" />
+
+<div id="apisamlresponsesettypedattributestypedattributes">
+  ### `api.samlResponse.setTypedAttributes(typedAttributes)`
+</div>
+
+Si cette option est définie à true, nous déduisons le xs:type de l’élément. Les types sont xs:string, xs:boolean, xs:double et xs:anyType.
+Si elle est définie à false, tous les xs:type sont xs:anyType.
+La valeur par défaut est true.
+
+<ResponseField name="typedAttributes" type="boolean" />
+
+<div id="apisamlresponsesetencryptioncertencryptioncert">
+  ### `api.samlResponse.setEncryptionCert(encryptionCert)`
+</div>
+
+Vous pouvez indiquer un certificat servant à chiffrer l’assertion SAML.
+Le certificat doit être obtenu auprès du fournisseur de services.
+Vous devez préciser à la fois le certificat et la clé publique.
+Voici un exemple de valeur : « -----BEGIN CERTIFICATE-----\nMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END CERTIFICATE-----\n ».
+
+<ResponseField name="encryptionCert" type="string" />
+
+<div id="apisamlresponsesetencryptionpublickeyencryptionpublickey">
+  ### `api.samlResponse.setEncryptionPublicKey(encryptionPublicKey)`
+</div>
+
+Vous pouvez préciser, au besoin, une clé publique servant à chiffrer l’assertion SAML.
+La clé publique doit être obtenue auprès du fournisseur de services.
+La clé publique et le certificat doivent tous les deux être précisés.
+Voici un exemple de valeur : &quot;-----BEGIN PUBLIC KEY-----\nnMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END PUBLIC KEY-----\n&quot;.
+
+<ResponseField name="encryptionPublicKey" type="string" />
+
+<div id="apisamlresponsesetcertcert">
+  ### `api.samlResponse.setCert(cert)`
+</div>
+
+Par défaut, Auth0 utilise la paire de clés privée/publique attribuée à votre tenant pour signer les réponses SAML ou les assertions.
+Dans certains cas très particuliers, vous pourriez vouloir fournir votre propre certificat et votre propre clé privée.
+
+Le certificat et la clé privée doivent tous deux être spécifiés.
+Voici un exemple de valeur : « -----BEGIN CERTIFICATE-----\nMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END CERTIFICATE-----\n ».
+
+<ResponseField name="cert" type="string" />
+
+<div id="apisamlresponsesetkeykey">
+  ### `api.samlResponse.setKey(key)`
+</div>
+
+Par défaut, Auth0 utilisera la paire de clé privée et de clé publique attribuée à votre tenant pour signer les réponses SAML ou les assertions.
+Dans certains scénarios très précis, vous pourriez vouloir fournir votre propre certificat et votre propre clé privée.
+
+Comme cette clé privée est sensible, **nous vous recommandons d’utiliser la fonctionnalité Add Secret d’Actions**.
+Consultez ce lien pour plus de détails : https://auth0.com/docs/customize/actions/write-your-first-action#add-a-secret
+
+Le certificat et la clé privée doivent tous deux être spécifiés.
+Voici un exemple de valeur : &quot;-----BEGIN PRIVATE KEY-----\nnMIIC8jCCAdqgAwIBAgIJObB6jmhG0QIEMA0GCSqGSIb3DQEBBQUAMCAxHjAcBgNV\n[..all the other lines..]-----END PRIVATE KEY-----\n&quot;.
+
+<ResponseField name="key" type="string" />
+
+<div id="apisamlresponsesetrelaystaterelaystate">
+  ### `api.samlResponse.setRelayState(relayState)`
+</div>
+
+Vous pouvez, au besoin, préciser un RelayState utilisé pour revenir vers le fournisseur de services
+
+<ResponseField name="relayState" type="string" />
+
+<div id="apisamlresponsesetissuerissuer">
+  ### `api.samlResponse.setIssuer(issuer)`
+</div>
+
+Vous pouvez préciser l’émetteur de l’assertion SAML.
+La valeur par défaut est `urn:auth0:TENANT`
+
+<ResponseField name="issuer" type="string" />
+
+<div id="apisamlresponsesetencryptionalgorithmencryptionalgorithm">
+  ### `api.samlResponse.setEncryptionAlgorithm(encryptionAlgorithm)`
+</div>
+
+Définit l’algorithme de chiffrement de l’assertion SAML.
+Par défaut, la valeur est aes256-cbc.
+
+<ResponseField name="encryptionAlgorithm" type="string">
+  * L’algorithme à utiliser (aes256-gcm est recommandé)
+
+  Valeurs autorisées : `aes256-gcm`
+</ResponseField>
+
+```js Set the encryption algorithm to aes256-gcm (recommended)
+api.samlResponse.setEncryptionAlgorithm('aes256-gcm');
+```
+
+<div id="apivalidation">
+  ## `api.validation`
+</div>
+
+Empêche un utilisateur de se connecter en générant une erreur de validation.
+
+<div id="apivalidationerrorerrorcode-errormessage">
+  ### `api.validation.error(errorCode, errorMessage)`
+</div>
+
+Déclenche une erreur en cas d’erreur de validation.
+
+<ResponseField name="errorCode" type="string">
+  Un code d’erreur défini par le client pour l’erreur de validation.
+</ResponseField>
+
+<ResponseField name="errorMessage" type="string">
+  Un message défini par le client pour l’erreur de validation.
+</ResponseField>
+
+<div id="apirules">
+  ## `api.rules`
+</div>
+
+Déterminez si une règle a été exécutée dans la transaction en cours.
+
+<div id="apiruleswasexecutedruleid">
+  ### `api.rules.wasExecuted(ruleId)`
+</div>
+
+Vérifiez si une règle ayant un ID précis a été exécutée dans la transaction en cours.
+
+<ResponseField name="ruleId" type="string">
+  L’ID de la règle.
+</ResponseField>
+
+<div id="apiprompt">
+  ## `api.prompt`
+</div>
+
+Affiche un prompt personnalisé.
+
+<div id="apipromptrenderpromptid-promptoptions">
+  ### `api.prompt.render(promptId, promptOptions)`
+</div>
+
+Affiche un prompt personnalisé.
+
+<ResponseField name="promptId" type="string">
+  L’ID du prompt.
+</ResponseField>
+
+<ResponseField name="promptOptions" type="promptoptions" post={["optional"]}>
+  Les options de rendu.
+
+  <Expandable title="propriétés de promptOptions" defaultOpen>
+    <ResponseField name="fields" type="dictionary" post={["optional"]}>
+      Paires clé-valeur servant à renseigner les valeurs des champs (côté client).
+    </ResponseField>
+
+    <ResponseField name="vars" type="dictionary" post={["optional"]}>
+      Paires clé-valeur servant à injecter des variables (côté serveur).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<div id="apirefreshtoken">
+  ## `api.refreshToken`
+</div>
+
+Demander des modifications au jeton d’actualisation de l’utilisateur courant.
+
+<div id="apirefreshtokenrevokereason">
+  ### `api.refreshToken.revoke(reason)`
+</div>
+
+[client d’entreprise] Révoque le jeton d’actualisation de l’utilisateur actuel et marque la tentative en cours d’échange du jeton d’actualisation comme refusée. Cela empêchera
+l’utilisateur final de terminer le flux d’échange de jeton d’actualisation et révoquera le jeton d’actualisation en cours d’utilisation.
+Le flux d’échange de jeton d’actualisation s’arrêtera immédiatement après l’exécution de cette action, et aucune autre Action ne sera exécutée.
+
+Cette méthode peut être utilisée uniquement pendant le flux d’échange de jeton d’actualisation, lorsque `event.transaction.protocol === "oauth2-refresh-token"`.
+
+<ResponseField name="reason" type="string">
+  Une explication en langage clair du rejet de l’échange de jeton d’actualisation. Elle peut être affichée
+  directement dans les interfaces destinées aux utilisateurs finaux.
+</ResponseField>
+
+<div id="apirefreshtokensetexpiresatabsolute">
+  ### `api.refreshToken.setExpiresAt(absolute)`
+</div>
+
+[Clients d’entreprise] Définit une nouvelle date d’expiration absolue pour le jeton d’actualisation actuel.
+La date d’expiration ne peut pas être fixée au-delà de la durée de vie maximale du jeton d’actualisation définie dans les paramètres.
+Si cette méthode est appelée plusieurs fois, la date d’expiration la plus rapprochée sera utilisée.
+
+<ResponseField name="absolute" type="number">
+  Obligatoire, la nouvelle date d’expiration absolue en millisecondes depuis l’époque Unix, après laquelle le Refresh Token sera considéré comme invalide.
+</ResponseField>
+
+<div id="apirefreshtokensetidleexpiresatinactivity">
+  ### `api.refreshToken.setIdleExpiresAt(inactivity)`
+</div>
+
+[client d’entreprise] Définit un nouveau délai d’expiration d’inactivité pour le jeton d’actualisation actuel.
+L’expiration ne peut pas être définie au-delà de la durée de vie absolue maximale du jeton d’actualisation configurée dans Settings.
+Si cette méthode est appelée plusieurs fois, la date d’expiration la plus rapprochée sera utilisée.
+
+<ResponseField name="inactivity" type="number">
+  Obligatoire, la nouvelle échéance d’inactivité en millisecondes depuis l’époque Unix, après laquelle le Refresh Token sera considéré comme invalide
+  s’il n’est pas utilisé pendant cette période.
+</ResponseField>
+
+<div id="apirefreshtokensetmetadatakey-value">
+  ### `api.refreshToken.setMetadata(key, value)`
+</div>
+
+Définit une paire clé-valeur dans l’objet de métadonnées du jeton d’actualisation actuel.
+
+<ResponseField name="key" type="string">
+  Obligatoire, la clé à définir dans l’objet de métadonnées.
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  Obligatoire, la valeur à définir pour la clé dans l’objet de métadonnées; les valeurs nulles supprimeront la clé de métadonnées fournie.
+</ResponseField>
+
+<div id="apirefreshtokendeletemetadatakey">
+  ### `api.refreshToken.deleteMetadata(key)`
+</div>
+
+Supprime une clé dans l’objet de métadonnées du jeton d’actualisation actuel.
+
+<ResponseField name="key" type="string">
+  Obligatoire : la clé à supprimer de l’objet de métadonnées.
+</ResponseField>
+
+<div id="apirefreshtokenevictmetadata">
+  ### `api.refreshToken.evictMetadata()`
+</div>
+
+Supprime toutes les clés de l’objet de métadonnées du jeton d’actualisation courant.
+
+<div id="apisession">
+  ## `api.session`
+</div>
+
+Demander des modifications à la session de l’utilisateur actuel.
+
+<div id="apisessionrevokereason-options">
+  ### `api.session.revoke(reason, options)`
+</div>
+
+[client d’entreprise] Révoquez la session actuelle de l’utilisateur et indiquez que la tentative de connexion en cours est refusée. Cela empêchera
+l’utilisateur final de terminer le flux de connexion et révoquera sa session. Le flux de connexion s’arrêtera immédiatement
+une fois cette action terminée, et aucune autre Action ne sera exécutée.
+
+<ResponseField name="reason" type="string">
+  Une explication, en langage clair, du refus de la connexion. Celle-ci peut être affichée
+  directement dans les interfaces destinées aux utilisateurs finaux.
+</ResponseField>
+
+<ResponseField name="options" type="sessionrevocationoptions" post={["optional"]}>
+  <Expandable title="propriétés des options" defaultOpen>
+    <ResponseField name="preserveRefreshTokens" type="boolean" post={["optional"]}>
+      La valeur par défaut est false. Si true, le système met fin à la session et conserve les jetons d’actualisation. L’application peut continuer à obtenir des jetons d’accès pendant toute la durée de vie du jeton d’actualisation.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```js Revoke the session while preserving refresh tokens
+api.session.revoke('reason', { preserveRefreshTokens: true });
+```
+
+<div id="apisessionsetexpiresatabsolute">
+  ### `api.session.setExpiresAt(absolute)`
+</div>
+
+[client d’entreprise] Définit une nouvelle heure d’expiration absolue pour la session en cours.
+L’expiration ne peut pas dépasser la durée de vie maximale de la session définie dans les paramètres du tenant.
+Si elle est appelée plusieurs fois, l’heure d’expiration la plus rapprochée sera utilisée.
+
+<ResponseField name="absolute" type="number">
+  Obligatoire, la nouvelle heure d’expiration absolue en millisecondes depuis l’époque Unix, après quoi la session sera considérée comme invalide.
+</ResponseField>
+
+<div id="apisessionsetidleexpiresatinactivity">
+  ### `api.session.setIdleExpiresAt(inactivity)`
+</div>
+
+[client d’entreprise] Définit un nouveau délai d’expiration d’inactivité pour la session en cours.
+L’expiration ne peut pas être définie au-delà de la durée de vie absolue maximale de la session configurée dans les paramètres du tenant.
+Si cette méthode est appelée plusieurs fois, c’est le délai d’expiration le plus rapproché qui sera utilisé.
+
+<ResponseField name="inactivity" type="number">
+  Obligatoire, le nouveau délai d’expiration d’inactivité, en millisecondes depuis l’époque Unix, après lequel la session sera considérée comme invalide s’il n’y a
+  aucune interaction de l’utilisateur pendant cette période.
+</ResponseField>
+
+<div id="apisessionsetcookiemodemode">
+  ### `api.session.setCookieMode(mode)`
+</div>
+
+[client d’entreprise] [Accès anticipé] Définit le mode du cookie pour la session en cours, qui peut être soit &#39;persistent&#39;, soit &#39;non-persistent&#39; (éphémère).
+Cela détermine la façon dont le cookie de session est géré dans le navigateur :
+
+* &#39;persistent&#39; : le cookie sera conservé jusqu’à son expiration ou jusqu’à sa suppression par l’utilisateur.
+* &#39;non-persistent&#39; (éphémère) : le cookie sera supprimé à la fermeture du navigateur.
+
+Si plusieurs appels à setCookieMode sont effectués, seul le dernier prendra effet. Si &#39;non-persistent&#39; est défini, le cookie sera supprimé à la fermeture du navigateur; toutefois, la session elle-même restera valide jusqu’à ce que son délai d’expiration absolu ou son délai d’expiration pour inactivité soit atteint
+ou jusqu’à ce que la session soit révoquée au moyen de nos API disponibles. Pour en savoir plus sur les modes de cookie, veuillez consulter notre documentation.
+
+<ResponseField name="mode" type="string">
+  Obligatoire, le mode du cookie pour la session en cours.
+  Peut être soit &#39;persistent&#39;, soit &#39;non-persistent&#39; (éphémère).
+
+  Valeurs autorisées : `persistent`, `non-persistent`
+</ResponseField>
+
+<div id="apisessionsetmetadatakey-value">
+  ### `api.session.setMetadata(key, value)`
+</div>
+
+[client d’entreprise] [Accès anticipé] Définit une paire clé-valeur dans l’objet de métadonnées de la session en cours.
+
+<ResponseField name="key" type="string">
+  Obligatoire, la clé à définir dans l’objet de métadonnées.
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  Obligatoire, la valeur à définir pour la clé dans l’objet de métadonnées; les valeurs nulles supprimeront la clé de métadonnées fournie.
+</ResponseField>
+
+<div id="apisessiondeletemetadatakey">
+  ### `api.session.deleteMetadata(key)`
+</div>
+
+[client d’entreprise] [Accès anticipé] Supprime une clé de l’objet de métadonnées de la session actuelle.
+
+<ResponseField name="key" type="string">
+  Obligatoire, la clé à supprimer de l’objet de métadonnées.
+</ResponseField>
+
+<div id="apisessionevictmetadata">
+  ### `api.session.evictMetadata()`
+</div>
+
+[client d’entreprise] [Accès anticipé] Supprime toutes les clés de l’objet de métadonnées de la session en cours.
+
+<div id="apitransaction">
+  ## `api.transaction`
+</div>
+
+Modifiez la transaction.
+
+<div id="apitransactionsetmetadatakey-value">
+  ### `api.transaction.setMetadata(key, value)`
+</div>
+
+Stocke ou met à jour, pour une clé donnée, la valeur dans les métadonnées de la transaction.
+
+Les métadonnées modifiées à l&#39;aide de cette méthode sont mises à jour en temps réel dans l&#39;objet
+`event.transaction.metadata`.
+
+<ResponseField name="key" type="string">
+  La clé de la propriété à définir.
+</ResponseField>
+
+<ResponseField name="value" type="txmetadatavalue">
+  La valeur de la propriété. Cette valeur peut être définie à `null` pour supprimer la
+  propriété de métadonnées.
+</ResponseField>
+
+<div id="apigroups">
+  ## `api.groups`
+</div>
+
+Obtenez des renseignements sur l’appartenance d’un utilisateur à des groupes.
+
+<div id="apigroupsgetusergroupsparams">
+  ### `api.groups.getUserGroups(params)`
+</div>
+
+Récupère la liste paginée des groupes auxquels l’utilisateur appartient.
+
+<ResponseField name="params" type="getusergroupsparams" post={["optional"]}>
+  * Un objet contenant les options de pagination.
+
+  <Expandable title="propriétés de params" defaultOpen>
+    <ResponseField name="take" type="number" post={["optional"]} />
+
+    <ResponseField name="from" type="string" post={["optional"]} />
+  </Expandable>
+</ResponseField>
+
+<div id="apigroupshasgroupmembershipgroups">
+  ### `api.groups.hasGroupMembership(groups)`
+</div>
+
+Vérifie si l’utilisateur appartient à l’un des groupes indiqués et fournit des détails
+sur les groupes correspondants si c’est le cas.
+
+<ResponseField name="groups" type="tableau de chaînes de caractères">
+  * Un tableau d’identifiants de groupe (ID ou noms) servant à vérifier l’appartenance.
+</ResponseField>

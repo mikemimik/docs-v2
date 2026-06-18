@@ -1,0 +1,91 @@
+---
+description: Cómo usar Auth0.Android para administrar usuarios
+title: 'Auth0.Android: Administración de usuarios'
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+La <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> ofrece funciones que puedes usar para administrar los usuarios de tu aplicación, incluidas tareas como estas:
+
+* Vincular cuentas de usuario independientes de distintos proveedores y asociarlas a un único perfil. Para obtener más información, consulta [Vinculación de cuentas de usuario](/docs/es/manage-users/user-accounts/user-account-linking).
+* Desvincular cuentas de usuario y devolverlas a identidades independientes.
+* Actualizar los metadatos del usuario. Para obtener más información, consulta [Comprende cómo funcionan los metadatos en los perfiles de usuario](/docs/es/manage-users/user-accounts/metadata).
+
+<div id="initialize-the-usersapiclient">
+  ## Inicializar el UsersAPIClient
+</div>
+
+Para empezar, crea una nueva instancia de `UsersAPIClient` pasándole `account` y el token de la identidad principal. En el caso de vincular usuarios, esta identidad principal es el perfil de usuario cuyos datos quieres &quot;conservar&quot; y al que piensas vincular otras identidades.
+
+export const codeExample = `val account = Auth0("{yourClientId}", "{yourDomain}")
+val client = UsersAPIClient(account, "token")`;
+
+<AuthCodeBlock children={codeExample} language="kotlin" />
+
+<div id="link-users">
+  ## Vincular usuarios
+</div>
+
+La vinculación de cuentas de usuario permite que un usuario se autentique con cualquiera de sus cuentas. Independientemente de con qué cuenta se autentique, inicia sesión con el mismo perfil. Sin la vinculación de cuentas, Auth0 trata cada cuenta distinta como un perfil independiente.
+
+El método `link` acepta dos parámetros: el id del usuario principal y el token del usuario secundario (el token obtenido después del inicio de sesión con esta identidad). El id de usuario en cuestión es el identificador único de esta cuenta de usuario. Si el id tiene el formato `facebook|1234567890`, el id requerido es la parte que aparece después de la barra vertical delimitadora.
+
+```kotlin lines
+client
+    .link("primary user id", "secondary user token")
+    .start(object: Callback<List<UserIdentity>, ManagementException>() {
+        override fun onSuccess(payload: List<UserIdentity>) {
+            // ¡Se obtuvieron las identidades actualizadas! Cuentas vinculadas.
+        }
+
+        override fun onFailure(error: ManagementException) {
+            // ¡Error!
+        }
+    })
+```
+
+<div id="unlink-users">
+  ## Desvincular usuarios
+</div>
+
+Al desvincular usuarios, las cuentas vuelven a perfiles separados. El método `unlink` acepta tres parámetros: el ID del usuario principal, el ID del usuario secundario y el proveedor secundario (del usuario secundario).
+
+```kotlin lines
+users
+    .unlink("primary user id", "secondary user id", "secondary provider")
+    .start(object: Callback<List<UserIdentity>, ManagementException>() {
+        override fun onSuccess(payload: List<UserIdentity>) {
+            // ¡Se obtuvieron las identidades actualizadas! Cuentas vinculadas.
+        }
+
+        override fun onFailure(error: ManagementException) {
+            // ¡Error!
+        }
+    })
+```
+
+Cuando las cuentas están vinculadas, los metadatos de la cuenta secundaria no se fusionan con los de la cuenta principal. Del mismo modo, al desvincular dos cuentas, la cuenta secundaria no conserva los metadatos de la cuenta principal.
+
+<div id="updating-user-metadata">
+  ## Actualizar los metadatos del usuario
+</div>
+
+Al actualizar los metadatos del usuario, se crea un objeto `metadata` y luego se llama al método `updateMetadata`, al que se le pasan el id del usuario y el objeto `metadata`. Los valores de este objeto sobrescriben los valores existentes con la misma clave o agregan valores nuevos para las que aún no existen en los metadatos del usuario.
+
+```kotlin lines
+val metadata = mutableMapOf<String, Any?>()
+metadata.put("name", listOf("My", "Name", "Is"));
+metadata.put("phoneNumber", "1234567890");
+
+users
+    .updateMetadata("user id", metadata)
+    .start(object: Callback<UserProfile, ManagementException>() {
+        override fun onSuccess(payload: UserProfile) {
+            // Metadata actualizado
+        }
+
+        override fun onFailure(error: ManagementException) {
+            // ¡Error!
+        }
+    })
+```

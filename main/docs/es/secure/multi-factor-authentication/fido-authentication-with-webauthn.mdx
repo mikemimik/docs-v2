@@ -1,0 +1,100 @@
+---
+description: Describe la API de autenticación web (WebAuthn), la autenticación basada en FIDO y cómo funciona con la autenticación multifactor de Auth0.
+sidebarTitle: Información general
+title: Autenticación FIDO con WebAuthn
+---
+
+La API de autenticación web (también conocida como WebAuthn) es una [especificación](https://www.w3.org/TR/webauthn/) creada por el W3C y FIDO, con la participación de Google, Mozilla, Microsoft, Yubico y otros. Esta API permite autenticar a los usuarios mediante criptografía de clave pública.
+
+<Warning>
+  Actualmente, el RP ID de WebAuthn está limitado a una configuración de un solo dominio y no es compatible con clientes que usan múltiples dominios personalizados.
+</Warning>
+
+WebAuthn es el método de autenticación más seguro y fácil de usar en la web. Algunas de las principales razones son:
+
+* Minimiza la fricción en el inicio de sesión. Un gesto simple y familiar permite a los usuarios autenticarse.
+* Es el único método de autenticación web resistente al phishing.
+* Se basa en estándares y está implementado en navegadores y sistemas operativos.
+
+WebAuthn permite a los usuarios autenticarse con dos tipos de autenticadores:
+
+* Los **autenticadores itinerantes** son extraíbles y multiplataforma, como una YubiKey, y pueden usarse en varios dispositivos. Para autenticarse con un autenticador itinerante, debes conectarlo al dispositivo (por USB, NFC o Bluetooth), demostrar presencia (por ejemplo, tocándolo) y, opcionalmente, realizar la verificación de usuario, por ejemplo, introduciendo un PIN.
+* Los **autenticadores de plataforma** están integrados en un dispositivo y solo funcionan en ese dispositivo. Algunos ejemplos son la Touch Bar de la MacBook, Windows Hello, Touch ID/Face ID en iOS y el reconocimiento facial o de huella en Android. Los datos biométricos se almacenan en el dispositivo y nunca se envían al servidor. Cuando no se pueden usar datos biométricos, normalmente se ofrecen métodos de autenticación alternativos. Por ejemplo, si llevas mascarilla, en lugar de usar Face ID puedes introducir tu código de acceso.
+
+<div id="webauthn-and-web-origins">
+  ## WebAuthn y orígenes web
+</div>
+
+WebAuthn funciona generando un par de claves privada/pública para cada [origen web](https://en.wikipedia.org/wiki/Same-origin_policy), que se registra en el dispositivo o en la llave de seguridad.
+
+Como el par de claves está vinculado al dominio, los usuarios están protegidos contra ataques de phishing. Si un atacante los engaña para que usen WebAuthn en un dominio distinto, el autenticador de WebAuthn no tendrá un par de claves para ese dominio y la autenticación fallará. El atacante no obtendrá ningún dato que pueda identificar al usuario.
+
+<div id="roaming-authenticators">
+  ## Autenticadores itinerantes
+</div>
+
+Para aprender a habilitar autenticadores itinerantes en Auth0, consulta la documentación de [WebAuthn with Security Keys](/docs/es/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-security-keys-for-mfa).
+
+El flujo de registro predeterminado para claves de seguridad en Android que se muestra a continuación tiene los siguientes pasos:
+
+* Los usuarios se autentican con nombre de usuario y contraseña.
+* Se les solicita que seleccionen el método de autenticación que quieren registrar.
+* Si eligen claves de seguridad, se les muestra una lista de instrucciones.
+* Luego, se les solicita que introduzcan su clave de seguridad.
+* El dispositivo muestra su interfaz nativa para completar el desafío de la clave de seguridad.
+* Los usuarios pueden asignarle un nombre a la clave para identificarla más adelante, en caso de que registren varias.
+
+<Frame>![undefined](/docs/images/cdy7uua7fh8z/47W86ZLKHPc2GjhvBFSvlu/6de067c6c446fab92641d25032840205/security-key-enrollment.png)</Frame>
+
+En el flujo de desafío, se solicita al usuario la clave de seguridad y luego se abre la interfaz de usuario nativa del dispositivo, que en este ejemplo es Android:
+
+<Frame>![undefined](/docs/images/cdy7uua7fh8z/6cATwflHcqYECdI0J75AXi/1802a4b44aa394b2d7885ccfbaa299be/security-key-challenge.png)</Frame>
+
+<div id="platform-authenticators">
+  ## Autenticadores de plataforma
+</div>
+
+Para saber cómo habilitar los autenticadores de plataforma, consulta la documentación de [Webauthn with biometría del dispositivo](/docs/es/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-device-biometrics-for-mfa).
+
+Dado que los autenticadores de plataforma solo pueden usarse en un único dispositivo, **no deberían ser los únicos factores que registren los usuarios.** Para evitar que los usuarios se queden sin acceso a sus cuentas, Auth0 les pedirá que registren autenticadores de plataforma después de autenticarse correctamente con otro método de autenticación.
+
+Auth0 intentará **registrar progresivamente** los dispositivos de todos los usuarios. Se pedirá a los usuarios que registren el autenticador de plataforma de cada dispositivo que utilicen.
+
+El flujo de registro predeterminado para Face ID en iOS se muestra a continuación y consta de los siguientes pasos:
+
+* Los usuarios se autentican con nombre de usuario y contraseña.
+* Registran otro método de autenticación de <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuarios que utiliza un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip>, como [SMS](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-sms-voice-notifications-mfa), [Push](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-push-notifications-for-mfa) o [Time-Based OTP](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-otp-notifications-for-mfa).
+* Le ponen un nombre a su dispositivo para poder identificarlo más adelante.
+
+<Frame>![Registro de MFA con biometría del dispositivo](/docs/images/cdy7uua7fh8z/1lGCq8BMA0rdkbiG3WZXWr/db44bb26054e6fadc540140f65bbc026/image.png)</Frame>
+
+La próxima vez que inicien sesión desde ese dispositivo, los usuarios introducirán su nombre de usuario y contraseña y completarán la MFA con el autenticador biométrico del dispositivo.
+
+<Frame>![Desafío de MFA de WebAuthn con biometría del dispositivo](/docs/images/cdy7uua7fh8z/Y9gbCvOtQ3uEm7a0lPQwS/1244401ecd935586cf2433173e659751/image.png)</Frame>
+
+<div id="webauthn-as-multi-factor-authentication">
+  ## WebAuthn como autenticación multifactor
+</div>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Cuando los usuarios se autentican con WebAuthn, utilizan algo **que tienen** como factor de autenticación: una clave de seguridad o un dispositivo.
+
+  Tanto las Claves de seguridad como la Biometría del dispositivo admiten la **verificación de usuario**, que requiere que los usuarios proporcionen algo **que saben** (un PIN o un código de acceso) y algo **que son** (como rasgos biométricos).
+
+  Al usar Biometría del dispositivo, la verificación de usuario siempre se realiza. Para realizar la verificación con Claves de seguridad, [debes configurar Auth0](/docs/es/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-security-keys-for-mfa) para exigir un PIN. Después, se pedirá a los usuarios que introduzcan un PIN, que solo se almacena en la clave de seguridad, para completar la autenticación. Así, cuando se realiza la verificación de usuario, los usuarios pueden iniciar sesión con WebAuthn como único método de autenticación y lograr la autenticación multifactor.
+
+  Al usar WebAuthn para la autenticación junto con la verificación de usuario, no solo sustituyes la contraseña por algo mucho más fácil de usar, sino que también eliminas la necesidad de añadir otro paso de autenticación cuando se requiere MFA.
+</Callout>
+
+<div id="webauthnme">
+  ## Webauthn.me
+</div>
+
+Auth0 mantiene [webauthn.me](https://a0.to/webauthme-auth0-docs), que ofrece [información detallada](https://webauthn.me/introduction) sobre WebAuthn y una lista actualizada de los navegadores compatibles con WebAuthn.
+
+<div id="learn-more">
+  ## Más información
+</div>
+
+* [Configurar WebAuthn con biometría del dispositivo para MFA](/docs/es/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-device-biometrics-for-mfa)
+* [Configurar WebAuthn con claves de seguridad para MFA](/docs/es/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-security-keys-for-mfa)

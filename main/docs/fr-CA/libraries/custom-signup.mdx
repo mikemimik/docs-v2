@@ -1,0 +1,96 @@
+---
+description: Comment personnaliser le formulaire d’inscription utilisateur avec des champs supplémentaires à l’aide de Lock ou de l’Auth0 API.
+title: Inscription personnalisée à l’aide de Lock ou de l’Auth0 API.
+---
+
+Vous pouvez personnaliser le formulaire d’inscription utilisateur en ajoutant d’autres champs en plus de l’adresse courriel et du mot de passe lorsque vous utilisez Lock ou l’Auth0 API.
+
+Il y a de nombreux facteurs à prendre en compte avant de choisir [Lock ou une UI personnalisée](/docs/fr-CA/customize/login-pages/classic-login/customize-with-lock-sdk). Par exemple, avec Lock, vous pouvez rediriger l’utilisateur vers une autre page pour recueillir des données ou utiliser le profilage progressif. Lorsque vous utilisez l’Auth0 API, vous pouvez recueillir des champs personnalisés et les stocker dans une base de données. Il existe certaines limites de personnalisation dont il faut tenir compte au moment de choisir la méthode qui convient le mieux à vos besoins. Parmi les personnalisations courantes, on retrouve l’ajout d’un nom d’utilisateur et la vérification de la robustesse du mot de passe.
+
+<Card title="Universal Login recommandé">
+  Auth0 offre l’option [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login), que vous pouvez utiliser au lieu de concevoir vos propres pages personnalisées de login ou d’inscription, ou d’utiliser celles qui sont intégrées à l’une des bibliothèques Auth0. Si vous souhaitez offrir des options d’inscription et de login, et que vous n’avez besoin de personnaliser que le nom de l’application, le logo et la couleur d’arrière-plan, Universal Login pourrait être une option plus facile à mettre en œuvre.
+</Card>
+
+<div id="using-lock">
+  ## Utilisation de Lock
+</div>
+
+Lock prend en charge les [champs personnalisés à l’inscription](/docs/fr-CA/libraries/lock/lock-configuration).
+
+L’option `additionalSignUpFields` de Lock fonctionne uniquement avec les inscriptions de type Database. Pour les inscriptions qui utilisent des <Tooltip tip="Identity Provider (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+providers">fournisseurs d’identité</Tooltip> sociaux, il n’est pas possible de recueillir ces champs de la même façon avec Lock, mais il existe deux autres options pour permettre les inscriptions sociales par IdP avec Lock tout en recueillant des champs personnalisés supplémentaires.
+
+<div id="redirect-to-another-page">
+  ### Rediriger vers une autre page
+</div>
+
+Une façon d’utiliser les inscriptions au moyen d’un fournisseur social avec Lock et de recueillir des champs personnalisés consiste à utiliser des [règles de redirection](/docs/fr-CA/customize/rules/redirect-users) pour rediriger l’utilisateur vers une autre page afin de lui demander des renseignements supplémentaires, puis de le rediriger de nouveau pour terminer la transaction d’authentification.
+
+<div id="progressive-profiling">
+  ### Profilage progressif
+</div>
+
+Une autre façon de recueillir les données de champs personnalisés lorsque des utilisateurs s’inscrivent au moyen de fournisseurs d’identité sociale consiste à recourir au [profilage progressif](/docs/fr-CA/manage-users/user-accounts/user-profiles/progressive-profiling), ce qui vous permet d’enrichir graduellement les données du profil utilisateur au fil du temps. Vous recueillez le strict minimum de renseignements au moment de l’inscription, puis, lorsqu’un utilisateur interagit de nouveau avec votre application, vous recueillez chaque fois une petite quantité de données (peut-être une seule réponse), jusqu’à ce que son profil soit complet. Cela vous permet de recueillir l’information voulue en réduisant les obstacles, puisque l’objectif d’utiliser un IdP social pour l’inscription est de rendre l’expérience plus simple et plus fluide pour l’utilisateur.
+
+<div id="using-the-api">
+  ## Utilisation de l’API
+</div>
+
+<div id="create-a-signup-form-to-capture-custom-fields">
+  ### Créez un formulaire d’inscription pour recueillir des champs personnalisés
+</div>
+
+`name` est un attribut du profil utilisateur, et `color` est un champ personnalisé.
+
+Il n’existe actuellement aucun moyen de valider les champs personnalisés fournis par l’utilisateur au moment de l’inscription. La validation doit être effectuée au moyen d’une [Rule](/docs/fr-CA/customize/rules) Auth0 à la connexion, ou à l’aide d’une logique personnalisée **côté serveur** dans votre application.
+
+<div id="send-the-form-data">
+  ### Envoyer les données du formulaire
+</div>
+
+Envoyez une requête POST à l’endpoint [/dbconnections/signup](https://auth0.com/docs/api/authentication/reference#signup) dans Auth0.
+
+Vous devrez envoyer :
+
+* Le `client_id` de votre application
+* L’`email` et le `password` de l’utilisateur en cours d’inscription
+* Le nom de la `connection` de base de données où stocker les données de votre utilisateur
+* Tout attribut du profil utilisateur que vous souhaitez mettre à jour pour l’utilisateur, y compris `given_name`, `family_name`, `name`, `nickname` et `picture`.
+* Tous les champs personnalisés dans `user_metadata`
+
+<div id="custom-fields-limitations">
+  ## Limites des champs personnalisés
+</div>
+
+Lorsque vos utilisateurs s’inscrivent, les champs personnalisés sont transmis dans `user_metadata`. Les limites de ce champ sont :
+
+* `user_metadata` ne doit pas contenir plus de 10 champs
+* `user_metadata.field` doit être une chaîne de caractères
+* `user_metadata.field.value.length` doit être inférieur à 500 caractères
+* `user_metadata.field.length` doit être inférieur à 100 caractères
+* La taille maximale actuelle de `user_metadata` est de **16 MB**
+
+<div id="redirect-mode">
+  ## Mode de redirection
+</div>
+
+Après une connexion réussie, Auth0 redirigera l’utilisateur vers l’URL de rappel configurée avec un <Tooltip tip="JSON Web Token (JWT) : format standard des ID Token (et souvent des access token) utilisé pour représenter des claims de manière sécurisée entre deux parties." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JWT">JWT</Tooltip> (`id_token`) dans la chaîne de requête.
+
+Votre serveur devra ensuite appeler l’API v2 pour ajouter les champs personnalisés nécessaires au profil de l’utilisateur.
+
+<div id="add-username-to-the-signup-form">
+  ## Ajouter un nom d’utilisateur au formulaire d’inscription
+</div>
+
+Une personnalisation courante consiste à ajouter un nom d’utilisateur au processus d’inscription.
+
+Pour activer cette fonctionnalité, activez le paramètre **Requires Username** dans la section [Connections &gt; Database](https://manage.auth0.com/#/connections/database/) du dashboard, sous l’onglet **Settings** de la connexion que vous souhaitez modifier.
+
+Recueillez le champ `username` dans votre formulaire personnalisé et ajoutez `username` au corps de votre requête.
+
+<div id="optional-verify-password-strength">
+  ## Facultatif : Vérifier la robustesse du mot de passe
+</div>
+
+Les politiques de mot de passe des connexions de base de données peuvent être configurées dans le Dashboard. Pour en savoir plus, consultez : [Robustesse du mot de passe dans les connexions de base de données Auth0](/docs/fr-CA/authenticate/database-connections/password-strength).
+
+Au besoin, pour mettre en œuvre des formulaires d’inscription personnalisés, les politiques de mot de passe configurées, ainsi que d’autres renseignements sur la connexion, peuvent être récupérés à partir de l’[API Management v2](https://auth0.com/docs/api/management/v2#!/Connections/get_connections_by_id). Le résultat peut être analysé côté client et contiendra des renseignements sur la politique de mot de passe actuelle (ou les politiques) configurée dans le Dashboard pour cette connexion.

@@ -1,0 +1,138 @@
+---
+description: Instructions pour importer et exporter en lot des données utilisateur dans Auth0 à l’aide du Dashboard.
+title: Importation/exportation d’utilisateurs en lot
+---
+
+<Card title="Avant de commencer">
+  Pour utiliser cette fonctionnalité, vous devez disposer des autorisations **Editor - Users** ou **Admin**. Pour en savoir plus sur les rôles du Dashboard, consultez [Dashboard Access by Role](/docs/fr-CA/get-started/manage-dashboard-access/feature-access-by-role).
+</Card>
+
+Vous pouvez importer et exporter en lot des données utilisateur dans Auth0 à l’aide du Dashboard. Les importations et exportations en lot sont utiles pour migrer des utilisateurs d’une base de données existante vers Auth0, ou d’Auth0 vers un autre service. Toutes les tâches lancées au moyen du Dashboard sont consignées et suivies à l’aide d’ID de tâche.
+
+Pour obtenir la liste des champs du profil utilisateur pouvant être importés et exportés, consultez [User Profiles](/docs/fr-CA/manage-users/user-accounts/user-profiles).
+
+<div id="import-users">
+  ### Importer des utilisateurs
+</div>
+
+Pour importer des utilisateurs dans votre tenant :
+
+1. Dans l’Auth0 Dashboard, accédez à [**User Management &gt; Users**](https://manage.auth0.com/#/users). S’il n’y a aucun utilisateur dans votre tenant, choisissez **Import Users**. S’il y en a, choisissez **Import/Export Users &gt; Import Users**.
+2. Téléversez un fichier JSON (taille maximale de 500 ko) mis en forme selon les [spécifications indiquées ici](/docs/fr-CA/manage-users/user-migration/bulk-user-import-database-schema-and-examples).
+3. Sélectionnez la connexion de base de données dans laquelle importer les utilisateurs. Notez que seules les connexions de base de données sont prises en charge et que la base de données personnalisée choisie doit avoir le mode d’importation activé pour au moins une application.
+
+   1. (Facultatif) Sélectionnez **Upsert pre-existing users in connection** pour mettre à jour les utilisateurs existants dont les identifiants correspondent
+   2. (Facultatif) Sélectionnez **Send completion email to all tenant owners**.
+4. Choisissez **Import Users** pour soumettre la tâche. Ne soumettez qu’une seule tâche par importation.
+
+Pour suivre les tâches que vous avez soumises, accédez à **View Jobs** dans l’écran Import/Export Users et choisissez **More info** pour n’importe quelle tâche. Les états des tâches comprennent **Job creation failed**, **Job created, user import failed** et **Job created, user import succeeded**.
+
+<Frame>![](/docs/images/cdy7uua7fh8z/KrknYhAUOaYBzzBrgHp4M/b2389f5926122a306eab10e54b917da6/import.png)</Frame>
+
+<div id="export-users">
+  ### Exporter des utilisateurs
+</div>
+
+<Frame>![](/docs/images/cdy7uua7fh8z/2koXwmAu99VfxJIq49yGGq/394be27431b66cfd09866ef91b0e0cd0/exportusers.png)</Frame>
+
+Pour exporter des utilisateurs de votre tenant :
+
+1. Dans le Dashboard, accédez à **User Management &gt; Users,** puis sélectionnez **Import/Export Users &gt; Export Users**.
+2. Sélectionnez la connexion de base de données à partir de laquelle vous souhaitez exporter des utilisateurs, puis choisissez JSON ou CSV comme format d’exportation.
+3. Indiquez les champs à exporter :
+
+   1. Sélectionnez **Add default fields** pour inclure les attributs utilisateur standard.
+   2. Modifiez les noms de champs pour votre fichier de sortie.
+   3. Ajoutez des attributs utilisateur personnalisés au besoin.
+4. (Facultatif) Sélectionnez **Export as sample** pour prévisualiser la structure avec un maximum de 10 utilisateurs.
+5. Sélectionnez **Export Users** pour lancer la tâche.
+
+Pour suivre et télécharger les tâches d’exportation, accédez à **View jobs** dans l’écran **Import/Export Users**. Sélectionnez **Check Status** pour suivre la progression de la tâche, **Download export** pour récupérer le résultat, ou **More info** pour consulter les erreurs ou les métadonnées de la tâche.
+
+<div id="update-user-profiles">
+  ### Mettre à jour les profils des utilisateurs
+</div>
+
+L’[Auth0 Management API](https://auth0.com/docs/api/management/v2/users/patch-users-by-id) permet de mettre à jour en lot les profils des utilisateurs dans `user_metadata` et `app_metadata`.
+
+Ce processus peut entraîner une perte de données; créez toujours une sauvegarde de votre base de données d’utilisateurs en cas de corruption des données. De plus, ce processus ne permet pas de bloquer plusieurs utilisateurs à la fois, et chaque utilisateur doit être bloqué individuellement dans l’<Tooltip tip="" cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> ou à l’aide de l’[Auth0 Management API](https://auth0.com/docs/api/management/v2/users/patch-users-by-id).
+
+Pour mettre à jour en lot les profils des utilisateurs :
+
+1. En utilisant le processus d’exportation ci-dessus, créez un fichier d’exportation complet comprenant tous les attributs de vos utilisateurs.
+2. Choisissez le format JSON pour l’exportation.
+3. Une fois l’exportation terminée, téléchargez le fichier contenant vos utilisateurs.
+
+###
+
+<div id="update-your-configuration">
+  ### Mettez à jour votre configuration
+</div>
+
+<Warning>
+  Ne modifiez pas l’adresse courriel de l’utilisateur, car elle sert de clé de recherche pour les utilisateurs dans la base de données.
+</Warning>
+
+Faites une copie du fichier JSON téléchargé à l’étape précédente, puis ouvrez cette copie dans un éditeur de texte. Votre schéma d’utilisateur devrait ressembler à celui ci-dessous :
+
+```json lines expandable
+[
+   {
+      "Id":"auth0|626737a9813c000069daf462",
+      "Nickname":"testuser1",
+      "Name":"testuser1@auth0.com",
+      "email":"testuser1@auth0.com",
+      "Connection":"Username-Password-Authentication",
+      "Created At":"2022-04-26T00:07:05.098Z",
+      "Updated At":"2022-07-06T14:54:19.214Z"
+   },
+   {
+      "Id":"auth0|62d1a1853bdcf11ff5dca672",
+      "Nickname":"testuser2",
+      "Name":"testuser2@auth0.com",
+      "email":"testuser2@auth0.com",
+      "Connection":"Username-Password-Authentication",
+      "Created At":"2022-07-15T17:19:01.531Z",
+      "Updated At":"2022-07-15T17:19:01.532Z"
+   },
+   {
+      "Id":"auth0|62d1a1a524f32a4185c9ce23",
+      "Nickname":"testuser3",
+      "Name":"testuser3@auth0.com",
+      "email":"testuser3@auth0.com",
+      "Connection":"Username-Password-Authentication",
+      "Created At":"2022-07-15T17:19:33.484Z",
+      "Updated At":"2022-07-15T17:19:33.484Z"
+   }
+]
+```
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  L’ID doit avoir un `connection|id` unique. Si le même ID utilisateur existe dans plusieurs connexions, votre mise à jour échouera.
+</Callout>
+
+Pour ajouter un attribut, créez un nouveau champ dans chaque schéma utilisateur et attribuez-lui une valeur. Dans l’exemple ci-dessous, l’attribut **Nom de famille** a pour valeur **Smith**, et une virgule suit la valeur du nouvel attribut.
+
+Vous pouvez également ajouter l’attribut `email_verified` à plusieurs utilisateurs et définir la valeur sur `true`.
+
+```json lines
+{
+   "Id":"auth0|626737a9813c000069daf462",
+   "Nickname":"testuser1",
+   "Family Name":"Smith",
+   "Name":"testuser1@auth0.com",
+   "email":"testuser1@auth0.com",
+   "email_verified":true,
+   "Connection":"Username-Password-Authentication",
+   "Created At":"2022-04-26T00:07:05.098Z",
+   "Updated At":"2022-07-06T14:54:19.214Z"
+}
+```
+
+Enregistrez les modifications apportées à votre fichier d’utilisateurs.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Ce processus ne permet pas de bloquer plusieurs utilisateurs. Vous devez bloquer les utilisateurs individuellement dans l’Auth0 Dashboard ou au moyen de l’[Auth0 Management API](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id).
+</Callout>
+
+Pour importer des données de profil utilisateur mises à jour, téléversez votre fichier de profils utilisateur mis à jour et mettez à jour plusieurs utilisateurs en une seule tâche. **Upsert pre-existing users in connection** doit être défini à true ou sélectionné pour que les utilisateurs existants soient mis à jour.

@@ -1,0 +1,135 @@
+---
+description: Aprende a usar Rules con el control de acceso basado en roles (RBAC). Para usarlo con nuestra funcionalidad Authorization Core.
+title: 'Casos de uso de ejemplo: Rules con Authorization'
+---
+
+<Warning>
+  La fecha de fin de vida útil (EOL) de Rules y Hooks será el **18 de noviembre de 2026** y ya no están disponibles para los nuevos tenants creados a partir del **16 de octubre de 2023**. Los tenants existentes con Hooks activos conservarán el acceso al producto Hooks hasta su fin de vida útil.
+
+  Te recomendamos encarecidamente que uses Actions para ampliar Auth0. Con Actions, tienes acceso a información de tipos más completa, documentación integrada y paquetes públicos de `npm`, y puedes conectar integraciones externas que mejoran tu experiencia general de extensibilidad. Para obtener más información sobre lo que ofrece Actions, consulta [Understand How Auth0 Actions Work](/docs/es/customize/actions/actions-overview).
+
+  Para ayudarte con la migración, ofrecemos guías para [migrar de Rules a Actions](/docs/es/customize/actions/migrate/migrate-from-rules-to-actions) y [migrar de Hooks a Actions](/docs/es/customize/actions/migrate/migrate-from-hooks-to-actions). También tenemos una página específica de [Move to Actions](https://auth0.com/extensibility/movetoactions) que destaca comparaciones de funcionalidades, [una demostración de Actions](https://www.youtube.com/watch?v=UesFSY1klrI) y otros recursos para ayudarte durante el proceso de migración.
+
+  Si quieres obtener más información sobre la obsolescencia de Rules y Hooks, consulta nuestra entrada de blog: [Preparing for Rules and Hooks End of Life](https://auth0.com/blog/preparing-for-rules-and-hooks-end-of-life/).
+</Warning>
+
+Con [Rules](/docs/es/customize/rules), puedes modificar o complementar el resultado de la decisión tomada por la [política de autorización](/docs/es/manage-users/access-control/authorization-policies) preconfigurada para gestionar casos más complejos de lo que permite por sí solo el [control de acceso basado en roles (RBAC)](/docs/es/manage-users/access-control/rbac). Según el orden en que se ejecuten, las reglas pueden cambiar el resultado de la decisión de autorización antes de que se agreguen los permisos al <Tooltip tip="token de acceso: Credencial de autorización, en forma de cadena opaca o JWT, que se usa para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip>. También te permiten personalizar el contenido de tus tokens.
+
+<div id="allow-access-only-on-weekdays-for-a-specific-application">
+  ## Permitir el acceso solo entre semana para una aplicación específica
+</div>
+
+Supongamos que tienes una aplicación y quieres asegurarte de que solo sea accesible entre semana. Para ello, [crea la siguiente rule](/docs/es/customize/rules/create-rules):
+
+```js lines
+function (user, context, callback) {
+
+  if (context.clientName === 'APP_NAME') {
+    const d = Date.getDay();
+
+    if (d === 0 || d === 6) {
+      return callback(new UnauthorizedError('This app is only available during the week.'));
+    }
+  }
+
+  callback(null, user, context);
+}
+```
+
+Si un usuario intenta acceder a la aplicación durante el fin de semana, se le denegará el acceso, aunque se autentique y tenga los privilegios adecuados.
+
+<div id="allow-access-only-to-users-who-are-inside-the-corporate-network">
+  ## Permitir el acceso solo a los usuarios que están dentro de la red corporativa
+</div>
+
+Supongamos que quieres permitir el acceso a una aplicación, pero solo a los usuarios que acceden a la aplicación desde dentro de tu red corporativa. Para ello, crearías la siguiente rule:
+
+```js lines
+function (user, context, callback) {
+  const ipaddr = require('ipaddr.js@1.9.0');
+  const corp_network = "192.168.1.134/26";
+  const current_ip = ipaddr.parse(context.request.ip);
+
+  if (!current_ip.match(ipaddr.parseCIDR(corp_network))) {
+    return callback(new UnauthorizedError('This app is only available from inside the corporate network.'));
+  };
+
+  callback(null, user, context);
+}
+```
+
+Si el usuario está fuera de la red corporativa, se le denegará el acceso aunque se autentique correctamente y tenga los privilegios adecuados.
+
+<div id="deny-access-to-anyone-calling-an-api">
+  ## Denegar el acceso a cualquier persona que llame a una API
+</div>
+
+Supongamos que quieres denegar el acceso a todos los usuarios que llaman a una API. Esto significa que debes denegar el acceso en función del valor de `audience` de tu API, que puedes encontrar en el campo **API <Tooltip tip="Audience: Identificador único de la audiencia de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (API Identifier) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=Audience">Audience</Tooltip>** de tu API en [Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis). Para ello, crearías la siguiente rule:
+
+```js lines
+function (user, context, callback) {
+  /*
+   *  Deniega el acceso a flujos basados en usuarios según la audiencia
+   */
+  var audience = '';
+  audience = audience
+              || (context.request && context.request.query && context.request.query.audience)
+              || (context.request && context.request.body && context.request.body.audience);
+  if (audience === 'http://todoapi2.api' || !audience) {
+    return callback(new UnauthorizedError('end_users_not_allowed'));
+  }
+  return callback(null, user, context);
+}
+```
+
+En este caso, el valor de `audience` de la API es `http:://todoapi2.api`, así que este es el `audience` que rechazaremos. Si alguien intenta acceder a la API con este valor de `audience`, se le denegará el acceso y recibirá una respuesta `HTTP 401`.
+
+<div id="add-user-roles-to-tokens">
+  ## Agregar roles de usuario a los tokens
+</div>
+
+Si [habilitas RBAC para las API](/docs/es/get-started/apis/enable-role-based-access-control-for-apis) junto con &quot;Agregar permisos en el token de acceso&quot; (o habilitas RBAC mediante la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> y estableces el **dialecto del token** en `access_token_authz`), recibirás los permisos del usuario en tus tokens de acceso. Para agregar roles de usuario a los tokens, puedes usar el objeto `context.authorization` al crear la siguiente rule:
+
+```js lines
+function (user, context, callback) {
+  const namespace = 'http://demozero.net';
+  const assignedRoles = (context.authorization || {}).roles;
+
+  let idTokenClaims = context.idToken || {};
+  let accessTokenClaims = context.accessToken || {};
+
+  idTokenClaims[`${namespace}/roles`] = assignedRoles;
+  accessTokenClaims[`${namespace}/roles`] = assignedRoles;
+
+  context.idToken = idTokenClaims;
+  context.accessToken = accessTokenClaims;
+
+  callback(null, user, context);
+}
+```
+
+<div id="manage-delegated-administration-extension-roles-using-the-authorization-core-feature-set">
+  ## Gestiona los roles de Delegated Administration Extension mediante el conjunto de funciones de Authorization Core
+</div>
+
+Aunque [Delegated Administration Extension (DAE)](/docs/es/customize/extensions/delegated-administration-extension) y el conjunto de funciones de Authorization Core son características completamente independientes, puedes usar el conjunto de funciones de Authorization Core para crear y gestionar roles para DAE si usas una rule.
+
+1. [Crea roles de DAE](/docs/es/manage-users/access-control/configure-core-rbac/roles/create-roles) mediante el conjunto de funciones de Authorization Core. Los nombres de los roles que crees deben coincidir con los nombres de los [roles de DAE predefinidos](/docs/es/customize/extensions/delegated-administration-extension#assign-roles-to-users).
+2. [Asigna los roles de DAE que creaste a los usuarios correspondientes](/docs/es/manage-users/access-control/configure-core-rbac/rbac-users/assign-roles-to-users) mediante el conjunto de funciones de Authorization Core.
+3. Agrega los roles de usuario al espacio de nombres de DAE en el token de ID. Para ello, [crea la siguiente rule](/docs/es/customize/rules/create-rules) y recuerda reemplazar el valor del marcador de posición `CLIENT_ID` por el ID de cliente de tu aplicación:
+
+```js lines
+function (user, context, callback) {
+    if (context.clientID === 'CLIENT_ID') {
+        const namespace = 'https://example.com/auth0-delegated-admin';
+        context.idToken[namespace] = {
+            roles: (context.authorization || {}).roles
+        };
+    }
+    callback(null, user, context);
+}
+```
+
+<Warning>
+  Auth0 devuelve la información del perfil en forma de claims estructurados, tal como lo define la [especificación OpenID Connect (OIDC)](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims). Esto significa que las custom claims que se agregan a los tokens de ID o a los tokens de acceso deben [ajustarse a las directrices y restricciones](/docs/es/secure/tokens/json-web-tokens/create-custom-claims) para evitar posibles colisiones.
+</Warning>

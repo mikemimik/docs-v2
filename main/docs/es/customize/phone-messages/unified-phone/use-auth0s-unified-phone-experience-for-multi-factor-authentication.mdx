@@ -1,0 +1,321 @@
+---
+description: Migra la configuración de tu proveedor telefónico a Unified Phone Experience.
+title: Usa Unified Phone Experience de Auth0 para la autenticación multifactor
+---
+
+<Card title="Antes de empezar">
+  Para migrar a Unified Phone Experience, debes:
+
+  * Tener habilitadas y configuradas en tu tenant las notificaciones por SMS, voz o SMS+voz de la autenticación multifactor (MFA), o bien
+  * Tener habilitado y configurado en tu tenant Passwordless SMS
+
+  Si no has configurado ni MFA ni Passwordless, consulta [Configurar Unified Phone Experience de Auth0](/docs/es/customize/phone-messages/unified-phone/configure-unified-phone) para empezar desde el principio.
+
+  Si tienes integraciones de MFA y Passwordless con proveedores distintos, debes usar un [proveedor telefónico personalizado](/docs/es/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider).
+
+  Si utilizas Phone as ID, ya estás usando automáticamente Unified Phone Experience de Auth0 y no necesitas realizar ninguna acción adicional.
+</Card>
+
+Unified Phone Experience centraliza toda la configuración de tus proveedores telefónicos en un solo lugar dentro de tu tenant. No necesitas configurar un proveedor telefónico varias veces para distintos factores de autenticación por teléfono. Para obtener más información sobre los factores telefónicos para <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuarios que utiliza un factor adicional al nombre de usuario y la contraseña, como un código enviado por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip>, consulta [Notificaciones por SMS y voz para MFA](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-sms-voice-notifications-mfa).
+
+Si ya tienes un proveedor telefónico configurado para [las notificaciones por SMS y voz de la autenticación multifactor (MFA)](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-sms-voice-notifications-mfa), puedes migrar tu configuración a Unified Phone Experience y aplicarla a nivel de tenant.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Auth0 no informa al usuario final si un mensaje telefónico se ha enviado correctamente con el proveedor configurado a nivel de tenant. Para solucionar problemas, revisa los [logs del tenant](/docs/es/deploy-monitor/logs).
+</Callout>
+
+<div id="update-your-phone-provider">
+  ## Actualiza tu proveedor telefónico
+</div>
+
+Para usar Unified Phone Experience, necesitas:
+
+* Verificar la configuración actual
+* Configurar tu proveedor:
+
+  * Configurar Twilio
+  * Configurar un proveedor telefónico personalizado
+* Actualizar tus factor telefónico y métodos de entrega
+* Actualizar los endpoints de <Tooltip tip="Management API: Un producto para permitir que los clientes realicen tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>
+* Actualizar los triggers de Auth0 Actions
+
+<div id="verify-current-settings">
+  ### Verifique la configuración actual
+</div>
+
+1. Para verificar su configuración actual de MFA, vaya a [**Auth0 Dashboard &gt; Security &gt; Multi-factor Auth**](https://manage.auth0.com/#/security/mfa).
+2. Seleccione **Phone Message**.
+3. Los nuevos tenants de Auth0 pueden usar Unified Phone Experience; un banner le indicará que configure un proveedor telefónico del tenant:
+
+   <Frame>![](/docs/images/cdy7uua7fh8z/1mZryDWIpdkpGmhxn4Gr8K/4bdad7fbcd81dd0bf4855d94b7205e8b/mfa-phone-message-upe.png)</Frame>
+
+* Los tenants existentes anteriores a marzo de 2025 pueden configurar notificaciones de **SMS and Voice** para la autenticación multifactor (MFA), junto con Unified Phone Experience.
+
+  <Frame>![](/docs/images/cdy7uua7fh8z/1mZryDWIpdkpGmhxn4Gr8K/4bdad7fbcd81dd0bf4855d94b7205e8b/mfa-phone-message-no-upe.png)</Frame>
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  Auth0 recomienda usar Unified Phone Experience. Si debe usar la experiencia de [notificaciones de **SMS and Voice** para la autenticación multifactor (MFA)](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-sms-voice-notifications-mfa) para configurar su proveedor telefónico y no aparece el interruptor **Use  Tenant-Level Messaging Provider**, póngase en contacto con el [equipo de soporte de Auth0](/docs/es/troubleshoot/customer-support).
+</Callout>
+
+4. Para verificar la configuración de su tenant, vaya a [**Dashboard &gt; Configuración del tenant**](https://manage.auth0.com/#/tenant/advanced).
+5. Seleccione **Advanced**.
+6. Busque **Unified Phone Experience**.
+   <Frame>![](/docs/images/cdy7uua7fh8z/1mZryDWIpdkpGmhxn4Gr8K/4bdad7fbcd81dd0bf4855d94b7205e8b/tenant-settings-upe.png)</Frame>
+7. Active el interruptor para habilitarlo, si es necesario.
+
+<div id="configure-twilio-as-a-tenant-level-provider">
+  ### Configura Twilio como proveedor a nivel del tenant
+</div>
+
+Si usas Twilio como proveedor telefónico para la autenticación multifactor, debes agregar el SID de Twilio y el AuthToken a la Unified Phone Experience. Puedes copiar el SID de Twilio de tu configuración actual, pero tendrás que obtener el valor del AuthToken desde Twilio.
+
+1. Ve a [**Branding &gt; Proveedor telefónico**](https://manage.auth0.com/#/phone/templates/phone/provider).
+2. Selecciona y configura tu proveedor:
+
+   <Frame>![Branding > Proveedor telefónico > Twilio](/docs/images/cdy7uua7fh8z/6TESTIdmhUL0LEitACadIK/fcdc34e18a6b66b47370f6d754c085b5/2025-02-21_12-49-53.png)</Frame>
+
+   1. Elige Twilio como proveedor telefónico.
+   2. Elige los métodos de entrega.
+   3. Ingresa la configuración de Twilio.
+
+      <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+        Los factores de MFA deseados deben ser un subconjunto de los métodos de entrega que configures a nivel del tenant.
+      </Callout>
+3. **Guarda** los cambios.
+4. Selecciona **Enviar mensaje de prueba** para probar el proveedor a nivel del tenant antes de usarlo en un entorno de producción.
+5. Habilita un proveedor a nivel del tenant.
+
+   1. Para MFA, ve a [**Security &gt; Autenticación multifactor &gt; Phone Message**.](https://manage.auth0.com/#/security/mfa)
+   2. Selecciona **Usar proveedor de mensajería a nivel del tenant**.
+
+      <Warning>
+        Si no ves ningún interruptor en tu tenant, ya estás usando la Unified Phone Experience.
+      </Warning>
+6. **Guarda** los cambios.
+
+<div id="configure-a-custom-provider-with-auth0-actions">
+  ### Configura un proveedor personalizado con Auth0 Actions
+</div>
+
+La Unified Phone Experience usa el trigger de Actions `custom-phone-provider` para las notificaciones por teléfono, en lugar del trigger de Actions `send-phone-message` para las notificaciones telefónicas personalizadas.
+
+No puedes migrar directamente tu trigger de Actions `send-phone-message` al trigger de Actions `custom-phone-provider` porque:
+
+* No existe un mapeo 1:1 entre los tipos de mensaje y los tipos de notificación.
+* Migrar los secrets y las dependencias asociados al trigger de Actions send-phone-message podría generar problemas de seguridad o afectar la experiencia del tenant.
+* Una Action puede admitir más de un trigger, por lo que su migración podría resultar difícil. Por ejemplo, una Action puede admitir tanto los triggers `send-phone-message` como `post-login`.
+* Los triggers de Actions `send-phone-message` y `custom-phone-provider` admiten distintos tipos de evento:
+
+  * `send-phone-message` admite los tipos de mensaje SMS y voz. Para obtener más información, consulta [Action triggers: send-phone-message Event Object](/docs/es/customize/actions/explore-triggers/mfa-notifications-trigger/send-phone-message-event-object).
+  * `custom-phone-provider` admite los tipos de notificación `otp_verify`, `otp_enroll`, `blocked_account`, `change_password` y `password_breach`. Para obtener más información, consulta [Actions triggers: custom-phone-provider Event Object](/docs/es/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/actions-triggers-custom-phone-provider-event-object).
+* Solo puedes configurar una Action por proveedor telefónico personalizado. Si ya configuraste una Action para un proveedor telefónico personalizado, **debes** deshabilitarla antes de asociarla a una nueva Action.
+
+Como resultado, debes convertir tu `send-phone-message` existente en un nuevo `custom-phone-provider` usando las nuevas variables contextuales:
+
+<AccordionGroup>
+  <Accordion title="Payload principal">
+    | objeto de contexto de `send-phone-message` | objeto de contexto de `custom-phone-provider`                                                                                                                         | Estado      |
+    | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+    | `text`                                     | `notification.as_text` y `notification.as_voice`                                                                                                                      | Actualizado |
+    | `message_type`                             | `notification.message_type` <ul><li>Tenga en cuenta la diferencia en los valores: `second-factor-authentication` vs `otp_enroll`, `verify` vs `otp_verify`)</li></ul> | Actualizado |
+    | `action`                                   | `notification.delivery_method`                                                                                                                                        | Actualizado |
+    | `language`                                 | `notification.locale`                                                                                                                                                 | Actualizado |
+    | `code`                                     | `notification.code`                                                                                                                                                   | Actualizado |
+    | `recipient`                                | `notification.recipient`                                                                                                                                              | Actualizado |
+  </Accordion>
+
+  <Accordion title="Datos de la solicitud">
+    | objeto de contexto de `send-phone-message` | objeto de contexto del proveedor a nivel de tenant | Estado      |
+    | ------------------------------------------ | -------------------------------------------------- | ----------- |
+    | `ip`                                       | `ip`                                               | Sin cambios |
+    | `user_agent`                               | `user_agent`                                       | Sin cambios |
+    | `language`                                 | `language`                                         | Actualizado |
+    | `method`                                   | `method` opcional                                  | Actualizado |
+    | `hostname`                                 | `hostname` opcional                                | Actualizado |
+    | `geoip`                                    | `geoip`                                            | Actualizado |
+  </Accordion>
+
+  <Accordion title="Datos del tenant">
+    | objeto de contexto de `send-phone-message` | objeto de contexto del proveedor a nivel de tenant | Estado      |
+    | ------------------------------------------ | -------------------------------------------------- | ----------- |
+    | `tenant.id`                                | `tenant`                                           | Actualizado |
+    | N/A                                        | `tenant.home_url`                                  | Nuevo       |
+    | N/A                                        | `tenant.logo_url`                                  | Nuevo       |
+    | N/A                                        | `tenant.support_email`                             | Nuevo       |
+    | N/A                                        | `tenant.support_url`                               | Nuevo       |
+  </Accordion>
+
+  <Accordion title="Datos de la aplicación">
+    | objeto de contexto de `send-phone-message` | objeto de contexto del proveedor a nivel de tenant | Estado      |
+    | ------------------------------------------ | -------------------------------------------------- | ----------- |
+    | `client.client_metadata`                   | `client.metadata`                                  | Actualizado |
+    | `client.client_id`                         | `client.client_id`                                 | Sin cambios |
+    | `client.name`                              | `client.name`                                      | Sin cambios |
+  </Accordion>
+
+  <Accordion title="Datos del usuario">
+    | objeto de contexto de `send-phone-message` | objeto de contexto del proveedor a nivel de tenant | Estado      |
+    | ------------------------------------------ | -------------------------------------------------- | ----------- |
+    | `user.user_id`                             | `user.user_id`                                     | Sin cambios |
+    | `user.name`                                | `user.name`                                        | Sin cambios |
+    | `user.email`                               | `user.email`                                       | Sin cambios |
+    | `user.app_metadata`                        | `user.app_metadata`                                | Sin cambios |
+    | `user.user_metadata`                       | `user.user_metadata`                               | Sin cambios |
+    | `user.email_verified`                      | `user.email_verified`                              | Sin cambios |
+    | `user.phone_number`                        | `user.phone_number`                                | Sin cambios |
+    | `user.phone_verified`                      | `user.phone_verified`                              | Sin cambios |
+    | `user.picture`                             | `user.picture`                                     | Sin cambios |
+    | `user.created_at`                          | `user.created_at`                                  | Sin cambios |
+    | `user.updated_at`                          | `user.updated_at`                                  | Sin cambios |
+    | `user.multifactor`                         | `user.multifactor`                                 | Sin cambios |
+    | `user.identities`                          | N/A                                                | Eliminado   |
+    | `user.family_name`                         | `user.family_name`                                 | Sin cambios |
+    | `user.given_name`                          | `user.given_name`                                  | Sin cambios |
+    | `user.nickname`                            | `user.nickname`                                    | Sin cambios |
+    | `user.username`                            | `user.username`                                    | Sin cambios |
+    | N/A                                        | `user.login_count`                                 | Nuevo       |
+  </Accordion>
+</AccordionGroup>
+
+Para ver la lista completa de variables contextuales, consulte [Personalizar las plantillas de teléfono](/docs/es/customize/phone-messages/phone-templates/customize).
+
+Revise el ejemplo del proveedor telefónico personalizado:
+
+```javascript lines expandable
+const { fetch } = require('undici');
+/**
+* Controlador que se ejecuta al enviar una notificación por teléfono
+* @param {Event} event - Detalles sobre el usuario y el contexto en el que está iniciando sesión.
+* @param {CustomPhoneProviderAPI} api - Métodos y utilidades para modificar el comportamiento del envío de notificaciones por teléfono.
+*/
+exports.onExecuteCustomPhoneProvider = async (event, api) => {
+
+  if (event.notification.message_type.startsWith('otp')) {
+    const body = {
+      from: event.notification.from,
+      action: event.notification.message_type === 'otp_verify' ? 'second-factor-authenticator' : 'enrollment',
+      language: event.notification.locale,
+      recipient: event.notification.recipient,
+      message_type: event.notification.delivery_method,
+      text: event.notification.as_text,
+      code: event.notification.code,
+    };
+
+    const response = await fetch(event.secrets['MY_ENDPOINT'], {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${event.secrets['MY_SECRET']}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    console.log(response.status); // 200
+    console.log(await response.text()); // ¡cuerpo de la respuesta de la solicitud!
+  }
+
+  return;
+};
+```
+
+<div id="configure-mfa-custom-phone-provider">
+  #### Configura `custom-phone-provider` de MFA
+</div>
+
+Para continuar y configurar el trigger `custom-phone-provider` de MFA:
+
+1. Ve a [**Branding &gt; Phone Provider**](https://manage.auth0.com/#/phone/templates/phone/provider).
+2. Selecciona tu proveedor:
+
+   1. Elige **Custom**.
+   2. En **Provider Configuration**, agrega el código traducido de la Action `send-phone-message` en el editor de código integrado.
+3. **Save** los cambios.
+4. Selecciona **Send Test Message** para probar el proveedor a nivel de tenant antes de usarlo en un entorno de producción.
+5. Vuelve a [**Security &gt; Multi-factor Auth &gt; Phone Message**](https://manage.auth0.com/#/security/mfa) para habilitar **Use Tenant-level Messaging Provider**.
+6. **Save** los cambios.
+
+<div id="update-mfa-phone-factors-and-delivery-methods">
+  ### Actualizar factores telefónicos de MFA y métodos de entrega
+</div>
+
+<Warning>
+  Si no has habilitado un proveedor a nivel de tenant en el Auth0 Dashboard, no podrás configurar los factores telefónicos de SMS y voz para MFA.
+
+  <Frame>![Advertencia de MFA telefónico unificado sin un proveedor a nivel de tenant configurado](/docs/images/cdy7uua7fh8z/6HE10zh6tL6ByihAh4Cj6K/c0faf43eb8e4d606ef1ac20ec538bcac/2025-02-12_09-14-41.png)</Frame>
+</Warning>
+
+Si quieres cambiar los factores telefónicos de notificación de MFA actuales a otro tipo durante la migración a Unified Phone Experience, puede que sea necesario realizar algunos cambios de configuración.
+
+| Factores telefónicos de MFA actuales | Factores de MFA deseados | Método de entrega a nivel de tenant | Acción del usuario                                                                                          |
+| ------------------------------------ | ------------------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| SMS                                  | Voz                      | SMS                                 | El usuario debe actualizar el proveedor a nivel de tenant para permitir el factor telefónico de MFA deseado |
+| SMS                                  | Voz                      | SMS + Voz                           | Ninguna                                                                                                     |
+| SMS                                  | SMS + Voz                | SMS                                 | El usuario debe actualizar el proveedor a nivel de tenant para permitir el factor telefónico de MFA deseado |
+| SMS                                  | SMS + Voz                | SMS + Voz                           | Ninguna                                                                                                     |
+| Voz                                  | SMS                      | SMS + Voz                           | El usuario debe actualizar el proveedor a nivel de tenant para permitir el factor telefónico de MFA deseado |
+| Voz                                  | SMS                      | SMS + Voz                           | Ninguna                                                                                                     |
+| Voz                                  | SMS + Voz                | Voz                                 | El usuario debe actualizar el proveedor a nivel de tenant para permitir el factor telefónico de MFA deseado |
+| Voz                                  | SMS + Voz                | SMS + Voz                           | Ninguna                                                                                                     |
+| SMS + Voz                            | SMS                      | SMS + Voz                           | Ninguna                                                                                                     |
+| SMS + Voz                            | Voz                      | SMS + Voz                           | Ninguna                                                                                                     |
+
+Si quieres cambiar los métodos de entrega actuales del proveedor telefónico a nivel de tenant a otro tipo durante la migración a Unified Phone Experience, puede que sea necesario realizar algunos cambios de configuración.
+
+| Factores telefónicos de MFA | Método de entrega actual a nivel de tenant | Método de entrega deseado a nivel de tenant | Acción del usuario                                                                                                                                                |
+| --------------------------- | ------------------------------------------ | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SMS                         | SMS                                        | SMS + Voz                                   | Ninguna                                                                                                                                                           |
+| SMS                         | SMS                                        | Voz                                         | El usuario debe actualizar los factores telefónicos de MFA para que sean un subconjunto de los métodos de entrega habilitados para el proveedor a nivel de tenant |
+| SMS                         | SMS + Voz                                  | Voz                                         | El usuario debe actualizar los factores telefónicos de MFA para que sean un subconjunto de los métodos de entrega habilitados para el proveedor a nivel de tenant |
+| SMS                         | SMS + Voz                                  | SMS                                         | Ninguna                                                                                                                                                           |
+| Voz                         | Voz                                        | SMS                                         | El usuario debe actualizar los factores telefónicos de MFA para que sean un subconjunto de los métodos de entrega habilitados para el proveedor a nivel de tenant |
+| Voz                         | Voz                                        | SMS + Voz                                   | Ninguna                                                                                                                                                           |
+| Voz                         | SMS + Voz                                  | SMS                                         | El usuario debe actualizar los factores telefónicos de MFA para que sean un subconjunto de los métodos de entrega habilitados para el proveedor a nivel de tenant |
+| Voz                         | SMS + Voz                                  | Voz                                         | Ninguna                                                                                                                                                           |
+| SMS + Voz                   | SMS + Voz                                  | SMS                                         | Ninguna                                                                                                                                                           |
+| SMS + Voz                   | SMS + Voz                                  | Voz                                         | Ninguna                                                                                                                                                           |
+
+<div id="update-guardian-endpoints-with-management-api">
+  ### Actualiza los endpoints de Guardian con la Management API
+</div>
+
+La Unified Phone Experience usa endpoints específicos para las notificaciones. Si has estado usando [Auth0 Guardian](/docs/es/secure/multi-factor-authentication/auth0-guardian) para notificaciones push y contraseñas de un solo uso, debes actualizar tu configuración para usar los nuevos endpoints de Phone Provider Branding.
+
+Los siguientes endpoints de Guardian dejarán de funcionar con la Unified Phone Experience:
+
+| Endpoint de Guardian para enviar mensajes al teléfono                                                                                                                                                                                                                                                                    | Scope                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| <ul><li>[Obtener la configuración de Twilio](https://auth0.com/docs/api/management/v2/guardian/get-phone-twilio-factor-provider)</li><li>[Obtener la configuración de SMS de Twilio](https://auth0.com/docs/api/management/v2/guardian/get-sms-twilio-factor-provider)</li></ul>                                         | `read:guardian_factors`   |
+| <ul><li>[Obtener la configuración del proveedor telefónico](https://auth0.com/docs/api/management/v2/guardian/get-guardian-phone-providers)</li><li>[Obtener la configuración de SMS del proveedor telefónico](https://auth0.com/docs/api/management/v2/guardian/get-sms-providers)</li></ul>                        | `read:guardian_factors`   |
+| <ul><li>[Actualizar la configuración de Twilio](https://auth0.com/docs/api/management/v2/guardian/put-twilio)</li><li>[Actualizar la configuración de SMS de Twilio](https://auth0.com/docs/api/management/v2/guardian/put-sms-twilio-factor-provider)</li></ul>                                                         | `update:guardian_factors` |
+| <ul><li>[Actualizar la configuración del proveedor telefónico](https://auth0.com/docs/api/management/v2/guardian/put-phone-providers)</li><li>[Actualizar la configuración de SMS](https://auth0.com/docs/api/management/v2/guardian/put-sms-providers)</li></ul>                                                      | `update:guardian_factors` |
+| <ul><li>[Obtener las plantillas de teléfono para registro y verificación](https://auth0.com/docs/api/management/v2/guardian/get-factor-phone-templates)</li><li>[Obtener las plantillas de SMS para registro y verificación](https://auth0.com/docs/api/management/v2/guardian/get-factor-sms-templates)</li></ul>       | `read:guardian_factors`   |
+| <ul><li>[Actualizar las plantillas de teléfono para registro y verificación](https://auth0.com/docs/api/management/v2/guardian/put-factor-phone-templates)</li><li>[Actualizar las plantillas de SMS para registro y verificación](https://auth0.com/docs/api/management/v2/guardian/put-factor-sms-templates)</li></ul> | `update:guardian_factors` |
+
+Sustituye los endpoints de Guardian por los nuevos endpoints y scopes de Phone Provider Branding:
+
+| Endpoint de Phone Provider Branding                                                                                                                                                                                                                                                               | Scope                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| <ul><li>[Obtener el conjunto de proveedores telefónicos configurados para un tenant](https://auth0.com/docs/api/management/v2/branding/get-branding-phone-providers)</li><li>[Obtener el proveedor telefónico](https://auth0.com/docs/api/management/v2/branding/get-phone-provider)</li></ul> | `read:phone_providers`   |
+| <ul><li>[Actualizar el proveedor telefónico](https://auth0.com/docs/api/management/v2/branding/update-phone-provider)</li></ul>                                                                                                                                                                 | `update:phone_providers` |
+| <ul><li>[Configurar el proveedor telefónico](https://auth0.com/docs/api/management/v2/branding/create-phone-provider)</li></ul>                                                                                                                                                                 | `create:phone_providers` |
+| <ul><li>[Obtener la lista de plantillas de notificaciones telefónicas](https://auth0.com/docs/api/management/v2/branding/get-phone-templates)</li><li>[Obtener una plantilla de notificación telefónica](https://auth0.com/docs/api/management/v2/branding/get-phone-template)</li></ul>          | `read:phone_templates`   |
+| <ul><li>[Actualizar una plantilla de notificación telefónica](https://auth0.com/docs/api/management/v2/branding/update-phone-template)</li></ul>                                                                                                                                                  | `update:phone_templates` |
+| <ul><li>[Crear una plantilla de notificación telefónica](https://auth0.com/docs/api/management/v2/branding/create-phone-template)</li></ul>                                                                                                                                                       | `create:phone_templates` |
+| <ul><li>[Eliminar una plantilla de teléfono](https://auth0.com/docs/api/management/v2/branding/delete-phone-provider)</li></ul>                                                                                                                                                                   | `delete:phone_templates` |
+| <ul><li>[Eliminar un proveedor telefónico](https://auth0.com/docs/api/management/v2/branding/delete-phone-provider)</li></ul>                                                                                                                                                                   | `delete:phone_providers` |
+
+Los siguientes endpoints de Guardian funcionan con la Unified Phone Experience y no será necesario actualizarlos:
+
+| Endpoint del factor telefónico de MFA                                                                                                                  | Scope                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| <ul><li>[Obtener factor telefónico habilitados](https://auth0.com/docs/api/management/v2/guardian/get-message-types)</li></ul>                       | `read:guardian_factors`   |
+| <ul><li>[Actualizar factor telefónico habilitados](https://auth0.com/docs/api/management/v2/guardian/put-message-types)</li></ul>                    | `update:guardian_factors` |
+| <ul><li>[Obtener la configuración del proveedor telefónico](https://auth0.com/docs/api/management/v2/guardian/get-guardian-phone-providers)</li></ul> | `read:guardian_factors`   |
+| <ul><li>[Actualizar la configuración del proveedor telefónico](https://auth0.com/docs/api/management/v2/guardian/put-phone-providers)</li></ul>       | `update:guardian_factors` |
+
+<div id="disable-phone-provider">
+  ## Desactivar el proveedor telefónico
+</div>
+
+Si configuras Unified Phone Experience y luego lo desactivas, las integraciones existentes con tu proveedor de telefonía, incluida MFA, podrían dejar de funcionar.
+
+<Frame>![](/docs/images/cdy7uua7fh8z/3qqa2QWXRNKZV96AQq6O0G/28cdff44a9532f5c005a5e1acb763ab8/2025-02-24_14-58-47.png)</Frame>

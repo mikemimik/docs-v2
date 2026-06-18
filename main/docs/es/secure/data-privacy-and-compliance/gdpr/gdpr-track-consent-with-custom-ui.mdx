@@ -1,0 +1,495 @@
+---
+description: Describe cómo usar auth0.js o las API de Auth0 para recopilar información sobre el consentimiento cuando utilizas tu propia interfaz de usuario para el inicio de sesión.
+title: 'RGPD: Seguimiento del consentimiento con una interfaz de usuario personalizada'
+---
+
+import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+
+import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+
+En este tutorial veremos cómo puedes usar auth0.js o las API de Auth0 para solicitar información de consentimiento y guardar la información introducida en los metadatos del usuario. Para obtener más información, lee [Comprende cómo funcionan los metadatos en los perfiles de usuario](/docs/es/manage-users/user-accounts/metadata).
+
+Si, en cambio, quieres registrar el consentimiento con Lock, consulta [RGPD: registrar el consentimiento con Lock](/docs/es/secure/data-privacy-and-compliance/gdpr/gdpr-track-consent-with-lock).
+
+El contenido de este documento **no** pretende ser asesoramiento jurídico ni debe considerarse un sustituto de la asistencia legal. La responsabilidad final de comprender y cumplir el RGPD recae en ti, aunque Auth0 te ayudará a cumplir sus requisitos siempre que sea posible.
+
+<Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+  El contenido de estos documentos no pretende ser asesoramiento jurídico ni debe considerarse un sustituto de la asistencia legal. La responsabilidad final de comprender y cumplir el RGPD recae en ti, aunque Auth0 te ayudará a cumplir sus requisitos siempre que sea posible.
+</Callout>
+
+<div id="overview">
+  ## Información general
+</div>
+
+Recopilaremos la información de consentimiento en varios escenarios y la guardaremos en los metadatos del usuario.
+
+En todos los escenarios, se guardarán las siguientes propiedades en los metadatos del usuario:
+
+* `consentGiven` (true/false) indica si el usuario ha dado su consentimiento (true) o no (false)
+* `consentTimestamp` (marca de tiempo Unix) indica cuándo el usuario dio su consentimiento
+
+Por ejemplo:
+
+```json lines
+{
+  "consentGiven": "true"
+  "consentTimestamp": "1525101183"
+}
+```
+
+Veremos cuatro implementaciones diferentes para esto:
+
+1. una que muestra un indicador, funciona para conexiones de base de datos y usa la biblioteca auth0.js para crear el usuario (utilizada por aplicaciones de una sola página). Para obtener más información, consulta la [referencia de Auth0.js](/docs/es/libraries/auth0js).
+2. una que muestra un indicador, funciona para conexiones de base de datos y usa la Authentication API para crear el usuario (utilizada por aplicaciones web tradicionales)
+3. una que muestra un indicador, funciona para conexiones sociales y usa la Management API para actualizar la información del usuario (utilizada tanto por las SPA como por las aplicaciones web tradicionales)
+4. una que redirige a otra página donde se pueden revisar los Términos y condiciones y/o la información de la política de privacidad, y se puede otorgar el consentimiento (utilizada tanto por las SPA como por las aplicaciones web tradicionales)
+
+<div id="option-1-use-auth0js">
+  ## Opción 1: Usar auth0.js
+</div>
+
+En esta sección, usaremos una Single-Page Application sencilla y personalizaremos el widget de inicio de sesión para añadir un indicador que los usuarios puedan usar para proporcionar información de consentimiento. En lugar de crear una aplicación desde cero, [usaremos el ejemplo de Quickstart de JavaScript de Auth0](/docs/es/quickstart/spa/vanillajs). También usaremos las páginas de <Tooltip tip="Universal Login: Tu aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Universal+Login">Universal Login</Tooltip> de Auth0 para implementar Universal Login, en lugar de integrar el inicio de sesión en nuestra aplicación. Para obtener más información sobre Universal Login, consulta [Auth0 Universal Login](/docs/es/authenticate/login/auth0-universal-login). Para obtener más información sobre las diferencias entre Universal Login y embedded login, consulta [Centralized Universal Login vs. Embedded Login](/docs/es/authenticate/login/universal-vs-embedded-login).
+
+Esto funciona **solo** para conexiones de base de datos (usaremos la infraestructura de Auth0, en lugar de configurar nuestra propia base de datos).
+
+1. Ve a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y crea una nueva aplicación. Elige `Single Web Page Applications` como tipo. Ve a **Settings** y establece las **Allowed Callback URLs** en `http://localhost:3000`.
+
+   Este campo contiene el conjunto de URL a las que Auth0 puede redirigir a los usuarios después de que se autentiquen. Nuestra aplicación de ejemplo se ejecutará en `http://localhost:3000`, por lo que establecemos este valor.
+
+2. Copia los valores de **ID de cliente** y **Domain**. Los necesitarás dentro de un momento.
+
+3. Ve a [Auth0 Dashboard &gt; Authentication &gt; Database](https://manage.auth0.com/#/connections/database) y crea una nueva conexión. Haz clic en **Create DB Connection**, asigna un nombre a la nueva conexión y haz clic en **Save**. Ve a la pestaña **Applications** de la conexión y asegúrate de que tu aplicación recién creada esté habilitada.
+
+4. [Descarga el ejemplo de JavaScript SPA](/docs/es/quickstart/spa/vanillajs).
+
+5. [Establece los valores de ID de cliente y Domain](https://github.com/auth0-samples/auth0-javascript-samples/tree/master/01-Login#set-the-client-id-and-domain).
+
+6. Ve a [Auth0 Dashboard &gt; Branding &gt; Universal Login](https://manage.auth0.com/#/login_settings). En la pestaña **Login**, habilita el interruptor.
+
+7. En el menú desplegable **Default Templates**, asegúrate de que esté seleccionado `Custom Login Form`. El código ya estará rellenado por ti.
+
+8. Establece el valor de la variable `databaseConnection` con el nombre de la conexión de base de datos que usa tu aplicación.
+
+   ```javascript lines
+   //código reducido por simplicidad
+   	var databaseConnection = 'test-db';
+   	//código reducido por simplicidad
+   ```
+
+9. Para añadir un campo para los metadatos `consentGiven`, agrega una casilla de verificación al formulario. Para este ejemplo, configuraremos la casilla para que esté marcada de forma predeterminada y deshabilitada, de modo que el usuario no pueda desmarcarla. Puedes ajustar esto según las necesidades de tu negocio.
+
+   ```javascript lines
+   //código reducido por simplicidad
+       <div class="form-group">
+         <label for="name">I consent with data processing</label>
+         <input
+           type="checkbox"
+           id="userConsent"
+           checked disabled>
+       </div>
+       //código reducido por simplicidad
+   ```
+
+10. Edita la función de registro para establecer los metadatos. Ten en cuenta que establecemos el valor de los metadatos como una cadena con el valor `true`, y no como un valor booleano, y que usamos `toString` para convertir el número en una cadena. Esto se debe a una restricción del endpoint [**Signup**](https://auth0.com/docs/api/authentication#signup) de Authentication API, que solo acepta cadenas como valores.
+
+    ```text lines
+    //código reducido por simplicidad
+        webAuth.redirect.signupAndLogin({
+          connection: databaseConnection,
+          email: email,
+          password: password,
+          user_metadata: { consentGiven: 'true', consentTimestamp: Date.now().toString() }
+        }, function(err) {
+          if (err) displayError(err);
+        });
+        //código reducido por simplicidad
+    ```
+
+11. Para ver cómo se verá el widget de inicio de sesión, haz clic en la pestaña **Preview**.
+
+<Frame>![Dashboard Branding Universal Login Classic Login pestaña Custom formulario de inicio de sesión](/docs/images/cdy7uua7fh8z/4m3WA0sKMoR0C1KVnVmZ1G/b311bdbc6c48b4910eac49cc8f1b9ba8/2025-02-26_15-17-18.png)</Frame>
+
+1. Para probar esta configuración, ejecuta la aplicación y ve a `http://localhost:3000`. Regístrate como usuario nuevo. Luego, ve a [Auth0 Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users) y busca ese usuario. Ve a **User Details** y desplázate hacia abajo hasta la sección **Metadata**. En el área de texto **user&#95;metadata**, deberías ver el metadato `consentGiven` establecido en `true`.
+
+<div id="option-2-use-the-api-database">
+  ## Opción 2: Usar la API (base de datos)
+</div>
+
+Si tu página de inicio de sesión se sirve desde tu propio servidor, puedes llamar directamente al [**endpoint** de **Signup**](https://auth0.com/docs/api/authentication#signup) de la Authentication API una vez que el usuario se haya registrado.
+
+En el mismo escenario que hemos estado analizando hasta ahora, una vez que registres a un usuario nuevo, puedes usar el siguiente fragmento para crear el usuario en Auth0 y establecer los metadatos. Recuerda reemplazar el valor del parámetro de la solicitud `consentTimestamp` por la marca de tiempo correspondiente al momento en que el usuario otorgó su consentimiento.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/dbconnections/signup' \
+    --header 'content-type: application/json' \
+    --data '{"client_id": "{yourClientId}","email": "YOUR_USER_EMAIL","password": "YOUR_USER_PASSWORD","user_metadata": {"consentGiven": "true", "consentTimestamp": "1525101183" }}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/dbconnections/signup");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"client_id": "{yourClientId}","email": "YOUR_USER_EMAIL","password": "YOUR_USER_PASSWORD","user_metadata": {"consentGiven": "true", "consentTimestamp": "1525101183" }}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/dbconnections/signup"
+
+  	payload := strings.NewReader("{"client_id": "{yourClientId}","email": "YOUR_USER_EMAIL","password": "YOUR_USER_PASSWORD","user_metadata": {"consentGiven": "true", "consentTimestamp": "1525101183" }}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.post("https://{yourDomain}/dbconnections/signup")
+    .header("content-type", "application/json")
+    .body("{"client_id": "{yourClientId}","email": "YOUR_USER_EMAIL","password": "YOUR_USER_PASSWORD","user_metadata": {"consentGiven": "true", "consentTimestamp": "1525101183" }}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/dbconnections/signup',
+    headers: {'content-type': 'application/json'},
+    data: {
+      client_id: '{yourClientId}',
+      email: 'YOUR_USER_EMAIL',
+      password: 'YOUR_USER_PASSWORD',
+      user_metadata: {consentGiven: 'true', consentTimestamp: '1525101183'}
+    }
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/dbconnections/signup",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{"client_id": "{yourClientId}","email": "YOUR_USER_EMAIL","password": "YOUR_USER_PASSWORD","user_metadata": {"consentGiven": "true", "consentTimestamp": "1525101183" }}",
+    CURLOPT_HTTPHEADER => [
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"client_id": "{yourClientId}","email": "YOUR_USER_EMAIL","password": "YOUR_USER_PASSWORD","user_metadata": {"consentGiven": "true", "consentTimestamp": "1525101183" }}"
+
+  headers = { 'content-type': "application/json" }
+
+  conn.request("POST", "/{yourDomain}/dbconnections/signup", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/dbconnections/signup")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["content-type"] = 'application/json'
+  request.body = "{"client_id": "{yourClientId}","email": "YOUR_USER_EMAIL","password": "YOUR_USER_PASSWORD","user_metadata": {"consentGiven": "true", "consentTimestamp": "1525101183" }}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Ten en cuenta que establecemos el valor de metadata como un string con el valor `true` y no como un valor booleano, debido a la restricción de la API, que acepta strings como valores y no booleanos.
+
+Si necesitas establecer valores booleanos, puedes usar la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>. En este escenario, registras al usuario como de costumbre y luego llamas al endpoint [**Update User** endpoint](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id) de la Management API para establecer la metadata requerida después de que se haya creado el usuario. Para obtener más información sobre cómo hacerlo, sigue leyendo; el siguiente párrafo usa ese endpoint.
+
+<div id="option-3-use-the-api-social">
+  ## Opción 3: Usar la API (social)
+</div>
+
+Si usas conexiones sociales, no puedes usar la Authentication API para crear el usuario en Auth0, ya que ese endpoint solo funciona con conexiones de base de datos.
+
+En su lugar, debes permitir que el usuario se registre con el proveedor social (lo que creará un registro de usuario en Auth0) y luego usar la Management API para actualizar su información.
+
+Antes de llamar a la Management API, debes obtener un token válido. Para obtener más información, lee [Obtener tokens de acceso de la Management API para producción](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production).
+
+El artículo enlazado usa el Client Credentials Flow para obtener un token, pero no puedes usarlo desde una aplicación que se ejecuta en el navegador. En su lugar, sí puedes usar el flujo implícito. Para obtener más información sobre el Client Credentials Flow, lee [Client Credentials Flow](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow). Para obtener más información sobre el flujo implícito, lee [Implicit Flow](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post).
+
+Configura el parámetro de solicitud **<Tooltip tip="Audience: Identificador único de la audiencia de un token emitido. Llamado aud en un token, su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (API Identifier) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audience</Tooltip>** como `https://YOUR_DOMAIN/api/v2/` y el parámetro **scope** con el scope `create:current_user_metadata`. Puedes usar el <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">Token de acceso</Tooltip> que recibirás en la respuesta para llamar al endpoint [**Update User**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id) de la Management API.
+
+Una vez que tengas un token válido, usa el siguiente fragmento para actualizar los metadatos del usuario.
+
+<AuthCodeGroup>
+  ```bash cURL
+  curl --request POST \
+    --url 'https://{yourDomain}/api/v2/users/%7BUSER_ID%7D' \
+    --header 'authorization: Bearer YOUR_ACCESS_TOKEN' \
+    --header 'content-type: application/json' \
+    --data '{"user_metadata": {"consentGiven":true, "consentTimestamp": "1525101183"}}'
+  ```
+
+  ```csharp C#
+  var client = new RestClient("https://{yourDomain}/api/v2/users/%7BUSER_ID%7D");
+  var request = new RestRequest(Method.POST);
+  request.AddHeader("authorization", "Bearer YOUR_ACCESS_TOKEN");
+  request.AddHeader("content-type", "application/json");
+  request.AddParameter("application/json", "{"user_metadata": {"consentGiven":true, "consentTimestamp": "1525101183"}}", ParameterType.RequestBody);
+  IRestResponse response = client.Execute(request);
+  ```
+
+  ```go Go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  	"net/http"
+  	"io/ioutil"
+  )
+
+  func main() {
+
+  	url := "https://{yourDomain}/api/v2/users/%7BUSER_ID%7D"
+
+  	payload := strings.NewReader("{"user_metadata": {"consentGiven":true, "consentTimestamp": "1525101183"}}")
+
+  	req, _ := http.NewRequest("POST", url, payload)
+
+  	req.Header.Add("authorization", "Bearer YOUR_ACCESS_TOKEN")
+  	req.Header.Add("content-type", "application/json")
+
+  	res, _ := http.DefaultClient.Do(req)
+
+  	defer res.Body.Close()
+  	body, _ := ioutil.ReadAll(res.Body)
+
+  	fmt.Println(res)
+  	fmt.Println(string(body))
+
+  }
+  ```
+
+  ```java Java
+  HttpResponse response = Unirest.post("https://{yourDomain}/api/v2/users/%7BUSER_ID%7D")
+    .header("authorization", "Bearer YOUR_ACCESS_TOKEN")
+    .header("content-type", "application/json")
+    .body("{"user_metadata": {"consentGiven":true, "consentTimestamp": "1525101183"}}")
+    .asString();
+  ```
+
+  ```javascript Node.JS
+  var axios = require("axios").default;
+
+  var options = {
+    method: 'POST',
+    url: 'https://{yourDomain}/api/v2/users/%7BUSER_ID%7D',
+    headers: {authorization: 'Bearer YOUR_ACCESS_TOKEN', 'content-type': 'application/json'},
+    data: {user_metadata: {consentGiven: true, consentTimestamp: '1525101183'}}
+  };
+
+  axios.request(options).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    console.error(error);
+  });
+  ```
+
+  ```php PHP
+  $curl = curl_init();
+
+  curl_setopt_array($curl, [
+    CURLOPT_URL => "https://{yourDomain}/api/v2/users/%7BUSER_ID%7D",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => "{"user_metadata": {"consentGiven":true, "consentTimestamp": "1525101183"}}",
+    CURLOPT_HTTPHEADER => [
+      "authorization: Bearer YOUR_ACCESS_TOKEN",
+      "content-type: application/json"
+    ],
+  ]);
+
+  $response = curl_exec($curl);
+  $err = curl_error($curl);
+
+  curl_close($curl);
+
+  if ($err) {
+    echo "cURL Error #:" . $err;
+  } else {
+    echo $response;
+  }
+  ```
+
+  ```python Python
+  import http.client
+
+  conn = http.client.HTTPSConnection("")
+
+  payload = "{"user_metadata": {"consentGiven":true, "consentTimestamp": "1525101183"}}"
+
+  headers = {
+      'authorization': "Bearer YOUR_ACCESS_TOKEN",
+      'content-type': "application/json"
+      }
+
+  conn.request("POST", "/{yourDomain}/api/v2/users/%7BUSER_ID%7D", payload, headers)
+
+  res = conn.getresponse()
+  data = res.read()
+
+  print(data.decode("utf-8"))
+  ```
+
+  ```ruby Ruby
+  require 'uri'
+  require 'net/http'
+  require 'openssl'
+
+  url = URI("https://{yourDomain}/api/v2/users/%7BUSER_ID%7D")
+
+  http = Net::HTTP.new(url.host, url.port)
+  http.use_ssl = true
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(url)
+  request["authorization"] = 'Bearer YOUR_ACCESS_TOKEN'
+  request["content-type"] = 'application/json'
+  request.body = "{"user_metadata": {"consentGiven":true, "consentTimestamp": "1525101183"}}"
+
+  response = http.request(request)
+  puts response.read_body
+  ```
+</AuthCodeGroup>
+
+Ten en cuenta que, para realizar esta llamada, necesitas conocer el `user_id` único. Puedes recuperarlo del claim `sub` del <Tooltip tip="token de ID: credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">token de ID</Tooltip>, si recibiste uno en la respuesta. Para obtener más información, lee [Tokens de ID](/docs/es/secure/tokens/id-tokens). Como alternativa, si lo único que tienes es el correo electrónico, puedes recuperar el ID llamando a otro endpoint de la Management API. Para obtener más información, consulta [Prácticas recomendadas de User Search](/docs/es/manage-users/user-search/user-search-best-practices).
+
+<div id="option-4-redirect-to-another-page">
+  ## Opción 4: Redirigir a otra página
+</div>
+
+Si quieres mostrar más información al usuario, al registrarse puedes redirigirlo a otra página en la que solicites el consentimiento y cualquier dato adicional, y luego volver a redirigirlo para finalizar la transacción de autenticación. Esto se puede hacer con redirect rules. Esa misma rule puede usarse para guardar la información de consentimiento en los metadatos del usuario, de modo que puedas hacer un seguimiento de esta información y no volver a pedir el consentimiento en el siguiente login. Para obtener más información, consulta [Redirigir usuarios desde Rules](/docs/es/customize/rules/redirect-users).
+
+Tendrás que alojar este formulario, y la URL del formulario debe ser de acceso público. En un paso posterior de este tutorial, tendrás que proporcionar a Auth0 la URL en la que se puede acceder al formulario.
+
+1. Añade la rule de redirección. Ve a [Auth0 Dashboard &gt; Auth Pipeline &gt; Rules](https://manage.auth0.com/#/rules) y haz clic en **Create Rule**. En **Rules Templates**, selecciona **empty rule**. Cambia el nombre predeterminado de la rule, `empty rule`, por otro más descriptivo (por ejemplo, `Redirect to consent form`).
+
+2. Añade el siguiente código Javascript al editor de scripts y **guarda** los cambios.
+
+   ```js lines
+   exports.onExecutePostLogin = async (event, api) => {
+       const { consentGiven } = event.user.user_metadata || {};
+
+       // redirigir al formulario de consentimiento si el usuario aún no ha dado su consentimiento
+       if (!consentGiven && api.redirect.canRedirect()) {
+         const options = {
+           query: {
+             auth0_domain: `${event.tenant.id}.auth0.com`,
+           },
+         };
+         api.redirect.sendUserTo(event.secrets.CONSENT_FORM_URL, options);
+       }
+   };
+
+   // si el usuario hace clic en 'I agree' en el formulario de consentimiento, guárdalo en su perfil para que no se le vuelva a solicitar
+   exports.onContinuePostLogin = async (event, api) => {
+     if (event.request.body.confirm === "yes") {
+       api.user.setUserMetadata("consentGiven", true);
+       api.user.setUserMetadata("consentTimestamp", Date.now());
+       return;
+     } else {
+       return api.access.deny("User did not consent");
+     }
+   };
+   ```
+
+3. Vuelve a [Auth0 Dashboard &gt; Auth0 Pipeline &gt; Rules](https://manage.auth0.com/#/rules) y desplázate hasta la parte inferior de la página, donde se encuentra la sección **Settings**. Crea un par clave/valor de la siguiente manera:
+
+   1. **Clave**: `CONSENT_FORM_URL`
+   2. **Valor**: `your-consent-form-url.com`
+
+Asegúrate de proporcionar la URL de acceso público en la que se encuentra tu formulario de consentimiento.
+
+Al configurar la redirección a tu formulario de consentimiento para usarlo en un entorno de producción, asegúrate de revisar [Trusted Callback URLs](https://github.com/auth0/rules/tree/master/redirect-rules/simple#trusted-callback-urls) y [Data Integrity](https://github.com/auth0/rules/tree/master/redirect-rules/simple#data-integrity) en relación con las consideraciones de seguridad.
+
+Si necesitas una solicitud de consentimiento especializada, por ejemplo, un consentimiento parental, debes crear tu propio formulario de consentimiento personalizado. Ten en cuenta que las leyes varían según el país.
+
+Hemos terminado la parte de configuración. ¡Hagamos la prueba!
+
+<div id="test-the-configuration">
+  ## Prueba la configuración
+</div>
+
+1. Ejecuta la aplicación y ve a `https://localhost:3000`.
+2. Regístrate con un usuario nuevo. Se te redirigirá al formulario de consentimiento.
+3. Marca la casilla **Acepto** y haz clic en **Enviar**.
+4. Ve a [Auth0 Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users) y busca tu nuevo usuario.
+5. Ve a **User Details** y desplázate hacia abajo hasta la sección **Metadata**.
+6. En el campo de texto **user&#95;metadata**, deberías ver que el metadato `consentGiven` está establecido en `true` y que `consentTimestamp` está establecido con la marca de tiempo Unix del momento en que el usuario dio su consentimiento.
+
+¡Eso es todo, ya terminaste!
