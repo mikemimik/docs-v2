@@ -1,0 +1,29 @@
+```java AuthenticationControllerProvider.java highlight={5-26} lines 
+class AuthenticationControllerProvider {
+
+    private AuthenticationControllerProvider() {}
+
+    private static AuthenticationController INSTANCE;
+
+    // Si cette méthode peut être appelée depuis plusieurs fils d'exécution, synchronisez-la et envisagez d'utiliser le verrouillage à double vérification
+    static AuthenticationController getInstance(ServletConfig config) throws UnsupportedEncodingException {
+        if (INSTANCE == null) {
+            String domain = config.getServletContext().getInitParameter("com.auth0.domain");
+            String clientId = config.getServletContext().getInitParameter("com.auth0.clientId");
+            String clientSecret = config.getServletContext().getInitParameter("com.auth0.clientSecret");
+
+            if (domain == null || clientId == null || clientSecret == null) {
+                throw new IllegalArgumentException("Missing domain, clientId, or clientSecret. Did you update src/main/webapp/WEB-INF/web.xml?");
+            }
+
+            // JwkProvider est requis pour les jetons RS256. Inutile si vous utilisez HS256.
+            JwkProvider jwkProvider = new JwkProviderBuilder(domain).build();
+            INSTANCE = AuthenticationController.newBuilder(domain, clientId, clientSecret)
+                    .withJwkProvider(jwkProvider)
+                    .build();
+        }
+
+        return INSTANCE;
+    }
+}
+```

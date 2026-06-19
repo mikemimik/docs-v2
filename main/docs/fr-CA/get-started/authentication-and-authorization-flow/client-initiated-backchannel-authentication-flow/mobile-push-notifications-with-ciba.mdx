@@ -1,50 +1,50 @@
 ---
-description: Découvrez comment authentifier les utilisateurs avec le flux Client-Initiated Backchannel Authentication au moyen de notifications push mobiles.
+description: Découvrez comment authentifier les utilisateurs avec le flux Client-Initiated Backchannel Authentication à l’aide de notifications push mobiles.
 title: Notifications push mobiles avec CIBA
 validatedOn: 2026-02-20
 ---
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Pour utiliser les fonctionnalités de Client-Initiated Backchannel Authentication (CIBA), vous devez disposer d’un forfait Enterprise ou d’un module complémentaire approprié. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
+  Pour utiliser les fonctionnalités de Client-Initiated Backchannel Authentication (CIBA), vous devez avoir un Enterprise Plan ou un module complémentaire approprié. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
 </Callout>
 
-Lorsque vous utilisez les notifications push mobiles avec CIBA, l’utilisateur reçoit une notification push lui demandant de s’authentifier ou d’autoriser une requête sur son appareil mobile enregistré. Vous pouvez envoyer des notifications push mobiles avec CIBA à l’aide de l’application Auth0 Guardian ou d’une application personnalisée intégrée au SDK Auth0 Guardian.
+Lorsque vous utilisez des notifications push mobiles avec CIBA, l’utilisateur reçoit une notification push pour authentifier ou autoriser une requête sur son appareil mobile enregistré. Vous pouvez envoyer des notifications push mobiles avec CIBA à l’aide de l’application Auth0 Guardian ou d’une application personnalisée intégrée au SDK Auth0 Guardian.
 
-Le flux CIBA avec notifications push mobiles authentifie et autorise les utilisateurs sur leur appareil mobile, sans nécessiter de navigateur. Comme l’appareil utilisé pour lancer la demande n’a pas besoin d’une session de navigateur active, l’utilisateur n’a pas besoin d’être connecté avant qu’une requête CIBA soit déclenchée. Cela garantit aussi que le flux CIBA n’aura aucune incidence sur les sessions existantes de l’utilisateur.
+Le flux CIBA avec notifications push mobiles permet d’authentifier et d’autoriser les utilisateurs sur leur appareil mobile, sans navigateur. Comme l’appareil à partir duquel la demande est lancée n’exige pas de session de navigateur active, l’utilisateur n’a pas besoin d’être connecté avant qu’une requête CIBA soit déclenchée. Cela garantit également que le flux CIBA n’aura aucune incidence sur les sessions existantes de l’utilisateur.
 
-Le diagramme suivant illustre le flux CIBA de bout en bout avec notifications push mobiles :
+Le schéma suivant illustre le flux CIBA de bout en bout avec notifications push mobiles :
 
 <Frame>![](/docs/images/ciba/mobile_push_notifications_with_ciba_diagram.png)</Frame>
 
-Les sections suivantes expliquent étape par étape comment fonctionne l’authentification des utilisateurs avec CIBA au moyen de notifications push mobiles.
+Les sections suivantes expliquent, étape par étape, le fonctionnement de l’authentification des utilisateurs avec CIBA à l’aide de notifications push mobiles.
 
 * [Prérequis](#prerequisites)
-* [Étape 1 : L’application cliente lance une requête CIBA](#step-1%3A-client-application-initiates-a-ciba-request)
-* [Étape 2 : Le tenant Auth0 accuse réception de la requête CIBA](#step-2%3A-auth0-tenant-acknowledges-the-ciba-request)
-* [Étape 3 : L’application cliente vérifie périodiquement si une réponse est disponible](#step-3%3A-client-application-polls-for-a-response)
-* [Étape 4 : L’application mobile reçoit la notification push](#step-4%3A-mobile-application-receives-the-push-notification)
-* [Étape 5 : L’application mobile récupère les détails du consentement](#step-5%3A-mobile-application-retrieves-the-consent-details)
-* [Étape 6 : L’application mobile présente à l’utilisateur les détails du consentement](#step-6%3A-mobile-application-presents-the-consent-details-to-the-user)
-* [Étape 7 : L’application mobile renvoie à Auth0 la réponse de l’utilisateur](#step-7%3A-mobile-application-sends-the-user-response-back-to-auth0)
-* [Étape 8 : Auth0 reçoit la réponse de l’utilisateur une fois le flux terminé](#step-8%3A-auth0-receives-user-response-after-the-flow-completes)
-* [Étape 9 : Auth0 renvoie un jeton d’accès à l’application cliente](#step-9%3A-auth0-returns-access-token-to-client-application)
+* [Étape 1 : L’application cliente lance une requête CIBA](#step-1%3A-client-application-initiates-a-ciba-request)
+* [Étape 2 : Le tenant Auth0 accuse réception de la requête CIBA](#step-2%3A-auth0-tenant-acknowledges-the-ciba-request)
+* [Étape 3 : L’application cliente interroge le système pour obtenir une réponse](#step-3%3A-client-application-polls-for-a-response)
+* [Étape 4 : L’application mobile reçoit la notification push](#step-4%3A-mobile-application-receives-the-push-notification)
+* [Étape 5 : L’application mobile récupère les détails du consentement](#step-5%3A-mobile-application-retrieves-the-consent-details)
+* [Étape 6 : L’application mobile présente à l’utilisateur les détails du consentement](#step-6%3A-mobile-application-presents-the-consent-details-to-the-user)
+* [Étape 7 : L’application mobile envoie à Auth0 la réponse de l’utilisateur](#step-7%3A-mobile-application-sends-the-user-response-back-to-auth0)
+* [Étape 8 : Auth0 reçoit la réponse de l’utilisateur une fois le flux terminé](#step-8%3A-auth0-receives-user-response-after-the-flow-completes)
+* [Étape 9 : Auth0 renvoie le jeton d’accès à l’application cliente](#step-9%3A-auth0-returns-access-token-to-client-application)
 
 <div id="prerequisites">
   ## Prérequis
 </div>
 
-Pour lancer une requête CIBA push avec Auth0, vous devez :
+Pour initier une requête push CIBA avec Auth0, vous devez :
 
 * [Configure Client-Initiated Backchannel Authentication](/docs/fr-CA/get-started/applications/configure-client-initiated-backchannel-authentication) pour votre tenant et votre application, y compris les [notifications push mobiles](/docs/fr-CA/get-started/applications/configure-client-initiated-backchannel-authentication/#configure-mobile-push-notifications).
-* Définir le paramètre `requested_expiry` sur une valeur de 300 secondes ou moins. Pour en savoir plus, consultez [Configure notification channel](/docs/fr-CA/get-started/applications/configure-client-initiated-backchannel-authentication#configure-notification-channel).
+* Régler le paramètre `requested_expiry` sur une valeur de 300 secondes ou moins. Pour en savoir plus, consultez [Configurer le canal de notification](/docs/fr-CA/get-started/applications/configure-client-initiated-backchannel-authentication#configure-notification-channel).
 
 <div id="step-1-client-application-initiates-a-ciba-request">
   ## Étape 1 : l’application cliente lance une requête CIBA
 </div>
 
-Utilisez les [API User Search](/docs/fr-CA/manage-users/user-search) pour trouver l’utilisateur qui autorisera la demande pour lequel vous souhaitez lancer une requête CIBA et obtenir son ID utilisateur.
+Utilisez les [API User Search](/docs/fr-CA/manage-users/user-search) pour trouver l’utilisateur autorisant pour lequel vous souhaitez lancer une requête CIBA et obtenir son ID utilisateur.
 
-Une fois que vous avez l’ID utilisateur de l’utilisateur qui autorisera la demande, utilisez l’Authentication API ou nos [SDKs](/docs/fr-CA/libraries) pour envoyer une requête CIBA au endpoint `/bc-authorize` :
+Une fois que vous avez l’ID utilisateur de l’utilisateur autorisant, utilisez l’Authentication API ou nos [SDKs](/docs/fr-CA/libraries) pour envoyer une requête CIBA au point de terminaison `/bc-authorize` :
 
 <Tabs>
   <Tab title="cURL">
@@ -97,10 +97,10 @@ Une fois que vous avez l’ID utilisateur de l’utilisateur qui autorisera la d
 
   <Tab title="Java">
     ```java lines
-    // Création d’une instance AuthClient
+    //Création de l’instance AuthClient
     AuthAPI auth = AuthAPI.newBuilder(domain, clientId, clientSecret).build();
 
-    // Autorisation
+    //Autorisation
     Map<String, Object> loginHint = new HashMap<>();
             loginHint.put("format", "iss_sub");
             loginHint.put("iss", "https://{YOUR_DOMAIN}.auth0.com/");
@@ -113,22 +113,22 @@ Une fois que vous avez l’ID utilisateur de l’utilisateur qui autorisera la d
   </Tab>
 </Tabs>
 
-| Paramètres         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tenant`           | Nom du tenant. Il peut aussi s’agir d’un domaine personnalisé. Si le format `iss_sub` est utilisé, le nom du tenant est transmis dans la claim `iss`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `client_id`        | Identifiant de l’application cliente.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `client_secret`    | Méthode d’authentification du client utilisée pour l’authentification de l’utilisateur avec CIBA, comme Client Secret, Private Key JWT ou l’authentification mTLS. Si vous utilisez Private Key JWT ou mTLS, vous n’avez pas besoin d’inclure le client secret.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `scope`            | Doit inclure `openid`.<br /><br />La portée peut aussi inclure `offline_access` pour demander un refresh token. Cependant, pour l’autorisation ponctuelle d’une transaction dans le flux CIBA, un refresh token n’est pas nécessaire et n’a aucune utilité dans ce contexte.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `user_id`          | ID utilisateur de l’utilisateur qui autorise la demande, transmis dans la structure `login_hint`. Si le format `iss_sub` est utilisé, l’ID utilisateur est transmis dans la claim `sub`.<br /><br />L’ID utilisateur peut avoir un format différent selon le fournisseur externe.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `requested_expiry` | Durée maximale, en secondes, pendant laquelle la session CIBA doit demeurer valide. La durée d’expiration demandée pour le flux CIBA peut varier de 1 à 259200 secondes (72 heures), et la valeur par défaut est de 300 secondes. Incluez le paramètre `requested_expiry` pour définir une durée d’expiration personnalisée pour le flux CIBA.<br /><br />Le paramètre `requested_expiry` aide à déterminer quel canal de notification CIBA utilise :<ul><li>Si vous définissez `requested_expiry` à 300 secondes ou moins, CIBA utilise le canal de notification push mobile s’il est activé. Si vous n’avez pas configuré la MFA pour votre tenant, la requête CIBA échoue.</li><li>Si vous définissez `requested_expiry` à une valeur entre 301 et 259200 secondes (72 heures), CIBA utilise le canal de notification par courriel s’il est activé.</li></ul> |
-| `binding_message`  | Message lisible utilisé pour lier le flux CIBA entre les appareils d’authentification et de consultation. Le message de liaison est obligatoire et peut contenir jusqu’à 64 caractères. Utilisez uniquement des caractères alphanumériques et `+-_.,:#`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Paramètres         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenant`           | Nom du tenant. Il peut aussi s’agir d’un domaine personnalisé. Si le format `iss_sub` est utilisé, le nom du tenant est transmis dans le claim `iss`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `client_id`        | Identifiant de l’application cliente.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `client_secret`    | Méthode d’authentification du client utilisée pour l’authentification de l’utilisateur avec CIBA, comme Client Secret, Private Key JWT ou l’authentification mTLS. Si vous utilisez Private Key JWT ou mTLS, vous n’avez pas besoin d’inclure le secret du client.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `scope`            | Doit inclure `openid`.<br /><br />La portée peut aussi inclure `offline_access` pour demander un jeton d’actualisation. Toutefois, pour l’autorisation ponctuelle d’une transaction avec le flux CIBA, un jeton d’actualisation n’est pas nécessaire et n’a aucune utilité dans ce contexte.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `user_id`          | ID utilisateur de l’utilisateur qui autorise, transmis dans la structure `login_hint`. Si le format `iss_sub` est utilisé, l’ID utilisateur est transmis dans le claim `sub`.<br /><br />L’ID utilisateur peut avoir un format différent selon le fournisseur externe.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `requested_expiry` | La durée maximale, en secondes, pendant laquelle la session CIBA doit rester valide. La durée d’expiration demandée pour le flux CIBA doit être comprise entre 1 et 259200 secondes (72 heures), et la valeur par défaut est de 300 secondes. Incluez le paramètre `requested_expiry` pour définir une durée d’expiration personnalisée pour le flux CIBA.<br /><br />Le paramètre `requested_expiry` aide à déterminer quel canal de notification CIBA utilise :<ul><li>Si vous définissez `requested_expiry` à 300 secondes ou moins, CIBA utilise le canal de notification poussée sur mobile s’il est activé. Si la MFA n’est pas configurée pour votre tenant, la requête CIBA échoue.</li><li>Si vous définissez `requested_expiry` à une valeur comprise entre 301 et 259200 secondes (72 heures), CIBA utilise le canal de notification par courriel s’il est activé.</li></ul> |
+| `binding_message`  | Message lisible par une personne utilisé pour lier le flux CIBA entre les appareils d’authentification et de consommation. Le message de liaison est obligatoire et peut contenir jusqu’à 64 caractères. Utilisez uniquement des caractères alphanumériques et `+-_.,:#`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Une limite de débit par utilisateur s’applique : l’utilisateur qui autorise la demande ne recevra pas plus de 5 requêtes par minute.
+  Il existe une limite de débit par utilisateur : l’utilisateur qui autorise ne recevra pas plus de 5 requêtes par minute.
 </Callout>
 
 <div id="step-2-auth0-tenant-acknowledges-the-ciba-request">
-  ## Étape 2 : le tenant Auth0 confirme la réception de la requête CIBA
+  ## Étape 2 : le tenant Auth0 accuse réception de la requête CIBA
 </div>
 
 Si le tenant Auth0 reçoit bien la requête `POST`, vous devriez recevoir une réponse contenant un `auth-req-id` associé à la requête :
@@ -141,13 +141,13 @@ Si le tenant Auth0 reçoit bien la requête `POST`, vous devriez recevoir une r�
 }
 ```
 
-La valeur `auth_req_id` est transmise au point de terminaison `/token` pour vérifier, par interrogation, si le flux CIBA est terminé.
+La valeur `auth_req_id` est transmise au point de terminaison `/token` pour vérifier périodiquement si le flux CIBA est terminé.
 
 <div id="step-3-client-application-polls-for-a-response">
-  ## Étape 3 : L’application cliente interroge régulièrement pour obtenir une réponse
+  ## Étape 3 : L’application cliente effectue des requêtes répétées pour obtenir une réponse
 </div>
 
-Utilisez l’Authentication API ou nos [SDKs](/docs/fr-CA/libraries) pour appeler le point de terminaison `/token` à l’aide du grant type `urn:openid:params:grant-type:ciba` et de l’`auth_req_id` reçu du point de terminaison `/bc-authorize` :
+Utilisez l’Authentication API ou nos [SDKs](/docs/fr-CA/libraries) pour appeler le point de terminaison `/token` à l’aide du grant type `urn:openid:params:grant-type:ciba` et de l’`auth_req_id` que vous avez reçu du point de terminaison `/bc-authorize` :
 
 <Tabs>
   <Tab title="cURL">
@@ -196,16 +196,16 @@ Utilisez l’Authentication API ou nos [SDKs](/docs/fr-CA/libraries) pour appele
   </Tab>
 </Tabs>
 
-Jusqu’à ce que l’utilisateur qui autorise approuve la transaction, vous devriez recevoir la réponse suivante :
+Tant que l’utilisateur chargé de l’autorisation n’a pas approuvé la transaction, vous devriez recevoir la réponse suivante :
 
 ```json lines
 {
     "error": "authorization_pending",
-    "error_description": "L'autorisation de l'utilisateur final est en attente"
+    "error_description": "The end-user authorization is pending"
 }
 ```
 
-L’intervalle d’attente pour le polling est d’environ cinq secondes. Si vous faites du polling trop fréquemment, vous recevrez la réponse suivante, où la description varie selon l’intervalle de temporisation progressive :
+Il faut attendre environ cinq secondes entre chaque requête de scrutation. Si vous effectuez la scrutation trop fréquemment, vous recevrez la réponse suivante, où la description varie selon l’intervalle de temporisation :
 
 ```json lines
 {
@@ -215,22 +215,22 @@ L’intervalle d’attente pour le polling est d’environ cinq secondes. Si vou
 }
 ```
 
-Pour résoudre cette erreur, attendez le prochain intervalle (en secondes) avant d’interroger le point de terminaison `/token`.
+Pour corriger l’erreur, attendez le prochain intervalle (en secondes) avant de réinterroger le point de terminaison `/token`.
 
 <div id="step-4-mobile-application-receives-the-push-notification">
-  ## Étape 4 : L’application mobile reçoit la notification push
+  ## Étape 4 : l’application mobile reçoit la notification push
 </div>
 
-Auth0 envoie une notification push à l’application mobile ou à l’appareil enregistré de l’utilisateur par l’intermédiaire de l’application Auth0 Guardian ou d’une application personnalisée intégrée au [SDK Auth0 Guardian](/docs/fr-CA/secure/multi-factor-authentication/auth0-guardian).
+Auth0 envoie une notification push à l’application mobile ou à l’appareil enregistré de l’utilisateur au moyen de l’application Auth0 Guardian ou d’une application personnalisée intégrée au [SDK Auth0 Guardian](/docs/fr-CA/secure/multi-factor-authentication/auth0-guardian).
 
-Si vous utilisez une application personnalisée, le [SDK Auth0 Guardian](/docs/fr-CA/secure/multi-factor-authentication/auth0-guardian) fournit des méthodes pour analyser les données reçues de la notification push et renvoyer une instance `Notification` prête à l’emploi. L’instance `Notification` comprend un identifiant de liaison de la transaction, ou `txlinkid`, que l’application mobile utilise pour récupérer les détails du consentement auprès d’Auth0.
+Si vous utilisez une application personnalisée, le [SDK Auth0 Guardian](/docs/fr-CA/secure/multi-factor-authentication/auth0-guardian) fournit des méthodes pour analyser les données reçues dans la notification push et renvoyer une instance `Notification` prête à l’emploi. L’instance `Notification` comprend un ID de liaison de transaction, ou `txlinkid`, que l’application mobile utilise pour récupérer les détails du consentement auprès d’Auth0.
 
-Les exemples de code suivants montrent des implémentations de notifications push mobiles pour iOS et Android à l’aide du SDK Guardian :
+Les exemples de code suivants montrent des mises en œuvre iOS et Android de notifications push mobiles à l’aide du SDK Guardian :
 
 <Tabs>
   <Tab title="iOS">
     ```swift lines
-    // implémentation de UNUserNotificationCenterDelegate
+    //implémentation de UNUserNotificationCenterDelegate
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: (UNNotificationPresentationOptions) -> Void) {
         let userInfo = notification.request.content.userInfo
         if let notification = Guardian.notification(from: userInfo) {
@@ -252,24 +252,24 @@ Les exemples de code suivants montrent des implémentations de notifications pus
             handleGuardianNotification(notification);
             return;
         }
-        /* traitez les autres notifications push que vous utilisez peut-être... */
+        /* traitez les autres notifications push que vous utilisez peut-être ... */
     }
     ```
   </Tab>
 </Tabs>
 
 <div id="step-5-mobile-application-retrieves-the-consent-details">
-  ## Étape 5 : L’application mobile récupère les détails du consentement
+  ## Étape 5 : L’application mobile récupère les détails du consentement
 </div>
 
-Votre application Auth0 Guardian ou votre application personnalisée intégrée au SDK Auth0 Guardian récupère les détails du consentement, c.-à-d. le contenu de `binding_message`, depuis l’API Auth0 Consent.
+Votre application Auth0 Guardian ou votre application personnalisée qui intègre l’Auth0 Guardian SDK récupère les détails du consentement, c’est-à-dire le contenu de `binding_message`, à partir de l’Auth0 Consent API.
 
-Si vous utilisez une application personnalisée, les exemples de code suivants présentent des implémentations iOS et Android permettant de récupérer des données depuis l’API Auth0 Consent :
+Si vous utilisez une application personnalisée, les exemples de code suivants montrent des mises en œuvre iOS et Android qui récupèrent des données à partir de l’Auth0 Consent API :
 
 <Tabs>
   <Tab title="iOS">
     ```swift lines
-    let device: AuthenticationDevice = // l’objet que vous avez obtenu pendant le processus initial d’enrôlement du SDK Guardian et stocké localement
+    let device: AuthenticationDevice = // l’objet que vous avez obtenu pendant le processus initial d’inscription au Guardian SDK et stocké localement
     if let consentId = notification.transactionLinkingId {
         Guardian
             .consent(forDomain: {yourTenantDomain}, device: device)
@@ -288,7 +288,7 @@ Si vous utilisez une application personnalisée, les exemples de code suivants p
 
   <Tab title="Android">
     ```kotlin lines
-    Enrollment enrollment = // l’objet que vous avez obtenu pendant le processus initial d’enrôlement du SDK Guardian et stocké localement
+    Enrollment enrollment = // l’objet que vous avez obtenu pendant le processus initial d’inscription au Guardian SDK et stocké localement
     if (notification.getTransactionLinkingId() != null) {
         guardian
           .fetchConsent(notification, enrollment)
@@ -308,14 +308,14 @@ Si vous utilisez une application personnalisée, les exemples de code suivants p
 </Tabs>
 
 <div id="step-6-mobile-application-presents-the-consent-details-to-the-user">
-  ## Étape 6 : L’application mobile présente les détails du consentement à l’utilisateur
+  ## Étape 6 : L’application mobile présente les détails du consentement à l’utilisateur
 </div>
 
-L’Auth0 Consent API renvoie à l’application Auth0 Guardian ou à votre application personnalisée intégrée au SDK Auth0 Guardian les détails du consentement, y compris `binding_message`, `scope` et `audience`. Les scopes renvoyés à l’application mobile sont filtrés selon votre politique RBAC. Pour en savoir plus, consultez [Role-Based Access Control](/docs/fr-CA/manage-users/access-control/rbac).
+L’Auth0 Consent API répond à l’application Auth0 Guardian ou à votre application personnalisée intégrée au SDK Auth0 Guardian avec les détails du consentement, y compris le `binding_message`, le `scope` et l’`audience`. Les scopes renvoyés à l’application mobile sont filtrés selon votre politique RBAC. Pour en savoir plus, consultez [le contrôle d’accès basé sur les rôles](/docs/fr-CA/manage-users/access-control/rbac).
 
 L’application mobile présente la demande d’authentification et/ou les détails du consentement à l’utilisateur.
 
-L’exemple de code suivant présente une réponse type de l’Auth0 Consent API :
+L’exemple de code suivant montre une réponse type de l’Auth0 Consent API :
 
 ```json lines
 {
@@ -330,15 +330,15 @@ L’exemple de code suivant présente une réponse type de l’Auth0 Consent API
 }
 ```
 
-À cette étape, l’utilisateur peut accepter ou refuser la demande d’authentification.
+L’utilisateur peut accepter ou refuser la requête d’authentification à ce stade.
 
 <div id="step-7-mobile-application-sends-the-user-response-back-to-auth0">
-  ## Étape 7 : L’application mobile transmet la réponse de l’utilisateur à Auth0
+  ## Étape 7 : L’application mobile renvoie la réponse de l’utilisateur à Auth0
 </div>
 
-L’application Auth0 Guardian ou votre application personnalisée transmet la réponse de l’utilisateur à Auth0.
+L’application Auth0 Guardian ou votre application personnalisée renvoie la réponse de l’utilisateur à Auth0.
 
-Si vous utilisez une application personnalisée intégrée au SDK Auth0 Guardian, les exemples de code suivants montrent des implémentations iOS et Android qui gèrent la réponse de l’utilisateur :
+Si vous utilisez une application personnalisée intégrée au SDK Auth0 Guardian, les exemples de code suivants montrent des mises en œuvre pour iOS et Android qui gèrent la réponse de l’utilisateur :
 
 <div id="user-accepts-the-authentication-request">
   ### L’utilisateur accepte la requête d’authentification
@@ -354,7 +354,7 @@ Si vous utilisez une application personnalisée intégrée au SDK Auth0 Guardian
         .start { result in
             switch result {
             case .success:
-                // la requête d’authentification a bien été rejetée
+                // la requête d’authentification a été rejetée avec succès
             case .failure(let cause):
                 // une erreur s’est produite; vérifiez la cause pour voir ce qui n’a pas fonctionné
             }
@@ -372,7 +372,7 @@ Si vous utilisez une application personnalisée intégrée au SDK Auth0 Guardian
 </Tabs>
 
 <div id="user-rejects-the-authentication-request">
-  ### L’utilisateur refuse la requête d’authentification
+  ### L’utilisateur rejette la requête d’authentification
 </div>
 
 <Tabs>
@@ -385,9 +385,9 @@ Si vous utilisez une application personnalisée intégrée au SDK Auth0 Guardian
             .start { result in
                 switch result {
                 case .success:
-                    // la requête d’authentification a bien été refusée
+                    // la requête d’authentification a été rejetée avec succès
                 case .failure(let cause):
-                    // une erreur s’est produite; vérifiez la cause pour comprendre ce qui s’est mal passé
+                    // une erreur s’est produite; vérifiez la cause pour comprendre ce qui n’a pas fonctionné
                 }
             }
     ```
@@ -406,13 +406,13 @@ Si vous utilisez une application personnalisée intégrée au SDK Auth0 Guardian
   ## Étape 8 : Auth0 reçoit la réponse de l’utilisateur une fois le flux terminé
 </div>
 
-L’application cliente met fin à l’interrogation périodique lorsqu’elle reçoit une réponse du point de terminaison `/token`. Un flux CIBA exige toujours une réponse — approbation ou refus — de l’utilisateur qui autorise la demande, et les autorisations existantes ne sont pas vérifiées.
+L’application cliente met fin à l’interrogation périodique lorsqu’elle reçoit une réponse du point de terminaison `/token`. Un flux CIBA exige toujours une réponse de l’utilisateur autorisant la demande, qu’il s’agisse d’une approbation ou d’un refus, et les autorisations existantes ne sont pas vérifiées.
 
 <div id="step-9-auth0-returns-access-token-to-client-application">
   ## Étape 9 : Auth0 renvoie le jeton d’accès à l’application cliente
 </div>
 
- Si l’utilisateur refuse la demande push, Auth0 renvoie à l’application cliente une réponse d’erreur comme celle-ci :
+ Si l’utilisateur refuse la demande d’approbation push, Auth0 renvoie à l’application cliente une réponse d’erreur comme celle-ci :
 
 ```json lines
 {
@@ -421,7 +421,7 @@ L’application cliente met fin à l’interrogation périodique lorsqu’elle r
 }
 ```
 
-Si l’utilisateur approuve la demande envoyée par notification push, Auth0 renvoie un <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+token">jeton d’accès</Tooltip> comme celui-ci à l’application cliente :
+Si l’utilisateur approuve la requête push, Auth0 renvoie à l’application cliente un <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+token">jeton d’accès</Tooltip> comme celui-ci :
 
 ```json lines
 {
@@ -438,8 +438,8 @@ Si l’utilisateur approuve la demande envoyée par notification push, Auth0 ren
 </Callout>
 
 <div id="learn-more">
-  ## En savoir plus
+  ## Pour en savoir plus
 </div>
 
 * [Client-Initiated Backchannel Authentication Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow)
-* [Configurer Client-Initiated Backchannel Authentication](/docs/fr-CA/get-started/applications/configure-client-initiated-backchannel-authentication)
+* [Configure Client-Initiated Backchannel Authentication](/docs/fr-CA/get-started/applications/configure-client-initiated-backchannel-authentication)

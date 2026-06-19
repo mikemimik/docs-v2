@@ -1,48 +1,48 @@
 ---
-description: Configuración de API y aplicaciones móviles para el escenario de arquitectura de aplicaciones móviles + API
-title: Configuración de API y aplicaciones móviles (Aplicaciones móviles + API)
+description: Configuración de API y móviles para el escenario de arquitectura Aplicaciones móviles + API
+title: Configuración de API y móviles (Aplicaciones móviles + API)
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-En esta sección veremos cómo implementar una API para nuestro caso.
+En esta sección veremos cómo podemos implementar una API para este caso.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Para simplificar, centraremos la implementación únicamente en la autenticación y la autorización. Como verá en los ejemplos, la hoja de horas estará codificada de forma fija y la API no la almacenará. En su lugar, simplemente devolverá parte de la información.
+  Para simplificar, mantendremos nuestra implementación centrada exclusivamente en la autenticación y autorización. Como verá en los ejemplos, la hoja de horas de entrada estará fijada en el código, y la API no guardará la hoja de horas. En su lugar, simplemente devolverá parte de la información.
 </Callout>
 
 <div id="define-the-api-endpoints">
-  ## Define los endpoints de la API
+  ## Defina los endpoints de la API
 </div>
 
-Primero, necesitamos definir los endpoints de nuestra API.
+Primero debemos definir los endpoints de nuestra API.
 
-<Card title="¿Qué es un endpoint de la API?">
-  Un **endpoint de la API** es una URL única que representa un objeto. Para interactuar con este objeto, debes apuntar tu aplicación a su URL. Por ejemplo, si tuvieras una API que pudiera devolver pedidos o clientes, podrías configurar dos endpoints: `/orders` y `/customers`. Tu aplicación interactuaría con estos endpoints usando distintos métodos HTTP; por ejemplo, `POST /orders` podría crear un nuevo pedido o `GET /orders` podría recuperar los datos de uno o varios pedidos.
+<Card title="¿Qué es un endpoint de API?">
+  Un **endpoint de API** es una URL única que representa un objeto. Para interactuar con este objeto, debes dirigir tu aplicación a su URL. Por ejemplo, si tuvieras una API que pudiera devolver pedidos o clientes, podrías configurar dos endpoints: `/orders` y `/customers`. Tu aplicación interactuaría con estos endpoints mediante distintos métodos HTTP; por ejemplo, `POST /orders` podría crear un nuevo pedido o `GET /orders` podría recuperar el conjunto de datos de uno o varios pedidos.
 </Card>
 
-Para esta implementación, solo definiremos dos endpoints: uno para recuperar una lista de todas las hojas de horas de un empleado y otro que permitirá a un empleado crear una nueva entrada de hoja de horas.
+Para esta implementación, solo definiremos dos endpoints: uno para recuperar una lista de todas las hojas de hora de un empleado y otro que permitirá a un empleado crear una nueva hoja de hora.
 
-Una solicitud `HTTP GET` al endpoint `/timesheets` permitirá a un usuario recuperar sus hojas de horas, y una solicitud `HTTP POST` al endpoint `/timesheets` permitirá a un usuario añadir una nueva hoja de horas.
+Una solicitud `HTTP GET` al endpoint `/timesheets` permitirá a un usuario recuperar sus hojas de hora, y una solicitud `HTTP POST` al endpoint `/timesheets` le permitirá agregar una nueva hoja de hora.
 
 Consulta la implementación en [Node.js](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs#1-define-the-api-endpoints)
 
 <div id="secure-the-endpoints">
-  ### Proteger los endpoints
+  ### Protege los endpoints
 </div>
 
-Cuando una API recibe una solicitud con un <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> bearer en la cabecera, lo primero que debe hacer es validar el token. Esto consiste en una serie de pasos y, si alguno falla, la solicitud debe rechazarse con el mensaje de error `Missing or invalid token` dirigido a la aplicación que realiza la llamada.
+Cuando una API recibe una solicitud con un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> bearer como parte del encabezado, lo primero que debe hacerse es validar el token. Esto consiste en una serie de pasos y, si alguno de ellos falla, la solicitud debe rechazarse con el mensaje de error `Missing or invalid token` para la aplicación que realiza la llamada.
 
-Las validaciones que la API debe realizar son:
+Las validaciones que debe realizar la API son:
 
-* Comprobar que el <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> tenga un formato correcto
+* Comprobar que el <Tooltip tip="JSON Web Token (JWT): formato estándar de token de ID (y, a menudo, formato de token de acceso) usado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> tenga un formato correcto
 * Comprobar la firma
-* Validar las claims estándar
+* Validar los claims estándar
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  [JWT.io](https://jwt.io/) proporciona una lista de bibliotecas que pueden hacer la mayor parte del trabajo por ti: analizar el JWT, verificar la firma y las claims.
+  [JWT.io](https://jwt.io/) proporciona una lista de bibliotecas que pueden hacer la mayor parte del trabajo por ti: analizar el JWT, verificar la firma y los claims.
 </Callout>
 
 Parte del proceso de validación también consiste en comprobar los permisos del cliente (scopes), pero lo abordaremos por separado en el siguiente párrafo de este documento.
@@ -52,42 +52,42 @@ Para obtener más información sobre cómo validar tokens de acceso, consulta [
 Consulta la implementación en [Node.js](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs#2-secure-the-api-endpoints)
 
 <div id="check-the-clients-permissions">
-  ### Comprueba los permisos del cliente
+  ### Comprobar los permisos del cliente
 </div>
 
 A estas alturas, ya hemos verificado que el JWT es válido. El último paso es comprobar que el cliente tenga los permisos necesarios para acceder a los recursos protegidos.
 
 Para ello, la API debe comprobar los [scopes](/docs/es/get-started/apis/scopes) del JWT decodificado. Este claim forma parte del payload y es una lista de cadenas separadas por espacios.
 
-Consulta la implementación en [Node.js](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs#3-check-the-client-permissions)
+Consulte la implementación en [Node.js](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs#3-check-the-client-permissions)
 
 <div id="determine-user-identity">
   ### Determinar la identidad del usuario
 </div>
 
-Para ambos endpoints (obtener la lista de hojas de horas y añadir una nueva hoja de horas), necesitaremos determinar la identidad del usuario.
+Para ambos endpoints (recuperar la lista de hojas de horas y agregar una nueva hoja de hora), necesitaremos determinar la identidad del usuario.
 
-Al obtener la lista de hojas de horas, esto garantiza que solo devolvamos las hojas de horas que pertenecen al usuario que realiza la solicitud; y al añadir una nueva hoja de horas, garantiza que la hoja de horas quede asociada al usuario que realiza la solicitud.
+Al recuperar la lista de hojas de horas, esto garantiza que solo devolvamos las hojas de horas que pertenecen al usuario que realiza la solicitud; y al agregar una nueva hoja de hora, garantiza que la hoja de hora quede asociada al usuario que realiza la solicitud.
 
-Uno de los `claims` estándar de JWT es el `claim` `sub`, que identifica al principal que es el sujeto del `claim`. En el caso del flujo Implicit Grant, este `claim` contendrá la identidad del usuario, que será el identificador único del usuario de Auth0. Puede usarlo para asociar cualquier información en sistemas externos con un usuario concreto.
+Uno de los claims estándar de JWT es el claim `sub`, que identifica a la entidad principal que es el sujeto del claim. En el caso del flujo de concesión implícita, este claim contendrá la identidad del usuario, que será el identificador único del usuario de Auth0. Puede usarlo para asociar cualquier información en sistemas externos con un usuario en particular.
 
-También puede usar un `claim` personalizado para añadir otro atributo del usuario, como su dirección de correo electrónico, al token de acceso y usarlo para identificar al usuario de forma única.
+También puede usar un custom claim para agregar otro atributo del usuario, como su dirección de correo electrónico, al Access Token y usarlo para identificar de forma única al usuario.
 
-Consulte la implementación en [Node.js](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs#4-determine-the-user-identity)
+Vea la implementación en [Node.js](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs#4-determine-the-user-identity)
 
 <div id="implement-the-mobile-app">
   ## Implementar la aplicación móvil
 </div>
 
-En esta sección veremos cómo implementar una aplicación móvil para nuestro caso de uso.
+En esta sección veremos cómo implementar una aplicación móvil para nuestro escenario.
 
-[Ver la implementación en Android.](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#1-set-up-the-application)
+[Consulta la implementación en Android.](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#1-set-up-the-application)
 
 <div id="authorize-the-user">
   ### Autorizar al usuario
 </div>
 
-Para autorizar al usuario, implementaremos el [Authorization Code Flow with Proof Key for Code Exchange (PKCE)](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce). La aplicación móvil primero debe redirigir al usuario a la [URL de autorización](https://auth0.com/docs/api/authentication#authorization-code-grant-pkce-) junto con el `code_challenge` y el método utilizado para generarlo:
+Para autorizar al usuario, implementaremos el [flujo de código de autorización con Proof Key for Code Exchange (PKCE)](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce). La aplicación móvil primero debe redirigir al usuario a la [URL de autorización](https://auth0.com/docs/api/authentication#authorization-code-grant-pkce-) junto con el `code_challenge` y el método utilizado para generarlo:
 
 export const codeExample1 = `https://{yourDomain}/authorize?
     audience=API_AUDIENCE&
@@ -100,32 +100,32 @@ export const codeExample1 = `https://{yourDomain}/authorize?
 
 <AuthCodeBlock children={codeExample1} language="http" />
 
-La solicitud `GET` a la URL de autorización debe incluir los siguientes valores:
+La solicitud `GET` a la URL de autorización debe incluir los siguientes valores:
 
-| Parameter                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **client&#95;id**                 | El valor del ID de cliente de Auth0. Puedes obtenerlo en la configuración de tu aplicación en el [Auth0 Dashboard](https://manage.auth0.com/#/applications).                                                                                                                                                                                                                                                                                                                                                                                                |
-| **audience**                      | El valor del identificador de tu API. Puedes obtenerlo en la configuración de tu API en el [Auth0 Dashboard](https://manage.auth0.com/#/apis).                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **scope**                         | Los [scopes](/docs/es/get-started/apis/scopes) que determinan los claims que se devolverán en el ID Token y el token de acceso. Por ejemplo, un scope de `openid` devolverá un ID Token en la respuesta. En nuestra aplicación móvil de ejemplo, usamos los siguientes scopes: `create:timesheets read:timesheets openid profile email offline_access`. Estos scopes permiten que la aplicación móvil llame a la API, obtenga un [Refresh Token](/docs/es/glossary?term=Refresh+Token) y devuelva los claims `name`, `picture` y `email` del usuario en el ID Token. |
-| **response&#95;type**             | Indica el flujo de autenticación que se debe usar. En una aplicación móvil que usa PKCE, este valor debe establecerse en `code`.                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **code&#95;challenge**            | El code challenge generado a partir del code verifier. Puedes encontrar instrucciones para generar un code challenge [aquí](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce#authorize-the-user%23create-a-code-verifier).                                                                                                                                                                                                                               |
-| **code&#95;challenge&#95;method** | Método utilizado para generar el challenge. Auth0 solo admite `S256`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **redirect&#95;uri**              | La URL a la que Auth0 redirigirá el navegador después de que el usuario haya concedido la autorización. El Authorization Code estará disponible en el parámetro `code` de la URL. Esta URL debe especificarse como una URL de callback válida en la [configuración de tu aplicación](https://manage.auth0.com/#/applications).                                                                                                                                                                                                                              |
+| Parameter                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **client&#95;id**                 | El valor de tu ID de cliente de Auth0. Puedes obtenerlo en Settings de tu aplicación en el [Auth0 Dashboard](https://manage.auth0.com/#/applications).                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **audience**                      | El valor del identificador de tu API. Puedes obtenerlo en Settings de tu API en el [Auth0 Dashboard](https://manage.auth0.com/#/apis).                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **scope**                         | Los [scopes](/docs/es/get-started/apis/scopes) que determinan los claims que se devolverán en el token de ID y el token de acceso. Por ejemplo, un scope de `openid` devolverá un token de ID en la respuesta. En nuestra aplicación móvil de ejemplo, usamos los siguientes scopes: `create:timesheets read:timesheets openid profile email offline_access`. Estos scopes permiten que la aplicación móvil llame a la API, obtenga un [token de actualización](/docs/es/glossary?term=Refresh+Token) y devuelva los claims `name`, `picture` y `email` del usuario en el token de ID. |
+| **response&#95;type**             | Indica el flujo de autenticación que se debe usar. En una aplicación móvil que use PKCE, este valor debe establecerse en `code`.                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **code&#95;challenge**            | El code challenge generado a partir del code verifier. Puedes encontrar instrucciones para generar un code challenge [aquí](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce#authorize-the-user%23create-a-code-verifier).                                                                                                                                                                                                                                                    |
+| **code&#95;challenge&#95;method** | Método utilizado para generar el challenge. Auth0 solo admite `S256`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **redirect&#95;uri**              | La URL a la que Auth0 redirigirá el navegador después de que el usuario haya concedido la autorización. El código de autorización estará disponible en el parámetro de URL `code`. Esta URL debe especificarse como una URL de devolución de llamada válida en Settings de tu [aplicación](https://manage.auth0.com/#/applications).                                                                                                                                                                                                                                             |
 
 [Consulta la implementación en Android.](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#2-authorize-the-user)
 
 <div id="get-the-credentials">
-  ### Obtener las credenciales
+  ### Obtén las credenciales
 </div>
 
-Tras solicitar correctamente la URL de autorización, deberías recibir la siguiente respuesta:
+Después de realizar correctamente una solicitud a la URL de autorización, deberías recibir la siguiente respuesta:
 
 export const codeExample2 = `HTTP/1.1 302 Found
 Location: https://{yourDomain}/callback?code=AUTHORIZATION_CODE`;
 
 <AuthCodeBlock children={codeExample2} language="http" />
 
-A continuación, puedes canjear el `authorization_code` de la respuesta por un token de acceso que podrás usar para hacer llamadas a tu API. Realiza una solicitud `POST` a la [URL del token](https://auth0.com/docs/api/authentication#authorization-code-pkce-) e incluye los siguientes datos:
+A continuación, puedes intercambiar el `authorization_code` de la respuesta por un token de acceso que puedes usar para llamar a tu API. Realiza una solicitud `POST` a la [URL del token](https://auth0.com/docs/api/authentication#authorization-code-pkce-) incluyendo los siguientes datos:
 
 <AuthCodeGroup>
   ```bash cURL
@@ -277,7 +277,7 @@ A continuación, puedes canjear el `authorization_code` de la respuesta por un t
 | Parámetro             | Descripción                                                                                                                                                                                                            |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **grant&#95;type**    | Debe establecerse en `authorization_code`.                                                                                                                                                                             |
-| **client&#95;id**     | El valor de tu Id. de cliente de Auth0. Puedes obtenerlo en la Configuración de tu aplicación en el [Auth0 Dashboard](https://manage.auth0.com/#/applications).                                                        |
+| **client&#95;id**     | El valor de su ID de cliente de Auth0. Puede obtenerlo en Settings de su aplicación en el [Auth0 Dashboard](https://manage.auth0.com/#/applications).                                                                  |
 | **code&#95;verifier** | Clave aleatoria criptográficamente segura que se utilizó para generar el `code_challenge` enviado a la [URL de autorización](https://auth0.com/docs/api/authentication#authorization-code-grant-pkce-) (`/authorize`). |
 | **code**              | El `authorization_code` recibido de la llamada anterior a `/authorize`.                                                                                                                                                |
 | **redirect&#95;uri**  | La URL debe coincidir con el `redirect_uri` enviado en la sección anterior a `/authorize`.                                                                                                                             |
@@ -294,21 +294,21 @@ La respuesta de la URL del token contendrá:
 }
 ```
 
-* **access&#95;token**: Un token de acceso para la API, especificado por `audience`.
-* **refresh&#95;token**: Un [Refresh Token](/docs/es/secure/tokens/refresh-tokens) solo estará presente si incluiste el scope `offline_access` Y habilitaste **Allow Offline Access** para tu API en el Dashboard.
-* **id&#95;token**: Un <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">ID Token</Tooltip> JWT que contiene información del perfil del usuario.
-* **token&#95;type**: Una cadena que indica el tipo de token; siempre será un token Bearer.
+* **access&#95;token**: Un token de acceso para la API, especificado por la `audience`.
+* **refresh&#95;token**: Un [token de actualización](/docs/es/secure/tokens/refresh-tokens) solo estará presente si incluiste el scope `offline_access` y habilitaste **Allow Offline Access** para tu API en el Dashboard.
+* **id&#95;token**: Un <Tooltip tip="token de ID: credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">token de ID</Tooltip> JWT que contiene información del perfil del usuario.
+* **token&#95;type**: Una cadena que contiene el tipo de token; siempre será un token Bearer.
 * **expires&#95;in**: La cantidad de segundos hasta que expire el token de acceso.
 
-Tendrás que almacenar las credenciales anteriores en el almacenamiento local para usarlas al llamar a tu API y recuperar el perfil del usuario.
+Deberás almacenar las credenciales anteriores en el almacenamiento local para usarlas al llamar a tu API y recuperar el perfil del usuario.
 
 [Consulta la implementación en Android](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#store-credentials).
 
 <div id="get-the-user-profile">
-  ### Obtener el perfil de usuario
+  ### Obtener el perfil del usuario
 </div>
 
-Para obtener el [perfil de usuario](https://auth0.com/docs/api/authentication?http#user-profile), tu aplicación móvil puede decodificar el [ID Token](/docs/es/secure/tokens/id-tokens) con una de las [bibliotecas JWT](https://jwt.io/#libraries-io). Esto se hace [verificando la firma](/docs/es/secure/tokens/id-tokens/validate-id-tokens#verify-the-signature) y [verificando los claims](/docs/es/secure/tokens/id-tokens/validate-id-tokens#verify-the-claims) del token. Después de validar el ID Token, puedes acceder a su payload, que contiene la información del usuario:
+Para obtener el [perfil del usuario](https://auth0.com/docs/api/authentication?http#user-profile), tu aplicación móvil puede decodificar el [token de ID](/docs/es/secure/tokens/id-tokens) con una de las [bibliotecas JWT](https://jwt.io/#libraries-io). Para ello, [verifica la firma](/docs/es/secure/tokens/id-tokens/validate-id-tokens#verify-the-signature) y [los claims](/docs/es/secure/tokens/id-tokens/validate-id-tokens#verify-the-claims) del token. Después de validar el token de ID, puedes acceder a su payload, que contiene la información del usuario:
 
 ```json lines
 {
@@ -325,21 +325,21 @@ Para obtener el [perfil de usuario](https://auth0.com/docs/api/authentication?h
 }
 ```
 
-[Consulta la implementación para Android.](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#3-get-the-user-profile)
+[Consulta la implementación en Android.](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#3-get-the-user-profile)
 
 <div id="display-ui-elements-conditionally-based-on-scope">
-  ### Mostrar elementos de la interfaz de usuario de forma condicional según el `scope`
+  ### Mostrar elementos de la UI de forma condicional según el scope
 </div>
 
-Según el `scope` del usuario, puede que quieras mostrar u ocultar ciertos elementos de la interfaz de usuario. Para determinar el `scope` asignado a un usuario, tendrás que inspeccionar el `scope` que se concedió cuando el usuario se autenticó. Será una cadena que contiene todos los scopes, así que tendrás que inspeccionarla para ver si contiene el `scope` necesario y, en función de eso, decidir si mostrar un elemento concreto de la interfaz de usuario.
+Según el `scope` del usuario, es posible que quieras mostrar u ocultar ciertos elementos de la UI. Para determinar el `scope` emitido a un usuario, tendrás que inspeccionar el `scope` que se concedió cuando el usuario se autenticó. Será una cadena que contiene todos los scopes, por lo que deberás inspeccionarla para ver si contiene el `scope` requerido y, en función de ello, decidir si se debe mostrar un elemento concreto de la UI.
 
-[Ver la implementación en Android](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#4-display-ui-elements-conditionally-based-on-scope)
+[Consulta la implementación en Android](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#4-display-ui-elements-conditionally-based-on-scope)
 
 <div id="call-the-api">
-  ### Llamar a la API
+  ### Llama a la API
 </div>
 
-Para acceder a los recursos protegidos de tu API, el token de acceso del usuario autenticado debe incluirse en las solicitudes que se envían a ella. Para ello, envía el token de acceso en un encabezado `Authorization` con el esquema `Bearer`.
+Para acceder a los recursos protegidos de tu API, el token de acceso del usuario autenticado debe incluirse en las solicitudes que se le envían. Esto se logra enviando el token de acceso en el encabezado `Authorization` mediante el esquema `Bearer`.
 
 [Consulta la implementación en Android.](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android#5-call-the-api)
 
@@ -348,12 +348,12 @@ Para acceder a los recursos protegidos de tu API, el token de acceso del usuario
 </div>
 
 <Warning>
-  Los Refresh Tokens deben almacenarse de forma segura en una aplicación, ya que no vencen y permiten que un usuario permanezca autenticado prácticamente para siempre. Si los Refresh Tokens se ven comprometidos o ya no los necesitas, puedes revocarlos mediante la [Authentication API](https://auth0.com/docs/api/authentication#revoke-refresh-token).
+  Los tokens de actualización deben almacenarse de forma segura en una aplicación, ya que no caducan y permiten que un usuario permanezca autenticado prácticamente para siempre. Si los tokens de actualización se ven comprometidos o ya no los necesitas, puedes revocarlos mediante la [Authentication API](https://auth0.com/docs/api/authentication#revoke-refresh-token).
 </Warning>
 
-Para renovar tu token de acceso, realiza una solicitud `POST` al endpoint `/oauth/token` con el <Tooltip tip="Refresh Token: token que se utiliza para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+Token">Refresh Token</Tooltip> del resultado de autorización.
+Para renovar tu `token de acceso`, realiza una solicitud `POST` al endpoint `/oauth/token` usando el <Tooltip tip="Token de actualización: token que se usa para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+Token">token de actualización</Tooltip> del resultado de autorización.
 
-Un [Refresh Token](/docs/es/secure/tokens/refresh-tokens) solo estará presente si incluiste el scope `offline_access` en la solicitud de autorización anterior y habilitaste **Allow Offline Access** para tu API en el Dashboard.
+Un [token de actualización](/docs/es/secure/tokens/refresh-tokens) solo estará presente si incluiste el scope `offline_access` en la solicitud de autorización anterior y habilitaste **Allow Offline Access** para tu API en el Dashboard.
 
 Tu solicitud debe incluir:
 
@@ -483,11 +483,11 @@ Tu solicitud debe incluir:
   ```
 </AuthCodeGroup>
 
-| Parámetro             | Descripción                                                                                                                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **grant&#95;type**    | Debe establecerse en `refresh_token`.                                                                                                               |
-| **client&#95;id**     | El valor de tu ID de cliente de Auth0. Puedes obtenerlo en Settings de tu Application desde el [Auth0 Dashboard](https://manage.auth0.com/#/applications). |
-| **refresh&#95;token** | El Refresh Token que se usará, obtenido del resultado de autenticación anterior.                                                                    |
+| Parámetro             | Descripción                                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **grant&#95;type**    | Debe establecerse en `refresh_token`.                                                                                                                    |
+| **client&#95;id**     | El valor de tu ID de cliente de Auth0. Puedes recuperarlo en Settings de tu aplicación en el [Auth0 Dashboard](https://manage.auth0.com/#/applications). |
+| **refresh&#95;token** | El token de actualización que se usará, del resultado de autenticación anterior.                                                                         |
 
 La respuesta incluirá el nuevo token de acceso:
 

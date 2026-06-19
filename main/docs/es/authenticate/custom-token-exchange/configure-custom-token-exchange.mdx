@@ -1,38 +1,38 @@
 ---
-description: Aprende a configurar Custom Token Exchange al asociar una Action a un perfil de token personalizado.
+description: Aprende a configurar Custom Token Exchange asociando una Action a un perfil de Custom Token Exchange.
 title: Configurar Custom Token Exchange
 ---
 
 import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
 
-<ReleaseStageNotice feature="Custom Token Exchange (CTE)" stage="ea" plans="B2C Professional, B2B Professional, y Enterprise" terms="true" />
+<ReleaseStageNotice feature="Custom Token Exchange (CTE)" stage="ea" plans="B2C Professional, B2B Professional, and Enterprise" terms="true" />
 
-Para configurar el Custom Token Exchange para tu aplicación, debes:
+Para configurar el Custom Token Exchange en tu aplicación, debes:
 
-* [Completar los prerrequisitos](#prerequisites)
-* [Habilitar Custom Token Exchange para tu aplicación](#enable-custom-token-exchange-for-your-application)
+* [Completar los requisitos previos](#prerequisites)
+* [Habilitar el Custom Token Exchange para tu aplicación](#enable-custom-token-exchange-for-your-application)
 * [Configurar](#configure-custom-token-exchange-profile) y [administrar](#manage-custom-token-exchange-profile) un perfil de Custom Token Exchange
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Antes de configurar Custom Token Exchange, asegúrate de que tu aplicación cumpla los siguientes requisitos:
+Antes de configurar Custom Token Exchange, asegúrate de que tu aplicación cumpla los siguientes requisitos previos:
 
 * Sea un cliente de primera parte
 * Sea compatible con OIDC
 
-Para configurar tu aplicación, ve a **[Applications &gt; Configuración avanzada &gt; OAuth](https://auth0.com/docs/get-started/applications/application-settings#oauth)** en el Auth0 Dashboard.
+Para configurar tu aplicación, ve a **[Applications &gt; Advanced Settings &gt; OAuth](https://auth0.com/docs/get-started/applications/application-settings#oauth)** en el Auth0 Dashboard.
 
 <div id="enable-custom-token-exchange-for-your-application">
   ## Habilita Custom Token Exchange para tu aplicación
 </div>
 
-Para habilitar Custom Token Exchange, [crea una nueva aplicación](/docs/es/get-started/auth0-overview/create-applications) o actualiza una existente desde Auth0 Dashboard o la Management API. Puedes crear varias aplicaciones para usar Custom Token Exchange.
+Para habilitar Custom Token Exchange, [crea una nueva aplicación](/docs/es/get-started/auth0-overview/create-applications) o actualiza una existente desde el Auth0 Dashboard o la Management API. Puedes crear varias aplicaciones para usar Custom Token Exchange.
 
-Cuando creas una nueva aplicación:
+Cuando crees una nueva aplicación:
 
-1. De forma predeterminada, Custom Token Exchange está deshabilitado. Para habilitar Custom Token Exchange, usa la Management API para realizar una solicitud `POST` a [Crear un cliente](https://auth0.com/docs/api/management/v2/clients/post-clients) o una solicitud `PATCH` a [actualizar un cliente](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id). Establece el atributo `allow_any_profile_of_type` dentro de `token_exchange` en `["custom_authentication"]`:
+1. De forma predeterminada, Custom Token Exchange está deshabilitado. Para habilitar Custom Token Exchange, usa la Management API para hacer una llamada `POST` a [Crear un cliente](https://auth0.com/docs/api/management/v2/clients/post-clients) o una llamada `PATCH` a [Actualizar un cliente](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id). Establece el atributo `allow_any_profile_of_type` en `token_exchange` como `["custom_authentication"]`:
 
 ```json lines
 {
@@ -42,72 +42,72 @@ Cuando creas una nueva aplicación:
 }
 ```
 
-2. Habilita la conexión que quieras usar con Custom Token Exchange para la aplicación.
+2. Habilita la conexión que quieres usar con Custom Token Exchange en la aplicación.
 3. Asegúrate de que tu aplicación esté marcada como [First-Party](/docs/es/get-started/applications/first-party-and-third-party-applications) y configurada como OIDC Conformant en **[Dashboard &gt; Applications &gt; Advanced Settings &gt; OAuth](/docs/es/get-started/applications/application-settings#oauth)**.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Las Custom DBs con el modo de importación `ON` solo son compatibles con las operaciones `setUserById()`.
+  Las bases de datos personalizadas con el modo de importación `ON` solo son compatibles con operaciones `setUserById()`.
 </Callout>
 
-Una vez que crees la aplicación, toma nota de `client_id` y `client_secret` para usarlos más adelante al llamar al endpoint `/oauth/token`.
+Una vez que crees la aplicación, toma nota del `client_id` y del `client_secret` para usarlos más adelante al llamar al endpoint `/oauth/token`.
 
 <div id="configure-custom-token-exchange-profile">
   ## Configurar el perfil de Custom Token Exchange
 </div>
 
-Cada perfil de Custom Token Exchange establece un mapeo de uno a uno entre un `subject_token_type` y una Action, que contiene la lógica de código para un caso de uso específico.
+Cada perfil de Custom Token Exchange establece un mapeo uno a uno entre un `subject_token_type` y una Action, que contiene la lógica de código para un caso de uso específico.
 
-Las solicitudes de Custom Token Exchange enviadas al endpoint `/oauth/token` con un valor específico de `subject_token_type` se asignarán al perfil de Custom Token Exchange correspondiente y se dirigirán a la Action asociada para su procesamiento.
+Las solicitudes de Custom Token Exchange enviadas al endpoint `/oauth/token` con un valor de `subject_token_type` específico se mapearán al perfil de Custom Token correspondiente y se dirigirán a la Action asociada para su procesamiento.
 
 Para crear un perfil de Custom Token Exchange, debes:
 
 1. [Crear una Action para el perfil](#create-action-for-the-profile)
 2. [Crear el perfil de Custom Token Exchange](#create-custom-token-exchange-profile)
-3. [Administrar el perfil de Custom Token Exchange](#manage-custom-token-exchange-profile)
+3. [Gestionar el perfil de Custom Token Exchange](#manage-custom-token-exchange-profile)
 
 <div id="create-action-for-the-profile">
   ### Crear una Action para el perfil
 </div>
 
-Use los objetos Event y API de Custom Token Exchange para escribir una Action que:
+Usa los objetos Event y API de Custom Token Exchange para escribir una Action que:
 
-* Decodifique y valide el `subject_token` según el `subject_token_type`. Esto le proporcionará información sobre el usuario para la transacción.
-* Aplique cualquier política de autorización que necesite para la transacción.
+* Decodifique y valide el `subject_token` según el `subject_token_type`. Esto te proporcionará información sobre el usuario para la transacción.
+* Aplique cualquier política de autorización que necesites para la transacción.
 
-Una vez que esté seguro de que la transacción puede continuar, defina el usuario. Auth0 emitirá entonces tokens de acceso, de ID y de actualización para este usuario como parte de la autenticación del usuario.
+Cuando estés seguro de que la transacción puede continuar, define el usuario. Luego, Auth0 emitirá tokens de acceso, ID y de actualización para este usuario como una forma de autenticación de usuario.
 
-Para ver ejemplos de Actions de Custom Token Exchange, lea [Casos de uso de ejemplo y muestras de código](/docs/es/authenticate/custom-token-exchange/cte-example-use-cases).
+Para ver ejemplos de Actions de Custom Token Exchange, consulta [Ejemplos de casos de uso y muestras de código](/docs/es/authenticate/custom-token-exchange/cte-example-use-cases).
 
-Una vez que haya escrito su Action, agréguela y despliegúela en el Auth0 Dashboard.
+Una vez que hayas escrito tu Action, agrégala y despliégala en el Auth0 Dashboard.
 
-1. Vaya a **Actions &gt; Biblioteca**.
-2. Seleccione **Crear Action &gt; Crear desde cero**.
-3. En el cuadro de diálogo **Crear Action**, introduzca un nombre y seleccione el trigger **Custom Token Exchange** de la lista desplegable.
+1. Ve a **Actions &gt; Library**.
+2. Selecciona **Create Action &gt; Build from Scratch**.
+3. En el cuadro de diálogo **Create Action**, introduce un nombre y selecciona el trigger **Custom Token Exchange** en el menú desplegable.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/22vz9dsCFj5Ruot7U0HIVx/1c3dc4b562334dab9d6ac415028ea76e/Screenshot_2025-02-05_at_8.48.34_AM.png)</Frame>
 
-4. Seleccione **Crear**.
-5. **Despliegue** la Action.
+4. Selecciona **Create**.
+5. **Deploy** la Action.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/56NZA69Gmzha167xfgRD0W/302e59276815d2e2644ab2da3b9b5f1f/Screenshot_2025-02-03_at_10.29.17_AM.png)</Frame>
 
-Después de desplegar la Action, copie el ID de la Action que Auth0 le asignó. Aún necesita agregar su lógica personalizada a la Action. Primero, obtenga el ID de la Action para crear el perfil de Custom Token Exchange.
+Después de desplegar la Action, copia el Action ID que Auth0 le haya asignado. Aún necesitas agregar tu lógica personalizada a la Action. Primero, obtén el Action ID para crear el perfil de Custom Token Exchange.
 
-6. Para obtener el ID de la Action en el Auth0 Dashboard, vaya a la URL de la ventana del navegador. El ID de la Action debe ser la última parte de la URL, como se muestra en la siguiente imagen:
+6. Para obtener el Action ID en el Auth0 Dashboard, ve a la URL de la ventana del navegador. El Action ID debe ser la última parte de la URL, como se muestra en la siguiente imagen:
 
 <Frame>![](/docs/images/cdy7uua7fh8z/1Xx4UbgZR0FIuLC1KVvhKG/bde4469d770c2ff8d37c19895a0c8e66/Screenshot_2025-02-03_at_10.31.18_AM.png)</Frame>
 
-También puede obtener el ID de la Action mediante la Management API. Primero, obtenga un token de la Management API para consumir la API. Luego, realice la siguiente solicitud `GET` al endpoint `/actions`:
+También puedes obtener el Action ID a través de la Management API. Primero, obtén un token de la Management API para consumir la API. Luego, realiza la siguiente solicitud `GET` al endpoint `/actions`:
 
 ```bash lines
 curl --location 'https://{yourDomain}/api/v2/actions/actions?actionName={yourActionName}' \
 --header 'Authorization: Bearer <YOUR_MANAGEMENT_API_TOKEN>' \
 ```
 
-Deberías recibir el ID de la Action en el cuerpo de la respuesta, dentro de `actions[0].id.` Necesitas el ID de la Action para crear el perfil de Custom Token Exchange.
+Deberías recibir el Action ID en el cuerpo de la respuesta, en `actions[0].id.` Necesitas el Action ID para crear el perfil de Custom Token Exchange.
 
 <div id="create-custom-token-exchange-profile">
-  ### Crear perfil de Custom Token Exchange
+  ### Crear un perfil de Custom Token Exchange
 </div>
 
 Para crear el perfil de Custom Token Exchange, usa la Management API para enviar una solicitud `POST` con los siguientes parámetros al endpoint `/token-exchange-profiles`:
@@ -124,13 +124,13 @@ curl --location 'https://{yourDomain}/api/v2/token-exchange-profiles' \
 }'
 ```
 
-| Parámetro            | Descripción                                                                                                                                                                                                                                                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `subject_token_type` | URI único del tipo de token de perfil que comienza con `https://` o `urn`<br /><br />Los siguientes espacios de nombres están reservados y no se pueden usar:<br /><br /><ul><li>`http://auth0.com`</li><li>`https://auth0.com`</li><li>`http://okta.com`</li><li>`https://okta.com`</li><li>`urn:ietf`</li><li>`urn:auth0`</li><li>`urn:okta`</li></ul> |
-| `action_id`          | ID de la Action asociada con el perfil de Custom Token Exchange.                                                                                                                                                                                                                                                                                         |
-| `type`               | Debe establecerse como `custom_authentication`.                                                                                                                                                                                                                                                                                                          |
+| Parámetro            | Descripción                                                                                                                                                                                                                                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subject_token_type` | URI única del tipo de token del perfil que comienza por `https://` o `urn`<br /><br />Los siguientes espacios de nombres están reservados y no se pueden usar:<br /><br /><ul><li>`http://auth0.com`</li><li>`https://auth0.com`</li><li>`http://okta.com`</li><li>`https://okta.com`</li><li>`urn:ietf`</li><li>`urn:auth0`</li><li>`urn:okta`</li></ul> |
+| `action_id`          | Action ID de la Action asociada con el perfil de Custom Token Exchange.                                                                                                                                                                                                                                                                                   |
+| `type`               | Debe establecerse como `custom_authentication`.                                                                                                                                                                                                                                                                                                           |
 
-Si has creado correctamente un Custom Token Exchange Profile, deberías recibir una respuesta como la siguiente:
+Si creaste correctamente un perfil de Custom Token Exchange, deberías recibir una respuesta como la siguiente:
 
 ```json lines
 {
@@ -148,19 +148,19 @@ Si has creado correctamente un Custom Token Exchange Profile, deberías recibir 
   ### Administrar el perfil de Custom Token Exchange
 </div>
 
-Para administrar tu perfil de Custom Token Exchange, usa la Management API para realizar solicitudes al endpoint `/token-exchange-profiles`.
+Para administrar tu perfil de Custom Token Exchange, usa la Management API para hacer solicitudes al endpoint `/token-exchange-profiles`.
 
-Para obtener todos tus perfiles de Custom Token Exchange, realiza la siguiente solicitud `GET` al endpoint `/token-exchange-profiles`. El endpoint `/token-exchange-profiles` admite paginación por checkpoint si tienes varios perfiles.
+Para obtener todos tus perfiles de Custom Token Exchange, haz la siguiente solicitud `GET` al endpoint `/token-exchange-profiles`. El endpoint `/token-exchange-profiles` admite paginación por checkpoint si tienes varios perfiles.
 
 ```bash lines
 curl --location 'https://{yourDomain}/api/v2/token-exchange-profiles' \
 --header 'Authorization: Bearer <YOUR_MANAGEMENT_API_TOKEN>' \
 ```
 
-Para actualizar el nombre o el `subject_token_type` de un perfil existente, realiza la siguiente solicitud `PATCH` al endpoint `/token-exchange-profiles`.
+Para actualizar el nombre o `subject_token_type` de un perfil existente, realiza la siguiente solicitud `PATCH` al endpoint `/token-exchange-profiles`.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Una vez creada la Action, no puedes modificar el ID de la Action.
+  Una vez creada la Action, no puedes modificar el Action ID.
 </Callout>
 
 ```bash lines
@@ -173,7 +173,7 @@ curl --location --request PATCH 'https://{yourDomain}/api/v2/token-exchange-prof
 }'
 ```
 
-Para eliminar un Custom Token Exchange Profile, haz la siguiente solicitud `DELETE` al endpoint `/token-exchange-profiles`:
+Para eliminar un perfil de Custom Token Exchange, realiza la siguiente solicitud `DELETE` al endpoint `/token-exchange-profiles`:
 
 ```bash lines
 curl --location --request DELETE 'https://{yourDomain}/api/v2/token-exchange-profiles/{yourProfileId}' \

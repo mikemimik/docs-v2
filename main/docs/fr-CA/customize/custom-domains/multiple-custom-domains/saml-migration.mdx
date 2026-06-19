@@ -1,5 +1,5 @@
 ---
-description: Migrez votre connexion de fédération SAML existante d’un ancien domaine personnalisé Auth0 vers un nouveau afin de permettre à vos tenants de tirer parti des fonctionnalités de Multiple Custom Domain (MCD).
+description: Migrez votre connexion de fédération SAML existante d’un ancien domaine personnalisé Auth0 vers un nouveau domaine, afin de permettre à vos tenants de tirer parti de la fonctionnalité Multiple Custom Domain (MCD).
 title: Migration SAML pour les domaines personnalisés
 ---
 
@@ -7,11 +7,11 @@ import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Migrez votre connexion de fédération SAML existante d’un ancien domaine personnalisé Auth0 vers un nouveau, afin de permettre à vos tenants de tirer parti des fonctionnalités de Multiple Custom Domain (MCD).
+Migrez votre connexion de fédération SAML existante d’un ancien domaine personnalisé Auth0 vers un nouveau, pour permettre à vos tenants de profiter des capacités Multiple Custom Domain (MCD).
 
-Les fournisseurs d’identité (IdPs) externes sont souvent codés en dur avec votre ancien domain, ce qui vous oblige à déployer un proxy inverse intelligent qui intercepte la réponse SAML envoyée à votre ancien domain et la redirige de façon sécurisée vers un nouveau domaine personnalisé.
+Les fournisseurs d’identité externes (IdPs) sont souvent codés en dur avec votre ancien domaine, ce qui vous oblige à déployer un proxy inverse intelligent qui intercepte la réponse SAML envoyée à votre ancien domaine et la redirige de façon sécurisée vers un nouveau domaine personnalisé.
 
-Cela garantit une migration fluide pour les utilisateurs fédérés et vous permet d’utiliser immédiatement votre nouveau domain sans attendre les mises à jour de configuration obligatoires de votre IdP. 
+Cela garantit une migration transparente pour les utilisateurs fédérés et vous permet d’utiliser immédiatement votre nouveau domaine sans attendre les mises à jour de configuration obligatoires de votre IdP. 
 
 <div id="prerequisites">
   ## Prérequis
@@ -19,14 +19,14 @@ Cela garantit une migration fluide pour les utilisateurs fédérés et vous perm
 
 Ce processus nécessite une configuration au moyen de Terraform pour mettre en place les composants Auth0, ainsi que le déploiement d’un Cloudflare Worker pour la logique de proxy.
 
-Avant de commencer votre migration, examinez les exigences ci-dessous :
+Avant d’entamer votre migration, prenez connaissance des exigences ci-dessous :
 
-* Un tenant avec un forfait Enterprise et MCD activé.
+* Un tenant avec un plan Enterprise et MCD activé.
 * Deux domaines personnalisés vérifiés configurés dans votre tenant Auth0 :
   1. **Ancien domaine Legacy** (pour le proxy)
   2. **Nouveau domaine cible** (pour l’application)
 * Terraform CLI et `Node.js/npm` installés.
-* Un compte Cloudflare ayant accès au domaine qui héberge vos domaines personnalisés.
+* Un compte Cloudflare avec accès au domaine qui héberge vos domaines personnalisés.
 
 <div id="how-it-works">
   ## Fonctionnement
@@ -34,17 +34,17 @@ Avant de commencer votre migration, examinez les exigences ci-dessous :
 
 Cette stratégie de migration utilise un proxy inverse intelligent pour faire le lien entre votre ancien domaine personnalisé et votre nouveau domaine. Ce proxy est déployé sur l’ancien domaine afin d’intercepter la réponse d’authentification SAML envoyée par votre fournisseur d’identité externe (IdP).
 
-C’est nécessaire parce que la configuration de l’IdP est codée en dur pour le point de terminaison de votre ancien domaine. Le proxy modifie les champs de contrôle de la charge utile SAML (comme `Destination` et `Recipient`) pour qu’ils correspondent correctement au nouveau domaine personnalisé.
+C’est nécessaire parce que la configuration de l’IdP est codée en dur avec le point de terminaison de votre ancien domaine. Le proxy modifie les champs de contrôle du payload SAML (comme `Destination` et `Recipient`) pour qu’ils correspondent correctement au nouveau domaine personnalisé.
 
-Enfin, le proxy achemine cette charge utile corrigée vers le point de terminaison de connexion du nouveau domaine. Cela permet un basculement vers votre nouveau domaine sans interruption de service, sans exiger de changements manuels à la configuration de vos partenaires IdP.
+Enfin, le proxy achemine ce payload corrigé vers le point de terminaison de connexion du nouveau domaine. Cela permet un basculement sans interruption vers votre nouveau domaine, sans nécessiter de changements manuels à la configuration de la part de vos partenaires IdP.
 
 <div id="setup-and-configuration">
-  ## Mise en place et configuration
+  ## Préparation et configuration
 </div>
 
-Pour mettre en place et configurer votre migration :
+Pour préparer et configurer votre migration :
 
-1. Clonez le dépôt de la migration :
+1. Clonez le dépôt de migration :
 
 ```bash
 git clone https://github.com/abbaspour/auth0-mcd-federation-migration.git
@@ -107,9 +107,9 @@ npx wrangler deploy
   ### Mettre temporairement à jour les paramètres de la connexion SAML
 </div>
 
-Votre ancien domaine reçoit la réponse SAML avant qu’elle soit retransmise au nouveau domaine. Par conséquent, les paramètres de validation attendus par la connexion SAML doivent temporairement pointer vers l’URL de rappel de l’ancien domaine afin d’éviter les erreurs de non-correspondance.
+Votre ancien domaine reçoit la Réponse SAML avant de la retransmettre au nouveau domaine. Par conséquent, les paramètres de validation attendus par la connexion SAML doivent temporairement pointer vers l’URL de rappel de l’ancien domaine afin d’éviter les erreurs de non-correspondance.
 
-1. Obtenez un jeton d’accès à l’API de gestion pour le tenant de votre fournisseur de services, avec les scopes `read:connections` et `update:connections` :
+1. Obtenez un jeton d’accès à l’API de gestion pour le tenant de votre fournisseur de services, avec les portées `read:connections` et `update:connections` :
 
    ```bash
    cd bin/

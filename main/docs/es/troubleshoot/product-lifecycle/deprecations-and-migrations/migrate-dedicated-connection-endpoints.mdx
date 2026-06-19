@@ -1,40 +1,40 @@
 ---
-description: Aprende a actualizar la configuración de tu Conexión de Auth0 para pasar de usar el campo `enabled_clients` a endpoints de conexión dedicados.
-title: Migra la gestión de clientes habilitados a endpoints de conexión dedicados
+description: Aprende a actualizar la configuración de tu conexión de Auth0 para pasar de usar el campo `enabled_clients` a endpoints de conexión dedicados.
+title: Migrar la gestión de clientes habilitados a endpoints de conexión dedicados
 validatedOn: 2026-04-20
 ---
 
-Auth0 está marcando como obsoleto el campo `enabled_clients` de los endpoints [Get All Connections](/docs/es/api/management/v2/connections/get-connections), [Get Connections](/docs/es/api/management/v2/connections/get-connections-by-id) y [Update a Connection](/docs/es/api/management/v2/connections/patch-connections-by-id) de Management API. Los clientes de Auth0 pueden recuperar los clientes habilitados de una conexión mediante el endpoint [obtener clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/get-connection-clients). Para actualizar los clientes ya configurados en una conexión, usa [actualizar clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/patch-clients).
+Auth0 está dejando obsoleto el campo `enabled_clients` de los endpoints [Get All Connections](/docs/es/api/management/v2/connections/get-connections), [Get Connections](/docs/es/api/management/v2/connections/get-connections-by-id) y [actualizar una conexión](/docs/es/api/management/v2/connections/patch-connections-by-id) de Management API. Los clientes de Auth0 pueden obtener los clientes habilitados de una conexión mediante el endpoint [obtener clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/get-connection-clients). Para actualizar los clientes ya configurados en una conexión, usa el endpoint [actualizar clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/patch-clients).
 
-Para prepararte para este cambio y asegurarte de que tus integraciones sigan funcionando sin problemas, revisa los pasos a continuación para comprobar si te afecta y migrar a los nuevos endpoints.
+Para prepararte para este cambio y asegurarte de que tus integraciones sigan funcionando sin problemas, revisa los pasos a continuación para confirmar si te afecta y migrar a los nuevos endpoints.
 
-Para obtener más información sobre los plazos de migración, consulta la entrada sobre [Deprecations and Migrations](/docs/es/troubleshoot/product-lifecycle/deprecations-and-migrations).
+Para obtener más información sobre los plazos de migración, consulta la entrada sobre [Obsolescencia y Migración](/docs/es/troubleshoot/product-lifecycle/deprecations-and-migrations).
 
 <div id="verify-affected-tenants">
   ## Verificar los tenants afectados
 </div>
 
 <Warning>
-  Los administradores de tenants de Private Cloud pueden seguir estas instrucciones si su [Private Cloud deployment](/docs/es/deploy-monitor/deploy-private-cloud) es la versión `v202608` o posterior. Para obtener más información sobre las versiones de los despliegues de Private Cloud, consulte [How to Check the Auth0 Private Cloud&#39;s Release Number and Deployment Date](https://support.auth0.com/center/s/article/How-to-check-the-Auth0-private-cloud-s-release-number-and-deployment-date).
+  Los administradores de tenants de Private Cloud pueden seguir estas instrucciones si su [despliegue de Private Cloud](/docs/es/deploy-monitor/deploy-private-cloud) es la versión `v202608` o una posterior. Para obtener más información sobre las versiones de los despliegues de Private Cloud, consulte [How to Check the Auth0 Private Cloud&#39;s Release Number and Deployment Date](https://support.auth0.com/center/s/article/How-to-check-the-Auth0-private-cloud-s-release-number-and-deployment-date).
 </Warning>
 
-Puede usar el Auth0 Dashboard para confirmar si un tenant tiene acceso a la funcionalidad obsoleta y requiere migración.
+Puede usar Auth0 Dashboard para confirmar si un tenant tiene acceso a la funcionalidad obsoleta y si requiere migración.
 
 1. Vaya a [Auth0 Dashboard &gt; Configuración del tenant &gt; Advanced](https://manage.auth0.com/dashboard/#/tenant/advanced).
-2. En **Migrations**, revise el **Legacy Management of Connection&#39;s Enabled Clients toggle**.
-   * El interruptor está **activado**: Su tenant permite el acceso al campo obsoleto al recuperar y actualizar conexiones, y debe migrarlo antes de la fecha límite.
-   * El interruptor está **desactivado**: No se requiere ninguna otra acción.
+2. En **Migración**, revise el toggle **Legacy Management of Connection&#39;s Enabled Clients**.
+   * El toggle está **activado**: su tenant permite el acceso al campo obsoleto al recuperar y actualizar conexiones, y debe migrar antes de la fecha límite.
+   * El toggle está **desactivado**: no se requiere ninguna acción adicional.
 
 <div id="identify-affected-integrations">
-  ## Identificar las integraciones afectadas
+  ## Identifica las integraciones afectadas
 </div>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  * Los tenants de Public Cloud empezaron a recibir estos avisos de obsolescencia durante la primera mitad de febrero de 2026.
-  * Los tenants de Private Cloud empezaron a recibir estos avisos de obsolescencia cuando sus despliegues de Private Cloud alcanzaron la versión `v202608`.
+  * Los tenants de Public Cloud comenzaron a recibir estos avisos de obsolescencia durante la primera mitad de febrero de 2026.
+  * Los tenants de Private Cloud comenzaron a recibir estos avisos de obsolescencia cuando sus despliegues de Private Cloud alcanzaron la versión `v202608`.
 </Callout>
 
-Para determinar qué aplicaciones e integraciones usan los endpoints obsoletos, revisa los [registros](/docs/es/deploy-monitor/logs#logs) del tenant en busca de avisos de obsolescencia.
+Para determinar qué aplicaciones e integraciones utilizan los endpoints obsoletos, revisa los [logs](/docs/es/deploy-monitor/logs#logs) del tenant en busca de avisos de obsolescencia.
 
 Usa la siguiente consulta para buscar avisos específicos de esta obsolescencia:
 
@@ -46,10 +46,10 @@ Revise el resultado de la consulta del campo `client_id` para identificar las ap
 
 Algunos servicios de la plataforma Auth0 y extensiones pueden generar avisos de obsolescencia en los registros del tenant:
 
-* Si el campo `client_id` está vacío, el aviso se originó en una extensión o en el Auth0 Dashboard. Después de revisar el uso de las extensiones que se describe a continuación, puede ignorar los avisos sin ID de cliente.
+* Si el campo `client_id` está vacío, el aviso se originó en una extensión o en Auth0 Dashboard. Después de revisar el uso de las extensiones que se describe a continuación, puede ignorar los avisos sin un ID de cliente.
 * Si el valor no coincide con ninguna de las aplicaciones cliente del tenant, el aviso se originó en un servicio de la plataforma y puede ignorarse.
 
-Además, la presencia de un aviso de obsolescencia para una aplicación cliente concreta no indica necesariamente que la aplicación esté afectada. Por ejemplo, si una de sus aplicaciones obtiene información de la conexión mediante `GET`, incluido el campo obsoleto `enabled_clients`, pero no procesa el campo devuelto en la respuesta, la obsolescencia programada de ese campo no tiene ningún impacto.
+Además, la presencia de un aviso de obsolescencia para una aplicación cliente específica no indica necesariamente que la aplicación esté afectada. Por ejemplo, si una de sus aplicaciones obtiene información de conexión mediante `GET`, incluido el campo obsoleto `enabled_clients`, pero no procesa el campo devuelto en la respuesta, la obsolescencia programada de ese campo no tiene ningún impacto.
 
 <div id="review-extensions-usage">
   ## Revisa el uso de las extensiones
@@ -57,26 +57,26 @@ Además, la presencia de un aviso de obsolescencia para una aplicación cliente 
 
 Las siguientes extensiones pueden activar avisos de obsolescencia en los logs del tenant:
 
-* [User Import/Export](/docs/es/customize/extensions/user-import-export-extension#user-import-export-extension): Esta extensión no depende de la funcionalidad obsoleta. Los avisos son falsos positivos que se activan cuando la extensión recupera información de la conexión.
+* [User Import/Export](/docs/es/customize/extensions/user-import-export-extension#user-import-export-extension): Esta extensión no depende de la funcionalidad obsoleta. Los avisos son falsos positivos que se activan cuando la extensión obtiene información de la conexión.
 * [Custom Social Connections](https://github.com/auth0/custom-social-connections): Esta extensión depende de la funcionalidad obsoleta y presenta problemas.
 * [Delegated Administration Dashboard](/docs/es/customize/extensions/delegated-administration-extension/install-delegated-admin-extension): Las versiones anteriores de esta extensión pueden depender de la funcionalidad obsoleta y presentar problemas. Actualiza a la versión 4.8 o posterior desde el Auth0 Dashboard.
 
-Las dos primeras extensiones han quedado sustituidas por funciones del Auth0 Dashboard que cubren sus casos de uso y ya no reciben actualizaciones.
+Las dos primeras extensiones han sido sustituidas por funciones del Auth0 Dashboard que cubren esos casos de uso y ya no reciben actualizaciones.
 
-* Usa la función [Bulk User Import / Export](/docs/es/manage-users/user-migration/bulk-user-import-export) del Dashboard para reemplazar la extensión User Import/Export.
-* Usa la función [Social Identity Providers](/docs/es/authenticate/identity-providers/social-identity-providers#auth0-dashboard) del Dashboard para reemplazar la extensión Custom Social Connections.
+* Usa la función del Dashboard [Bulk User Import / Export](/docs/es/manage-users/user-migration/bulk-user-import-export) para sustituir la extensión User Import/Export.
+* Usa la función del Dashboard [Social Identity Providers](/docs/es/authenticate/identity-providers/social-identity-providers#auth0-dashboard) para sustituir la extensión Custom Social Connections.
 
 <div id="update-your-integrations">
   ## Actualiza tus integraciones
 </div>
 
-En las aplicaciones e integraciones que usan los endpoints de conexión afectados para consultar (`GET`) o actualizar (`PATCH`) el campo `enabled_clients`, debes modificarlas para que usen los endpoints específicos de gestión de clientes:
+Las aplicaciones e integraciones que usan los endpoints de conexión afectados para recuperar (`GET`) o actualizar (`PATCH`) el campo `enabled_clients` deben modificarse para usar los endpoints específicos de gestión de clientes:
 
-* **Para leer:** [Obtener clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/get-connection-clients).
-* **Para escribir:** [Actualizar clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/patch-clients).
+* **Para leer:** [obtener clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/get-connection-clients).
+* **Para escribir:** [actualizar clientes habilitados para una conexión](https://auth0.com/docs/api/management/v2/connections/patch-clients).
 
 <div id="update-sdks-and-tools">
-  ## Actualizar SDKs y herramientas
+  ## Actualiza los SDKs y las herramientas
 </div>
 
 Las siguientes versiones de SDKs y herramientas son compatibles con los nuevos endpoints:
@@ -89,15 +89,15 @@ Las siguientes versiones de SDKs y herramientas son compatibles con los nuevos e
 * [Auth0 Deploy CLI](https://auth0.com/docs/deploy-monitor/deploy-cli-tool): `8.27.0+`
 * [Auth0 Terraform Provider](https://auth0.com/docs/deploy-monitor/auth0-terraform-provider): `1.29.0+`
 
-Auth0 Deploy CLI / Auth0 Terraform Provider no requieren cambios en la forma en que las conexiones y sus clientes correspondientes se representan en su modelo de datos. Debe usar la versión más reciente disponible para garantizar que la herramienta utilice los endpoints dedicados.
+Auth0 Deploy CLI / Auth0 Terraform Provider no requieren cambios en la forma en que las conexiones y sus clientes correspondientes se representan en su modelo de datos. Debes usar la versión más reciente disponible para garantizar que la herramienta use los endpoints dedicados.
 
-Los SDK de Ruby y PHP de Management API están pendientes de actualización.
+Los SDKs de Ruby y PHP para la Management API están pendientes de actualización.
 
 <div id="opt-out-finalize-migration">
-  ## Desactivación (Finalizar la migración)
+  ## Exclusión voluntaria (Finalizar la migración)
 </div>
 
-Una vez que te asegures de que las integraciones ya no dependan del comportamiento obsoleto, debes configurar el tenant para desactivar ese comportamiento explícitamente.
+Una vez que te asegures de que las integraciones ya no dependan del comportamiento obsoleto, debes configurar el tenant para excluirlo explícitamente.
 
-* **¿Por qué desactivarlo pronto?** Esto te permite controlar el momento exacto en que un tenant determinado cambia al nuevo comportamiento. Si surge alguna situación inesperada, puedes revertir rápidamente la opción para restaurar el comportamiento original.
-* **Cómo desactivarlo:** Ve a **[Auth0 Dashboard &gt; Configuración del tenant &gt; Advanced](https://manage.auth0.com/dashboard/#/tenant/advanced).**  En Migrations, desactiva la opción **Legacy Management of Connection&#39;s Enabled Clients**.
+* **¿Por qué excluirlo antes?** Esto te permite controlar exactamente cuándo un tenant determinado pasa al nuevo comportamiento. Si surge alguna situación inesperada, puedes revertir rápidamente el cambio en el selector para restaurar el comportamiento original.
+* **Cómo excluirlo:** Ve a **[Auth0 Dashboard &gt; Configuración del tenant &gt; Advanced](https://manage.auth0.com/dashboard/#/tenant/advanced).**  En Migración, desactiva la opción **Legacy Management of Connection&#39;s Enabled Clients**.

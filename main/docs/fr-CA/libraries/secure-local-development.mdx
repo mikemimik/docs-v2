@@ -3,29 +3,29 @@ description: Sécuriser les serveurs de développement local pour qu’ils fonct
 title: HTTPS en développement
 ---
 
-Les environnements de développement local fonctionnent généralement en http (c.-à-d. `http://localhost`) par défaut. Ce guide explique quand utiliser https pour un serveur local et comment configurer https sur localhost.
+Les environnements de développement local utilisent généralement http (c.-à-d. `http://localhost`) par défaut. Ce guide explique à quel moment vous devriez utiliser https pour un serveur local et comment configurer https sur localhost.
 
 <div id="when-to-use-a-local-https-server">
   ## Quand utiliser un serveur https local
 </div>
 
-Les navigateurs Web se comportent différemment en http et en https; pour tenir compte de ces différences, il se peut que votre serveur de développement doive servir les pages en https. Par exemple :
+Les navigateurs Web ne se comportent pas de la même façon avec http et https; pour tenir compte de ces différences, il se peut que votre serveur de développement doive servir les pages en https. Par exemple :
 
-* Lorsque votre page est servie en https, les requêtes visant à charger des ressources à partir d’une URL http seront bloquées. Vous pourriez vouloir reproduire ce comportement en local pour éviter des bogues qui ne se manifesteraient que dans l’environnement Production, ou parce que vous ne voulez pas envoyer par erreur des requêtes http contenant des renseignements sensibles.
-* Les cookies utilisant un attribut Secure ou un attribut [SameSite](https://auth0.com/blog/browser-behavior-changes-what-developers-need-to-know/) défini à None ne seront pas transmis par des canaux non sécurisés, ce qui perturbera l’authentification et d’autres fonctionnalités.
+* Lorsque votre page est servie en https, les requêtes pour charger des ressources à partir d’une URL http sont bloquées. Vous voudrez peut-être reproduire ce comportement en local pour éviter des bogues qui ne se manifesteraient qu’en environnement de production, ou parce que vous ne voulez pas envoyer par erreur des requêtes http contenant des renseignements sensibles.
+* Les cookies qui utilisent l’attribut Secure ou dont l’attribut [SameSite](https://auth0.com/blog/browser-behavior-changes-what-developers-need-to-know/) est défini à None ne sont pas envoyés sur des canaux non sécurisés, ce qui perturbe l’authentification et d’autres fonctionnalités.
 
 <div id="how-to-set-up-a-secure-local-server">
   ## Comment configurer un serveur local sécurisé
 </div>
 
-L’idée consiste à exécuter un serveur web devant votre serveur de développement local, qui acceptera les requêtes https et les transmettra au serveur web de votre application en http, de sorte que les requêtes de votre application seront servies en https par l’intermédiaire d’un proxy. C’est ce qu’on appelle un proxy inverse https, et nous pouvons utiliser un produit prêt à l’emploi appelé [Caddy](https://caddyserver.com/v2) pour créer un proxy inverse https.
+L’idée est d’exécuter un serveur web devant votre serveur de développement local, qui acceptera les requêtes https et les transmettra au serveur web de votre application par http, de sorte que les requêtes de votre application soient servies en HTTPS par l’entremise d’un proxy. C’est ce qu’on appelle un proxy inverse https, et nous pouvons utiliser un produit prêt à l’emploi appelé [Caddy](https://caddyserver.com/v2) pour en créer un.
 
-Le processus pour y parvenir est le suivant :
+Le processus est le suivant :
 
 1. Télécharger le binaire Caddy
-2. Exécuter le serveur web de votre application en http, comme d’habitude
+2. Exécuter le serveur web de votre application sur http comme d’habitude
 3. Exécuter le binaire Caddy comme proxy inverse en lui indiquant de transférer le trafic vers le serveur web de votre application
-4. Accéder au serveur web du proxy inverse en https
+4. Accéder au serveur web du proxy inverse en HTTPS
 
 <div id="step-1-download-the-caddy-binary">
   ### Étape 1. Téléchargez le binaire Caddy
@@ -34,16 +34,16 @@ Le processus pour y parvenir est le suivant :
 Rendez-vous à l’adresse https://caddyserver.com/download, sélectionnez votre plateforme et téléchargez le fichier sur votre ordinateur.
 
 <div id="step-2-run-your-applications-web-server-over-http-as-normal">
-  ### Étape 2. Exécutez le serveur Web de votre application en HTTP, comme d&#39;habitude
+  ### Étape 2. Exécutez le serveur Web de votre application en HTTP, comme d’habitude
 </div>
 
-Exécutez le serveur de développement local de votre application normalement, par exemple $ PORT=3000 npm start
+Démarrez le serveur de développement local de votre application comme d’habitude, par exemple $ PORT=3000 npm start
 
 <div id="step-3-run-the-caddy-binary-as-a-reverse-proxy-telling-it-to-forward-traffic-to-your-applications-web-server">
-  ### Étape 3. Exécutez le binaire Caddy comme proxy inverse en le configurant pour rediriger le trafic vers le serveur Web de votre application
+  ### Étape 3. Exécutez le fichier binaire Caddy en tant que proxy inverse en lui indiquant d’acheminer le trafic vers le serveur Web de votre application
 </div>
 
-Repérez l’emplacement du binaire Caddy que vous avez téléchargé, puis exécutez la commande suivante pour créer un proxy inverse et rediriger les requêtes du port 443 (le port par défaut utilisé pour HTTPS) vers le port de votre application (dans ce cas-ci 3000) :
+Repérez l’emplacement du fichier binaire Caddy que vous avez téléchargé et exécutez la commande suivante pour créer un proxy inverse et acheminer les requêtes du port 443 (le port par défaut utilisé pour https) vers le port de votre application (dans ce cas-ci 3000) :
 
 ```bash wrap lines
 /path/to/caddy reverse-proxy --from localhost:443 --to localhost:3000
@@ -59,6 +59,6 @@ Accédez à https://localhost et votre serveur traitera les requêtes de votre a
   ## Exécuter votre application derrière un proxy
 </div>
 
-Il se peut que vous deviez apporter quelques petits ajustements à votre application lorsqu’elle fonctionne derrière un proxy.
+Il se peut que vous deviez apporter quelques légers ajustements à votre application lorsqu’elle s’exécute derrière un proxy.
 
-Par exemple, dans Express.js, même si l’application continuera de fonctionner, elle enregistrera à tort l’adresse IP du proxy comme étant l’adresse IP du client, à moins que `trust proxy` ne soit configuré. Voir &lt;https://expressjs.com/en/guide/behind-proxies.html&gt;
+Par exemple, dans Express.js, même si l’application continuera de fonctionner, elle enregistrera incorrectement l’adresse IP du proxy comme adresse IP du client, à moins que `trust proxy` ne soit configuré. Consultez &lt;https://expressjs.com/en/guide/behind-proxies.html&gt;

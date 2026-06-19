@@ -1,8 +1,8 @@
 ---
-title: "MFAWebAuthnItinérantVérificationMembres"
+title: "MfaWebAuthnRoamingChallengeMembers"
 ---
 
-MFAWebAuthnItinérantVérificationMembres
+MfaWebAuthnRoamingChallengeMembers
 
 ````ts Example
 export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
@@ -23,7 +23,7 @@ export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
    * tels que `rememberDevice` et d'autres options personnalisées.
    * @returns {Promise<void>} Une promesse qui se résout lorsque la tentative de vérification est soumise.
    *                          Elle ne retourne pas directement de données, car une opération réussie entraîne généralement une redirection.
-   * @throws {Error} Génère une erreur si `screen.data.publicKeyChallengeOptions` est manquant,
+   * @throws {Error} Génère une erreur si `screen.data.publicKeyChallengeOptions` est absent,
    *                 si `navigator.credentials.get()` échoue avec une erreur inattendue,
    *                 ou si la soumission du formulaire à Auth0 échoue.
    *
@@ -42,14 +42,14 @@ export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
   verify(options?: VerifySecurityKeyOptions): Promise<void>;
 
   /**
-   * Reports a specific WebAuthn API error to Auth0.
+   * Reports a specific API WebAuthn error to Auth0.
    * This method should be used if `navigator.credentials.get()` fails in a way that
    * `verify()` doesn't automatically handle, or if the developer wants to explicitly
    * report an error before trying another action.
    * It submits the error details with `action: "showError::{errorDetails}"`.
    *
    * @param {ReportWebAuthnErrorOptions} options - Contains the `error` object with `name` and `message`
-   * from the WebAuthn API, and any other custom options.
+   * from the API WebAuthn, and any other custom options.
    * @returns {Promise<void>} A promise that resolves when the error report is submitted.
    * @throws {Error} Throws an error if the form submission fails.
    *
@@ -123,19 +123,19 @@ export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
 <ParamField body="reportWebAuthnError" type="Promise<void>">
   Signale à Auth0 une erreur précise de l’API WebAuthn.
   Cette méthode doit être utilisée si `navigator.credentials.get()` échoue d’une façon que
-  `verify()` ne gère pas automatiquement, ou si le développeur veut
-  signaler explicitement une erreur avant d’essayer une autre action.
+  `verify()` ne gère pas automatiquement, ou si le développeur souhaite
+  signaler explicitement une erreur avant de tenter une autre action.
   Elle transmet les détails de l’erreur avec `action: "showError::{errorDetails}"`.
 
-  Une promesse qui se résout lorsque le signalement de l’erreur est envoyé.
+  Une promesse qui se résout lorsque le signalement de l’erreur est soumis.
 
-  #### Exceptions
+  #### Lève
 
-  Lève une erreur si l’envoi du formulaire échoue.
+  Lève une erreur si la soumission du formulaire échoue.
 
   ```typescript Example
   // En supposant que 'sdk' est une instance de MfaWebAuthnRoamingChallenge
-  // Et que webAuthnError est un objet d’erreur provenant d’un appel échoué à navigator.credentials.get().
+  // Et que webAuthnError est un objet d’erreur provenant d’un appel navigator.credentials.get() échoué.
   try {
     await sdk.reportWebAuthnError({
       error: { name: webAuthnError.name, message: webAuthnError.message }
@@ -147,7 +147,7 @@ export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
 
   <Expandable title="Paramètres">
     <ParamField body="options" type={<span><a href="/docs/fr-CA/libraries/acul/react-sdk/API-Reference/Types/interfaces/MfaWebAuthnRoamingChallengeReportErrorOptions">MfaWebAuthnRoamingChallengeReportErrorOptions</a></span>}>
-      Contient l’objet `error`, avec `name` et `message`
+      Contient l’objet `error`, avec `name` et `message`,
       provenant de l’API WebAuthn, ainsi que toute autre option personnalisée.
 
       **Propriétés**
@@ -160,21 +160,21 @@ export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
 </ParamField>
 
 <ParamField body="tryAnotherMethod" type="Promise<void>">
-  Permet à l’utilisateur de renoncer au défi WebAuthn et de choisir une autre méthode MFA.
-  Cette action envoie `action: "pick-authenticator"` à Auth0, ce qui devrait rediriger
-  l’utilisateur vers un écran de sélection du facteur MFA.
+  Permet à l’utilisateur d’abandonner le défi WebAuthn et de sélectionner une autre méthode d’AMF.
+  Cette action soumet `action: "pick-authenticator"` à Auth0, ce qui devrait rediriger
+  l’utilisateur vers un écran de sélection du facteur d’AMF.
 
-  Une promesse qui se résout lorsque l’action est envoyée.
+  Une promesse qui se résout lorsque l’action est soumise.
 
-  #### Exceptions
+  #### Lève
 
-  Lève une erreur si l’envoi du formulaire échoue.
+  Lève une erreur si la soumission du formulaire échoue.
 
   ```typescript Example
   // En supposant que 'sdk' est une instance de MfaWebAuthnRoamingChallenge
   try {
     await sdk.tryAnotherMethod();
-    // En cas de succès, Auth0 gère la redirection vers la sélection MFA.
+    // En cas de succès, Auth0 gère la redirection vers la sélection AMF.
   } catch (error) {
     console.error("Failed to switch MFA method:", error);
   }
@@ -190,18 +190,18 @@ export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
 <ParamField body="verify" type="Promise<void>">
   Lance le défi WebAuthn en appelant `navigator.credentials.get()` avec les
   options fournies dans `screen.data.publicKeyChallengeOptions`.
-  Si l’opération réussit, elle envoie à Auth0 les informations d’identification obtenues avec `action: "default"`.
+  En cas de succès, elle soumet l’information d’identification obtenue à Auth0 avec `action: "default"`.
   Si `navigator.credentials.get()` échoue avec une erreur connue de l’API WebAuthn (comme `NotAllowedError`),
-  cette méthode appellera en interne `reportWebAuthnError` pour en informer Auth0.
+  cette méthode appellera `reportWebAuthnError` en interne pour en informer Auth0.
 
-  Une promesse qui se résout lorsque la tentative de vérification est envoyée.
-  Elle ne retourne pas directement de données, puisqu’une opération réussie entraîne généralement une redirection.
+  Une promesse qui se résout lorsque la tentative de vérification est soumise.
+  Elle ne retourne pas directement de données, car une opération réussie entraîne généralement une redirection.
 
-  #### Exceptions
+  #### Lève
 
   Lève une erreur si `screen.data.publicKeyChallengeOptions` est absent,
   si `navigator.credentials.get()` échoue avec une erreur inattendue,
-  ou si l’envoi du formulaire à Auth0 échoue.
+  ou si la soumission du formulaire à Auth0 échoue.
 
   ```typescript Example
   // En supposant que 'sdk' est une instance de MfaWebAuthnRoamingChallenge
@@ -222,7 +222,7 @@ export interface MfaWebAuthnRoamingChallengeMembers extends BaseMembers {
       **Propriétés**
 
       <ParamField body="rememberDevice?" type="boolean">
-        Facultatif. Si la valeur est true, tente de mémoriser le navigateur pour de futures vérifications MFA.
+        Facultatif. Si la valeur est `true`, tente de mémoriser le navigateur pour les prochaines défis d’AMF.
         Correspond au champ de formulaire `rememberBrowser`.
       </ParamField>
     </ParamField>

@@ -8,37 +8,37 @@ import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
   ##### Por Evan Sims
 </div>
 
-Esta guía muestra cómo integrar Auth0 con una API de backend en PHP mediante el SDK de Auth0 para PHP. Te recomendamos iniciar sesión para seguir esta guía de inicio rápido con ejemplos configurados para tu cuenta.
+Esta guía muestra cómo integrar Auth0 con una API backend en PHP mediante el SDK de Auth0 para PHP.Le recomendamos iniciar sesión para seguir este Quickstart con ejemplos configurados para su cuenta.
 
 {/* <Card title="Ver en GitHub" href="https://github.com/auth0-samples/auth0-php-api-samples/tree/main/app" icon="github">
   Requisitos del sistema: PHP 7.4+ (se recomienda 8.0) | Auth0-PHP 8.0 | Composer
   </Card> */}
 
 <Info>
-  **¿Nuevo en Auth0?** Aprende [cómo funciona Auth0](/docs/es/get-started/auth0-overview) y lee sobre [cómo implementar la autenticación y autorización de API](/docs/es/get-started/authentication-and-authorization-flow) mediante el marco de OAuth 2.0.
+  **¿Eres nuevo en Auth0?** Aprende [cómo funciona Auth0](/docs/es/get-started/auth0-overview) y lee sobre [cómo implementar la autenticación y autorización de API](/docs/es/get-started/authentication-and-authorization-flow) con el framework OAuth 2.0.
 </Info>
 
 <div id="configure-auth0-apis">
-  ## Configura las API de Auth0
+  ## Configurar las API de Auth0
 </div>
 
 <div id="create-an-api">
   ### Crear una API
 </div>
 
-En la sección [APIs](https://manage.auth0.com/#/apis) del panel de Auth0, haz clic en **Create API**. Indica un nombre y un identificador para tu API; por ejemplo, `https://quickstarts/api`. Más adelante usarás el identificador como `audience` al configurar la verificación del token de acceso. Deja **Signing Algorithm** como **RS256**.
+En la sección [APIs](https://manage.auth0.com/#/apis) del Auth0 Dashboard, haz clic en **Crear API**. Introduce un nombre y un identificador para tu API; por ejemplo, `https://quickstarts/api`. Más adelante usarás el identificador como `audience` al configurar la verificación del token de acceso. Deja **Algoritmo de firma** en **RS256**.
 
-<Frame>![Create API](https://cdn2.auth0.com/docs/1.14550.0/media/articles/server-apis/create-api.png)</Frame>
+<Frame>![Crear API](https://cdn2.auth0.com/docs/1.14550.0/media/articles/server-apis/create-api.png)</Frame>
 
-De forma predeterminada, tu API usa RS256 como algoritmo para firmar tokens. Como RS256 utiliza un par de claves privada/pública, los tokens se verifican con la clave pública de tu cuenta de Auth0. La clave pública está en formato [JSON Web Key Set (JWKS)](/docs/es/secure/tokens/json-web-tokens/json-web-key-sets) y puedes acceder a ella [aquí](https://\{yourDomain}/.well-known/jwks.json).
+De forma predeterminada, tu API usa RS256 como algoritmo para firmar tokens. Como RS256 utiliza un par de claves privada/pública, los tokens se verifican con la clave pública de tu cuenta de Auth0. La clave pública está en formato [JSON Web Key Set (JWKS)](/docs/es/secure/tokens/json-web-tokens/json-web-key-sets) y puede consultarse [aquí](https://\{yourDomain}/.well-known/jwks.json).
 
 <div id="define-permissions">
   ### Definir permisos
 </div>
 
-Los permisos te permiten definir cómo se puede acceder a los recursos en nombre del usuario con un token de acceso determinado. Por ejemplo, puedes conceder acceso de lectura al recurso `messages` si los usuarios tienen el nivel de acceso de gerente, y acceso de escritura a ese recurso si tienen el nivel de acceso de administrador.
+Los permisos te permiten definir cómo se puede acceder a los recursos en nombre del usuario con un token de acceso determinado. Por ejemplo, puedes optar por conceder acceso de lectura al recurso `messages` si los usuarios tienen el nivel de acceso de gerente, y acceso de escritura a ese recurso si tienen el nivel de acceso de administrador.
 
-Puedes definir los permisos permitidos en la vista **Permissions** de la sección [APIs](https://manage.auth0.com/#/apis) del panel de Auth0.
+Puedes definir los permisos permitidos en la vista **Permissions** de la sección [APIs](https://manage.auth0.com/#/apis) de Auth0 Dashboard.
 
 <Frame>![Configurar permisos](https://cdn2.auth0.com/docs/1.14550.0/media/articles/server-apis/configure-permissions.png)</Frame>
 
@@ -52,45 +52,45 @@ Este ejemplo muestra:
 * Cómo comprobar si el token es válido usando el [JSON Web Key Set (JWKS)](/docs/es/secure/tokens/json-web-tokens/json-web-key-sets) de tu cuenta de Auth0. Para obtener más información sobre cómo validar tokens de acceso, consulta [Validate Access Tokens](/docs/es/secure/tokens/access-tokens/validate-access-tokens).
 
 <div id="integrating-your-php-backend-api">
-  ## Integración de la API de backend en PHP
+  ## Integración de tu API backend en PHP
 </div>
 
-Vamos a crear una aplicación de ejemplo que autorice un token firmado por Auth0 con una API de backend escrita en PHP. Aquí seguiremos un enfoque sencillo, adecuado para este formato. Aun así, te recomendamos consultar la [aplicación de inicio rápido complementaria en GitHub](https://github.com/auth0-samples/auth0-php-api-samples/) para ver un ejemplo más completo.
+Vamos a crear una aplicación de ejemplo que autorice un token firmado por Auth0 mediante una API backend escrita en PHP. Aquí seguiremos un enfoque sencillo, adecuado para este formato. Aun así, te recomendamos consultar la [aplicación complementaria de Quickstart en GitHub](https://github.com/auth0-samples/auth0-php-api-samples/) para ver un ejemplo más completo.
 
 <div id="installing-http-client-and-messaging-factories">
-  ### Instalación del cliente HTTP y las fábricas de mensajes
+  ### Instalación del cliente HTTP y de las fábricas de mensajes
 </div>
 
-El SDK de Auth0 para PHP es compatible con muchos estándares de PHP-FIG para ofrecer la máxima interoperabilidad con la arquitectura de tu proyecto, pero dos especialmente importantes son [PSR-17](https://www.php-fig.org/psr/psr-17/) y [PSR-18](https://www.php-fig.org/psr/psr-18/). Estos estándares te permiten &quot;integrar&quot; los componentes de red que prefieras para gestionar mensajes y solicitudes. Deberás instalar bibliotecas compatibles en tu proyecto para que el SDK pueda utilizarlas.
+El SDK de Auth0 para PHP es compatible con muchos estándares de PHP-FIG para ofrecer la máxima interoperabilidad con la arquitectura de tu proyecto, pero dos especialmente importantes son [PSR-17](https://www.php-fig.org/psr/psr-17/) y [PSR-18](https://www.php-fig.org/psr/psr-18/). Estos estándares te permiten integrar los componentes de red que prefieras para gestionar la mensajería y las solicitudes. Tendrás que instalar bibliotecas compatibles en tu proyecto para que el SDK pueda usarlas.
 
-La biblioteca de red más popular para PHP es Guzzle, aunque hay muchas opciones disponibles en la comunidad de PHP. Usemos Guzzle para esta aplicación de ejemplo:
+La biblioteca de red más utilizada para PHP es Guzzle, aunque en la comunidad de PHP hay muchas entre las que elegir. Usemos Guzzle para esta aplicación de ejemplo:
 
 ```bash
 composer require guzzlehttp/guzzle guzzlehttp/psr7 http-interop/http-factory-guzzle
 ```
 
 <div id="installing-the-php-sdk">
-  ### Instalación del SDK de PHP
+  ### Instalación del SDK para PHP
 </div>
 
-El SDK de Auth0 para PHP requiere [Composer](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-macos), una herramienta de gestión de dependencias para PHP. Composer te permite declarar las bibliotecas de las que depende tu proyecto y las instala por ti. Asegúrate de que Composer esté instalado y sea accesible desde la línea de comandos antes de continuar.
+El SDK de Auth0 para PHP requiere [Composer](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-macos), una herramienta para la gestión de dependencias en PHP. Composer te permite declarar las bibliotecas que necesita tu proyecto y las instala por ti. Asegúrate de que Composer esté instalado y de que puedas acceder a él desde tu shell antes de continuar.
 
-Ejecuta el siguiente comando en la terminal dentro del directorio de tu proyecto para instalar el SDK de Auth0 para PHP:
+Ejecuta el siguiente comando de shell en el directorio de tu proyecto para instalar el SDK de Auth0 para PHP:
 
 ```bash
 composer require auth0/auth0-php
 ```
 
-Esto creará una carpeta `vendor` dentro de tu proyecto y descargará todas las dependencias necesarias para usar el SDK de Auth0 para PHP. También creará un archivo `vendor/autoload.php`, que se usa en el ejemplo para cargar todas las clases necesarias para que tu aplicación funcione. Es importante que incluyas este archivo de carga automática en tu proyecto para que el SDK funcione.
+Esto creará una carpeta `vendor` dentro de tu proyecto y descargará todas las dependencias necesarias para usar el SDK de Auth0 para PHP. También creará un archivo `vendor/autoload.php` que se usa en el ejemplo para cargar todas las clases necesarias para que tu aplicación funcione. Es importante que incluyas este archivo de carga automática en tu proyecto para que el SDK funcione.
 
 <div id="configure-the-sdk">
   ### Configura el SDK
 </div>
 
-Para empezar, vamos a crear un archivo `.env` en la raíz del directorio de tu proyecto para almacenar la configuración de nuestra aplicación de ejemplo y completar las variables de entorno:
+Para empezar, creemos un archivo `.env` en el directorio raíz de tu proyecto para almacenar la configuración de nuestra aplicación de ejemplo y completar las variables de entorno:
 
 export const codeExample = `# La URL del dominio del tenant de Auth0.
-# Si usamos un dominio personalizado, asegúrate de establecer este valor en su lugar.
+# Si usas un Custom Domain, asegúrate de establecer este valor con ese dominio.
 AUTH0_DOMAIN='https://{yourDomain}'
 
 # El ID de cliente de nuestra aplicación de Auth0.
@@ -99,18 +99,18 @@ AUTH0_CLIENT_ID='{yourClientId}'
 # El secreto de cliente de nuestra aplicación de Auth0.
 AUTH0_CLIENT_SECRET='{yourClientSecret}'
 
-# El identificador de nuestra API de Auth0.
+# El identificador de nuestra Auth0 API.
 AUTH0_AUDIENCE='YOUR_API_IDENTIFIER'`;
 
 <AuthCodeBlock children={codeExample} language="env" />
 
-Como PHP no puede leer por sí solo nuestro archivo `.env`, tendremos que instalar una biblioteca que nos ayude a hacerlo. Aunque para nuestra aplicación de ejemplo usaremos una biblioteca concreta, en una aplicación real funcionará cualquier cargador de &#39;dotenv&#39; que prefieras. Desde el directorio de nuestro proyecto, ejecutemos el siguiente comando de shell para instalar la biblioteca:
+Como PHP no puede leer por sí solo nuestro archivo `.env`, tendremos que instalar una biblioteca que nos ayude a hacerlo. Aunque para nuestra aplicación de ejemplo usaremos una biblioteca concreta, en una aplicación real funcionará cualquier cargador de &#39;dotenv&#39; que prefiera. Desde el directorio de nuestro proyecto, ejecutemos el siguiente comando de shell para instalar la biblioteca:
 
 ```bash lines
 composer require vlucas/phpdotenv
 ```
 
-A continuación, vamos a crear el archivo fuente PHP que usaremos en estos ejemplos de código, `index.php`, y a configurar una instancia del SDK de Auth0 para PHP para nuestra aplicación de ejemplo:
+A continuación, vamos a crear el archivo fuente de PHP que usaremos en estos ejemplos de código, `index.php`, y a configurar una instancia del SDK de Auth0 para PHP para nuestra aplicación de ejemplo:
 
 ```php lines
 <?php
@@ -121,7 +121,7 @@ require 'vendor/autoload.php';
 // Cargar las variables de entorno desde el archivo .env:
 (Dotenv\Dotenv::createImmutable(__DIR__))->load();
 
-// Instanciar la clase Auth0 con nuestra configuración:
+// Ahora, instanciar la clase Auth0 con nuestra configuración:
 $auth0 = new \Auth0\SDK\Auth0([
     'strategy' => \Auth0\SDK\Configuration\SdkConfiguration::STRATEGY_API,
     'domain' => $_ENV['AUTH0_DOMAIN'],
@@ -135,13 +135,13 @@ $auth0 = new \Auth0\SDK\Auth0([
   ### Autenticación del usuario
 </div>
 
-Para esta aplicación de ejemplo, nos centramos en la [autorización](https://auth0.com/intro-to-iam/authentication-vs-authorization/). Hay varias formas de autenticar a tus usuarios antes de que accedan a tu API de backend para la autorización, como usar [la biblioteca SPA.js de Auth0](https://github.com/auth0/auth0-spa-js). Este enfoque se muestra en [el proyecto de GitHub complementario de esta aplicación de inicio rápido](https://github.com/auth0-samples/auth0-php-api-samples/). Independientemente del enfoque que elijas, para que esta aplicación de ejemplo funcione, espera que le pases tu token de acceso mediante un parámetro de la solicitud o un encabezado.
+Para esta aplicación de ejemplo, nos centramos en la [autorización](https://auth0.com/intro-to-iam/authentication-vs-authorization/). Hay varias rutas que puedes seguir para autenticar a tus usuarios antes de que lleguen a tu API backend para la autorización, como usar la [biblioteca SPA.js de Auth0](https://github.com/auth0/auth0-spa-js). Este enfoque se muestra en [esta aplicación de Quickstart del proyecto complementario en Github](https://github.com/auth0-samples/auth0-php-api-samples/). Independientemente del enfoque que elijas, esta aplicación de ejemplo espera que le pases tu token de acceso mediante un parámetro de solicitud o un encabezado para que funcione.
 
 <div id="authorizing-an-access-token">
   ### Autorizar un token de acceso
 </div>
 
-Primero, tenemos que extraer el JSON Web Token (JWT) de la solicitud HTTP entrante. Busquemos un parámetro `?token` en una solicitud GET o una cabecera `HTTP_AUTHORIZATION` o `Authorization`.
+Primero, tenemos que extraer el JSON Web Token (JWT) de la solicitud HTTP entrante. Busquemos el parámetro `?token` en una solicitud GET o en el encabezado `HTTP_AUTHORIZATION` o `Authorization`.
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Añade esto a tu archivo index.php.
@@ -149,14 +149,14 @@ Primero, tenemos que extraer el JSON Web Token (JWT) de la solicitud HTTP entran
 $jwt = $_GET['token'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['Authorization'] ?? null;
 ```
 
-A continuación, vamos a decodificar el token, si lo hay:
+A continuación, decodifiquemos el token, si está presente:
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Agrega esto a tu archivo index.php.
 
 // Si hay un token presente, procesarlo.
 if ($jwt !== null) {
-    // Eliminar espacios en blanco de la cadena del token.
+    // Eliminar espacios en blanco del token.
     $jwt = trim($jwt);
 
     // Eliminar el prefijo 'Bearer ' si está presente, en caso de que el encabezado Authorization lo incluya.
@@ -170,18 +170,18 @@ if ($jwt !== null) {
         define('ENDPOINT_AUTHORIZED', true);
     } catch (\Auth0\SDK\Exception\InvalidTokenException $exception) {
         // El token no era válido. Mostrar el mensaje de error del SDK de Auth0.
-        // En una aplicación real, probablemente querríamos mostrar un error personalizado.
+        // En una aplicación real, probablemente querríamos mostrar un error personalizado aquí.
         die($exception->getMessage());
     }
 }
 ```
 
-Dependiendo de cómo configures el enrutamiento de tu API, la forma exacta de integrar estas comprobaciones puede variar un poco, pero el principio es el mismo: verifica el token y, si tu endpoint de API requiere autorización, deniega el acceso si el token no es válido o aceptable:
+Dependiendo de cómo configures el enrutamiento de tu API, la forma exacta de integrar estas comprobaciones puede variar un poco, pero el principio es el mismo: comprueba el token y, si tu endpoint de API requiere autorización, deniega el acceso si el token no es válido o aceptable:
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Agrega esto a tu archivo index.php.
 
-// ¿La solicitud está autorizada?
+// ¿Está autorizada la solicitud?
 if (defined('ENDPOINT_AUTHORIZED')) {
     // Responder con una respuesta JSON:
     echo json_encode([
@@ -192,7 +192,7 @@ if (defined('ENDPOINT_AUTHORIZED')) {
     exit;
 }
 
-// Devolver un estado HTTP 401 No autorizado:
+// Emitir un estado HTTP 401 No autorizado:
 http_response_code(401);
 
 // Responder con una respuesta JSON:
@@ -208,18 +208,18 @@ echo json_encode([
   ### Almacenamiento en caché
 </div>
 
-Esto funciona, pero en una aplicación real conviene usar almacenamiento en caché para no alcanzar los límites de tasa de Auth0 ni ralentizar la aplicación con solicitudes de red innecesarias. El SDK de Auth0 para PHP admite una interfaz de caché llamada [PSR-6](https://www.php-fig.org/psr/psr-6), en la que puedes integrar [cualquier biblioteca de caché compatible](https://packagist.org/providers/psr/cache-implementation) para que el SDK se adapte bien a tu arquitectura.
+Esto funciona, pero en una aplicación real conviene usar almacenamiento en caché para asegurarnos de no alcanzar los límites de frecuencia de Auth0 ni ralentizar la aplicación con solicitudes de red innecesarias. El SDK de Auth0 para PHP es compatible con una interfaz de caché llamada [PSR-6](https://www.php-fig.org/psr/psr-6), a la que puedes conectar [cualquier biblioteca de caché compatible](https://packagist.org/providers/psr/cache-implementation) para que el SDK se integre bien con tu arquitectura.
 
-Para este ejemplo, usemos la biblioteca del [componente de caché de Symfony](https://symfony.com/doc/current/components/cache.html). Desde el directorio raíz del proyecto, ejecuta el siguiente comando de shell:
+Para nuestro ejemplo, usemos la biblioteca [Symfony caching component](https://symfony.com/doc/current/components/cache.html). Desde el directorio raíz del proyecto, ejecuta el siguiente comando de shell:
 
 ```bash lines
 composer require symfony/cache
 ```
 
-A continuación, debemos actualizar nuestra SdkConfiguration para indicarle al SDK que la utilice:
+A continuación, debemos actualizar nuestra SdkConfiguration para indicarle al SDK que la use:
 
 ```php lines
-// ✋ Inserta esto ANTES del manejo de tokens que añadimos en el paso anterior, para que el SDK utilice la caché.
+// ✋ Inserta esto ANTES del manejo del token que agregamos en el paso anterior, para que el SDK utilice la caché.
 
 $tokenCache = new \Symfony\Component\Cache\Adapter\FilesystemAdapter();
 $auth0->configuration()->setTokenCache($tokenCache);
@@ -232,7 +232,7 @@ Nuestra aplicación de ejemplo ahora almacenará en caché las solicitudes de re
 
   | [Configurar otros proveedores de identidad](/docs/es/authenticate/identity-providers)                                               | [Habilitar la autenticación multifactor](/docs/es/secure/multi-factor-authentication) |
   | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-  | [Más información sobre la protección contra ataques](/docs/es/secure/attack-protection)                                             | [Más información sobre las reglas](/docs/es/customize/rules)                          |
+  | [Más información sobre la protección contra ataques](/docs/es/secure/attack-protection)                                             | [Más información sobre Rules](/docs/es/customize/rules)                               |
   | [Editar en GitHub](https://github.com/auth0/docs/edit/master/articles/quickstart/backend/aspnet-core-webapi/01-authorization.md) |                                                                                    |
 </Info>
 

@@ -1,52 +1,52 @@
 ---
-description: Explica el escenario de arquitectura de una aplicación móvil que se comunica con una API.
+description: Explica el escenario de arquitectura con una aplicación móvil que se comunica con una API.
 title: Aplicaciones móviles con API
 ---
 
-En este escenario, construiremos una API de hoja de hora para una empresa ficticia llamada ExampleCo. La API permitirá gestionar entradas de hoja de hora de empleados o contratistas.
+En este escenario crearemos una API de hojas de horas para una empresa ficticia llamada ExampleCo. La API permitirá gestionar entradas de hoja de horas de un empleado o un contratista.
 
-También construiremos una aplicación móvil que se utilizará para ver y registrar entradas de hoja de hora en la base de datos centralizada de hojas de hora mediante la API.
+También crearemos una aplicación móvil que se utilizará para consultar y registrar entradas de hoja de horas en la base de datos centralizada de hojas de horas mediante la API.
 
 <Info>
   ### Resumen rápido
 
-  * Auth0 proporciona autenticación y autorización para API como una forma de proteger el acceso a los endpoints de API (consulta [Autenticación y autorización de API](/docs/es/get-started/architecture-scenarios/mobile-api/part-1#api-authentication-and-authorization))
-  * Para autorizar a un usuario de una aplicación móvil y concederle acceso a la API, Auth0 admite el [flujo de código de autorización con Proof Key for Code Exchange (PKCE)](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) (consulta [Proof Key for Code Exchange](/docs/es/get-started/architecture-scenarios/mobile-api/part-1#proof-key-for-code-exchange-pkce-))
-  * Tanto la aplicación móvil como la API deben configurarse en el Auth0 Dashboard (consulta [Configuración de Auth0](/docs/es/get-started/architecture-scenarios/mobile-api/part-2))
-  * Los Permissions del usuario pueden aplicarse mediante la Authorization Extension (consulta [Configurar la Authorization Extension](/docs/es/get-started/architecture-scenarios/mobile-api/part-2#configure-the-authorization-extension))
-  * La API se protege asegurándose de que se envíe un <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> válido en el encabezado HTTP Authorization al hacer llamadas a la API (consulta [Implementar la API](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#secure-the-endpoints))
-  * El SDK Auth0.Android puede utilizarse para autorizar al usuario de la aplicación móvil y obtener un token de acceso válido que pueda usarse para llamar a la API (consulta [Autorizar al usuario](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#authorize-the-user))
-  * La aplicación móvil puede obtener la información del perfil del usuario decodificando el token de ID (consulta [Obtener el perfil del usuario](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#get-the-user-profile))
-  * Los elementos de UI pueden mostrarse de forma condicional en función del scope concedido al usuario (consulta [Mostrar elementos de UI de forma condicional según el scope](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#display-ui-elements-conditionally-based-on-scope))
-  * La aplicación móvil envía el token de acceso en el encabezado HTTP Authorization al hacer llamadas a la API (consulta [Llamar a la API](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#call-the-api))
-  * El token de acceso del usuario de la aplicación móvil puede renovarse para garantizar que no tenga que volver a iniciar sesión durante una sesión (consulta [Renovar el token](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#renew-the-token))
+  * Auth0 proporciona autenticación y autorización de API como una forma de proteger el acceso a los endpoints de API (consulta [Autenticación y autorización de API](/docs/es/get-started/architecture-scenarios/mobile-api/part-1#api-authentication-and-authorization))
+  * Para autorizar a un usuario de la aplicación móvil y conceder acceso a la API, Auth0 admite el [flujo de código de autorización con Proof Key for Code Exchange (PKCE)](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) (consulta [Proof Key for Code Exchange](/docs/es/get-started/architecture-scenarios/mobile-api/part-1#proof-key-for-code-exchange-pkce-))
+  * Tanto la aplicación móvil como la API deben configurarse en el Auth0 Dashboard (consulta [Auth0 Configuration](/docs/es/get-started/architecture-scenarios/mobile-api/part-2))
+  * Los permisos de usuario pueden aplicarse mediante la Authorization Extension (consulta [Configurar la Authorization Extension](/docs/es/get-started/architecture-scenarios/mobile-api/part-2#configure-the-authorization-extension))
+  * La API se protege asegurando que se envíe un <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> válido en el encabezado HTTP Authorization al realizar llamadas a la API (consulta [Implementar la API](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#secure-the-endpoints))
+  * El SDK Auth0.Android puede utilizarse para autorizar al usuario de la aplicación móvil y obtener un token de acceso válido que puede usarse para llamar a la API (consulta [Autorizar al usuario](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#authorize-the-user))
+  * La aplicación móvil puede recuperar la información del perfil del usuario decodificando el token de ID (consulta [Obtener el perfil del usuario](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#get-the-user-profile))
+  * Los elementos de la UI pueden mostrarse de forma condicional según el scope concedido al usuario (consulta [Mostrar elementos de la UI de forma condicional según el scope](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#display-ui-elements-conditionally-based-on-scope))
+  * La aplicación móvil proporciona el token de acceso en el encabezado HTTP Authorization al realizar llamadas a la API (consulta [Llamar a la API](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#call-the-api))
+  * El token de acceso del usuario de la aplicación móvil puede renovarse para garantizar que el usuario no tenga que iniciar sesión de nuevo durante una sesión (consulta [Renovar el token](/docs/es/get-started/architecture-scenarios/mobile-api/part-3#renew-the-token))
 </Info>
 
 <div id="the-premise">
   ## La premisa
 </div>
 
-ExampleCo es una startup de consultoría. Actualmente tiene aproximadamente 100 empleados y también subcontrata varias actividades a contratistas externos. Todos los empleados y los contratistas externos deben completar sus partes de horas cada semana.
+ExampleCo es una startup de consultoría. Actualmente cuenta con aproximadamente 100 empleados y, además, externaliza varias actividades a contratistas externos. Todos los empleados y contratistas externos deben completar sus hojas de horas cada semana.
 
-La empresa ha desarrollado una aplicación de partes de horas, un caso que ya abordamos en [Inicio de sesión único para aplicaciones web tradicionales](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps). Los empleados internos usan esta aplicación web para completar sus partes de horas, pero la empresa quiere una aplicación móvil para que empleados y contratistas la utilicen cuando estén fuera de las instalaciones. La aplicación se usará para registrar entradas en la parte de horas y enviar los datos a la base de datos centralizada de partes de horas mediante la API. La aplicación también permitirá que los gerentes aprueben las entradas de la parte de horas.
+La empresa ha desarrollado una aplicación de hojas de horas, un escenario que cubrimos en [Inicio de sesión único para aplicaciones web tradicionales](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps). Los empleados internos usan esta aplicación web para completar sus hojas de horas, pero la empresa quiere una aplicación móvil para que empleados y contratistas la utilicen cuando no estén en las instalaciones. La aplicación se usará para registrar entradas en las hojas de horas y enviar los datos a la base de datos centralizada de hojas de horas mediante la API. La aplicación también permitirá a los gerentes aprobar las entradas de las hojas de horas.
 
 <div id="goals-requirements">
   ### Objetivos y requisitos
 </div>
 
-ExampleCo quiere crear una solución flexible. Es posible que haya varios empleados y contratistas que deban poder registrar entradas en la hoja de hora, así como procesos por lotes que puedan cargar entradas en la hoja de hora desde otros sistemas externos.
+ExampleCo quiere desarrollar una solución flexible. Es posible que haya varios empleados y contratistas que deban poder registrar entradas de hoja de hora, así como procesos por lotes que puedan cargar entradas de hoja de hora desde otros sistemas externos.
 
-Por ello, la empresa ha decidido desarrollar una única API de parte de horas que se utilizará para registrar el tiempo no solo desde esta aplicación móvil, sino también desde todas las demás aplicaciones. Quieren implementar una arquitectura de seguridad lo bastante flexible como para dar cabida a esto. ExampleCo quiere garantizar que gran parte del código y la lógica de negocio de la aplicación puedan compartirse entre las distintas aplicaciones.
+Por ello, la empresa ha decidido desarrollar una única API de hojas de horas, que se utilizará para registrar tiempo no solo desde esta aplicación móvil, sino también desde las demás aplicaciones. Quieren implementar una arquitectura de seguridad lo bastante flexible como para adaptarse a ello. ExampleCo quiere asegurarse de que gran parte del código y de la lógica de negocio de la aplicación pueda compartirse entre las distintas aplicaciones.
 
-Se requiere que solo los usuarios y las aplicaciones autorizados tengan acceso a la API de parte de horas.
+Se requiere que solo los usuarios y las aplicaciones autorizados tengan acceso a la API de hojas de horas.
 
 <div id="learn-more">
   ## Más información
 </div>
 
-* [Descripción general de la solución (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/part-1)
+* [Información general de la solución (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/part-1)
 * [Configuración de Auth0 (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/part-2)
-* [Configuración de la API y de las aplicaciones móviles (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/part-3)
-* [Implementación de la API de Node.js (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs)
+* [Configuración de la API y las aplicaciones móviles (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/part-3)
+* [Implementación de la API en Node.js (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/api-implementation-nodejs)
 * [Implementación de la aplicación móvil para Android (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/mobile-implementation-android)
 * [Conclusión (Aplicaciones móviles + API)](/docs/es/get-started/architecture-scenarios/mobile-api/part-4)

@@ -7,67 +7,67 @@ MfaWebAuthnPlatformChallengeMembers
 ````ts Example
 export interface MfaWebAuthnPlatformChallengeMembers extends BaseMembers {
   /**
-   * Screen-specific properties and data, including WebAuthn challenge options and remember device preference.
+   * Propiedades y datos específicos de la pantalla, incluidas las opciones del WebAuthn challenge y la preferencia de recordar dispositivo.
    * @type {ScreenMembersOnMfaWebAuthnPlatformChallenge}
    */
   screen: ScreenMembersOnMfaWebAuthnPlatformChallenge;
 
   /**
-   * Inicia el challenge del autenticador de plataforma WebAuthn.
-   * Este método llama internamente a `navigator.credentials.get()` usando las opciones de challenge
+   * Inicia el WebAuthn platform authenticator challenge.
+   * Este método llama internamente a `navigator.credentials.get()` usando las opciones del challenge
    * proporcionadas en `screen.publicKey`.
-   * Si tiene éxito, envía las credenciales resultantes a Auth0 con `action: "default"`.
+   * Si tiene éxito, envía la credencial resultante a Auth0 con `action: "default"`.
    *
-   * Si `navigator.credentials.get()` falla (por ejemplo, cancelación por parte del usuario, tiempo de espera u otros errores de la API de WebAuthn),
+   * Si `navigator.credentials.get()` falla (por ejemplo, cancelación del usuario, timeout u otros errores de la API de WebAuthn),
    * se recomienda llamar a `reportBrowserError` con los detalles del error.
    *
    * @param {VerifyPlatformAuthenticatorOptions} [options] - Parámetros opcionales para el proceso de verificación,
    * como `rememberDevice` (si `screen.showRememberDevice` es true) y otras opciones personalizadas.
-   * @returns {Promise<void>} Una promesa que se resuelve cuando se envía el intento de verificación.
+   * @returns {Promise<void>} Una Promise que se resuelve cuando se envía el intento de verificación.
    *                          Una operación exitosa generalmente resulta en una redirección.
-   * @throws {Error} Lanza un error si `screen.publicKey` no está presente,
+   * @throws {Error} Lanza un error si falta `screen.publicKey`,
    *                 si `navigator.credentials.get()` falla con un error inesperado no gestionado por `getPasskeyCredentials`,
    *                 o si el envío del formulario a Auth0 falla.
    *
    * @example
    * ```typescript
-   * // Assuming 'sdk' is an instance of MfaWebAuthnPlatformChallenge
+   * // Suponiendo que 'sdk' es una instancia de MfaWebAuthnPlatformChallenge
    * try {
    *   const remember = sdk.screen.showRememberDevice && userCheckedRememberDeviceBox;
    *   await sdk.verify({ rememberDevice: remember });
-   *   // On success, Auth0 handles redirection.
+   *   // En caso de éxito, Auth0 gestiona la redirección.
    * } catch (error) {
    *   console.error("Platform authenticator verification failed:", error);
-   *   // If it's a WebAuthn API error, report it
-   *   if (error.name && error.message) { // Basic check for DOMException like error
+   *   // Si es un error de la API de WebAuthn, repórtalo
+   *   if (error.name && error.message) { // Verificación básica de error similar a DOMException
    *     await sdk.reportBrowserError({ error: { name: error.name, message: error.message } });
    *   }
-   *   // Check sdk.transaction.errors for server-side validation messages if the page reloads.
+   *   // Comprueba sdk.transaction.errors para mensajes de validación del lado del servidor si la página se recarga.
    * }
    * ```
    */
   verify(options?: VerifyPlatformAuthenticatorOptions): Promise<void>;
 
   /**
-   * Reports a specific WebAuthn API error (from `navigator.credentials.get()`) to Auth0.
-   * This method should be used when `verify()` (or a manual `navigator.credentials.get()` call) fails due to
-   * a browser-side WebAuthn issue (e.g., user cancellation `NotAllowedError`, timeout).
-   * It submits the error details with `action: "showError::{errorDetailsJsonString}"` and an empty `response`.
+   * Reporta un error específico de la API de WebAuthn (de `navigator.credentials.get()`) a Auth0.
+   * Este método debe usarse cuando `verify()` (o una llamada manual a `navigator.credentials.get()`) falla debido a
+   * un problema de WebAuthn en el navegador (por ejemplo, cancelación del usuario `NotAllowedError`, timeout).
+   * Envía los detalles del error con `action: "showError::{errorDetailsJsonString}"` y una `response` vacía.
    *
-   * @param {ReportBrowserErrorOptions} options - Contains the `error` object (with `name` and `message`
-   * from the WebAuthn API DOMException) and any other custom options.
-   * @returns {Promise<void>} A promise that resolves when the error report is submitted.
-   * @throws {Error} Throws an error if the form submission fails (e.g., network error, invalid state).
+   * @param {ReportBrowserErrorOptions} options - Contiene el objeto `error` (con `name` y `message`
+   * del DOMException de la API de WebAuthn) y cualquier otra opción personalizada.
+   * @returns {Promise<void>} Una Promise que se resuelve cuando se envía el reporte del error.
+   * @throws {Error} Lanza un error si el envío del formulario falla (por ejemplo, error de red, estado inválido).
    *
    * @example
    * ```typescript
-   * // Assuming 'sdk' is an instance of MfaWebAuthnPlatformChallenge
-   * // And webAuthnDomException is an error object from a failed navigator.credentials.get() call.
+   * // Suponiendo que 'sdk' es una instancia de MfaWebAuthnPlatformChallenge
+   * // Y webAuthnDomException es un objeto de error de una llamada fallida a navigator.credentials.get().
    * try {
    *   await sdk.reportBrowserError({
    *     error: { name: webAuthnDomException.name, message: webAuthnDomException.message }
    *   });
-   *   // Auth0 will process this error and may re-render the page or redirect.
+   *   // Auth0 procesará este error y puede que vuelva a renderizar la página o redirija.
    * } catch (submitError) {
    *   console.error("Failed to report WebAuthn browser error:", submitError);
    * }
@@ -76,20 +76,20 @@ export interface MfaWebAuthnPlatformChallengeMembers extends BaseMembers {
   reportBrowserError(options: ReportBrowserErrorOptions): Promise<void>;
 
   /**
-   * Allows the user to opt-out of the WebAuthn platform challenge and select a different MFA method.
-   * This action submits `action: "pick-authenticator"` to Auth0, which should navigate
-   * the user to an MFA factor selection screen.
+   * Permite al usuario omitir el WebAuthn platform challenge y seleccionar un método MFA diferente.
+   * Esta acción envía `action: "pick-authenticator"` a Auth0, lo que debería llevar
+   * al usuario a una pantalla de selección de factor MFA.
    *
-   * @param {TryAnotherMethodOptions} [options] - Optional custom parameters to be sent with the request.
-   * @returns {Promise<void>} A promise that resolves when the 'pick-authenticator' action is submitted.
-   * @throws {Error} Throws an error if the form submission fails.
+   * @param {TryAnotherMethodOptions} [options] - Parámetros personalizados opcionales que se enviarán con la solicitud.
+   * @returns {Promise<void>} Una Promise que se resuelve cuando se envía la acción 'pick-authenticator'.
+   * @throws {Error} Lanza un error si el envío del formulario falla.
    *
    * @example
    * ```typescript
-   * // Assuming 'sdk' is an instance of MfaWebAuthnPlatformChallenge
+   * // Suponiendo que 'sdk' es una instancia de MfaWebAuthnPlatformChallenge
    * try {
    *   await sdk.tryAnotherMethod();
-   *   // On success, Auth0 handles redirection to MFA selection.
+   *   // En caso de éxito, Auth0 gestiona la redirección a la selección de MFA.
    * } catch (error) {
    *   console.error("Failed to switch MFA method:", error);
    * }
@@ -112,7 +112,7 @@ export interface MfaWebAuthnPlatformChallengeMembers extends BaseMembers {
 <ParamField body="prompt" type={<span><a href="/docs/es/libraries/acul/js-sdk/Screens/interfaces/PromptMembers">PromptMembers</a></span>} />
 
 <ParamField body="screen" type={<span><a href="/docs/es/libraries/acul/js-sdk/Screens/interfaces/ScreenMembersOnMfaWebAuthnPlatformChallenge">ScreenMembersOnMfaWebAuthnPlatformChallenge</a></span>}>
-  Propiedades y datos específicos de la pantalla, incluidas las opciones del desafío de WebAuthn y la preferencia de recordar el dispositivo.
+  Propiedades y datos específicos de la pantalla, incluidas las opciones del desafío de WebAuthn y la preferencia de recordar dispositivo.
 </ParamField>
 
 <ParamField body="tenant" type={<span><a href="/docs/es/libraries/acul/js-sdk/Screens/interfaces/TenantMembers">TenantMembers</a></span>} />
@@ -130,10 +130,10 @@ export interface MfaWebAuthnPlatformChallengeMembers extends BaseMembers {
 <ParamField body="reportBrowserError" type="Promise<void>">
   Informa a Auth0 sobre un error específico de la API de WebAuthn (de `navigator.credentials.get()`).
   Este método debe usarse cuando `verify()` (o una llamada manual a `navigator.credentials.get()`) falla debido a
-  un problema de WebAuthn en el navegador (p. ej., cancelación del usuario `NotAllowedError`, tiempo de espera agotado).
-  Envía los detalles del error con `action: "showError::{errorDetailsJsonString}"` y una `response` vacía.
+  un problema de WebAuthn en el navegador (p. ej., cancelación del usuario `NotAllowedError`, `timeout`).
+  Envía los detalles del error con `action: "showError::{errorDetailsJsonString}"` y un `response` vacío.
 
-  Una promesa que se resuelve cuando se envía el informe de error.
+  Una promesa que se resuelve cuando se envía el reporte del error.
 
   #### Lanza
 
@@ -167,9 +167,9 @@ export interface MfaWebAuthnPlatformChallengeMembers extends BaseMembers {
 </ParamField>
 
 <ParamField body="tryAnotherMethod" type="Promise<void>">
-  Permite al usuario salir del desafío de plataforma de WebAuthn y seleccionar un método de MFA diferente.
+  Permite al usuario salir del desafío de plataforma de WebAuthn y seleccionar un método MFA diferente.
   Esta acción envía `action: "pick-authenticator"` a Auth0, lo que debería llevar
-  al usuario a una pantalla de selección de factor de MFA.
+  al usuario a una pantalla de selección de factor MFA.
 
   Una promesa que se resuelve cuando se envía la acción &#39;pick-authenticator&#39;.
 
@@ -196,20 +196,20 @@ export interface MfaWebAuthnPlatformChallengeMembers extends BaseMembers {
 
 <ParamField body="verify" type="Promise<void>">
   Inicia el desafío del autenticador de plataforma de WebAuthn.
-  Este método llama internamente a `navigator.credentials.get()` con las opciones del desafío
+  Este método llama internamente a `navigator.credentials.get()` con las opciones de desafío
   proporcionadas en `screen.publicKey`.
-  Si tiene éxito, envía la credencial resultante a Auth0 con `action: "default"`.
+  Si se completa correctamente, envía la credencial resultante a Auth0 con `action: "default"`.
 
-  Si `navigator.credentials.get()` falla (p. ej., por cancelación del usuario, tiempo de espera agotado u otros errores de la API de WebAuthn),
+  Si `navigator.credentials.get()` falla (por ejemplo, por cancelación del usuario, `timeout` u otros errores de la API de WebAuthn),
   se recomienda llamar a `reportBrowserError` con los detalles del error.
 
   Una promesa que se resuelve cuando se envía el intento de verificación.
-  Una operación exitosa normalmente provoca una redirección.
+  Una operación correcta suele dar lugar a una redirección.
 
   #### Lanza
 
   Lanza un error si falta `screen.publicKey`,
-  si `navigator.credentials.get()` falla con un error inesperado no controlado por `getPasskeyCredentials`,
+  si `navigator.credentials.get()` falla con un error inesperado que `getPasskeyCredentials` no controla,
   o si falla el envío del formulario a Auth0.
 
   ```typescript Example
@@ -217,27 +217,27 @@ export interface MfaWebAuthnPlatformChallengeMembers extends BaseMembers {
   try {
     const remember = sdk.screen.showRememberDevice && userCheckedRememberDeviceBox;
     await sdk.verify({ rememberDevice: remember });
-    // Si tiene éxito, Auth0 se encarga de la redirección.
+    // Si se realiza correctamente, Auth0 se encarga de la redirección.
   } catch (error) {
     console.error("Platform authenticator verification failed:", error);
-    // Si es un error de la API de WebAuthn, repórtalo
-    if (error.name && error.message) { // Verificación básica para un error de tipo DOMException
+    // Si es un error de la API de WebAuthn, infórmalo
+    if (error.name && error.message) { // Comprobación básica de un error similar a DOMException
       await sdk.reportBrowserError({ error: { name: error.name, message: error.message } });
     }
-    // Revisa sdk.transaction.errors para ver los mensajes de validación del lado del servidor si la página se recarga.
+    // Revisa sdk.transaction.errors para ver mensajes de validación del servidor si la página se recarga.
   }
   ```
 
-  <Expandable title="Parámetros">
+  <Expandable title="Parameters">
     <ParamField body="options?" type={<span><a href="/docs/es/libraries/acul/js-sdk/Screens/interfaces/VerifyPlatformAuthenticatorOptions">VerifyPlatformAuthenticatorOptions</a></span>}>
       Parámetros opcionales para el proceso de verificación,
-      como `rememberDevice` (si `screen.showRememberDevice` es true) y otras opciones personalizadas.
+      como `rememberDevice` (si `screen.showRememberDevice` es `true`) y otras opciones personalizadas.
 
       **Propiedades**
 
       <ParamField body="rememberDevice?" type="boolean">
-        Opcional. Si es true, intenta recordar el navegador para futuros desafíos de MFA.
-        Corresponde al campo de formulario `rememberBrowser`. Esto solo se aplica si `screen.showRememberDevice` es true.
+        Opcional. Si es `true`, intenta recordar el navegador para futuros desafíos MFA.
+        Corresponde al campo de formulario `rememberBrowser`. Esto solo se aplica si `screen.showRememberDevice` es `true`.
       </ParamField>
     </ParamField>
   </Expandable>

@@ -1,18 +1,18 @@
 ---
-description: Descripción general de las diferentes formas de verificar los correos electrónicos de los usuarios con Auth0
+description: Información general sobre las distintas maneras de verificar los correos electrónicos de los usuarios con Auth0
 title: Verificar correos electrónicos con Auth0
 ---
 
-Al usar una dirección de correo electrónico proporcionada por un usuario, es importante verificar que tenga acceso a ella. Esto es así siempre que envíes un correo electrónico a un usuario o si usas el correo electrónico como campo de indexación para búsquedas. Auth0 no recomienda usar una dirección de correo electrónico como forma de validar que un usuario es quien dice ser.
+Cuando uses una dirección de correo electrónico proporcionada por un usuario, es importante verificar que el usuario tenga acceso a esa dirección. Esto es así siempre que le envíes un correo electrónico a un usuario o que uses la dirección de correo como criterio de indexación para las búsquedas. Auth0 no recomienda usar una dirección de correo electrónico como forma de validar que un usuario es quien dice ser.
 
-La verificación del correo electrónico es crucial para las aplicaciones que:
+La verificación del correo electrónico es fundamental para las aplicaciones que:
 
-* Usan direcciones de correo electrónico como una de las principales formas de indexar usuarios
+* Usan direcciones de correo electrónico como una de las formas principales de indexar usuarios
 * Envían correos electrónicos a los usuarios
 * Usan direcciones de correo electrónico para recomendar la vinculación de cuentas
-* Permiten que los usuarios creen cuentas vinculadas a una dirección de correo electrónico
+* Permiten a los usuarios crear cuentas vinculadas a una dirección de correo electrónico
 
-Auth0 ofrece varias formas de agregar la verificación del correo electrónico a tu aplicación, así como [una extensión de Marketplace](https://marketplace.auth0.com/integrations/auth-0-require-email-verification) que exige que los usuarios verifiquen sus correos electrónicos antes de iniciar sesión.
+Auth0 ofrece varias maneras de agregar la verificación del correo electrónico a tu aplicación, así como [una extensión de Marketplace](https://marketplace.auth0.com/integrations/auth-0-require-email-verification) que exige que los usuarios verifiquen sus correos electrónicos antes de iniciar sesión.
 
 <Warning>
   Aunque la verificación del correo electrónico reduce el riesgo de que las cuentas se vean comprometidas, no es una solución perfecta. Es posible que tu aplicación también necesite otras medidas de seguridad.
@@ -22,57 +22,57 @@ Auth0 ofrece varias formas de agregar la verificación del correo electrónico a
   ## Elige el enfoque adecuado
 </div>
 
-Hay varias formas de marcar correos electrónicos como verificados o no verificados. Para determinar qué método es el más adecuado para ti, aquí tienes algunas preguntas que puedes hacerte tú o tu equipo:
+Hay varias formas de marcar correos electrónicos como verificados o no verificados. Para determinar qué método te conviene más, aquí tienes algunas preguntas que puedes hacerte a ti mismo o a tu equipo:
 
-* ¿Estoy almacenando (o tengo pensado almacenar) identificadores y contraseñas en Auth0 (o en una base de datos conectada a través de Auth0)?
-* ¿Tengo requisitos especiales de verificación de correo electrónico que me impiden usar el flujo integrado de verificación de correo electrónico de Auth0?
-* ¿Necesito marcar de forma masiva como verificados un gran número de usuarios?
-* ¿Tengo usuarios que provienen de Azure AD, ADFS u otras conexiones empresariales cuyos correos electrónicos deberán verificarse?
+* ¿Estoy almacenando (o planeo almacenar) identificadores y contraseñas en Auth0 (o en una base de datos conectada a través de Auth0)?
+* ¿Tengo requisitos especiales de verificación de correo electrónico que me impiden usar el flujo integrado de verify email de Auth0?
+* ¿Necesito marcar en bloque como verificados por correo electrónico a una gran cantidad de usuarios?
+* ¿Tengo usuarios que provienen de Azure AD, ADFS u otras conexiones empresariales y necesitarán verificar sus correos electrónicos?
 
-Si estás almacenando identificadores y contraseñas en Auth0 o usas una conexión de base de datos personalizada para almacenar usuarios en tu propio sistema, probablemente puedas usar el [flujo integrado de verificación de correo electrónico de Auth0](#magic-link-in-a-verification-email).
+Si estás almacenando identificadores y contraseñas en Auth0 o usas una conexión de base de datos personalizada para almacenar usuarios en tu propio sistema, entonces probablemente puedas usar el [flujo integrado de verificación de correo electrónico](#magic-link-in-a-verification-email) de Auth0.
 
-Si tienes requisitos que te impiden usar el flujo integrado de Auth0 o necesitas marcar de forma masiva un gran número de usuarios, tenemos [endpoints de API](#custom-or-bulk-verification-with-the-management-api) que pueden ayudarte.
+Si tienes requisitos que te impiden usar el flujo integrado de Auth0 o necesitas marcar en bloque a una gran cantidad de usuarios, contamos con [endpoints de API](#custom-or-bulk-verification-with-the-management-api) para ayudarte.
 
-Por último, si tienes usuarios de conexiones empresariales, algunas de esas conexiones tienen flujos de trabajo especiales de verificación de correo electrónico. Para obtener más información, consulta [compatibilidad con verificación especial](#special-verification-support).
+Por último, si tienes usuarios de conexiones empresariales, algunas de esas conexiones tienen flujos de trabajo especiales de verificación de correo electrónico. Para obtener más información, consulta [Compatibilidad con verificación especial](#special-verification-support).
 
 <div id="email-verification-links">
   ## Enlaces de verificación del correo electrónico
 </div>
 
-Una forma habitual de verificar correos electrónicos con Auth0 es enviar al usuario un enlace de verificación del correo electrónico. Cuando el usuario hace clic en el enlace, el indicador `email_verified` del usuario pasa a `true`.
+Una forma habitual de verificar direcciones de correo electrónico con Auth0 es enviar al usuario un enlace de verificación. Cuando el usuario hace clic en el enlace, el indicador `email_verified` se establece en `true`.
 
-**De forma predeterminada, Auth0 envía enlaces de verificación por correo electrónico a los usuarios cuando se registran.**
+**De forma predeterminada, Auth0 envía enlaces de verificación a los usuarios cuando se registran.**
 
-También puedes personalizar cuándo Auth0 envía correos electrónicos de verificación. Por ejemplo, si necesitas verificar correos electrónicos de forma masiva o si quieres posponer la verificación hasta que el usuario realice una acción que requiera un correo electrónico verificado.
+También puedes personalizar cuándo Auth0 envía los correos de verificación. Por ejemplo, si necesitas verificar correos electrónicos en bloque o si quieres posponer la verificación hasta que el usuario realice una acción que requiera un correo electrónico verificado.
 
-Hay dos formas de controlar cuándo el usuario recibe el correo electrónico de verificación:
+Hay dos formas de controlar cuándo el usuario recibe el correo de verificación:
 
-* Usa la [tarea de verificación del correo electrónico](https://auth0.com/docs/api/management/v2#!/Jobs/post_verification_email). Esto hace que Auth0 envíe el correo electrónico de verificación con la plantilla de correo electrónico de verificación
-* Crea un [ticket de verificación del correo electrónico](https://auth0.com/docs/api/management/v2#!/Tickets/post_email_verification) y envía tú mismo el correo electrónico, incluyendo el ticket que el usuario debe usar para verificar su correo electrónico
+* Usa la [tarea de verificación de correo electrónico](https://auth0.com/docs/api/management/v2#!/Jobs/post_verification_email). Esto hace que Auth0 envíe el correo de verificación con la plantilla verify email
+* Crea un [ticket de verificación de correo electrónico](https://auth0.com/docs/api/management/v2#!/Tickets/post_email_verification) y envía tú mismo el correo, incluyendo el ticket que el usuario debe usar para verificar su dirección de correo electrónico
 
 <div id="one-time-passwords">
   ## Contraseñas de un solo uso
 </div>
 
-Las contraseñas de un solo uso (OTP) se pueden enviar por correo electrónico a cada usuario nuevo en el momento de crear la cuenta para garantizar que todos los usuarios tengan un correo electrónico verificado. Como los enlaces de verificación por correo electrónico pueden provocar verificaciones accidentales por parte de escáneres de correo o de los propios usuarios, los OTP garantizan que cada usuario verifique activamente una dirección de correo electrónico existente. Para usar OTP, tu tenant debe tener habilitados [Universal Login](/docs/es/authenticate/login/auth0-universal-login), [Flexible Identifiers](/docs/es/authenticate/database-connections/flexible-identifiers-and-attributes) e [inicio de sesión Identifer-First](/docs/es/authenticate/login/auth0-universal-login/identifier-first).
+Las contraseñas de un solo uso (OTP) pueden enviarse por correo electrónico a cada usuario nuevo al momento de crear la cuenta para garantizar que todos los usuarios tengan un correo electrónico verificado. Dado que los enlaces de verificación por correo electrónico pueden dar lugar a verificaciones accidentales por parte de escáneres de correo o de los propios usuarios, las OTP garantizan que cada usuario verifique activamente una dirección de correo electrónico existente. Para usar OTP, su tenant debe tener habilitados [Universal Login](/docs/es/authenticate/login/auth0-universal-login), [Flexible Identifiers](/docs/es/authenticate/database-connections/flexible-identifiers-and-attributes) y [login Identifer-First](/docs/es/authenticate/login/auth0-universal-login/identifier-first).
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Los tokens OTP para la verificación de identificadores de teléfono y correo electrónico tienen una duración de 900 segundos.
+  Los tokens OTP para la verificación de identificadores de teléfono y correo electrónico tienen una vigencia de 900 segundos.
 </Callout>
 
-Para configurar OTP, ve a [**Authentication &gt; Database**](https://manage.auth0.com/#/authentication) y selecciona la conexión que quieres cambiar; luego, elige **Attributes**, busca **Email**, selecciona el botón de menú y habilita **Contraseña de un solo uso (OTP)**.
+Para configurar las OTP, vaya a [**Authentication &gt; Database**](https://manage.auth0.com/#/authentication) y seleccione la conexión que desea cambiar; luego elija **Atributos**, busque **Email,** seleccione el botón de menú y habilite **One-Time Password (OTP)**.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/5SO4gvkdOOZEnPInXrIN1m/5b30204358ac42dcbc3ec0f7e6af9dcf/Email_Config_-_English.png)</Frame>
 
 <div id="custom-or-bulk-verification-with-the-management-api">
-  ## Verificación personalizada o masiva con la Management API
+  ## Verificación personalizada o masiva con Management API
 </div>
 
 <Warning>
   Esto funciona para conexiones sociales y conexiones de base de datos, pero no para conexiones empresariales. Ten en cuenta que el campo `email_verified` puede ser sobrescrito por el proveedor de identidad social si los datos provienen de él.
 </Warning>
 
-En algunos casos, quizá quieras verificar el correo electrónico por otros medios. Por ejemplo, puede que tengas una lista de usuarios que quieras verificar de forma masiva, o algún otro método para verificar el correo electrónico de un usuario mediante un flujo de trabajo personalizado que hayas creado tú mismo.
+En algunos casos, quizá quieras verificar el correo electrónico por otros medios. Por ejemplo, puede que tengas una lista de usuarios para verificar de forma masiva o algún otro método para verificar el correo electrónico de un usuario mediante un flujo de trabajo personalizado que hayas creado tú mismo.
 
 En estos casos, puedes usar el [endpoint PATCH `/api/v2/users`](https://auth0.com/docs/api/management/v2/#!/Users/patch_users_by_id) para establecer `email_verified` en `true`.
 
@@ -80,4 +80,4 @@ En estos casos, puedes usar el [endpoint PATCH `/api/v2/users`](https://auth0.co
   ## Compatibilidad con verificación especial
 </div>
 
-Para las conexiones empresariales de Azure AD y ADFS, Auth0 admite algunos flujos de trabajo personalizados de verificación del correo electrónico. Esto puede ayudarte a garantizar que los usuarios que provienen de otros sistemas tengan direcciones de correo verificadas de forma precisa y segura. Para obtener más información, lee [Verificación del correo electrónico para Azure AD y ADFS](/docs/es/authenticate/identity-providers/enterprise-identity-providers/azuread-adfs-email-verification).
+Para las conexiones empresariales de Azure AD y ADFS, Auth0 admite algunos flujos personalizados de verificación del correo electrónico. Esto puede ayudarle a asegurarse de que los usuarios que provienen de otros sistemas tengan direcciones de correo electrónico verificadas de forma precisa y segura. Para obtener más información, lea [Verificación del correo electrónico para Azure AD y ADFS](/docs/es/authenticate/identity-providers/enterprise-identity-providers/azuread-adfs-email-verification).

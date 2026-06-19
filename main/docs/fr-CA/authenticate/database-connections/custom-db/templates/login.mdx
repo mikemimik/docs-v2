@@ -1,11 +1,11 @@
 ---
 description: Décrit les modèles de scripts d’action de base de données personnalisée pour la connexion des utilisateurs.
-title: Modèles de script Login
+title: Modèles de scripts Login
 ---
 
-Le script Login implémente la fonction exécutée chaque fois qu’un utilisateur doit s’authentifier. Nous vous recommandons de nommer cette fonction `login`.
+Le script Login implémente la fonction exécutée chaque fois qu’un utilisateur doit s’authentifier. Nous recommandons de nommer cette fonction `login`.
 
-Ce script est requis à la fois pour l’authentification héritée et pour la [migration automatique](/docs/fr-CA/manage-users/user-migration/configure-automatic-migration-from-your-database). Si la migration automatique est configurée pour la connexion, le processus de migration se déclenche après la première connexion réussie de l’utilisateur. Auth0 recommande de définir un `user_id` permanent dans le profil utilisateur renvoyé afin d’éviter la création d’utilisateurs en double.
+Ce script est requis à la fois pour l’authentification héritée et pour la [migration automatique](/docs/fr-CA/manage-users/user-migration/configure-automatic-migration-from-your-database). Si la migration automatique est configurée pour cette connexion, le processus de migration se déclenche après la première connexion réussie de l’utilisateur. Auth0 recommande de définir un `user_id` permanent dans le profil utilisateur renvoyé afin d’éviter la création d’utilisateurs en double.
 
 <div id="login-function">
   ## Fonction Login
@@ -13,7 +13,7 @@ Ce script est requis à la fois pour l’authentification héritée et pour la [
 
 La fonction `login` doit :
 
-* Envoyer les identifiants fournis par l’utilisateur à l’API de la base de données externe.
+* Envoyer à l’API de la base de données externe les identifiants fournis par l’utilisateur.
 * Retourner les données de profil de l’utilisateur si l’authentification réussit.
 * Retourner une erreur si l’authentification échoue.
 
@@ -29,8 +29,8 @@ login(userNameOrEmail, password, callback): function
 
 | Paramètre         | Type     | Description                                                               |
 | ----------------- | -------- | ------------------------------------------------------------------------- |
-| `userNameOrEmail` | String   | Le nom d’utilisateur ou le courriel de l’utilisateur.                              |
-| `password`        | String   | Le mot de passe de l’utilisateur en clair.                                |
+| `userNameOrEmail` | String   | Le nom d’utilisateur ou l’adresse courriel de l’utilisateur.              |
+| `password`        | String   | Le mot de passe de l’utilisateur en texte clair.                          |
 | `callback`        | Function | Sert à transmettre les erreurs ou les données de profil dans le pipeline. |
 
 ### Exemple
@@ -51,11 +51,11 @@ function login(userNameOrEmail, password, callback) {
   };
 
   send(options, (err, profileData) => {
-    // Retourner une erreur dans le callback si l'authentification échoue
+    // Retourner une erreur dans le rappel si l'authentification échoue
     if (err) {
       return callback(new WrongUsernameOrPasswordError(userNameOrEmail, "My custom error message."));
     } else {
-      // Retourner les données du profil dans le callback si l'authentification réussit
+      // Retourner les données du profil dans le rappel si l'authentification réussit
       let profile = {
         username: profileData.username,
         email: profileData.emailAddress,
@@ -73,7 +73,7 @@ function login(userNameOrEmail, password, callback) {
 </div>
 
 <Warning>
-  Évitez de consigner, de stocker ou de transporter un identifiant par mot de passe sous une forme non chiffrée, où que ce soit.
+  Évitez de journaliser, de stocker ou de transmettre les données d’authentification du mot de passe sous forme non chiffrée.
 </Warning>
 
 Chiffrez la valeur `password` à l’aide d’une bibliothèque de hachage cryptographique comme `bcrypt` afin d’éviter toute fuite de données.
@@ -94,7 +94,7 @@ bcrypt.hash(password, 10, function (err, hash) {
   ## Fonction de rappel
 </div>
 
-La fonction `callback` sert à transmettre les données du profil utilisateur ou les données d’erreur dans le pipeline.
+La fonction `callback` sert à transmettre des données de profil utilisateur ou des données d’erreur dans le pipeline.
 
 <div id="definition">
   ### Définition
@@ -109,17 +109,17 @@ callback(error[, profile]): function
 | Paramètre | Type  | Obligatoire | Description                                      |
 | --------- | ----- | ----------- | ------------------------------------------------ |
 | `error`   | Objet | Obligatoire | Contient les données d’erreur.                   |
-| `profile` | Objet | Facultatif  | Contient les données du profil de l’utilisateur. |
+| `profile` | Objet | Facultatif  | Contient les données de profil de l’utilisateur. |
 
 <div id="return-the-user-profile">
-  ### Renvoyer le profil utilisateur
+  ### Retourner le profil utilisateur
 </div>
 
 <Warning>
-  Les données du profil renvoyées par le script Login pour un utilisateur doivent correspondre aux données du profil renvoyées par le script Get User.
+  Les données de profil renvoyées par le script Login pour un utilisateur doivent être cohérentes avec celles renvoyées par le script Get User.
 </Warning>
 
-Si l’utilisateur s’authentifie avec succès, les données de son profil doivent être renvoyées dans l’objet `profile`, sous une [forme normalisée](/docs/fr-CA/manage-users/user-accounts/user-profiles/normalized-user-profile-schema). En plus des champs standard, vous pouvez inclure les champs `user_metadata`, `app_metadata` et `mfa_factors`.
+Si l’utilisateur s’authentifie avec succès, ses données de profil doivent être renvoyées dans l’objet `profile` sous [forme normalisée](/docs/fr-CA/manage-users/user-accounts/user-profiles/normalized-user-profile-schema). En plus des champs standard, vous pouvez inclure les champs `user_metadata`, `app_metadata` et `mfa_factors`.
 
 #### Exemple
 
@@ -149,34 +149,34 @@ return callback(null, {
   ### Renvoyer une erreur
 </div>
 
-Si une erreur se produit, le paramètre `error` doit contenir des renseignements pertinents sur la nature du problème.
+Si une erreur se produit, le paramètre `error` doit contenir les renseignements pertinents sur la nature du problème.
 
 <div id="wrongusernameorpassworderror-type-object">
   #### Objet de type WrongUsernameOrPasswordError
 </div>
 
-L’objet d’erreur personnalisé `WrongUsernameOrPasswordError` vous permet de transmettre des données qui s’afficheront dans vos [journaux du tenant](/docs/fr-CA/deploy-monitor/logs).
+L’objet d’erreur personnalisée `WrongUsernameOrPasswordError` vous permet de transmettre des données qui s’afficheront dans vos [journaux du tenant](/docs/fr-CA/deploy-monitor/logs).
 
 <div id="constructor">
   ##### Constructeur
 </div>
 
-Le constructeur `WrongUsernameOrPasswordError` prend jusqu’à deux paramètres :
+Le constructeur `WrongUsernameOrPasswordError` accepte jusqu’à deux paramètres :
 
 ```js wrap lines
 new WrongUsernameOrPasswordError(userNameOrEmail[, message]): WrongUsernameOrPasswordError
 ```
 
-| Paramètre         | Type   | Obligatoire | Description                                                                                |
-| ----------------- | ------ | ----------- | ------------------------------------------------------------------------------------------ |
-| `userNameOrEmail` | String | Obligatoire | Contient le nom d’utilisateur ou l’adresse courriel de l’utilisateur, ou la valeur `null`. |
-| `message`         | String | Facultatif  | Contient des renseignements sur l’erreur.                                                  |
+| Paramètre         | Type   | Obligatoire | Description                                                                |
+| ----------------- | ------ | ----------- | -------------------------------------------------------------------------- |
+| `userNameOrEmail` | String | Obligatoire | Contient le nom d’utilisateur ou l’adresse courriel, ou une valeur `null`. |
+| `message`         | String | Facultatif  | Contient des renseignements sur l’erreur.                                  |
 
 <div id="return-error-with-username-or-email">
   #### Retourner une erreur avec un nom d’utilisateur ou une adresse courriel
 </div>
 
-Si vous retournez une erreur en fournissant une valeur pour le champ `userNameOrEmail`, Auth0 consignera un événement `fp` dans le journal du tenant.
+Si vous renvoyez une erreur avec une valeur dans le champ `userNameOrEmail`, Auth0 consignera un événement `fp` dans le journal du tenant.
 
 <div id="example">
   ##### Exemple
@@ -190,13 +190,13 @@ return callback(new WrongUsernameOrPasswordError(userNameOrEmail, "My custom err
 | ----------------------------------------- | ------------------------------------------- |
 | **Code**                                  | `fp`                                        |
 | **Événement**                             | Échec de connexion (mot de passe incorrect) |
-| **Description**                           | `My custom error message`                   |
+| **Description**                           | `Mon message d’erreur personnalisé`         |
 
 <div id="return-error-without-username-or-email">
-  #### Retourner une erreur sans nom d’utilisateur ni courriel
+  #### Retourner une erreur sans nom d’utilisateur ou adresse courriel
 </div>
 
-Si vous retournez une erreur avec une valeur `null` pour le champ `userNameOrEmail`, Auth0 consignera un événement du journal du tenant `fu`.
+Si vous retournez une erreur avec la valeur `null` dans le champ `userNameOrEmail`, Auth0 consignera un événement `fu` dans le journal du tenant.
 
 <div id="example">
   ##### Exemple
@@ -206,11 +206,11 @@ Si vous retournez une erreur avec une valeur `null` pour le champ `userNameOrEma
 return callback(new WrongUsernameOrPasswordError(null, "My custom error message"));
 ```
 
-| Champ de l’événement dans le journal du tenant | Valeur                                                      |
-| ---------------------------------------------- | ----------------------------------------------------------- |
-| **Code**                                       | `fu`                                                        |
-| **Événement**                                  | Échec de connexion (courriel ou nom d’utilisateur invalide) |
-| **Description**                                | `My custom error message`                                   |
+| Champ de l’événement du journal du tenant | Valeur                                                           |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| **Code**                                  | `fu`                                                             |
+| **Événement**                             | Échec de connexion (adresse courriel/nom d’utilisateur invalide) |
+| **Description**                           | `Mon message d'erreur personnalisé`                              |
 
 <div id="sync-user-profile-attributes-at-each-login">
   ## Synchroniser les attributs du profil utilisateur à chaque connexion
@@ -218,13 +218,13 @@ return callback(new WrongUsernameOrPasswordError(null, "My custom error message"
 
 Activez le paramètre **Synchroniser les attributs du profil utilisateur à chaque connexion** si vous voulez qu’Auth0 mette à jour les champs `name`, `nickname`, `given_name`, `family_name` et/ou `picture` avec les valeurs renvoyées par la base de données externe à chaque connexion.
 
-Si vous n’activez pas ce paramètre, les valeurs renvoyées par la base de données externe lors de la première connexion de l’utilisateur seront conservées lors des connexions suivantes, même si elles ont changé dans la base de données externe.
+Si vous n’activez pas ce paramètre, les valeurs renvoyées par la base de données externe lors de la première connexion de l’utilisateur continueront d’être utilisées lors des connexions suivantes, même si elles ont changé dans la base de données externe.
 
 <div id="language-specific-script-examples">
-  ## Exemples de scripts par langage
+  ## Exemples de scripts propres à chaque langage
 </div>
 
-Auth0 fournit des scripts d’exemple pour les langages et technologies suivants :
+Auth0 fournit des exemples de scripts pour les langages et technologies suivants :
 
 * [JavaScript](#javascript)
 * [ASP.NET Membership Provider (MVC3 - Universal Providers)](#asp-net-membership-provider-mvc3-universal-providers-)
@@ -245,8 +245,8 @@ Auth0 fournit des scripts d’exemple pour les langages et technologies suivants
 function login(email, password, callback) {
   // Ce script doit authentifier un utilisateur par rapport aux identifiants stockés dans
   // votre base de données.
-  // Il est exécuté lorsqu'un utilisateur tente de se connecter ou immédiatement après son
-  // inscription (comme vérification que l'utilisateur s'est bien inscrit).
+  // Il est exécuté lorsqu'un utilisateur tente de se connecter ou immédiatement après
+  // son inscription (à titre de vérification que l'inscription a réussi).
   //
   // Tout ce que ce script retourne sera inclus dans le profil de l'utilisateur
   // et sera visible par tous les administrateurs du tenant. Évitez d'ajouter des attributs
@@ -259,8 +259,8 @@ function login(email, password, callback) {
   //     bcrypt.compare(password, dbPasswordHash, function(err, res)) { ... }
   //
   // Ce script peut se terminer de trois façons :
-  // 1. Les identifiants de l'utilisateur sont valides. Le profil utilisateur retourné doit être dans
-  // le format suivant : https://auth0.com/docs/users/normalized/auth0/normalized-user-profile-schema
+  // 1. Les identifiants de l'utilisateur sont valides. Le profil utilisateur retourné doit être au
+  // format suivant : https://auth0.com/docs/users/normalized/auth0/normalized-user-profile-schema
   //     var profile = {
   //       user_id: ..., // user_id est obligatoire
   //       email: ...,
@@ -272,7 +272,7 @@ function login(email, password, callback) {
   // 3. Une erreur s'est produite lors de la tentative d'accès à votre base de données
   //     callback(new Error("my error message"));
   //
-  // La liste des modules Node.js pouvant être référencés est disponible ici :
+  // Une liste des modules Node.js pouvant être référencés est disponible ici :
   //
   //    https://tehsis.github.io/webtaskio-canirequire/
   const msg = 'Please implement the Login script for this database connection ' +
@@ -298,30 +298,30 @@ function login(email, password, callback) {
     server: 'the server',
     options: {
       database: 'the db name',
-      encrypt: true // pour Windows Azure
+      encrypt: true // for Windows Azure
     }
   });
   /**
    * hashPassword
    *
-   * Cette fonction crée une version hachée du mot de passe à stocker dans la base de données.
+   * This function creates a hashed version of the password to store in the database.
    *
-   * @password  {[string]}      le mot de passe saisi par l'utilisateur
-   * @return    {[string]}      le mot de passe haché
+   * @password  {[string]}      the password entered by the user
+   * @return    {[string]}      the hashed password
    */
   function hashPassword(password, salt) {
-    // l'implémentation par défaut utilise HMACSHA256; comme la longueur de la clé est de 64
-    // et que le salt par défaut est de 16 octets, Membership remplira le tampon en répétant le salt
+    // the default implementation uses HMACSHA256 and since Key length is 64
+    // and default salt is 16 bytes, Membership will fill the buffer repeating the salt
     const key = Buffer.concat([salt, salt, salt, salt]);
     const hmac = crypto.createHmac('sha256', key);
     hmac.update(Buffer.from(password, 'ucs2'));
     return hmac.digest('base64');
   }
   connection.on('debug', function(text) {
-    // si vous avez des problèmes de connexion, décommentez cette ligne pour obtenir plus de détails
+    // if you have connection issues, uncomment this to get more detailed info
     //console.log(text);
   }).on('errorMessage', function(text) {
-    // affiche les erreurs survenant lors de la connexion à la base de données SQL ou dans les instructions SQL
+    // this will show any errors when connecting to the SQL database or with the SQL statements
     console.log(JSON.stringify(text));
   });
   connection.on('connect', function(err) {
@@ -336,18 +336,18 @@ function login(email, password, callback) {
     });
   });
 
-  // Implémentation du Membership Provider utilisée avec le NuGet Microsoft.AspNet.Providers
+  // Membership Provider implementation used on Microsoft.AspNet.Providers NuGet
   /**
    * getMembershipUser
    *
-   * Cette fonction reçoit un nom d'utilisateur ou un courriel et retourne les informations
-   * du fournisseur d'appartenance de l'utilisateur, les hachages de mot de passe et le salt
+   * Cette fonction reçoit un nom d'utilisateur ou une adresse courriel et retourne les informations
+   * du fournisseur d'adhésion de l'utilisateur, les hachages de mot de passe et le sel
    *
-   * @usernameOrEmail  {[string]}       le nom d'utilisateur ou le courriel; la méthode effectuera
-   *                                    une requête sur les deux avec un OR
+   * @usernameOrEmail  {[string]}       le nom d'utilisateur ou l'adresse courriel, la méthode effectuera une
+   *                                    requête sur les deux avec un OR
    *
    * @callback         {[Function]}     le premier argument sera l'erreur, le cas échéant,
-   *                                    et le second argument sera un objet utilisateur
+   *                                    et le deuxième argument sera un objet `user`
    */
   function getMembershipUser(usernameOrEmail, done) {
     var user = null;
@@ -416,11 +416,11 @@ function login(email, password, callback) {
    * validatePassword
    *
    * Cette fonction récupère le mot de passe saisi par l'utilisateur, ainsi que le hachage
-   * et le salt du mot de passe original provenant de la base de données, et effectue un hachage HMAC SHA256.
+   * et le sel du mot de passe original provenant de la base de données, et effectue un hachage HMAC SHA256.
    *
    * @password      {[string]}      le mot de passe saisi par l'utilisateur
-   * @originalHash  {[string]}      le mot de passe original haché provenant de la base de données
-   *                                (incluant le salt).
+   * @originalHash  {[string]}      le hachage du mot de passe original provenant de la base de données
+   *                                (incluant le sel).
    * @return        {[bool]}        vrai si le mot de passe est validé
    */
   function validatePassword(password, originalHash, callback) {
@@ -595,7 +595,7 @@ function login(email, password, callback) {
 ```javascript lines expandable
 function login(email, password, callback) {
   //cet exemple utilise la bibliothèque "tedious"
-  //plus d'info ici : http://pekim.github.io/tedious/index.html
+  //plus d'infos ici : http://pekim.github.io/tedious/index.html
   const bcrypt = require('bcrypt');
   const sqlserver = require('tedious@11.0.3');
   const Connection = sqlserver.Connection;
@@ -644,7 +644,7 @@ function login(email, password, callback) {
 ```javascript lines expandable
 function login(email, password, callback) {
   //cet exemple utilise la bibliothèque "tedious"
-  //plus d'infos ici : http://pekim.github.io/tedious/index.html
+  //plus d'info ici : http://pekim.github.io/tedious/index.html
   var Connection = require('tedious@11.0.3').Connection;
   var Request = require('tedious@11.0.3').Request;
   var TYPES = require('tedious@11.0.3').TYPES;
@@ -712,7 +712,7 @@ async function loginAsync(email, password, callback) {
     response = await axios.post(
       //stocker l'URL de l'API dans les paramètres de connexion pour mieux prendre en charge les environnements SDLC
       configuration.baseAPIUrl + "/login",
-      //identifiants de l'utilisateur transmis dans le corps de la requête
+      //les identifiants de l'utilisateur sont transmises dans le corps de la requête
       {
         email: email,
         password: password,
@@ -721,7 +721,7 @@ async function loginAsync(email, password, callback) {
         timeout: 10000, //terminer l'appel proprement si la requête expire afin que le script puisse effectuer le callback nécessaire
         headers: {
           //sécurisation de l'appel API avec l'apiKey stockée dans les paramètres de connexion.
-          //approche simple et rapide, mais l'utilisation de tokens M2M est plus sécurisée car
+          //approche simple et rapide, mais l'utilisation de jetons M2M est plus sécurisée car
           // un secret ne doit pas être partagé entre le client et l'API.
           "x-api-key": configuration.apiKey,
         },
@@ -729,7 +729,7 @@ async function loginAsync(email, password, callback) {
     );
   } catch (e) {
     if (e.response.status === 404) {
-      //en supposant que l'API retourne 404 lorsque l'adresse courriel, le nom d'utilisateur ou le mot de passe est invalide
+      //on suppose que l'API retourne 404 lorsque l'adresse courriel, le nom d'utilisateur ou le mot de passe est invalide
       return callback(
         new WrongUsernameOrPasswordError(email, "Invalid credentials provided.")
       );
@@ -743,7 +743,7 @@ async function loginAsync(email, password, callback) {
 
     //si vous utilisez plusieurs connexions de base de données personnalisées dans votre tenant, préfixez
     //le user_id avec une clé propre à la connexion, ex. : "connName|" + user.user_id
-    //cela garantit des identifiants d'utilisateur uniques pour toutes les connexions de base de données
+    //cela garantit l'unicité des identifiants utilisateur dans toutes les connexions de base de données
     return callback(null, {
       user_id: user.user_id,
       email: user.email,
@@ -760,9 +760,9 @@ async function loginAsync(email, password, callback) {
 
 ```javascript lines expandable
 function login(username, password, callback) {
-  // Remplacez {yourStormpathClientId} par votre identifiant Stormpath
+  // Remplacez {yourStormpathClientId} par votre ID Stormpath
   var url = 'https://api.stormpath.com/v1/applications/{yourStormpathClientId}/loginAttempts';
-  // Ajoutez votre Client ID et Secret d'API Stormpath
+  // Ajoutez votre ID client et Secret d'API Stormpath
   var apiCredentials = {
     user : '{yourStormpathApiId}',
     password: '{yourStormpathApiSecret}'
@@ -776,7 +776,7 @@ function login(username, password, callback) {
     auth: apiCredentials,
     json: {
       type: 'basic',
-      // Transmission des identifiants encodés en base64
+      // Transmission des identifiants encodées en base64
       value: credentials
     }
   }, function (error, response, body) {
@@ -792,7 +792,7 @@ function login(username, password, callback) {
     }, function (errorUserInfo, responseUserInfo, bodyUserInfo) {
       // Si on obtient une réponse réussie, on la traite
       if (responseUserInfo.statusCode !== 200) return callback();
-      // Pour obtenir l'identifiant de l'utilisateur, on retire l'URL de l'API Stormpath
+      // Pour obtenir l'identifiant de l'utilisateur, on retire la partie API Stormpath
       var id = bodyUserInfo.href.replace('https://api.stormpath.com/v1/accounts/', '');
       // Enfin, on définit les données à stocker dans Auth0 et on migre l'utilisateur
       return callback(null, {
@@ -812,12 +812,12 @@ function login(username, password, callback) {
 ```
 
 <div id="learn-more">
-  ## En savoir plus
+  ## Pour en savoir plus
 </div>
 
-* [Modèles de script pour Change Password](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-password)
-* [Modèles de script pour Create](/docs/fr-CA/authenticate/database-connections/custom-db/templates/create)
-* [Modèles de script pour Delete](/docs/fr-CA/authenticate/database-connections/custom-db/templates/delete)
-* [Modèles de script pour Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user)
-* [Modèles de script pour Verify](/docs/fr-CA/authenticate/database-connections/custom-db/templates/verify)
-* [Modèle de script pour Change Email](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-email)
+* [Modèles de scripts Change Password](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-password)
+* [Modèles de scripts Create](/docs/fr-CA/authenticate/database-connections/custom-db/templates/create)
+* [Modèles de scripts Delete](/docs/fr-CA/authenticate/database-connections/custom-db/templates/delete)
+* [Modèles de scripts Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user)
+* [Modèles de scripts Verify](/docs/fr-CA/authenticate/database-connections/custom-db/templates/verify)
+* [Modèle de script Change Email](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-email)

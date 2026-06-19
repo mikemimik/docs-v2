@@ -5,11 +5,11 @@ title: Protection contre les attaques avec Custom Token Exchange
 
 import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
 
-<ReleaseStageNotice feature="Custom Token Exchange (CTE)" stage="ea" plans="B2C Professional, B2B Professional, and Enterprise" terms="true" />
+<ReleaseStageNotice feature="Échange de jetons personnalisé (CTE)" stage="ea" plans="B2C Professional, B2B Professional, and Enterprise" terms="true" />
 
-Pour vous protéger contre l’usurpation et les attaques par rejeu, qui consistent en des tentatives non autorisées de compromettre ou de réutiliser un `subject_token`, le Custom Token Exchange prend en charge la [Suspicious IP Throttling](/docs/fr-CA/secure/attack-protection/suspicious-ip-throttling). Vous pouvez ainsi indiquer dans votre code Actions qu’un jeton sujet n’est pas valide, ce qui permet à Auth0 de comptabiliser le nombre de tentatives échouées envoyées depuis cette adresse IP externe.
+Pour vous protéger contre l’usurpation et les attaques par rejeu, qui impliquent des tentatives non autorisées visant à compromettre ou à réutiliser un `subject_token`, Custom Token Exchange prend en charge la [limitation du trafic des IP suspectes](/docs/fr-CA/secure/attack-protection/suspicious-ip-throttling). Vous pouvez ainsi indiquer dans votre code Actions qu’un jeton de sujet est invalide, ce qui permet à Auth0 de comptabiliser le nombre de tentatives échouées provenant de cette adresse IP externe.
 
-Lorsque le nombre de tentatives échouées provenant d’une adresse IP atteint un seuil préconfiguré, Auth0 bloque le trafic d’une requête de Custom Token Exchange provenant de cette adresse IP avec l’erreur suivante :
+Lorsque le nombre de tentatives échouées provenant d’une adresse IP atteint un seuil préconfiguré, Auth0 bloque le trafic d’une requête de Custom Token Exchange provenant de cette IP et renvoie l’erreur suivante :
 
 ```json lines
 HTTP/1.1 429 Too Many Requests
@@ -20,18 +20,18 @@ Content-Type: application/json
 }
 ```
 
-L’adresse IP peut recommencer à envoyer des requêtes après une période définie.
+L’adresse IP pourra de nouveau envoyer des requêtes après une période configurée.
 
-Nous vous recommandons d’utiliser Suspicious IP Throttling pour tous les cas d’utilisation de Custom Token Exchange, surtout avec les applications natives et les applications monopage (SPA). Comme les applications non confidentielles, telles que les applications natives et les SPA, ne peuvent pas stocker de secrets de façon sécuritaire pour s’authentifier, les attaquants peuvent plus facilement réutiliser des jetons de sujet volés ou divulgués.
+Nous vous recommandons d’utiliser Suspicious IP Throttling pour tous les cas d’utilisation de Custom Token Exchange, surtout avec les applications natives et les applications à page unique (SPA). Comme les applications non confidentielles, telles que les applications natives et les SPA, ne peuvent pas stocker de secrets de façon sécurisée pour s’authentifier, les attaquants peuvent plus facilement réutiliser des jetons de sujet volés ou divulgués.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Pour mettre en place la protection Suspicious IP Throttling, utilisez `api.access.rejectInvalidSubjectToken` dans votre code Actions chaque fois que le jeton de sujet reçu ne passe pas une validation rigoureuse.
+  Pour mettre en œuvre la protection Suspicious IP Throttling, utilisez `api.access.rejectInvalidSubjectToken` dans votre code Actions chaque fois que le jeton de sujet reçu ne satisfait pas à une validation rigoureuse.
 </Callout>
 
 Suspicious IP Throttling est activé par défaut pour les tenants Auth0. Lorsqu’il est activé, les paramètres par défaut de Custom Token Exchange seront appliqués :
 
 * Seuil : 10. Nombre maximal de tentatives échouées pour une adresse IP.
-* Taux de limitation : 6 par heure. Une tentative supplémentaire sera permise toutes les 10 minutes jusqu’à ce que le seuil soit rétabli.
+* Taux de limitation : 6 par heure. Une tentative supplémentaire sera de nouveau disponible toutes les 10 minutes jusqu’à ce que le seuil soit rétabli.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/47PB3OAci9fotSHFrCNBVn/1bafbaacbeb22a4d94eb78506ab89bb8/Screenshot_2025-02-03_at_4.44.29_PM.png)</Frame>
 
@@ -41,7 +41,7 @@ Suspicious IP Throttling est activé par défaut pour les tenants Auth0. Lorsqu�
 
 Vous pouvez configurer un seuil et un taux de limitation personnalisés pour Custom Token Exchange à l’aide de la Management API.
 
-D’abord, [obtenez un jeton de la Management API](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens#get-management-api-tokens) pour utiliser l’API. Ensuite, envoyez la requête `GET` suivante au [point de terminaison d’obtention des paramètres de Suspicious IP Throttling](https://auth0.com/docs/api/management/v2/attack-protection/get-suspicious-ip-throttling) :
+D’abord, [obtenez un jeton de la Management API](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens#get-management-api-tokens) pour utiliser l’API. Ensuite, envoyez la requête `GET` suivante au [point de terminaison Get Suspicious IP Throttling settings](https://auth0.com/docs/api/management/v2/attack-protection/get-suspicious-ip-throttling) :
 
 ```bash lines
 curl --location 'https://{yourDomain}/api/v2/attack-protection/suspicious-ip-throttling' \
@@ -75,7 +75,7 @@ Vous recevrez une réponse semblable à celle-ci :
 }
 ```
 
-Utilisez la requête `PATCH` suivante pour mettre à jour l’étape `pre-custom-token-exchange` avec les valeurs requises. Notez que le taux correspond à l’intervalle, en millisecondes, auquel de nouvelles tentatives sont autorisées.
+Utilisez la requête `PATCH` suivante pour mettre à jour l’étape `pre-custom-token-exchange` avec les valeurs requises. Notez que le taux correspond à l’intervalle de temps, en millisecondes, entre l’autorisation de nouvelles tentatives.
 
 ```bash lines
 curl --location --request PATCH 'https://{yourDomain}/api/v2//attack-protection/suspicious-ip-throttling' \

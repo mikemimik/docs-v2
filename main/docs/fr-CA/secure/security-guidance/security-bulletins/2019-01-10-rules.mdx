@@ -1,22 +1,22 @@
 ---
-description: Situations où un code de règle personnalisée inadéquat peut créer des vulnérabilités dans le flux d’authentification.
+description: Cas où du code de règle personnalisé inadéquat peut créer des vulnérabilités dans le processus d’authentification.
 title: Bulletin de sécurité Auth0 pour Rules
 ---
 
-**Publié**: 10 janvier 2019
+**Publié** : 10 janvier 2019
 
 <div id="overview">
   ## Aperçu
 </div>
 
-Ce bulletin de sécurité présente plusieurs scénarios que les clients devraient éviter dans le code de règle personnalisée, puisqu’ils peuvent créer des vulnérabilités dans le flux d’authentification. Une description de chaque problème et, lorsque possible, une autre façon d’écrire la même règle sont présentées ci-dessous.
+Ce bulletin de sécurité présente plusieurs scénarios que les clients devraient éviter dans le code de règle personnalisé, car ils peuvent créer des vulnérabilités dans le flux d’authentification. Une description de chaque problème et, lorsque possible, une autre façon d’écrire la même règle sont fournies ci-dessous.
 
-* Le code de règle personnalisée qui contient une logique conditionnelle pour appliquer la <Tooltip tip="Authentification multifacteur (MFA) : processus d’authentification de l’utilisateur qui utilise un facteur en plus du nom d’utilisateur et du mot de passe, comme un code envoyé par SMS." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=multi-factor+authentication">authentification multifacteur</Tooltip> (MFA) peut permettre de contourner complètement la MFA, surtout lors de l’utilisation de l’authentification silencieuse.
-* Le code de règle personnalisée qui met en œuvre des contrôles d’autorisation fondés sur une sous-chaîne précise, sans logique appropriée, peut entraîner une élévation des privilèges.
-* Le code de règle personnalisée qui envoie des renseignements de diagnostic à des services tiers, au lieu d’utiliser les fonctions de débogage intégrées d’Auth0, peut entraîner la divulgation de renseignements sensibles.
-* Le code de règle personnalisée qui déclenche des services payants peut permettre à un adversaire d’entraîner des frais de facturation indésirables.
-* Le code de règle personnalisée qui accorde une autorisation en fonction d’adresses courriel non vérifiées peut permettre à des adversaires d’obtenir ces privilèges au moyen d’un type de connexion secondaire.
-* Le code de règle personnalisée qui contient des secrets codés en dur, comme des clés API, au lieu d’utiliser l’objet de configuration global, augmente le risque d’exposer ces secrets.
+* Le code de règle personnalisé qui contient une logique conditionnelle pour appliquer <Tooltip tip="Authentification multifacteur (MFA) : processus d’authentification de l’utilisateur qui utilise un facteur en plus du nom d’utilisateur et du mot de passe, comme un code par SMS." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=multi-factor+authentication">l’authentification multifacteur</Tooltip> (MFA) peut permettre de contourner complètement la MFA, surtout lors de l’utilisation de l’authentification silencieuse.
+* Le code de règle personnalisé qui met en place des contrôles d’autorisation fondés sur une sous-chaîne précise, sans logique appropriée, peut entraîner une élévation des privilèges.
+* Le code de règle personnalisé qui envoie des renseignements de diagnostic à des services tiers, plutôt que d’utiliser les fonctions de débogage intégrées d’Auth0, peut entraîner la divulgation de renseignements sensibles.
+* Le code de règle personnalisé qui déclenche des services payants peut permettre à un adversaire d’engendrer des frais de facturation indésirables.
+* Le code de règle personnalisé qui accorde une autorisation en fonction d’adresses courriel non vérifiées peut permettre à des adversaires d’obtenir ces privilèges au moyen d’un type de connexion secondaire.
+* Le code de règle personnalisé contenant des secrets codés en dur, comme des clés API, au lieu d’utiliser l’objet de configuration global, augmente le risque d’exposer ces secrets.
 
 <div id="improper-mfa-rules">
   ## Rules MFA inadéquates
@@ -26,19 +26,19 @@ Ce bulletin de sécurité présente plusieurs scénarios que les clients devraie
   ### Authentification silencieuse
 </div>
 
-Dans une application monopage (SPA), l’authentification silencieuse permet d’émettre de nouveaux <Tooltip tip="Jeton d'accès : information d'autorisation, sous la forme d'une chaîne opaque ou d'un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> sans intervention de l’utilisateur, tant que la session en cours demeure valide auprès du <Tooltip tip="Serveur d'autorisation : serveur centralisé qui aide à définir les limites de l'accès d'un utilisateur. Par exemple, votre serveur d'autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+server">serveur d’autorisation</Tooltip>.
+Dans une application monopage (SPA), l’authentification silencieuse permet de délivrer de nouveaux <Tooltip tip="Jetons d’accès : informations d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisées pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> sans intervention de l’utilisateur, tant que la session en cours est valide auprès du <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+server">serveur d’autorisation</Tooltip>.
 
-Auth0 prend en charge l’authentification silencieuse au moyen d’un paramètre spécial ajouté au point de terminaison d’autorisation, comme suit :
+Auth0 offre l’authentification silencieuse au moyen d’un paramètre spécial ajouté au point de terminaison d’autorisation, comme suit :
 `/authorize?prompt=none`
 
-Cependant, si la MFA est ajoutée au processus d’authentification silencieuse, une intervention de l’utilisateur devient nécessaire.
+Toutefois, si le MFA est ajouté au processus d’authentification silencieuse, une intervention de l’utilisateur devient nécessaire.
 
-Il ne faut pas utiliser une logique conditionnelle fondée sur l’authentification silencieuse pour contourner la MFA comme solution de rechange. Des Rules comme celle-ci permettent de contourner complètement la MFA et ne doivent pas être utilisées :
+Il ne faut pas utiliser de logique conditionnelle fondée sur l’authentification silencieuse pour contourner le MFA. Des Rules comme celle-ci permettent de contourner complètement le MFA et ne doivent pas être utilisées :
 
 ```javascript lines
 function (user, context, callback) {
   if (context.request.query && context.request.query.prompt === 'none') {
-  // ignorer l'AMF pour les demandes de jeton silencieuses
+  // ignorer le MFA pour les requêtes de jeton silencieuses
   return callback(null, user, context);
   }
 ...
@@ -54,7 +54,7 @@ Les Rules qui déterminent s’il faut rediriger vers un fournisseur d’authent
 ```javascript lines
 function (user, context, callback) {
   if (context.request.query && context.request.query.prompt === 'none') {
-  //rediriger vers l'AMF personnalisée
+  //rediriger vers l'AMF personnalisé
   context.redirect = {
     url: "https://example.com/"
   };
@@ -66,14 +66,14 @@ function (user, context, callback) {
   ### Vérification inadéquate
 </div>
 
-L’utilisation de rules pour contourner l’authentification multifacteur dans certaines conditions peut permettre de contourner la MFA lorsque les vérifications en place ne permettent pas d’établir adéquatement si l’état souhaité est réel.
+L’utilisation de Rules pour contourner l’authentification multifacteur dans certaines conditions peut permettre de contourner la MFA lorsque les vérifications en place ne suffisent pas à établir la validité de l’état souhaité.
 
-Dans ces cas, le cœur du problème est que les rules ne peuvent jamais déterminer si la MFA a bien été exécutée, puisque la MFA a lieu après l’exécution des rules. Les rules configurées de cette façon (voir les exemples ci-dessous) mettent à jour prématurément l’enregistrement de l’utilisateur en supposant à tort que la MFA sera exécutée avec succès, tout en s’appuyant sur ce même enregistrement pour ignorer la MFA dans certaines conditions.
+Dans ces cas, le problème fondamental est que les Rules ne peuvent jamais déterminer si la MFA a bien été exécutée, puisque la MFA a lieu après l’exécution des Rules. Les Rules configurées de cette façon (voir les exemples ci-dessous) mettent à jour prématurément le dossier utilisateur en supposant à tort que la MFA sera exécutée avec succès, tout en s’appuyant sur ce même dossier utilisateur pour ignorer la MFA dans certaines conditions.
 
-Les exemples ci-dessous illustrent des vérifications inadéquates qui peuvent entraîner un contournement complet de l’authentification multifacteur.
+Les exemples ci-dessous illustrent des vérifications inadéquates pouvant entraîner un contournement complet de l’authentification multifacteur.
 
 <div id="device-fingerprint">
-  #### Empreinte de l’appareil
+  #### Empreinte numérique de l’appareil
 </div>
 
 ```javascript lines
@@ -109,7 +109,7 @@ function (user, context, callback) {
 function (user, context, callback) {
   user.app_metadata = user.app_metadata || {};
 
-  // Vérification inadéquate
+  // vérification inadéquate
   if (user.app_metadata.last_location !== context.request.geoip.country_code) {
     user.app_metadata.last_location = context.request.geoip.country_code;
     context.multi-factor = {
@@ -118,19 +118,19 @@ function (user, context, callback) {
   }
 ```
 
-<div id="am-i-affected">
-  ### Suis-je concerné ?
+### Suis-je concerné ?
+
+Si vous utilisez l’une des logiques de règle présentées précédemment, un adversaire qui s’est connecté avec succès à l’aide du premier facteur d’authentification pourrait contourner la MFA dans votre application.
+
+<div id="mitigation-steps">
+  ### Étapes d’atténuation
 </div>
 
-Si vous utilisez l’une des logiques de règle illustrées précédemment, un adversaire qui a réussi à se connecter avec le premier facteur d’authentification pourrait être en mesure de contourner la MFA dans votre application.
+**Si vous êtes concerné par le scénario d’authentification silencieuse**, supprimez la logique conditionnelle basée sur `prompt === 'none'`. Cela déclenchera l’authentification multifacteur à chaque appel d’authentification silencieuse afin de vérifier le statut de la session.
 
-### Étapes d’atténuation
+**Si vous êtes concerné par le scénario d’authentification silencieuse avec redirection**, supprimez la logique conditionnelle basée sur `prompt === 'none'` et passez à un fournisseur d’authentification multifacteur pris en charge par Auth0.
 
-**Si vous êtes touché par le scénario d’authentification silencieuse**, supprimez la logique conditionnelle fondée sur `prompt === 'none'`. Cela déclenchera l’authentification multifacteur à chaque appel d’authentification silencieuse pour vérifier l’état de la session.
-
-**Si vous êtes touché par le scénario d’authentification silencieuse avec redirection**, supprimez la logique conditionnelle fondée sur `prompt === 'none'` et passez à un fournisseur d’authentification multifacteur pris en charge par Auth0.
-
-Pour éviter de demander trop souvent à l’utilisateur d’effectuer l’authentification multifacteur, vous pouvez définir le paramètre `allowRememberBrowser` à true, ce qui permettra aux utilisateurs finaux de cocher une case afin de n’avoir à effectuer l’authentification multifacteur que tous les 30 jours. Par exemple :
+Pour éviter de demander trop souvent à l’utilisateur de procéder à l’authentification multifacteur, vous pouvez définir le paramètre `allowRememberBrowser` à true, ce qui permettra aux utilisateurs finaux de cocher une case afin qu’on ne leur demande l’authentification multifacteur que tous les 30 jours. Par exemple :
 
 ```js lines
 context.multi-factor = {
@@ -139,19 +139,19 @@ context.multi-factor = {
   };
 ```
 
-Vous pouvez envisager d’informer vos utilisateurs finaux qu’ils peuvent cocher la case pour éviter qu’on le leur demande trop souvent.
+Vous voudrez peut-être aviser vos utilisateurs finaux de cocher la case pour éviter qu’on le leur demande trop souvent.
 
-**Si vous êtes concerné par des rule qui utilisent une vérification inadéquate pour contourner la MFA**, assurez-vous d’utiliser des méthodes de vérification fiables, d’éliminer complètement les exceptions de MFA ou d’utiliser l’option de configuration `allowRememberBrowser` décrite ci-dessus.
+**Si vous êtes concerné par des Rules qui utilisent une vérification inadéquate pour contourner la MFA**, assurez-vous d’utiliser des vérifications fiables, d’éliminer complètement les exceptions à la MFA, ou d’utiliser l’option de configuration `allowRememberBrowser` décrite ci-dessus.
 
-### Cette mise à jour aura-t-elle une incidence sur vos utilisateurs ?
+### Cette mise à jour aura-t-elle une incidence sur mes utilisateurs?
 
-Selon la façon dont vous ajustez vos rules ou votre configuration, cette mise à jour pourrait avoir une incidence sur vos utilisateurs en leur demandant d’utiliser la MFA plus souvent qu’à l’habitude.
+Selon la façon dont vous ajustez vos Rules ou votre configuration, cette mise à jour pourrait avoir une incidence sur vos utilisateurs en leur demandant de recourir à l’authentification MFA plus souvent que d’habitude.
 
 <div id="improper-substring-verification">
-  ## Vérification inadéquate d’une sous-chaîne
+  ## Vérification incorrecte d’une sous-chaîne
 </div>
 
-Si votre logique de règle exige un contrôle d’accès basé sur une correspondance exacte d’une chaîne précise, comme un domaine de courriel, mais que vous vérifiez seulement la présence d’une sous-chaîne au lieu d’une correspondance exacte de la chaîne, elle pourrait ne pas fonctionner comme prévu. Par exemple :
+Si vous avez une logique dans une règle qui exige un contrôle d’accès fondé sur la correspondance exacte d’une chaîne donnée, comme un domaine de courriel, mais que vous vérifiez seulement la présence d’une sous-chaîne au lieu de faire une correspondance exacte, votre logique pourrait ne pas fonctionner comme prévu. Par exemple :
 
 `if( _.findIndex(connection.options.domain_aliases,function(d){ return user.email.indexOf(d) >= 0;`
 
@@ -160,23 +160,23 @@ La logique ci-dessus retournerait true pour des adresses courriel comme celles-c
 * `user.domain.com@not-domain.com`
 * `"user@domain.com"@not-domain.com` (guillemets inclus)
 
-<div id="am-i-affected">
-  ### Suis-je concerné ?
-</div>
+### Suis-je concerné?
 
 Seuls les clients qui utilisent une logique conditionnelle dans les rules, comme décrit ci-dessus, sont concernés.
 
-### Étapes d’atténuation
+<div id="mitigation-steps">
+  ### Étapes d’atténuation
+</div>
 
-Utilisez une logique du type suivant :
+Utilisez une logique comme celle-ci :
 
 `const emailSplit = user.email.split('@'); const userEmailDomain = emailSplit[emailSplit.length - 1].toLowerCase();`
 
-Consultez le [modèle de règle Check Domains Against Connection Aliases](https://github.com/auth0/rules/blob/master/src/rules/check-domains-against-connection-aliases.js) pour en savoir plus. Autrement, dans la section **Rules** du <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Consulter le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>, consultez le modèle de règle nommé **Vérifier si le domaine de courriel de l’utilisateur correspond au domaine configuré**.
+Consultez le [Check Domains Against Connection Aliases rule template](https://github.com/auth0/rules/blob/master/src/rules/check-domains-against-connection-aliases.js) pour en savoir plus. Autrement, dans la section **Rules** du <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>, consultez le modèle de règle nommé **Check if user email domain matches configured domain**.
 
 ### Cette mise à jour aura-t-elle une incidence sur mes utilisateurs ?
 
-Possiblement. Le changement recommandé apporté aux rules qui reposent sur une logique de vérification de sous-chaînes pourrait avoir une incidence sur les utilisateurs finaux. Toutefois, vous êtes le mieux placé pour juger de l’intention de vos rules et déterminer si les changements recommandés risquent d’avoir une incidence sur vos utilisateurs finaux.
+Possiblement. La modification recommandée aux Rules dont la logique repose sur des vérifications de sous-chaînes peut avoir une incidence sur les utilisateurs finaux. Toutefois, vous êtes le mieux placé pour juger de l’intention de vos Rules et déterminer si les modifications recommandées risquent d’avoir une incidence sur vos utilisateurs finaux.
 
 <div id="debugging-using-external-services">
   ## Débogage à l’aide de services externes
@@ -200,25 +200,27 @@ request.post({
 
 ### Suis-je concerné?
 
-Seuls les clients qui ont mis en place une logique dans une rule, comme décrit ci-dessus, sont concernés.
+Seuls les clients qui utilisent une logique dans leurs règles, comme décrit ci-dessus, sont concernés.
 
-### Étapes d’atténuation
+<div id="mitigation-steps">
+  ### Étapes d’atténuation
+</div>
 
-Vous devriez modifier votre règle afin qu’elle n’envoie plus l’objet contextuel complet à requestbin, car cela pourrait exposer un `id_token` ou un `access_token` associé à chaque requête. Vous devriez plutôt envoyer un sous-ensemble d’attributs de l’objet contextuel qui sont moins sensibles.
+Vous devriez modifier votre règle pour qu’elle n’envoie plus l’intégralité du context object à Requestbin, car cela pourrait exposer tout `id_token` ou `access_token` associé à chaque requête. Envoyez plutôt un sous-ensemble d’attributs du context object qui sont moins sensibles.
 
-Veuillez consulter le [modèle de règle Requestbin](https://github.com/auth0/rules/blob/master/src/rules/requestbin.js) pour en savoir plus. Sinon, dans la section **Rules** de l’Auth0 Dashboard, consultez le modèle de règle nommé **Dump rule variables to RequestBin**.
+Veuillez consulter le [Requestbin rule template](https://github.com/auth0/rules/blob/master/src/rules/requestbin.js) pour en savoir plus. Vous pouvez aussi, dans la section **Rules** de l’Auth0 Dashboard, consulter le règle template nommé **Dump rule variables to RequestBin**.
 
-Auth0 offre aussi des méthodes intégrées pour déboguer les règles sans envoyer d’information à des services externes.
+Auth0 offre également des méthodes intégrées pour déboguer les règles sans envoyer d’information à des services externes.
 
 ### Cette mise à jour aura-t-elle une incidence sur mes utilisateurs?
 
-Non. La règle touchée servait généralement au débogage. Cette modification ne devrait pas avoir d’incidence sur les utilisateurs finaux.
+Non. La règle concernée était généralement utilisée à des fins de débogage. Cette modification ne devrait pas avoir d’incidence sur les utilisateurs finaux.
 
 <div id="rules-using-a-paid-service">
   ## Rules utilisant un service payant
 </div>
 
-Si vous avez une logique de rule qui fait appel à un service payant, comme l’envoi de messages SMS par l’entremise de Twillio dans le cadre du processus d’authentification, vous pourriez être exposé à une augmentation des coûts, puisqu’un adversaire disposant d’un nom d’utilisateur et d’un mot de passe valides pourrait déclencher un appel au service et entraîner des frais sans avoir à mener à terme l’ensemble du processus d’authentification défini par les rules. Par exemple :
+Si vous avez une logique de Rules qui fait appel à un service payant, comme l’envoi de messages SMS via Twillio, dans le cadre du processus d’authentification, vous pourriez être exposé à une hausse des coûts, puisqu’un adversaire disposant d’un nom d’utilisateur et mot de passe valides pourrait déclencher un appel au service et ainsi engendrer des frais sans avoir à mener à terme l’ensemble du processus d’authentification défini par les Rules. Par exemple :
 
 ```javascript lines
 //Envoie un SMS à l'utilisateur via Twilio
@@ -247,32 +249,34 @@ Si vous avez une logique de rule qui fait appel à un service payant, comme l’
 ```
 
 <div id="am-i-affected">
-  ### Suis-je concerné ?
+  ### Suis-je concerné(e) ?
 </div>
 
-Seuls les clients dont la logique de rule est telle que décrite ci-dessus et qui peut être déclenchée par n’importe quel utilisateur non fiable sont concernés.
+Seuls les clients dont la logique de règle correspond à celle décrite ci-dessus et peut être déclenchée par n’importe quel utilisateur non fiable sont concernés.
 
-### Étapes d’atténuation
+<div id="mitigation-steps">
+  ### Étapes d’atténuation
+</div>
 
-Pour atténuer ce risque, envisagez une ou plusieurs des mesures suivantes :
+Pour atténuer ce risque, envisagez de prendre une ou plusieurs des mesures suivantes :
 
-* Désactivez les inscriptions publiques, si elles ne sont pas nécessaires, afin de réduire le nombre d’utilisateurs qui peuvent s’inscrire et déclencher des appels à des services payants.
+* Désactivez les inscriptions publiques, si elles ne sont pas nécessaires, afin de réduire le nombre d’utilisateurs pouvant s’inscrire et déclencher des appels à des services payants.
 * Réduisez le risque de vol d’identifiants afin d’éviter la prise de contrôle de comptes par des pirates qui pourraient utiliser des comptes compromis pour déclencher des appels à des services payants.
 * Assurez-vous que vos utilisateurs ont des mots de passe robustes lorsqu’ils utilisent des connexions de base de données.
 * Assurez-vous que vos utilisateurs utilisent l’authentification multifacteur.
-* Assurez-vous que la règle ne se déclenche que pour un sous-ensemble autorisé d’utilisateurs, ou dans d’autres conditions appropriées. Par exemple, vous pourriez ajouter une logique qui vérifie si un utilisateur a un domaine de courriel, un rôle/groupe ou un niveau d’abonnement particulier avant de déclencher l’appel au service payant.
+* Assurez-vous que la règle ne se déclenche que pour un sous-ensemble autorisé d’utilisateurs, ou dans d’autres conditions appropriées. Par exemple, vous pourriez ajouter une logique qui vérifie si un utilisateur possède un domaine de courriel, un rôle/groupe ou un niveau d’abonnement particulier avant de déclencher l’appel au service payant.
 
 <div id="will-this-update-impact-my-users">
   ### Cette mise à jour aura-t-elle des répercussions sur mes utilisateurs ?
 </div>
 
-Les répercussions sur les utilisateurs finaux dépendent de l’option que vous choisissez parmi celles décrites ci-dessus pour atténuer le problème.
+Les répercussions sur les utilisateurs finaux dépendent de l’option que vous choisirez parmi celles décrites ci-dessus pour atténuer le problème.
 
 <div id="authorization-based-on-unverified-email-address">
   ## Autorisation fondée sur une adresse courriel non vérifiée
 </div>
 
-Si la logique d’une règle exige un contrôle d’accès fondé sur une adresse courriel précise ou sur un domaine de courriel, mais que vous ne vérifiez pas si l’utilisateur a confirmé son adresse courriel, une personne malveillante pourrait obtenir des privilèges supplémentaires en utilisant un deuxième type de connexion. Par exemple :
+Si la logique d’une règle exige un contrôle d’accès fondé sur une adresse courriel précise ou sur un domaine de courriel, mais que vous ne vérifiez pas si l’utilisateur a confirmé son adresse courriel, un adversaire pourrait potentiellement obtenir des privilèges supplémentaires en utilisant un deuxième type de connexion. Par exemple :
 
 ```javascript lines
 var userHasAccess = allowList.some(function (email) {
@@ -280,19 +284,17 @@ var userHasAccess = allowList.some(function (email) {
   });
 ```
 
-La logique ci-dessus renverrait `true` si un adversaire pouvait créer un compte à l’aide d’un type de connexion différent (par exemple, une connexion sociale) avec une adresse courriel figurant dans la liste d’autorisation. Cela se produit parce qu’une même adresse courriel peut exister dans différents types de connexion.
+La logique ci-dessus retournerait `true` si un adversaire pouvait créer un compte à l’aide d’un type de connexion différent (comme une connexion sociale) avec une adresse courriel figurant dans la liste des adresses autorisées. Cela s’explique par le fait qu’une même adresse courriel peut exister dans différents types de connexion.
 
-<div id="am-i-affected">
-  ### Suis-je concerné ?
-</div>
+### Suis-je touché?
 
-Seuls les clients qui utilisent une logique conditionnelle dans les rules, comme décrit ci-dessus, et qui autorisent plusieurs types de connexion sont concernés.
+Seuls les clients qui utilisent une logique conditionnelle dans les rules, comme décrit ci-dessus, et qui prennent en charge plusieurs types de connexion sont touchés.
 
 <div id="mitigation-steps">
-  ### Mesures d’atténuation
+  ### Étapes d’atténuation
 </div>
 
-Si vous accordez l’autorisation en fonction d’adresses courriel, commencez toujours la règle par la logique suivante :
+Lorsque vous accordez une autorisation en fonction d’adresses courriel, commencez toujours la règle par la logique suivante :
 
 ```javascript lines
 function (user, context, callback) {
@@ -302,34 +304,36 @@ function (user, context, callback) {
   }
 ```
 
-Parfois, même un courriel vérifié peut ne pas suffire pour l’autorisation que vous souhaitez accorder. Pour en savoir plus sur ce type de cas, veuillez consulter la section sur l’utilisation de la vérification du courriel.
+Parfois, même une adresse courriel vérifiée peut ne pas constituer une vérification suffisante pour l’autorisation que vous souhaitez accorder. Pour en savoir plus dans ce type de cas, veuillez consulter la section sur l’utilisation de l’adresse courriel vérifiée.
 
-### Cette mise à jour aura-t-elle des répercussions sur mes utilisateurs?
+### Cette mise à jour aura-t-elle une incidence sur mes utilisateurs?
 
-Cela n’affectera les utilisateurs existants que s’ils n’ont pas vérifié leur adresse courriel.
+Cela ne touchera que les utilisateurs existants s’ils n’ont pas vérifié leur adresse courriel.
 
 <div id="plaintext-secrets-within-rule-code">
-  ## Secrets en texte clair dans le code de la règle
+  ## Secrets en clair dans le code de règle
 </div>
 
-Si vous indiquez des renseignements sensibles, comme des clés API, dans le code de la règle, vous devriez plutôt configurer ces valeurs dans les paramètres de la règle. Par exemple :
+Si vous incluez des renseignements sensibles, comme des clés API, dans le code de règle, vous devriez plutôt configurer ces valeurs dans les paramètres de la règle. Par exemple :
 
 `const myApiKey = 'abcdefghijklmnopqrstuvwxyz';`
 
-Puisque ces valeurs sensibles figurent dans le code de la règle, elles resteront non chiffrées dans nos systèmes et risqueront d’être exposées.
+Comme elles se trouvent dans le code de règle, ces valeurs sensibles resteront non chiffrées dans nos systèmes et risquent d’être exposées.
 
-### Suis-je touché?
+### Suis-je concerné ?
 
-Si vos rules contiennent des valeurs sensibles directement dans le code du rule lui-même, vous êtes touché.
+Si vos Rules contiennent des valeurs sensibles directement dans leur code, vous êtes concerné.
 
-### Étapes d’atténuation
+<div id="mitigation-steps">
+  ### Étapes d’atténuation
+</div>
 
-Placez les valeurs sensibles dans la zone **Settings** de la section principale **Rules** de l’Auth0 Dashboard, puis accédez-y dans votre règle au moyen de ce qui suit :
+Placez les valeurs sensibles dans la section **Settings** de la section principale **Rules** de l’Auth0 Dashboard, puis accédez-y dans votre règle comme suit :
 
 `const myApiKey = configuration.myApiKey;`
 
-Cela garantit que toutes les valeurs sensibles sont chiffrées dans les systèmes d’Auth0, ce qui réduit le risque d’exposition.
+Cela garantira que toutes les valeurs sensibles sont chiffrées dans les systèmes d’Auth0, ce qui réduit le risque d’exposition.
 
 ### Cette mise à jour aura-t-elle des répercussions sur mes utilisateurs?
 
-Elle n’aura aucune incidence sur vos utilisateurs.
+Cela n’aura aucune répercussion sur vos utilisateurs.

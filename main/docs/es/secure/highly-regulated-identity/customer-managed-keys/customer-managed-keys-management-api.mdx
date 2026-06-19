@@ -3,38 +3,38 @@ description: Aprende a configurar Customer Managed Keys con la Management API
 title: Configurar Customer Managed Keys con la Management API
 ---
 
-Auth0 protege los secrets y los datos de tu tenant mediante una clave raíz del entorno de Auth0, ubicada en el nivel superior de la jerarquía de claves de cifrado de sobre.  La clave raíz del entorno de Auth0 y la clave raíz proporcionada por el cliente se almacenan en el módulo de seguridad de hardware (HSM) del Auth0 Cloud Service Provider correspondiente, AWS o Azure.
+Auth0 protege los secrets y los datos de tu tenant mediante una clave raíz del entorno de Auth0, situada en la parte superior de la jerarquía de claves de cifrado por envoltura. La clave raíz del entorno de Auth0 y la clave raíz proporcionada por el cliente se almacenan en el Hardware Security Module (HSM) del correspondiente Auth0 Cloud Service Provider, AWS o Azure.
 
 <div id="bring-your-own-key">
   ## Bring Your Own Key
 </div>
 
-Con Bring Your Own Key, los usuarios con el [Key Management Editor role](/docs/es/get-started/manage-dashboard-access/add-dashboard-users) pueden usar la [Auth0 Management API](https://auth0.com/docs/api/management/v2) para sustituir la clave raíz del entorno de Auth0 predeterminada por su propia clave raíz proporcionada por el cliente. Los clientes pueden cargar de forma segura su propia clave raíz, que contiene su propio material criptográfico, para:
+Con Bring Your Own Key, los usuarios con el [Key Management Editor role](/docs/es/get-started/manage-dashboard-access/add-dashboard-users) pueden usar la [Auth0 Management API](https://auth0.com/docs/api/management/v2) para reemplazar la clave raíz del entorno de Auth0 predeterminada por su propia clave raíz proporcionada por el cliente. Los clientes pueden cargar de forma segura su propia Root Key, que contiene su propio material criptográfico, para:
 
-* Cumplir requisitos personalizados de generación y procedencia de claves para la clave raíz del entorno
-* Cumplir requisitos específicos de instalación o ciclo de vida de la clave raíz del entorno
-* Mantener una copia de la clave raíz proporcionada por el cliente en las instalaciones del cliente.
+* Cumplir requisitos personalizados sobre la generación y la procedencia de la clave raíz del entorno
+* Cumplir requisitos específicos de instalación o vida útil para la clave raíz del entorno
+* Conservar una copia de la clave raíz proporcionada por el cliente en sus propias instalaciones.
 
 <Warning>
-  Al importar su propia clave raíz proporcionada por el cliente con Bring Your Own Key, autoriza implícitamente a Auth0 a dejar de gestionar el ciclo de vida de la clave raíz proporcionada por el cliente, salvo su eliminación.
+  Al importar su propia clave raíz proporcionada por el cliente con Bring Your Own Key, revoca implícitamente la autorización de Auth0 para gestionar el ciclo de vida de la clave raíz proporcionada por el cliente, excepto su eliminación.
 </Warning>
 
-Puede crear y administrar su clave raíz proporcionada por el cliente mediante la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>, siguiendo estos pasos:
+Puede crear y gestionar su clave raíz proporcionada por el cliente usando la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>, siguiendo estos pasos:
 
-1. Llame al endpoint [Create the new encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption) para iniciar el proceso de Bring Your Own Key y obtener el `kid` (identificador de clave) de la clave raíz proporcionada por el cliente, preactivada y sin material criptográfico.
+1. Llame al endpoint [Create the new encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption) para iniciar el proceso de Bring Your Own Key y obtener el `kid` (identificador de la clave) de la clave raíz proporcionada por el cliente, preactivada y sin material criptográfico.
 
    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-     Este endpoint devuelve el valor de `kid`, que es el identificador único de la clave.
+     Este endpoint devuelve el valor `kid`, que es el identificador único de la clave.
    </Callout>
 2. Llame al endpoint [Create the public wrapping key](https://auth0.com/docs/api/management/v2/keys/post-encryption-wrapping-key) para crear y devolver una clave pública de envoltura.
-3. En su entorno, genere su propio material de clave criptográfica y envuélvalo (cifrándolo) con la clave pública de envoltura para crear una Wrapped Encryption Key (la clave raíz proporcionada por el cliente).
+3. En su entorno, genere el material criptográfico de su propia clave y envuélvalo (cífrelo) con la clave pública de envoltura para crear una Wrapped Encryption Key (la clave raíz proporcionada por el cliente).
 4. Llame al endpoint [Import the encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption-key) para importar su clave raíz proporcionada por el cliente a Auth0.
 
 <div id="cryptographic-material-requirements">
   ## Requisitos del material criptográfico
 </div>
 
-Usa tu sistema de gestión de claves para encapsular tu propio material criptográfico con la clave pública de envoltura y crear la Wrapped Encryption Key. Usa esta configuración para los parámetros del algoritmo [CKM&#95;RSA&#95;AES&#95;KEY&#95;WRAP](https://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/cos01/pkcs11-curr-v2.40-cos01.html#_Toc408226894) según tu Auth0 Cloud Service Provider (AWS o Azure):
+Usa tu sistema de gestión de claves para envolver tu propio material criptográfico con la clave pública de envoltura y crear la Wrapped Encryption Key. Usa estos ajustes para los parámetros del algoritmo [CKM&#95;RSA&#95;AES&#95;KEY&#95;WRAP](https://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/cos01/pkcs11-curr-v2.40-cos01.html#_Toc408226894) según tu Auth0 Cloud Service Provider (AWS o Azure):
 
 <div id="auth0-on-aws-cloud">
   ### Auth0 en la nube de AWS
@@ -59,7 +59,7 @@ Usa tu sistema de gestión de claves para encapsular tu propio material criptogr
   ## Permisos
 </div>
 
-Usa los siguientes permisos para proporcionar acceso a los endpoints de claves de cifrado.
+Usa los siguientes permisos para dar acceso a los endpoints de claves de cifrado.
 
 | Permisos                 | Descripciones                                                                                                                                                                                                |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -72,13 +72,13 @@ Usa los siguientes permisos para proporcionar acceso a los endpoints de claves d
   ## Endpoints
 </div>
 
-* Usa el endpoint [Get all encryption keys](https://auth0.com/docs/api/management/v2/keys/get-encryption-keys) para obtener información sobre la clave raíz del entorno actual o la clave raíz proporcionada por el cliente actual, así como sobre la clave maestra del tenant.
+* Usa el endpoint [Get all encryption keys](https://auth0.com/docs/api/management/v2/keys/get-encryption-keys) para obtener información sobre la clave raíz del entorno actual o la clave raíz proporcionada por el cliente, y la clave maestra del tenant existentes.
 * Usa el endpoint [Get the encryption key by its key id](https://auth0.com/docs/api/management/v2/keys/get-encryption-key) para obtener información sobre la clave especificada.
-* Usa el endpoint [Create the new encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption) para crear un marcador de posición preactivado para una clave raíz proporcionada por el cliente.
+* Usa el endpoint [Create the new encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption) para crear un marcador de posición preactivado de una clave raíz proporcionada por el cliente.
 * Usa el endpoint [Create the public wrapping key](https://auth0.com/docs/api/management/v2/keys/post-encryption-wrapping-key) para obtener una clave pública de envoltura con la que encapsular tu material criptográfico.
 * Usa el endpoint [Import the encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption-key) para importar nuevo material de clave raíz proporcionada por el cliente.
-* Usa el endpoint [Delete the encryption key by its key id](https://auth0.com/docs/api/management/v2/keys/delete-encryption-key) para eliminar una clave raíz proporcionada por el cliente existente y dejar de usar Bring Your Own Keys. La clave raíz del entorno de Auth0 se utiliza para volver a cifrar la jerarquía de claves. Esta operación no afecta negativamente a los datos existentes ni a los flujos de autenticación.
+* Usa el endpoint [Delete the encryption key by its key id](https://auth0.com/docs/api/management/v2/keys/delete-encryption-key) para eliminar una clave raíz proporcionada por el cliente existente y dejar de usar Bring Your Own Keys. La clave raíz del entorno de Auth0 se usa para volver a cifrar la jerarquía de claves. Esta operación no afecta negativamente a los datos existentes ni a los flujos de autenticación.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Si la funcionalidad Customer Managed Keys no está habilitada en tu tenant, las llamadas a los endpoints de la API devolverán el error: `This feature is not enabled for this tenant`.
+  Si la funcionalidad Customer Managed Keys no está habilitada en tu tenant, al llamar al endpoint o a los endpoints de la API se devolverá el error: `This feature is not enabled for this tenant`.
 </Callout>

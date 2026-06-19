@@ -1,30 +1,30 @@
 ---
-description: Découvrez comment une application peut accéder à Token Vault pour échanger un jeton d’actualisation Auth0 contre un jeton d’accès permettant d’appeler des API externes.
+description: Découvrez comment une application peut accéder à Token Vault pour échanger un jeton d’actualisation Auth0 contre un jeton d’accès afin d’appeler des API externes.
 title: Échange de jeton d’actualisation avec Token Vault
 ---
 
-Token Vault prend en charge l’échange de jeton d’actualisation, ce qui permet à une application cliente d’accéder à Token Vault pour échanger un jeton d’actualisation Auth0 (jeton du sujet) contre le jeton d’accès d’un fournisseur externe (jeton demandé).
+Token Vault prend en charge l’échange de jeton d’actualisation, ce qui permet à une application cliente d’accéder à Token Vault pour échanger un jeton d’actualisation Auth0 (jeton du sujet) contre un jeton d’accès d’un fournisseur externe (jeton demandé).
 
-Comme les jetons d’actualisation sont échangés uniquement par un canal sécurisé en arrière-plan entre le client et le serveur d’autorisation, ils ne sont jamais exposés à l’utilisateur final. Les clients peuvent ainsi maintenir la session d’un utilisateur sans obliger celui-ci à autoriser de nouveau la connexion.
+Comme les jetons d’actualisation sont échangés uniquement par un canal secondaire sécurisé entre le client et le serveur d’autorisation, ils ne sont jamais exposés à l’utilisateur final. Les clients peuvent ainsi maintenir la session d’un utilisateur sans l’obliger à autoriser de nouveau la connexion.
 
 <div id="use-cases">
   ## Cas d’utilisation
 </div>
 
-Les cas d’utilisation courants de l’échange de jeton d’actualisation comprennent :
+Les cas d’utilisation courants de l’échange de jeton d’actualisation comprennent :
 
-* Application Web : une application Web de productivité se connecte au calendrier Google Calendar d’un utilisateur et effectue des tâches en son nom, comme planifier des réunions, sans que l’utilisateur ait à s’authentifier de nouveau.
-* Application mobile : une application mobile de galerie photo se connecte au compte Google Photos d’un utilisateur et téléverse les photos au fur et à mesure qu’elles sont prises, tout en maintenant la session de l’utilisateur grâce au rafraîchissement du jeton d’accès en arrière-plan.
+* Application Web : Une application Web de productivité se connecte à Google Calendar pour un utilisateur et effectue des tâches en son nom, par exemple planifier des réunions, sans que l’utilisateur ait à s’authentifier de nouveau.
+* Application mobile : Une application mobile de galerie photo se connecte au compte Google Photos d’un utilisateur et téléverse les photos au fur et à mesure qu’elles sont prises, tout en maintenant la session de l’utilisateur active grâce à l’actualisation du jeton d’accès en arrière-plan.
 
 <div id="how-it-works">
   ## Comment ça fonctionne
 </div>
 
-Le diagramme de séquence suivant illustre, de bout en bout, comment appeler des API externes au moyen de l’échange de jeton d’actualisation dans Auth0 :
+Le diagramme de séquence suivant illustre, de bout en bout, comment appeler des API externes à l’aide de l’échange de jeton d’actualisation dans Auth0 :
 
 <Frame>![](/docs/images/token-vault/refresh_token_exchange_flow_diagram.png)</Frame>
 
-Passons à un exemple concret : un utilisateur veut planifier une réunion dans son Google Calendar à l’aide d’une application web.
+Prenons un exemple concret : un utilisateur veut planifier une réunion dans Google Calendar au moyen d’une application Web.
 
 <div id="prerequisites">
   ## Prérequis
@@ -33,24 +33,24 @@ Passons à un exemple concret : un utilisateur veut planifier une réunion dans
 Avant de commencer, vous devez [configurer l’échange de jeton d’actualisation avec Token Vault](/docs/fr-CA/secure/tokens/token-vault/configure-token-vault#configure-refresh-token-exchange).
 
 <div id="step-1-connect-and-authorize-access">
-  ## Étape 1 : Se connecter et autoriser l’accès
+  ## Étape 1 : Connecter et autoriser l’accès
 </div>
 
-Pour planifier la réunion, l’application Web doit se connecter à Google par l’entremise d’Auth0, puis obtenir l’autorisation de l’utilisateur d’accéder à l’API Google Calendar.
+Pour planifier la réunion, l’application web doit se connecter à Google par l’entremise d’Auth0, puis obtenir l’autorisation de l’utilisateur pour accéder à la Google Calendar API.
 
-L’utilisateur se connecte à l’application avec Google au moyen du [flux Connected Accounts](/docs/fr-CA/secure/tokens/token-vault/connected-accounts-for-token-vault#how-it-works), qui utilise l’[API My Account](/docs/fr-CA/manage-users/my-account-api). Si l’application utilise [Organizations](/docs/fr-CA/manage-users/organizations), l’utilisateur se connecte d’abord à l’organisation cible avant de poursuivre. Une fois que l’API My Account a validé et mené à bien la requête Connected Accounts, elle stocke les jetons d’accès et d’actualisation Google avec les scopes de calendrier demandés dans le Token Vault.
+L’utilisateur se connecte à l’application avec Google au moyen du [flux Connected Accounts](/docs/fr-CA/secure/tokens/token-vault/connected-accounts-for-token-vault#how-it-works), qui utilise la [My Account API](/docs/fr-CA/manage-users/my-account-api). Si l’application utilise [Organizations](/docs/fr-CA/manage-users/organizations), l’utilisateur ouvre d’abord une session dans l’organisation cible avant de poursuivre. Une fois que la My Account API a validé et mené à bien la requête Connected Accounts, elle stocke les jetons d’accès et d’actualisation Google avec les portées de calendrier demandées dans le Token Vault.
 
 <div id="step-2-perform-refresh-token-exchange">
-  ## Étape 2 : Effectuer l’échange de jeton d’actualisation
+  ## Étape 2 : Effectuer l’échange de jeton d’actualisation
 </div>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Bien que Token Vault ne prenne pas en charge la rotation des jetons d’actualisation, vous pouvez utiliser [DPoP](/docs/fr-CA/secure/sender-constraining/demonstrating-proof-of-possession-dpop) pour lier les jetons émis par Auth0 à votre client afin de renforcer la sécurité. Pour effectuer avec succès l’échange de jeton d’actualisation avec Token Vault, désactivez Allow Refresh Token Rotation pour votre application dans l’Auth0 Dashboard.
+  Bien que Token Vault ne prenne pas en charge la rotation des jetons d’actualisation, vous pouvez utiliser [DPoP](/docs/fr-CA/secure/sender-constraining/demonstrating-proof-of-possession-dpop) pour lier les jetons émis par Auth0 à votre client afin d’accroître la sécurité. Pour effectuer avec succès l’échange de jeton d’actualisation avec Token Vault, désactivez l’option Allow Refresh Token Rotation pour votre application dans le Auth0 Dashboard.
 </Callout>
 
-L’application peut utiliser un jeton d’actualisation Auth0 valide pour demander un jeton d’accès Google à Token Vault avec les scopes accordés dans le flux Connected Accounts. Ce processus permet à l’application d’obtenir un nouveau jeton d’accès sans que l’utilisateur ait à réautoriser la connexion.
+L’application peut utiliser un jeton d’actualisation Auth0 valide pour demander un jeton d’accès Google à Token Vault avec les portées accordées dans le flux Connected Accounts. Ce processus permet à l’application d’obtenir un nouveau jeton d’accès sans obliger l’utilisateur à autoriser de nouveau la connexion.
 
-Pour effectuer l’échange de jeton d’actualisation, l’application appelle les Auth0 SDKs pour envoyer une requête `POST` au point de terminaison `/oauth/token` avec les paramètres suivants :
+Pour effectuer l’échange de jeton d’actualisation, l’application utilise les Auth0 SDKs pour envoyer une requête `POST` au endpoint `/oauth/token` avec les paramètres suivants :
 
 ```bash lines
 curl --request POST 'https://{yourDomain}/oauth/token' \
@@ -70,12 +70,12 @@ curl --request POST 'https://{yourDomain}/oauth/token' \
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `grant_type`           | Le type de grant. Pour Token Vault, définissez-le sur `urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token`                                                                                                                                                                                                                            |
 | `client_id`            | ID de l’application cliente                                                                                                                                                                                                                                                                                                                                           |
-| `client_secret`        | Secret client. **Remarque :** Vous pouvez utiliser n’importe quelle méthode d’authentification du client pour obtenir le jeton d’accès d’un fournisseur externe.                                                                                                                                                                                                      |
-| `subject_token_type`   | Type de jeton du sujet. Pour Token Vault, définissez-le comme jeton d’actualisation : `urn:ietf:params:oauth:token-type:refresh_token`                                                                                                                                                                                                                                |
+| `client_secret`        | Le secret du client. **Remarque :** Vous pouvez utiliser n’importe quelle méthode d’authentification du client pour obtenir le jeton d’accès d’un fournisseur externe.                                                                                                                                                                                                |
+| `subject_token_type`   | Type de subject token. Pour Token Vault, définissez-le sur le jeton d’actualisation : `urn:ietf:params:oauth:token-type:refresh_token`                                                                                                                                                                                                                                |
 | `subject_token`        | Le jeton d’actualisation Auth0 que l’Auth0 Authorization Server valide pour identifier l’utilisateur.                                                                                                                                                                                                                                                                 |
-| `requested_token_type` | Le type de jeton demandé. Pour Token Vault, définissez-le comme le jeton d’accès du fournisseur externe ou `http://auth0.com/oauth/token-type/federated-connection-access-token`                                                                                                                                                                                      |
+| `requested_token_type` | Le type de jeton demandé. Pour Token Vault, définissez-le sur le jeton d’accès du fournisseur externe ou `http://auth0.com/oauth/token-type/federated-connection-access-token`                                                                                                                                                                                        |
 | `connection`           | Le nom de la connexion, dans ce cas-ci, `google-oauth2`.                                                                                                                                                                                                                                                                                                              |
-| `login_hint`           | (Facultatif) Utilisez `login_hint` uniquement si l’utilisateur a plusieurs comptes pour la même connexion, par exemple un compte Google professionnel et un compte Google personnel. Lorsque vous transmettez une valeur pour `login_hint` pendant l’échange de jetons, vous indiquez explicitement lequel des comptes liés de l’utilisateur est visé par la requête. |
+| `login_hint`           | (Facultatif) Utilisez `login_hint` uniquement si l’utilisateur a plusieurs comptes associés à la même connexion, comme un compte Google professionnel et un compte Google personnel. Lorsque vous transmettez une valeur pour `login_hint` pendant l’échange de jetons, vous indiquez explicitement lequel des comptes liés de l’utilisateur est visé par la requête. |
 
 <div id="step-3-auth0-authorization-server-validates-refresh-token">
   ## Étape 3 : Auth0 Authorization Server valide le jeton d’actualisation
@@ -83,11 +83,11 @@ curl --request POST 'https://{yourDomain}/oauth/token' \
 
 Auth0 Authorization Server valide et charge le profil utilisateur associé au jeton d’actualisation Auth0 :
 
-1. Auth0 vérifie si le tableau `connected_accounts` du profil utilisateur contient un compte utilisateur avec le nom de la connexion transmis dans la requête d’autorisation.
-2. Si la requête d’autorisation contient `login_hint`, Auth0 recherche une identité correspondant à la fois au nom de la connexion et à `login_hint`.
+1. Auth0 vérifie si le tableau `connected_accounts` du profil utilisateur contient un compte utilisateur associé au nom de connexion transmis dans la demande d’autorisation.
+2. Si la demande d’autorisation contient `login_hint`, Auth0 recherche une identité correspondant à la fois au nom de connexion et à `login_hint`.
 3. Si Auth0 ne trouve pas l’utilisateur, il renvoie un code d’état `401` avec un message d’erreur.
 
-Une fois qu’Auth0 Authorization Server a validé l’utilisateur, il repère le jeton d’accès Google dans le Token Vault. S’il est encore valide, Auth0 renvoie le jeton d’accès Google avec ses scopes et son heure d’expiration :
+Une fois l’utilisateur validé par Auth0 Authorization Server, celui-ci repère le jeton d’accès Google dans le Token Vault. S’il est toujours valide, Auth0 renvoie le jeton d’accès Google avec ses portées et son heure d’expiration :
 
 ```json lines
 {
@@ -99,12 +99,12 @@ Une fois qu’Auth0 Authorization Server a validé l’utilisateur, il repère l
 }
 ```
 
-Si le jeton d’accès Google a expiré, Auth0 utilise le jeton d’actualisation Google stocké dans le Token Vault pour obtenir un nouveau jeton d’accès Google avec les mêmes scopes.
+Si le Google access token a expiré, Auth0 utilise le Google refresh token stocké dans le Token Vault pour obtenir un nouveau Google access token avec les mêmes scopes.
 
-À l’aide du jeton d’accès Google, l’application appelle l’API Google Calendar pour le compte de l’utilisateur.
+À l’aide du Google access token, l’application appelle l’API Google Calendar au nom de l’utilisateur.
 
 <div id="external-provider-refresh-token-expiration-policy">
   ## Politique d’expiration des jetons d’actualisation d’un fournisseur externe
 </div>
 
-Auth0 supprime les jetons d’actualisation d’un fournisseur externe à leur expiration, selon la date d’expiration définie par ce fournisseur. Les jetons sont également supprimés s’ils n’ont pas été utilisés dans le cadre d’un échange de jetons depuis plus d’un an.
+Auth0 supprime les jetons d’actualisation d’un fournisseur externe à leur expiration, selon la date d’expiration définie par ce fournisseur. Les jetons sont également supprimés s’ils n’ont pas servi à un échange de jetons depuis plus d’un an.

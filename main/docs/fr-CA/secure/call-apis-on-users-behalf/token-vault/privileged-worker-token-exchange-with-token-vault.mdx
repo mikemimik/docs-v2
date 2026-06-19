@@ -1,19 +1,19 @@
 ---
-description: Découvrez comment une application peut accéder à Token Vault pour échanger un JWT bearer token contre un jeton d’accès ou d’actualisation afin d’appeler des API externes.
+description: Découvrez comment une application peut accéder à Token Vault pour échanger un JWT bearer token contre un jeton d’accès ou un refresh token afin d’appeler des API externes.
 title: Privileged Worker Token Exchange with Token Vault
 ---
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Privileged Worker Token Exchange with Token Vault est actuellement en bêta. Pour en savoir plus sur le cycle de lancement des produits d’Auth0, consultez [Phases de lancement des produits](/docs/fr-CA/troubleshoot/product-lifecycle/product-release-stages). Pour participer à ce programme, communiquez avec [Auth0 Support](https://support.auth0.com/) ou votre gestionnaire de compte technique.
+  Privileged Worker Token Exchange with Token Vault est actuellement en Beta. Pour en savoir plus sur le cycle de lancement des produits d’Auth0, consultez [Étapes de lancement du produit](/docs/fr-CA/troubleshoot/product-lifecycle/product-release-stages). Pour participer à ce programme, communiquez avec [Auth0 Support](https://support.auth0.com/) ou votre Technical Account Manager.
 </Callout>
 
-Token Vault prend en charge le Privileged Worker Token Exchange, qui permet à une application cliente d’échanger un JWT signé (jeton de sujet) contre le jeton d’accès ou d’actualisation d’un fournisseur externe (jeton demandé).
+Token Vault prend en charge le Privileged Worker Token Exchange, qui permet à une application cliente d’échanger un JWT signé (jeton de sujet) contre le jeton d’accès ou le refresh token d’un fournisseur externe (requested token).
 
-Après l’authentification et l’autorisation réussies de l’utilisateur, une application cliente transmet généralement le contexte utilisateur, qui contient l’identité, les permissions et l’état de la session de l’utilisateur, sous forme de jeton d’accès ou d’actualisation pour effectuer l’échange de jetons avec Token Vault. Dans les flux de service à service, une application cliente, comme une application backend ou un service worker, peut avoir besoin d’accéder à des ressources au nom de l’utilisateur, mais comme « l’utilisateur n’est pas présent » dans une session interactive, l’application cliente n’a pas accès au contexte utilisateur.
+Après l’authentification et l’autorisation réussies de l’utilisateur, une application cliente transmet généralement le contexte de l’utilisateur, qui contient l’identité de l’utilisateur, ses autorisations et l’état de sa session, sous la forme d’un jeton d’accès ou d’un refresh token afin d’effectuer le token exchange avec Token Vault. Dans les flows de service à service, une application cliente, comme une application backend ou un service worker, peut devoir accéder à des ressources au nom de l’utilisateur, mais comme « l’utilisateur n’est pas présent » dans une session interactive, l’application cliente n’a pas accès au contexte de l’utilisateur.
 
-Dans ces scénarios de service à service, l’application cliente peut générer un JWT bearer token signé et l’utiliser comme jeton de sujet pour effectuer l’échange de jetons et recevoir les jetons nécessaires pour appeler des API externes. Cela signifie que l’application cliente peut exécuter des actions au nom de l’utilisateur sans interaction ni session utilisateur active.
+Dans ces scénarios de service à service, l’application cliente peut générer un signed JWT bearer token et l’utiliser comme jeton de sujet pour effectuer le token exchange et recevoir les jetons nécessaires pour appeler des API externes. Cela signifie que l’application cliente peut exécuter des actions au nom de l’utilisateur sans interaction ni session utilisateur active.
 
-Pour utiliser Privileged Worker Token Exchange with Token Vault, l’application cliente doit être un client hautement privilégié qui peut aussi demander des jetons d’actualisation à des fournisseurs externes via Token Vault. Elle doit s’authentifier auprès de Token Vault à l’aide de méthodes cryptographiques asymétriques, comme l’assertion [Private Key JWT](/docs/fr-CA/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt) ou l’[authentification TLS mutuelle](/docs/fr-CA/get-started/authentication-and-authorization-flow/authenticate-with-mtls).
+Pour utiliser le Privileged Worker Token Exchange avec Token Vault, l’application cliente doit être un client hautement privilégié qui peut aussi demander des refresh tokens à des fournisseurs externes au moyen de Token Vault. Elle doit s’authentifier auprès de Token Vault à l’aide de méthodes cryptographiques asymétriques comme l’assertion [Private Key JWT](/docs/fr-CA/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt) ou l’[authentification TLS mutuelle](/docs/fr-CA/get-started/authentication-and-authorization-flow/authenticate-with-mtls).
 
 <div id="prerequisites">
   ## Prérequis
@@ -21,20 +21,20 @@ Pour utiliser Privileged Worker Token Exchange with Token Vault, l’application
 
 Seuls certains types de clients peuvent utiliser Privileged Worker Token Exchange with Token Vault :
 
-* Le client doit être un client first-party, c.-à-d. que la propriété `is_first_party` doit être définie sur `true`.
-* Le client doit être un client confidentiel doté d’un mécanisme d’authentification valide, c.-à-d. que la propriété `token_endpoint_auth_method` ne doit pas être définie sur `none`.
-* Le client doit être conforme à OIDC, c.-à-d. que la propriété `oidc_conformant` doit être définie sur `true`.
+* Le client doit être un client de première partie, c.-à-d. que la propriété `is_first_party` doit être `true`.
+* Le client doit être un client confidentiel avec un mécanisme d’authentification valide, c.-à-d. que la propriété `token_endpoint_auth_method` ne doit pas être définie sur `none`.
+* Le client doit être conforme à OIDC, c.-à-d. que `oidc_conformant` doit être `true`.
 
 Avant de configurer Privileged Worker Token Exchange pour votre application cliente :
 
-1. [Activez le type d’attribution Token Vault](/docs/fr-CA/secure/tokens/token-vault/configure-token-vault#configure-application) pour votre application cliente.
+1. [Activez le type d’octroi Token Vault](/docs/fr-CA/secure/tokens/token-vault/configure-token-vault#configure-application) pour votre application cliente.
 2. Configurez [Private Key JWT](/docs/fr-CA/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt) ou [l’authentification TLS mutuelle](/docs/fr-CA/get-started/authentication-and-authorization-flow/authenticate-with-mtls) pour votre application cliente.
 
 <div id="configure-client-application">
   ## Configurer l’application cliente
 </div>
 
-Pour configurer l’accès privilégié de l’application cliente à Token Vault, vous devez fournir une clé publique qui servira à vérifier un JWT signé en tant que jeton de sujet.
+Pour configurer l’accès privilégié de l’application cliente à Token Vault, vous devez fournir une clé publique qui servira à vérifier un JWT signé utilisé comme jeton de sujet.
 
 Comme pour la [configuration de JAR](/docs/fr-CA/get-started/applications/configure-jar#configure-jwt-secured-authorization-requests-jar), vous pouvez définir la clé publique d’accès privilégié à Token Vault lors de la création d’un nouveau client :
 
@@ -76,18 +76,18 @@ Content-Type: application/json
 ```
 
 <div id="create-signed-jwt-subject-token">
-  ## Créer un jeton de sujet JWT signé
+  ## Créer un JWT signé comme jeton de sujet
 </div>
 
-Après [avoir configuré votre application cliente avec la clé publique](#configure-client-application), vous devez créer le jeton de sujet qui sera échangé contre un jeton d’accès pour une API externe. Le jeton de sujet est un JSON Web Token (JWT) contenant les assertions nécessaires. Il est signé à l’aide de la clé privée.
+Après avoir [configuré votre application cliente avec la clé publique](#configure-client-application), vous devez créer le jeton de sujet qui sera échangé contre un jeton d’accès pour une API externe. Le jeton de sujet est un JSON Web Token (JWT) contenant les claims nécessaires. Il est signé avec la clé privée.
 
-Le JWT a un format standard et des assertions standard, où :
+Le JWT a un format standard et des claims standard, où :
 
-* Le `typ` de l’en-tête est `token-vault-req+jwt`
-* Le `kid` de l’en-tête est facultatif si vous n’avez configuré qu’une seule clé publique
-* Le `sub` de la charge utile correspond à l’identifiant de l’utilisateur pour lequel vous voulez obtenir le jeton
-* Le `aud` de la charge utile est l’hôte de votre tenant
-* Le `iss` de la charge utile est l’identifiant client qui effectue la requête
+* Le `typ` du header est `token-vault-req+jwt`
+* Le `kid` du header est facultatif si vous n’avez configuré qu’une seule clé publique
+* Le `sub` du payload correspond au user ID de l’utilisateur pour lequel vous souhaitez obtenir le jeton
+* Le `aud` du payload correspond à l’hôte de votre tenant
+* Le `iss` du payload correspond à votre client ID qui effectue la requête
 
 Voici un exemple de JWT :
 
@@ -107,7 +107,7 @@ Voici un exemple de JWT :
 }
 ```
 
-L’exemple de code suivant est un script qui génère un JWT signé servant de jeton de sujet :
+L’exemple de code suivant est un script qui génère un jeton subject JWT signé :
 
 ```tsx lines
 import * as jwt from 'jsonwebtoken';
@@ -129,10 +129,10 @@ import * as jwt from 'jsonwebtoken';
 ```
 
 <div id="request-token-for-external-api">
-  ## Demander un jeton d’accès pour l’API externe
+  ## Demander un jeton pour l’API externe
 </div>
 
-Une fois que vous avez le JWT signé, vous pouvez faire une requête afin d’obtenir le jeton d’accès pour l’API externe :
+Une fois que vous avez le JWT signé, vous pouvez envoyer une requête pour obtenir un jeton d’accès pour l’API externe :
 
 ```bash lines
 curl --request POST 'https://{yourDomain}/oauth/token' \
@@ -148,17 +148,17 @@ curl --request POST 'https://{yourDomain}/oauth/token' \
 }'
 ```
 
-| Paramètre              | Description                                                                                                                                      |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `grant_type`           | Le type d’attribution. Pour Token Vault, définissez-le sur `urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token`       |
-| `client_id`            | ID de l’application cliente                                                                                                                      |
-| `client_secret`        | Secret du client. **Remarque :** Pour Privileged Worker Token Exchange, nous recommandons d’utiliser Private Key JWT ou l’authentification mTLS. |
-| `subject_token_type`   | Type du jeton de sujet. Pour Privileged Worker Token Exchange, définissez-le sur JWT : `urn:ietf:params:oauth:token-type:jwt`                     |
-| `subject_token`        | Le JWT bearer token signé que l’Auth0 Authorization Server valide pour identifier l’utilisateur.                                                 |
-| `requested_token_type` | Le type de jeton demandé. Pour Privileged Worker Token Exchange, vous pouvez demander un jeton d’accès ou un jeton d’actualisation.              |
-| `connection`           | Le nom de la connexion, dans ce cas-ci, `google-oauth2`.                                                                                         |
+| Paramètre              | Description                                                                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grant_type`           | Le type d’octroi. Pour Token Vault, définissez-le à `urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token`      |
+| `client_id`            | ID de l’application cliente                                                                                                                   |
+| `client_secret`        | Client secret. **Remarque :** Pour Privileged Worker Token Exchange, nous recommandons d’utiliser Private Key JWT ou l’authentification mTLS. |
+| `subject_token_type`   | Type de jeton de sujet. Pour Privileged Worker Token Exchange, définissez-le à JWT : `urn:ietf:params:oauth:token-type:jwt`                    |
+| `subject_token`        | Le JWT bearer token signé que l’Auth0 Authorization Server valide pour identifier l’utilisateur.                                              |
+| `requested_token_type` | Le type de jeton demandé. Pour Privileged Worker Token Exchange, vous pouvez demander un jeton d’accès ou un refresh token.                    |
+| `connection`           | Le nom de la connexion, dans ce cas-ci, `google-oauth2`.                                                                                      |
 
-Vous devriez recevoir le jeton d’accès stocké dans Token Vault. Vous pouvez aussi demander le jeton d’actualisation pour l’API externe :
+Vous devriez recevoir le jeton d’accès stocké dans le Token Vault. Vous pouvez aussi demander le refresh token pour l’API externe :
 
 ```bash lines
 curl --request POST 'https://{yourDomain}/oauth/token' \

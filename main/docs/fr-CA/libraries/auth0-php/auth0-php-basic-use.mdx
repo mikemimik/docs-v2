@@ -1,38 +1,38 @@
 ---
-description: Intégrez une expérience de connexion et d’inscription fluide pour vos applications PHP.
-title: 'PHP : connexion, déconnexion et récupération des profils utilisateur avec Auth0-PHP'
+description: Intégrez une expérience de connexion et d’inscription sans friction pour vos applications PHP.
+title: 'PHP : se connecter, se déconnecter et récupérer les profils utilisateur avec Auth0-PHP'
 ---
 
-Le SDK Auth0-PHP regroupe trois classes principales : `Auth0\SDK\Auth0`, `Auth0\SDK\API\Authentication` et `Auth0\SDK\API\Management`, qui offrent chacune des interfaces pour différentes fonctionnalités des API d’Auth0. Si vous créez une application Web avec état qui doit assurer le suivi des sessions utilisateur, la classe de base `Auth0` est celle que vous utiliserez le plus souvent. Elle fournit des méthodes pour gérer les tâches courantes d’authentification et de gestion de session, comme la connexion et la déconnexion, la récupération des identifiants utilisateur, la vérification de l’existence d’une session active et la gestion du rappel. Ces tâches sont expliquées ci-dessous.
+Le SDK Auth0-PHP regroupe trois classes principales : `Auth0\SDK\Auth0`, `Auth0\SDK\API\Authentication` et `Auth0\SDK\API\Management`, qui offrent chacune des interfaces pour différentes fonctionnalités des API d’Auth0. Si vous créez une application web avec état qui doit assurer le suivi des sessions des utilisateurs, la classe de base `Auth0` est celle que vous utiliserez le plus souvent. Elle fournit des méthodes pour gérer des tâches courantes liées à l’authentification et aux sessions, comme se connecter et se déconnecter, récupérer les identifiants des utilisateurs, vérifier si une session est active et gérer le callback. Ces tâches sont expliquées ci-dessous.
 
-Pour en savoir plus sur ces fonctionnalités et d’autres encore, veuillez consulter la [page de documentation de l’Authentication API](/docs/fr-CA/libraries/auth0-php/using-the-authentication-api-with-auth0-php).
+Pour en savoir plus sur ces fonctionnalités et bien d’autres, consultez la [page de documentation de l’Authentication API](/docs/fr-CA/libraries/auth0-php/using-the-authentication-api-with-auth0-php).
 
 <div id="prerequisites">
   ## Prérequis
 </div>
 
-La documentation ci-dessous suppose que vous avez suivi les étapes décrites dans [Auth0-PHP](/docs/fr-CA/libraries/auth0-php) et que vous reprenez à partir du code qui y est fourni.
+La documentation ci-dessous suppose que vous avez suivi les étapes décrites dans [Auth0-PHP](/docs/fr-CA/libraries/auth0-php) et que vous poursuivez à partir du code qui y est fourni.
 
 <div id="logging-in">
-  ### Se connecter
+  ### Connexion
 </div>
 
-Le processus de login par défaut dans le SDK PHP utilise un [flux d’octroi de code d’autorisation](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow/call-your-api-using-the-authorization-code-flow) combiné à la page <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur le serveur d’autorisation d’Auth0, afin de vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip>. En bref, ce processus se déroule ainsi :
+Le processus de connexion par défaut du SDK PHP utilise un [octroi par code d’autorisation](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow/call-your-api-using-the-authorization-code-flow), combiné à la page <Tooltip tip="Universal Login : votre application est redirigée vers Universal Login, hébergé sur le serveur d’autorisation d’Auth0, afin de vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> d’Auth0. En bref, ce processus se déroule ainsi :
 
 1. Un utilisateur qui demande l’accès est redirigé vers la page Universal Login.
-2. L’utilisateur s’authentifie à l’aide de l’une des [nombreuses connexions possibles](/docs/fr-CA/authenticate/identity-providers) : sociales (Google, X, Facebook), de base de données (courriel et mot de passe), Passwordless (courriel, SMS) ou d’entreprise (ActiveDirectory, ADFS, Office 365).
-3. L’utilisateur est redirigé ou renvoyé par POST vers l’URL de rappel de votre application avec les valeurs `code` et `state` en cas de succès, ou avec `error` et `error_description` dans le cas contraire.
+2. L’utilisateur s’authentifie à l’aide de l’une des [nombreuses connexions possibles](/docs/fr-CA/authenticate/identity-providers) : sociale (Google, X, Facebook), base de données (courriel et mot de passe), sans mot de passe (courriel, SMS) ou entreprise (ActiveDirectory, ADFS, Office 365).
+3. L’utilisateur est redirigé vers l’URL de rappel de votre application, ou les données y sont envoyées, avec les valeurs `code` et `state` en cas de réussite, ou `error` et `error_description` dans le cas contraire.
 4. Si l’authentification a réussi, la valeur `state` est validée.
-5. Si `state` est valide, la valeur `code` est échangée auprès d’Auth0 contre un ID Token et/ou un access token.
-6. L’identité contenue dans l’ID Token peut être utilisée pour créer un compte, démarrer une session propre à l’application ou être enregistrée comme session utilisateur.
+5. Si `state` est valide, la valeur `code` est échangée avec Auth0 contre un ID Token et/ou un jeton d’accès.
+6. Les informations d’identité de l’ID token peuvent servir à créer un compte, à démarrer une session propre à l’application ou à être enregistrées comme session utilisateur.
 
 Auth0-PHP gère automatiquement la plupart de ces étapes pour vous. Votre application devra :
 
-1. Appeler `Auth0\SDK\Auth0::login()` lorsque les utilisateurs doivent se connecter (par exemple : cliquer sur un lien, accéder à du contenu protégé, etc.)
+1. Appeler `Auth0\SDK\Auth0::login()` lorsque les utilisateurs doivent se connecter (par exemple : cliquer sur un lien, visiter du contenu protégé, etc.)
 2. Appeler `Auth0\SDK\Auth0::exchange()` lorsque les utilisateurs sont redirigés vers votre URL de rappel.
-3. Appeler `Auth0\SDK\Auth0::getCredentials()` lorsque vous devez vérifier si un utilisateur est connecté et récupérer les informations sur l’utilisateur.
+3. Appeler `Auth0\SDK\Auth0::getCredentials()` lorsque vous devez vérifier si un utilisateur est connecté et récupérer ses renseignements.
 
-Une mise en œuvre simple de ces étapes ressemble à ceci :
+Voici à quoi ressemble une mise en œuvre simple de ces étapes :
 
 ```php lines
 // 👆 Nous continuons à partir du guide « Premiers pas » lié dans « Prérequis » ci-dessus. Ajoutez ceci au fichier index.php que vous avez créé là-bas.
@@ -57,17 +57,17 @@ if ($session === null) {
 echo "Authenticated!";
 ```
 
-Enfin, vous devrez ajouter l’URL de votre application au champ &quot;Allowed Callback URLs&quot; de votre Application Auth0 sur la page Settings. Après cela, le chargement de votre page scriptée devrait :
+Enfin, vous devrez ajouter l’URL de votre application dans le champ &quot;Allowed Callback URLs&quot; de votre application Auth0, sur la page Settings. Après cela, le chargement de votre page scriptée devrait :
 
 1. Vous rediriger immédiatement vers une page de connexion Auth0 pour votre tenant.
-2. Après une connexion réussie à l’aide de n’importe quelle connexion, vous rediriger vers votre application.
-3. Afficher une page simple indiquant &#39;Authenticated!&#39;.
+2. Une fois la connexion réussie à l’aide de n’importe quelle connexion, vous rediriger vers votre application.
+3. Afficher une page simple indiquant &#39;Authentifié !&#39;.
 
 <div id="profile">
   ### Profil
 </div>
 
-Maintenant que nous avons authentifié un utilisateur, nous pouvons utiliser les données enregistrées de sa session pour afficher, par exemple, des profils d’utilisateur.
+Maintenant que nous avons authentifié un utilisateur, nous pouvons utiliser les données enregistrées de sa session pour faire, par exemple, afficher des profils d’utilisateur.
 
 ```php lines
 // 👆 Nous continuons à partir du code ci-dessus. Ajoutez ceci au fichier index.php.
@@ -87,23 +87,23 @@ printf(
 ```
 
 <div id="logout">
-  ### Logout
+  ### Déconnexion
 </div>
 
-En plus de se connecter, nous voulons aussi que les utilisateurs puissent se déconnecter. Lorsqu’ils se déconnectent, ils doivent invalider leur session dans l’application. Pour ce SDK, cela signifie détruire leurs données utilisateur et leurs données de token persistantes :
+En plus de se connecter, nous voulons aussi que les utilisateurs puissent se déconnecter. Lorsqu’ils se déconnectent, ils doivent invalider leur session dans l’application. Pour ce SDK, cela signifie supprimer leurs données utilisateur persistantes ainsi que leurs jetons enregistrés :
 
 ```php lines
 // Se déconnecter de l'application.
 header("Location: $auth0->logout());
 ```
 
-Si vous utilisez <Tooltip tip="Authentification unique (SSO) : service qui, après qu’un utilisateur se connecte à une application, ouvre automatiquement une session pour cet utilisateur dans d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on">l’authentification unique</Tooltip> (SSO) et souhaitez également mettre fin à sa session Auth0, consultez la [section sur la Déconnexion SSO ici](/docs/fr-CA/libraries/auth0-php/using-the-authentication-api-with-auth0-php). Vous trouverez [ici](/docs/fr-CA/authenticate/login/logout) plus d’informations sur la déconnexion en général.
+Si vous utilisez <Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur ouvre une session dans une application, l’ouvre automatiquement dans d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on">l’authentification unique</Tooltip> (SSO) et que vous souhaitez également mettre fin à sa session Auth0, consultez la [section sur la déconnexion du SSO ici](/docs/fr-CA/libraries/auth0-php/using-the-authentication-api-with-auth0-php). Vous trouverez plus d’information sur la déconnexion en général [ici](/docs/fr-CA/authenticate/login/logout).
 
 <div id="learn-more">
-  ## Pour en savoir plus
+  ## En savoir plus
 </div>
 
-* [PHP : Premiers pas avec Auth0-PHP](/docs/fr-CA/libraries/auth0-php)
+* [PHP : Bien démarrer avec Auth0-PHP](/docs/fr-CA/libraries/auth0-php)
 * [PHP : Utiliser l&#39;Authentication API avec Auth0-PHP](/docs/fr-CA/libraries/auth0-php/using-the-authentication-api-with-auth0-php)
 * [PHP : Utiliser la Management API avec Auth0-PHP](/docs/fr-CA/libraries/auth0-php/using-the-management-api-with-auth0-php)
 * [PHP : Valider des JWT (JSON Web Tokens) avec Auth0-PHP](/docs/fr-CA/libraries/auth0-php/validating-jwts-with-auth0-php)

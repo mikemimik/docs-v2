@@ -1,19 +1,19 @@
 ---
-description: Décrit comment lier des comptes d’utilisateur dans une application web traditionnelle à l’aide de code côté serveur, à partir d’un scénario d’exemple.
-title: 'Liaison de comptes d’utilisateur : implémentation côté serveur'
+description: Décrit comment lier des comptes d’utilisateur dans une application web traditionnelle à l’aide de code côté serveur, à partir d’un exemple concret.
+title: 'Liaison de comptes d’utilisateur : mise en œuvre côté serveur'
 ---
 
-Auth0 prend en charge la liaison de comptes d’utilisateur provenant de divers <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+providers">fournisseurs d’identité</Tooltip>. Vous pouvez utiliser du code côté serveur pour lier des comptes dans une application web traditionnelle, en faisant intervenir l’utilisateur et en lui demandant son autorisation avant de continuer. Votre code authentifiera les utilisateurs, puis les recherchera et les identifiera à l’aide de leur adresse courriel. Votre application invitera ensuite l’utilisateur à lier ses comptes en s’authentifiant avec les informations d’authentification du compte cible, puis procédera à la liaison des comptes.
+Auth0 prend en charge la liaison de comptes d’utilisateur provenant de divers <Tooltip tip="Fournisseur d'identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+providers">fournisseurs d’identité</Tooltip>. Vous pouvez utiliser du code côté serveur pour lier des comptes dans une application web traditionnelle, en impliquant l’utilisateur et en lui demandant son autorisation avant de continuer. Votre code authentifiera les utilisateurs, puis recherchera et identifiera les utilisateurs à l’aide de leur adresse courriel. Votre application invitera ensuite l’utilisateur à lier ses comptes en s’authentifiant avec les identifiants du compte cible, puis procédera à la liaison des comptes.
 
-Vous trouverez le code source complet de cet exemple d’application [sur GitHub](https://github.com/auth0-samples/auth0-link-accounts-sample/tree/master/RegularWebApp).
+Vous pouvez consulter le code source complet de cet exemple d’application [sur GitHub](https://github.com/auth0-samples/auth0-link-accounts-sample/tree/master/RegularWebApp).
 
-1. Ouvrez une session pour l’utilisateur dans votre application.<br />
+1. Authentifiez l’utilisateur dans votre application.<br />
 
-   L’utilisateur s’authentifie dans votre application au moyen de [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login). Pour en savoir plus, consultez le [Quickstart d’application web traditionnelle](/docs/fr-CA/quickstart/webapp), qui explique comment demander un jeton pour l’audience de l’Auth0 Management API (audience=`https://{yourDomain}/api/v2/`).
+   L’utilisateur s’authentifie dans votre application à l’aide de [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login). Pour en savoir plus, consultez le [Quickstart d’une application Web traditionnelle](/docs/fr-CA/quickstart/webapp), en demandant un token pour l’audience de l’Auth0 Management API (audience=`https://{yourDomain}/api/v2/`).
 
-2. Recherchez des utilisateurs ayant la même adresse courriel.<br />
+2. Recherchez les utilisateurs qui ont la même adresse courriel.<br />
 
-   Vous pouvez récupérer le profil de l’utilisateur et la liste des utilisateurs qui ont la même adresse courriel vérifiée.
+   Vous pouvez récupérer le profil de l’utilisateur et la liste des utilisateurs ayant la même adresse courriel vérifiée.
 
    ```javascript lines expandable
    router.get("/", async (req, res) => {
@@ -23,7 +23,7 @@ Vous trouverez le code source complet de cet exemple d’application [sur GitHub
        let getUsersWithSameVerifiedEmail = [];
        const getUserProfile = auth0Client.getUser(sub);
        if (email_verified)
-         // le lien de compte n'est offert qu'aux adresses courriel vérifiées
+         // la liaison de comptes n'est proposée qu'aux adresses courriel vérifiées
          getUsersWithSameVerifiedEmail = auth0Client.getUsersWithSameVerifiedEmail(
            req.openid.user
          );
@@ -61,15 +61,15 @@ Vous trouverez le code source complet de cet exemple d’application [sur GitHub
 
 3. Invitez l’utilisateur à associer des comptes.
 
-   1. Si Auth0 retourne un ou plusieurs enregistrements avec des adresses courriel identiques, l’utilisateur verra la liste ainsi que le message suivant l’invitant à lier les comptes.
-   2. Si l’utilisateur souhaite lier un compte en particulier, il peut cliquer sur **Lier** à côté du compte approprié.
+   1. Si Auth0 renvoie un ou plusieurs enregistrements ayant la même adresse courriel, l’utilisateur verra la liste accompagnée du message suivant l’invitant à lier les comptes.
+   2. Si l’utilisateur souhaite lier l’un de ces comptes, il peut cliquer sur **Lier** à côté du compte approprié.
 
       <Frame>![Exemple d’application avec page de liaison de comptes côté serveur](/docs/images/cdy7uua7fh8z/7unQjUtxTZUc4tRFOxhaP3/050fb853d2b3be37795ce88b8a60ffed/account-linking-webapp-small__1_.png)</Frame>
 
-4. Lorsque l’utilisateur clique sur **Lier**, votre application invitera l’utilisateur à s’authentifier avec le compte cible, puis procédera à la liaison des comptes.
+4. Lorsque l’utilisateur clique sur **Lier**, votre application lui demandera de s’authentifier avec le compte cible, puis procédera à la liaison de comptes.
 
    <Warning>
-     Pour conserver et fusionner le `user_metadata` du compte secondaire, vous devez le récupérer et l’intégrer aux métadonnées du compte principal avant d’appeler le point de terminaison de l’API. Une fois les comptes liés, les métadonnées du compte secondaire sont supprimées.
+     Pour conserver et fusionner le `user_metadata` du compte secondaire, vous devez le récupérer et le fusionner aux métadonnées du compte principal avant d’appeler le point de terminaison d’API. Une fois les comptes liés, les métadonnées du compte secondaire sont supprimées.
 
      Lorsque vous lancez la liaison de comptes, vous pouvez choisir quelle identité sera utilisée comme compte principal et laquelle comme compte secondaire. Ce choix dépendra de l’ensemble d’attributs que vous souhaitez conserver dans le profil principal.
    </Warning>
@@ -112,18 +112,18 @@ Vous trouverez le code source complet de cet exemple d’application [sur GitHub
    }
    ```
 
-5. Votre application appelle le [point de terminaison Link a User Account](https://auth0.com/docs/api/v2#!/Users/post_identities) de l’API de gestion Auth0 à l’aide d’un [jeton d’accès à l’API de gestion](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens) avec la portée `update:users`.
+5. Votre application appelle le [point de terminaison Associer un compte d’utilisateur](https://auth0.com/docs/api/v2#!/Users/post_identities) de l’API de gestion Auth0 à l’aide d’un [jeton d’accès à l’API de gestion](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens) avec la portée `update:users`.
 
 <div id="metadata-merge-example">
   ## Exemple de fusion des métadonnées
 </div>
 
-L’exemple suivant montre explicitement comment les `user_metadata` et `app_metadata` du compte secondaire sont fusionnés au compte principal à l’aide du [SDK Auth0 Node.js pour l’API v2](https://github.com/auth0/node-auth0).
+L’exemple suivant montre explicitement comment le `user_metadata` et l’`app_metadata` du compte secondaire sont fusionnés dans le compte principal à l’aide du [SDK Auth0 Node.js pour l’API V2](https://github.com/auth0/node-auth0).
 
 ```javascript lines expandable
 /*
- * Fusionne récursivement user_metadata et app_metadata de l'utilisateur secondaire dans l'utilisateur principal.
- * Les données de l'utilisateur principal ont la prépondérance.
+ * Fusionne récursivement user_metadata et app_metadata du compte secondaire dans le compte principal.
+ * Les données du compte principal ont préséance.
  * Les champs de type tableau sont joints.
  */
 async function mergeMetadata(primaryUserId, secondaryUserId) {

@@ -1,6 +1,6 @@
 ---
 title: "Obtener token"
-description: "Autentica a un usuario con sus credenciales mediante el flujo de contraseña del propietario del recurso para aplicaciones de confianza que no pueden usar redirecciones."
+description: "Autenticar a un usuario con sus credenciales mediante la concesión de contraseña del propietario del recurso para aplicaciones de alta confianza que no pueden usar redirecciones."
 ---
 
 import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
@@ -12,18 +12,18 @@ import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
 `POST /oauth/token`
 
 <Note>
-  Este flujo solo debe usarse desde aplicaciones de alta confianza que **no pueden hacer redirecciones**. Si puedes usar flujos basados en redirecciones desde tu aplicación, te recomendamos usar en su lugar el [flujo de código de autorización](#regular-web-app-login-flow).
+  Este flujo solo debe usarse desde aplicaciones de alta confianza que **no puedan realizar redirecciones**. Si puedes usar flujos basados en redirecciones desde tu aplicación, te recomendamos usar el [flujo de código de autorización](#regular-web-app-login-flow) en su lugar.
 </Note>
 
-Este es la concesión de OAuth 2.0 que usan las aplicaciones de alta confianza para acceder a una API. En este flujo, se pide al usuario final que introduzca sus credenciales (nombre de usuario/contraseña), normalmente mediante un formulario interactivo en el agente de usuario (navegador). Esta información se envía al backend y, desde allí, a Auth0. Por lo tanto, es imprescindible que la aplicación sea completamente de confianza para manejar esta información.
+Esta es la concesión de OAuth 2.0 que utilizan las aplicaciones de alta confianza para acceder a una API. En este flujo, se solicita al usuario final que introduzca sus credenciales (nombre de usuario y contraseña), normalmente mediante un formulario interactivo en el user-agent (navegador). Esta información se envía al backend y, desde allí, a Auth0. Por lo tanto, es imprescindible que la aplicación sea totalmente confiable para manejar esta información.
 
 <div id="request-headers">
   ### Encabezados de la solicitud
 </div>
 
-| Parameter             | Description                                                                                                                                                                  |
-| :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `auth0-forwarded-for` | Dirección IP del usuario final como valor de cadena. Establece este parámetro si quieres que la protección contra fuerza bruta funcione en escenarios del lado del servidor. |
+| Parámetro             | Descripción                                                                                                                                                      |
+| :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth0-forwarded-for` | IP del usuario final como valor de cadena. Establécelo si quieres que la protección contra ataques de fuerza bruta funcione en escenarios del lado del servidor. |
 
 <div id="responses">
   ### Respuestas
@@ -33,7 +33,7 @@ Este es la concesión de OAuth 2.0 que usan las aplicaciones de alta confianza p
   #### 200
 </div>
 
-Una solicitud correcta devuelve el token de acceso.
+Una solicitud exitosa devuelve el token de acceso.
 
 ```json
 HTTP/1.1 200 OK
@@ -49,9 +49,9 @@ Content-Type: application/json
   ### Observaciones
 </div>
 
-* Los scopes emitidos para la aplicación pueden diferir de los scopes solicitados. En este caso, se incluirá un parámetro `scope` en el JSON de respuesta.
-* Si no solicitas scopes específicos, se devolverán todos los scopes definidos para la audiencia debido a la confianza implícita en la aplicación en esta concesión.
-* Para agregar compatibilidad con realm, establece `grant_type` en `http://auth0.com/oauth/grant-type/password-realm` y `realm` en el realm al que pertenece el usuario. Esto se corresponde con una conexión en Auth0.
+* Los scopes emitidos para la aplicación pueden diferir de los scopes solicitados. En este caso, se incluirá un parámetro `scope` en la respuesta JSON.
+* Si no solicita scopes específicos, se devolverán todos los scopes definidos para el audience debido a la confianza implícita en la aplicación en esta concesión.
+* Para agregar compatibilidad con `realm`, establezca `grant_type` en `http://auth0.com/oauth/grant-type/password-realm` y `realm` en el realm al que pertenece el usuario. Esto se asigna a una conexión en Auth0.
 * Además del nombre de usuario y la contraseña, Auth0 puede requerir que el usuario final proporcione un factor adicional como prueba de identidad. La solicitud puede devolver un error `mfa_required` junto con un `mfa_token` para la autenticación multifactor.
 
 <div id="learn-more">
@@ -67,7 +67,7 @@ Content-Type: application/json
 </div>
 
 <ParamField header="DPoP" type="string">
-  Una prueba DPoP para la solicitud. Es opcional y solo se requiere si tu aplicación utiliza Demonstrating Proof-of-Possession.
+  Una prueba DPoP para la solicitud. Es opcional y solo se requiere si tu aplicación usa Demonstrating Proof-of-Possession.
 </ParamField>
 
 <div id="body-parameters">
@@ -75,7 +75,7 @@ Content-Type: application/json
 </div>
 
 <ParamField body="grant_type" type="string" required>
-  Indica el flujo que estás usando. Para contraseña del propietario del recurso, usa `password`.
+  Indica el flujo que estás usando. Para la contraseña del propietario del recurso, usa `password`.
 </ParamField>
 
 <ParamField body="username" type="string" required>
@@ -91,19 +91,19 @@ Content-Type: application/json
 </ParamField>
 
 <ParamField body="resource" type="string">
-  El identificador de la API de destino (servidor de recursos) a la que quieres acceder. Debe coincidir con un identificador de API registrado en tu tenant de Auth0. Se usa como alternativa a `audience` cuando el [perfil de compatibilidad del parámetro resource](https://auth0.com/docs/get-started/tenant-settings#settings-advanced) del tenant está configurado en `compatibility`.
+  El identificador de la API de destino (resource server) a la que quieres acceder. Debe coincidir con un identificador de API registrado en tu tenant de Auth0. Se usa como alternativa a `audience` cuando el [Perfil de compatibilidad del parámetro de recurso](https://auth0.com/docs/get-started/tenant-settings#settings-advanced) del tenant está configurado como `compatibility`.
 </ParamField>
 
 <ParamField body="scope" type="string">
-  Valor de cadena con los diferentes scopes que solicita la aplicación.
+  Valor de cadena de los diferentes scopes que solicita la aplicación.
 </ParamField>
 
 <ParamField body="client_id" type="string" required>
-  El Client ID de tu aplicación.
+  El ID de cliente de tu aplicación.
 </ParamField>
 
 <ParamField body="client_secret" type="string">
-  El Client Secret de tu aplicación.
+  El secreto de cliente de tu aplicación.
 </ParamField>
 
 <ParamField body="realm" type="string">
@@ -120,11 +120,11 @@ Content-Type: application/json
   </ResponseField>
 
   <ResponseField name="token_type" type="string">
-    El tipo de token. Normalmente, `Bearer`.
+    El tipo de token. Normalmente `Bearer`.
   </ResponseField>
 
   <ResponseField name="expires_in" type="integer">
-    La vigencia del token de acceso en segundos.
+    La duración del token de acceso en segundos.
   </ResponseField>
 </ResponseSchema>
 

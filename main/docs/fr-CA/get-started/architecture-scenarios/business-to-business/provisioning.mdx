@@ -1,190 +1,190 @@
 ---
-description: Fonctionnalités de provisionnement des utilisateurs et considérations pour votre mise en œuvre de B2B IAM.
-title: Provisionnement (B2B)
+description: Fonctionnalité de provisionnement des utilisateurs et considérations à prendre en compte pour votre mise en œuvre de B2B IAM.
+title: Provisioning (B2B)
 ---
 
-Déterminer comment les utilisateurs s’inscriront est un point important à régler dès le départ, et les décisions que vous prendrez ici influenceront bon nombre de celles que vous devrez prendre par la suite. Nous avons constaté qu’il existe un ensemble de modèles courants quant à la façon dont les utilisateurs sont ajoutés à votre système, ainsi que certains éléments à prendre en compte dans la conception du flux de travail.
+Déterminer tôt comment les utilisateurs s’inscriront est essentiel, car les décisions prises ici influenceront bon nombre de celles que vous devrez prendre par la suite. Nous avons constaté qu’il existe un ensemble de modèles courants pour l’ajout d’utilisateurs à votre système, ainsi que certains éléments à considérer dans la conception du flux de travail.
 
 <Info>
   ### Pratique exemplaire
 
-  Bien qu’Auth0 prenne en charge de nombreux flux de travail, les flux de travail Web qui utilisent [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login) d’Auth0 pour l’inscription sont considérés comme une pratique exemplaire, tant dans l’industrie que chez Auth0, puisqu’ils offrent une fonctionnalité optimale et le meilleur niveau de sécurité.
+  Bien qu’Auth0 prenne en charge de nombreux flux de travail, les flux Web qui utilisent [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login) d’Auth0 pour l’inscription sont considérés comme une pratique exemplaire, tant dans l’industrie que chez Auth0, puisqu’ils offrent des fonctionnalités optimales et le meilleur niveau de sécurité.
 </Info>
 
-Auth0 prend en charge l’inscription des utilisateurs au moyen de différents [fournisseurs d’identité](/docs/fr-CA/authenticate/identity-providers). Pendant l’inscription, Auth0 provisionne le profil utilisateur afin qu’il contienne les renseignements du compte de l’utilisateur. Plusieurs éléments sont à prendre en compte sur le plan des fonctionnalités et du flux de travail :
+Auth0 prend en charge l’inscription des utilisateurs au moyen de différents [fournisseurs d’identité](/docs/fr-CA/authenticate/identity-providers). Pendant l’inscription, Auth0 provisionne le profil utilisateur afin qu’il contienne les renseignements du compte de l’utilisateur. Plusieurs éléments sont à prendre en compte sur le plan des fonctionnalités et du flux de travail :
 
-* L’utilisateur est-il ajouté au domaine de votre entreprise, ou appartient-il au domaine de son organisation, voire y demeure-t-il ?
-* Si l’utilisateur demeure dans son propre domaine, appartient-il à une seule organisation ou peut-il appartenir à plusieurs organisations ?
+* L’utilisateur est-il ajouté au domaine de votre entreprise ou appartient-il, ou demeure-t-il, au domaine de son organisation ?
+* Si l’utilisateur reste dans son propre domaine, appartient-il à une seule organisation ou peut-il appartenir à plusieurs organisations ?
 * Comment provisionnez-vous l’organisation elle-même dans votre système ?
-* Devriez-vous utiliser Auth0 comme répertoire d’identités ?
-* Pouvez-vous utiliser votre propre répertoire d’identités existant avec Auth0 ?
-* Comment migrez-vous les identités des utilisateurs de votre répertoire d’identités vers Auth0 ?
-* Vos utilisateurs peuvent-ils s’inscrire à l’aide du <Tooltip tip="Identity Provider (IdP): Service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> de leur organisation ?
+* Devriez-vous utiliser Auth0 comme magasin d’identités ?
+* Pouvez-vous utiliser votre propre magasin d’identités hérité avec Auth0 ?
+* Comment migrez-vous les identités des utilisateurs de votre magasin d’identités vers Auth0 ?
+* Vos utilisateurs peuvent-ils s’inscrire en utilisant le <Tooltip tip="Identity Provider (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> de leur organisation ?
 * Vos utilisateurs peuvent-ils être invités ou s’inscrire eux-mêmes ?
 
-L’une des premières décisions à prendre lorsque vous offrez vos services à d’autres entreprises consiste à déterminer à quel domaine les utilisateurs appartiennent. Selon la réponse à cette question, différentes approches s’offrent à vous pour provisionner ces utilisateurs. Consultez [Provisionnement des utilisateurs d’organisation](#provisioning-organization-users) pour en savoir plus. Une fois que vous saurez comment vous voulez représenter les organisations dans votre système, vous devrez réfléchir à la façon de provisionner l’organisation elle-même. Consultez [Provisionnement des organisations](#provisioning-organizations) pour en savoir plus.
+L’une des premières décisions à prendre lorsque vous offrez vos services à d’autres entreprises consiste à déterminer à quel domaine les utilisateurs appartiennent. Selon la réponse à cette question, il existe différentes approches pour provisionner ces utilisateurs. Consultez [Provisionnement des utilisateurs d’une organisation](#provisioning-organization-users) pour en savoir plus. Une fois que vous aurez déterminé comment les organisations doivent être représentées dans votre système, vous voudrez aussi réfléchir à la façon de provisionner l’organisation elle-même. Consultez [Provisionnement des organisations](#provisioning-organizations) pour en savoir plus.
 
-Auth0 fournit un stockage d’identités prêt à l’emploi qui peut être utilisé pour stocker les informations d’identification des utilisateurs de façon sûre et sécurisée. Consultez [Self Sign Up](#self-sign-up) pour en savoir plus. Si vous disposez déjà d’un répertoire d’identités existant et souhaitez en transférer la gestion, les capacités de [User Migration](#user-migration) vous offrent plusieurs options pour le faire.
+Auth0 fournit un stockage d’identités prêt à l’emploi qui peut être utilisé pour stocker les justificatifs d’authentification des utilisateurs de façon sûre et sécurisée. Consultez [Self Sign Up](#self-sign-up) pour en savoir plus. Si vous disposez déjà d’un magasin d’identités hérité et que vous souhaitez en déléguer la gestion, les fonctionnalités de [User Migration](#user-migration) vous offrent plusieurs options pour le faire.
 
-Sinon, si vous devez conserver votre répertoire d’identités existant — par exemple parce que vous avez des applications que vous n’êtes pas prêt à migrer ou qui ne peuvent pas l’être — vous pouvez utiliser la fonctionnalité [identity store proxy](#identity-store-proxy). Permettre à vos clients d’apporter leur propre identité est également une option intéressante et, même si nous constatons qu’ils ne le font généralement pas au départ, vous pouvez utiliser la fonctionnalité [Social Sign Up](#social-sign-up) pour l’offrir.
+Sinon, si vous devez conserver votre magasin d’identités hérité — par exemple parce que vous avez des applications que vous n’êtes pas encore prêt à migrer ou qui ne peuvent pas l’être — vous pouvez utiliser la fonctionnalité d’[identity store proxy](#identity-store-proxy). Permettre à vos clients d’apporter leur propre identité peut aussi être intéressant et, même si nous constatons qu’ils ne le font généralement pas au départ, vous pouvez utiliser la fonctionnalité de [Social Sign Up](#social-sign-up) pour l’offrir.
 
 <div id="provisioning-organizations">
   ## Provisionnement des organisations
 </div>
 
-Ce que vous devez faire pour provisionner une organisation dépend de la façon dont les organisations sont représentées dans votre système. Il peut être utile de prendre un peu de recul et de réfléchir à la manière dont les utilisateurs de ces organisations interagiront avec vos applications. Consultez [Multiple Organization Architecture](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture) pour déterminer comment configurer les organizations pour votre système IAM.
+Les mesures à prendre pour le provisionnement d’une organisation dépendront de la façon dont les organisations sont représentées dans votre système. Il peut être utile de prendre un peu de recul et de réfléchir à la façon dont les utilisateurs de ces organisations interagiront avec vos applications. Consultez [Multiple Organization Architecture](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture) pour déterminer comment configurer les organisations dans votre système IAM.
 
-Lorsque vous provisionnez des organisations, vous devez tenir compte des éléments suivants :
+Lors du provisionnement des organisations, vous devez tenir compte des éléments suivants :
 
-* Vous devrez ajouter l’organisation à la configuration de votre propre application et/ou à votre base de données
-* Vous devrez apporter des modifications à votre configuration Auth0. Cela comprendra une partie ou la totalité des éléments suivants :
+* Vous devrez ajouter l’organisation à la configuration et/ou à la base de données de votre propre application
+* Vous devrez apporter des modifications à votre configuration Auth0. Cela peut inclure tout ou partie des éléments suivants :
 
   * Dans de rares cas : créer un tenant distinct pour l’organisation
-  * Créer une nouvelle Organization dans votre tenant Auth0
-  * Ajouter une nouvelle connexion de base de données pour cette Organization (si vos utilisateurs sont isolés par organisation)
-  * Activer la connexion de base de données partagée existante pour cette Organization (si les utilisateurs sont partagés)
-  * Ajouter une connexion d’entreprise pour cette Organization et l’activer pour l’Organization
+  * Créer une nouvelle organisation dans votre tenant Auth0
+  * Ajouter une nouvelle Database Connection pour cette organisation (si vous isolez les utilisateurs par organisation)
+  * Activer la Database Connection partagée existante pour cette organisation (si vous partagez les utilisateurs)
+  * Ajouter une enterprise connection pour cette organisation et l’activer pour l’organisation
 
-    * Cela impliquera de travailler avec l’organisation pour soit mettre à jour sa configuration existante, soit ajouter une configuration pour votre tenant Auth0 si ce n’est pas une organisation Legacy.
+    * Cela impliquera de travailler avec l’organisation pour soit mettre à jour sa configuration existante, soit ajouter une configuration pour votre tenant Auth0 si elle n’est pas une organisation héritée.
   * Provisionner un administrateur pour l’organisation
-* Pour éviter les erreurs, vous pourriez vouloir créer un [Organization Admin Portal](#organization-admin-portal) afin de faciliter le provisionnement de nouvelles organisations.
-* Vous pourriez également vouloir créer un portail Self-Signup pour vos Organizations. Cela permet à vos clients de créer eux-mêmes leur organisation. Cela peut faire partie du [Organization Admin Portal](#organization-admin-portal).
+* Pour éviter les erreurs, vous pouvez créer un [Organization Admin Portal](#organization-admin-portal) afin de faciliter le provisionnement de nouvelles organisations.
+* Vous pouvez également créer un portail de Self-Signup pour vos organisations. Cela permet à vos clients de créer eux-mêmes leur organisation. Ce portail peut faire partie de l’[Organization Admin Portal](#organization-admin-portal).
 
 <div id="organization-admin-portal">
-  ### Organization Admin Portal
+  ### Portail d’administration des organisations
 </div>
 
-Un portail d’administration des organisations permet à vos administrateurs de créer, de modifier et de supprimer des organisations. Ces administrateurs peuvent être soit des employés de votre entreprise, soit des administrateurs côté client. Plusieurs tâches doivent être effectuées à la fois dans votre propre système et dans votre tenant Auth0. Ce portail devra probablement se trouver dans votre propre système afin d’avoir accès à vos magasins de données et à votre configuration. Toutefois, Auth0 fournit l’[Auth0 Management API](https://auth0.com/docs/api/management/v2), ce qui vous permet de répercuter les changements dans votre tenant Auth0 en même temps que vous les apportez dans votre propre système.
+Un portail d’administration des organisations est un portail qui permet à vos administrateurs de créer, de modifier et de supprimer des organisations. Ces administrateurs peuvent être soit des employés de votre entreprise, soit des administrateurs côté client. De nombreuses tâches doivent être effectuées à la fois dans votre propre système et dans votre tenant Auth0. Ce portail devra probablement se trouver dans votre propre système afin d’avoir accès à vos sources de données et à votre configuration. Toutefois, Auth0 fournit l’[Auth0 Management API](https://auth0.com/docs/api/management/v2) afin que vous puissiez appliquer des modifications à votre tenant Auth0 en même temps que dans votre propre système.
 
-Il existe deux grandes approches pour créer une nouvelle organisation. Le choix dépend en grande partie du délai de déploiement d’une nouvelle organisation que vous êtes prêt à accepter.
+Il existe deux grandes approches pour créer une nouvelle organisation. Celle que vous choisissez dépend en grande partie du délai de déploiement d’une nouvelle organisation que vous êtes prêt à accepter.
 
-* **Mises à jour en direct dans votre tenant Auth0** : Si vous voulez pouvoir créer de nouvelles organisations en temps réel, vous voudrez probablement apporter les changements directement dans votre tenant Auth0 à l’aide de l’Auth0 <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>. Ainsi, les changements prennent effet en temps réel et l’ajout d’une nouvelle organisation devient effectif immédiatement. Cette approche peut être particulièrement utile si vous offrez le Self-Signup pour les organisations.
+* **Mises à jour en temps réel de votre tenant Auth0** : Si vous voulez pouvoir créer de nouvelles organisations en temps réel, vous voudrez probablement apporter les modifications directement à votre tenant Auth0 à l’aide de l’Auth0 <Tooltip tip="Management API : produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>. Cela permet d’appliquer les modifications en temps réel et de rendre l’ajout d’une nouvelle organisation effectif immédiatement. En particulier, si vous offrez la fonctionnalité Self-Signup pour les organisations, vous pourriez vouloir privilégier cette approche.
 
 <Warning>
-  Les mises à jour en direct comportent tout de même certains points à considérer. Certaines opérations doivent être effectuées en série afin d’éviter les problèmes. L’activation de clients sur une connection et l’ajout de callback URL à une Application en sont deux exemples. Toute opération dans la Management API où vous devez récupérer une liste complète, puis soumettre de nouveau la liste complète avec la nouvelle valeur ajoutée, doit être effectuée en série afin d’éviter que deux opérations parallèles n’écrasent l’une des valeurs.
+  Les mises à jour en temps réel s’accompagnent toutefois de certains éléments à prendre en compte. Certaines opérations doivent être effectuées en série afin d’éviter des problèmes. L’activation de clients sur une connexion et l’ajout d’URL de rappel à une application en sont deux exemples. Toute opération dans la Management API où vous devez récupérer une liste complète, puis la soumettre de nouveau au complet avec la nouvelle valeur ajoutée doit être effectuée en série afin d’éviter que deux opérations parallèles n’écrasent l’une des valeurs.
 </Warning>
 
-* **Modifier le repository et redéployer** : Si vous utilisez le Deploy CLI (ou un CLI personnalisé) dans le cadre de votre [pipeline CI/CD](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/deployment), vous préférerez peut-être envoyer vos changements directement à votre repository, puis lancer un nouveau deployment. Cela peut prendre un peu plus de temps, mais cette approche offre des avantages liés à la version history et à la possibilité d’annuler un changement en redéployant la version précédente. Vous pourriez aussi vouloir disposer d’un repository distinct uniquement pour les éléments dont les organizations ont besoin, afin de ne pas avoir à redéployer d’autres Components communs et de réduire le risque d’erreur.
+* **Modifier le dépôt et redéployer** : Si vous tirez parti du Deploy CLI (ou d’un CLI personnalisé) dans le cadre de votre [pipeline CI/CD](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/deployment), vous préférerez peut-être envoyer vos modifications directement vers votre dépôt, puis déclencher un nouveau déploiement. Cela peut prendre un peu plus de temps, mais cette approche offre des avantages liés à l’historique des versions et à la possibilité d’annuler une modification en redéployant la version précédente. Vous pourriez vouloir avoir un dépôt distinct uniquement pour les éléments dont les organisations ont besoin afin de ne pas avoir à redéployer d’autres composants communs et de réduire le risque d’erreur.
 
 <div id="user-migration">
   ## Migration des utilisateurs
 </div>
 
-En plus d’héberger le [profil utilisateur](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/profile-management), Auth0 peut aussi servir de [proxy](#identity-store-proxy) pour votre ancien répertoire d’identités et offrir un remplacement sécurisé hébergé par Auth0. Ces deux capacités sont prises en charge au moyen des [Database Connections](/docs/fr-CA/authenticate/database-connections) d’Auth0. Si vous décidez d’utiliser Auth0 pour remplacer votre ancien répertoire d’identités, vous pouvez [migrer les utilisateurs](/docs/fr-CA/manage-users/user-migration) soit en une seule fois au moyen d’une migration en bloc, soit progressivement au moyen d’une migration automatique.
+En plus d’héberger le [profil utilisateur](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/profile-management), Auth0 peut aussi à la fois [servir de proxy](#identity-store-proxy) pour votre propre magasin d’identités hérité et offrir une solution de remplacement sécurisée hébergée par Auth0. Ces deux capacités sont prises en charge au moyen des [Database Connections](/docs/fr-CA/authenticate/database-connections) d’Auth0. Si vous décidez d’utiliser Auth0 comme solution de remplacement à votre magasin d’identités hérité, vous pouvez [migrer les utilisateurs](/docs/fr-CA/manage-users/user-migration) soit en une seule fois au moyen d’une migration en bloc, soit progressivement au moyen d’une migration automatique.
 
 <Info>
   ### Bonne pratique
 
-  Les clients optent souvent pour une approche de migration des utilisateurs en deux étapes : ils utilisent d’abord la migration automatique pour migrer le plus d’utilisateurs possible, puis la migration en bloc pour les utilisateurs restants. Consultez [User Migration Scenarios](/docs/fr-CA/manage-users/user-migration/user-migration-scenarios) pour en savoir plus.
+  Les clients optent souvent pour une approche de migration des utilisateurs en deux étapes : utiliser d’abord la migration automatique pour migrer le plus d’utilisateurs possible, puis la migration en bloc pour les utilisateurs restants. Consultez [Scénarios de migration des utilisateurs](/docs/fr-CA/manage-users/user-migration/user-migration-scenarios) pour en savoir plus.
 </Info>
 
-La migration automatique est à privilégier, car elle permet de migrer les utilisateurs individuellement et de leur conserver leur mot de passe existant dans presque tous les cas. Pour la migration en bloc, nous recommandons d’utiliser la [Management API](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports) plutôt que l’[extension User Import/Export](/docs/fr-CA/manage-users/user-migration/user-import-export-extension), sauf dans les cas les plus simples, car la Management API offre davantage de souplesse et de contrôle.
+La migration automatique est à privilégier, car elle permet de migrer les utilisateurs individuellement et aussi de conserver leurs mots de passe existants dans presque tous les cas. Pour la migration en bloc, nous recommandons d’utiliser la [Management API](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports) plutôt que l’[extension User Import/Export](/docs/fr-CA/manage-users/user-migration/user-import-export-extension) dans tous les cas sauf les plus simples, car la Management API offre davantage de souplesse et de contrôle.
 
-Avec la migration en bloc, les utilisateurs doivent généralement **réinitialiser leur mot de passe une fois la migration terminée** à moins que les mots de passe ne soient stockés sous forme hachée dans votre ancien répertoire d’identités à l’aide de l’un des algorithmes pris en charge. Dans ce cas, vous pourriez être en mesure d’utiliser la migration en bloc et de **préserver les mots de passe des utilisateurs** dans le cadre du processus, selon l’algorithme et le nombre d’itérations de salage utilisées. Consultez [Bulk Import Database Schema Examples](/docs/fr-CA/manage-users/user-migration/bulk-user-import-database-schema-and-examples) pour en savoir plus.
+Avec la migration en bloc, les utilisateurs doivent généralement **réinitialiser leur mot de passe une fois la migration terminée**, à moins que les mots de passe ne soient stockés sous forme hachée dans votre magasin d’identités hérité à l’aide de l’un des algorithmes pris en charge. Dans ce cas, vous **pourriez** peut-être utiliser la migration en bloc et **préserver les mots de passe des utilisateurs** dans le cadre du processus, selon l’algorithme et le nombre d’itérations de salage utilisées. Consultez [Exemples de schéma de base de données pour l’importation en bloc](/docs/fr-CA/manage-users/user-migration/bulk-user-import-database-schema-and-examples) pour en savoir plus.
 
 <Warning>
-  L’importation de mots de passe hachés dépend du fait que le répertoire d’identités source utilise des implémentations conformes de l’un des algorithmes suivants : argon2, bcrypt, hmac, ldap, md4, md5, sha1, sha256, sha512, pbkdf2 et scrypt.
+  L’importation de mots de passe hachés dépend du fait que le magasin d’identités source utilise des implémentations conformes de l’un des algorithmes suivants : argon2, bcrypt, hmac, ldap, md4, md5, sha1, sha256, sha512, pbkdf2 et scrypt.
 </Warning>
 
 <Info>
   ### Bonne pratique
 
-  Les appels à la Management API sont assujettis à la [politique de limitation du débit d’Auth0](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy). Vous devez en tenir compte et, pour vous aider, Auth0 recommande généralement d’utiliser le [Auth0 SDK](/docs/fr-CA/libraries) approprié à votre environnement de développement plutôt que d’appeler directement nos API.
+  Les appels à la Management API sont assujettis à la [politique de limitation du débit d’Auth0](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy). Vous devez en tenir compte et, pour vous aider, Auth0 recommande généralement d’utiliser l’[Auth0 SDK](/docs/fr-CA/libraries) approprié à votre environnement de développement plutôt que d’appeler directement nos API.
 </Info>
 
 <div id="identity-store-proxy">
-  ### Proxy de répertoire d’identités
+  ### Proxy de magasin d’identités
 </div>
 
-Les types de connexion Database d’Auth0 peuvent aussi être configurés pour servir de proxy à un répertoire d’identités existant (hérité). Si vous devez conserver des identités utilisateur définies dans votre propre répertoire d’identités hérité — par exemple, si vous avez une ou plusieurs applications essentielles à votre entreprise que vous ne pouvez pas migrer vers Auth0, mais qui doivent tout de même avoir accès à ces identités — vous pouvez facilement intégrer Auth0. Consultez [Authenticate Users Using Your Database](/docs/fr-CA/authenticate/database-connections/custom-db) pour en savoir plus.
+Les types de connexion Database d’Auth0 peuvent aussi être configurés pour agir comme proxy d’un magasin d’identités existant (hérité). Si vous devez conserver les identités utilisateur définies dans votre propre magasin hérité — par exemple, si vous avez une ou plusieurs applications essentielles à l’entreprise que vous ne pouvez pas migrer vers Auth0, mais qui doivent quand même continuer d’accéder à ces identités — vous pouvez facilement l’intégrer à Auth0. Consultez [Authentifier des utilisateurs à l’aide de votre base de données](/docs/fr-CA/authenticate/database-connections/custom-db) pour en savoir plus.
 
 <div id="provisioning-organization-users">
-  ## Provisionnement des utilisateurs d’organisation
+  ## Provisionnement des utilisateurs de l’organisation
 </div>
 
-Une organisation devrait correspondre directement à l’un de vos clients ou partenaires d’affaires. Chaque entreprise ou partenaire avec qui vous travaillez a des utilisateurs qui se connecteront. Nous appelons ces utilisateurs finaux des « utilisateurs d’organisation ». Il existe deux approches différentes pour stocker vos utilisateurs d’organisation :
+Une organisation devrait correspondre directement à l’un de vos clients ou partenaires commerciaux. Chaque entreprise ou partenaire avec qui vous travaillez a des utilisateurs qui se connecteront. Nous appelons ces utilisateurs finaux des « utilisateurs de l’organisation ». Il existe deux approches pour stocker les utilisateurs de votre organisation :
 
-* **Isolés au sein de l’organisation** : Chaque utilisateur appartient à une seule organisation. Il serait illogique qu’un utilisateur fasse partie de plus d’une organisation et, même si c’était le cas, il serait logique qu’il ait une « identité » distincte pour cette autre organisation. Par exemple, un employé du commerce de détail qui travaille à temps partiel dans deux magasins différents a deux jeux d’identifiants distincts, un pour chacun de ces magasins, même si les deux magasins utilisent l’application SaaS. Pour en savoir plus, consultez [Provisioning users isolated to the organization](#provisioning-users-isolated-to-the-organization).
-* **Partagés entre les organisations** : Dans ce cas, les utilisateurs créent soit des identifiants au sein de votre entreprise, soit ils peuvent accéder aux instances de votre application d’autres organisations au moyen des identifiants de leur propre organisation. En termes simples, un même utilisateur peut être autorisé à accéder à l’instance de l’application de plus d’une organisation. L’utilisateur comprendra qu’il peut utiliser les mêmes identifiants pour accéder aux deux instances d’une application. Par exemple, certains médecins travaillent sous contrat avec plusieurs cliniques et peuvent devoir être en mesure d’ouvrir une session dans chacune de ces cliniques avec les mêmes identifiants. Pour en savoir plus, consultez [Provisioning users shared between organizations](#provisioning-users-shared-between-organizations).
+* **Isolés au sein de l’organisation** : Chaque utilisateur appartient à une seule organisation. Il ne serait pas logique qu’un utilisateur fasse partie de plusieurs organisations et, même si c’était le cas, il serait logique qu’il ait une « identité » distincte pour cette autre organisation. Par exemple, un employé du commerce de détail qui travaille à temps partiel dans deux magasins différents a deux ouvertures de session distinctes, une pour chacun de ces magasins, même si les deux magasins utilisent l’application SaaS. Pour en savoir plus, consultez [Provisionnement des utilisateurs isolés au sein de l’organisation](#provisioning-users-isolated-to-the-organization).
+* **Partagés entre plusieurs organisations** : Dans ce cas, les utilisateurs créent soit des identifiants d’authentification auprès de votre entreprise, soit ils peuvent accéder aux instances de votre application appartenant à d’autres organisations à l’aide des identifiants de leur propre organisation. En termes simples, un même utilisateur peut être autorisé à accéder à l’instance de l’application de plusieurs organisations. L’utilisateur comprendra qu’il peut utiliser les mêmes identifiants d’authentification pour accéder aux deux instances d’une application. Par exemple, certains médecins travaillent avec plusieurs cliniques et peuvent devoir ouvrir une session dans chacune d’elles avec les mêmes identifiants d’authentification. Pour en savoir plus, consultez [Provisionnement des utilisateurs partagés entre plusieurs organisations](#provisioning-users-shared-between-organizations).
 
 <div id="provisioning-users-isolated-to-the-organization">
-  ### Provisionnement des utilisateurs isolés dans l’organisation
+  ### Provisionnement des utilisateurs isolés au niveau de l’organisation
 </div>
 
-Le fait d’isoler les utilisateurs dans l’organisation peut créer une séparation claire entre les organisations. Si aucun utilisateur n’a besoin d’accéder à plus d’une organisation (ou si vous préférez les obliger à créer plusieurs comptes), cette approche est intéressante.
+Le fait d’isoler les utilisateurs au niveau de l’organisation peut offrir une séparation claire entre les organisations. Si aucun utilisateur n’a besoin d’accéder à plus d’une organisation (ou si vous préférez les obliger à créer plusieurs comptes), cette approche est intéressante.
 
 Vous devez provisionner ces utilisateurs au niveau de l’IdP. Chacune des organisations aura son propre IdP à cette fin. Cet IdP prendra l’une des trois formes suivantes :
 
 * **Votre tenant Auth0 est l’IdP** : une Database Connection dans votre tenant principal, dédiée à cette organisation.
 * **Les organisations fournissent leur propre IdP** : vous configurez une Enterprise Connection pour elles.
-* **Les organisations ont plus d’un IdP** : vous activez plusieurs Enterprise Connections et Social Connections, et vous pouvez aussi avoir une seule Database Connection. Lorsque l’utilisateur choisit son organisation et tente de se connecter, il pourra choisir parmi toutes les connections activées pour cette organisation.
+* **Organisations ayant plus d’un IdP** : vous activez plusieurs Enterprise Connections, Social Connections, et vous pouvez aussi avoir une seule Database Connection. Lorsque l’utilisateur choisit son organisation et tente de se connecter, il pourra choisir parmi toutes les connexions activées pour cette organisation.
 
-Nous vous recommandons d’utiliser Auth0 comme IdP au départ, car il est simple de mettre en place un [flux de travail d’invitation d’utilisateurs](/docs/fr-CA/manage-users/organizations/configure-organizations/invite-members). Par rapport aux autres flux d’invitation, la seule particularité ici est que la personne qui crée l’utilisateur devra soit sélectionner l’organisation à l’avance, soit le système forcera l’organisation à correspondre à celle de l’utilisateur qui envoie l’invitation (dans les cas où un administrateur de l’organisation appartient uniquement à cette organisation).
+Nous recommandons d’utiliser Auth0 comme IdP pour commencer, car il est simple de mettre en place un [workflow d’invitation des utilisateurs](/docs/fr-CA/manage-users/organizations/configure-organizations/invite-members). Par rapport aux autres flux d’invitation, la seule particularité ici est que la personne qui crée l’utilisateur devra soit sélectionner l’organisation à l’avance, soit le système forcera l’organisation à correspondre à celle de l’utilisateur qui envoie l’invitation (dans les cas où un administrateur d’organisation appartient uniquement à cette organisation).
 
 <Info>
   ### Bonne pratique
 
-  Si vous pouvez utiliser la fonctionnalité [Organizations](/docs/fr-CA/manage-users/organizations), cela simplifiera grandement votre système de connexion et le rendra plus facile à maintenir et à faire évoluer. Consultez [Multiple Organization Architecture](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture) pour une explication plus détaillée.
+  Si vous pouvez utiliser la [fonctionnalité organisations](/docs/fr-CA/manage-users/organizations), cela simplifiera grandement votre système de connexion et le rendra plus facile à maintenir et à faire évoluer. Consultez [Multiple Organization Architecture](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture) pour en savoir plus.
 </Info>
 
 <div id="provisioning-users-shared-between-organizations">
-  ### Provisionnement des utilisateurs partagés entre les organisations
+  ### Provisionnement des utilisateurs partagés entre plusieurs organisations
 </div>
 
-Lorsque vous partagez des utilisateurs entre des organisations, vous devez prévoir un moyen d’autoriser l’accès. Comme vous ne saurez pas à quelle organisation un utilisateur peut appartenir au moment de l’authentification, nous recommandons généralement de stocker vos utilisateurs dans un seul domaine, puis de déterminer à quelles organisations ils peuvent accéder en les ajoutant comme [membres de l’organisation](/docs/fr-CA/manage-users/organizations/configure-organizations/assign-members). C’est pourquoi le provisionnement commence souvent par un flux de travail d’invitation d’utilisateur pour l’unique connexion de base de données, puis l’utilisateur est ajouté à l’organisation à l’aide de la Management API. Vous pouvez ensuite utiliser la Management API pour récupérer les [organisations auxquelles l’utilisateur appartient](/docs/fr-CA/manage-users/organizations/configure-organizations/retrieve-user-membership) si vous devez lui permettre de passer d’une organisation à une autre.
+Lorsque vous partagez des utilisateurs entre des organisations, vous devez prévoir un moyen d’autoriser l’accès. Comme vous ne saurez pas à quelle organisation un utilisateur peut appartenir au moment de l’authentification, nous recommandons généralement de stocker vos utilisateurs dans un seul domaine, puis de déterminer à quelles organisations ils peuvent accéder en les ajoutant comme [membres de l’organisation](/docs/fr-CA/manage-users/organizations/configure-organizations/assign-members). Pour cette raison, le Provisioning se fera souvent en commençant par un workflow User Invite pour l’unique connexion de base de données, puis les utilisateurs seront ajoutés à l’organisation à l’aide de la Management API. Vous pouvez ensuite utiliser la Management API pour récupérer les [organisations auxquelles l’utilisateur appartient](/docs/fr-CA/manage-users/organizations/configure-organizations/retrieve-user-membership) si vous devez lui offrir un moyen de passer d’une organisation à une autre.
 
 <div id="deprovisioning-limitations">
   ### Limites du déprovisionnement
 </div>
 
-Auth0 ne communiquera pas avec l’IdP source s’il existe une session <Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SSO">SSO</Tooltip> active avec Auth0, sauf si vous l’imposez avec `prompt=login`. Si l’une des organisations de vos clients ne peut pas gérer la déconnexion de ces utilisateurs, ceux-ci pourraient quand même conserver l’accès après avoir été déprovisionnés. Selon l’IdP, si Auth0 obtient un token pour son API, vous pouvez demander des renseignements sur l’utilisateur à l’IdP dans une [règle](/docs/fr-CA/customize/rules) afin de vérifier périodiquement si cet utilisateur devrait toujours avoir accès. Si vous n’avez pas cette possibilité, vous devrez fournir à vos organisations clientes un moyen de déclencher le blocage ou le déprovisionnement des utilisateurs dans votre système, soit au moyen d’un appel d’API, soit par l’entremise d’une interface utilisateur.
+Auth0 ne communiquera pas avec l’IdP en amont s’il existe une session <Tooltip tip="SSO (authentification unique) : service qui, après qu’un utilisateur se connecte à une application, connecte automatiquement cet utilisateur à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SSO">SSO</Tooltip> active avec Auth0, à moins de l’y forcer avec un `prompt=login`. Si l’une des organisations de vos clients ne peut pas gérer le logout de ces utilisateurs, ceux-ci pourraient encore avoir accès même après leur mise hors service. Selon l’IdP, si Auth0 obtient un token pour son API, vous pouvez demander des renseignements sur l’utilisateur à l’IdP dans une [règle](/docs/fr-CA/customize/rules) afin de vérifier périodiquement si cet utilisateur devrait toujours avoir accès ou non. Si vous n’avez pas cette possibilité, vous devrez fournir aux organisations de vos clients un moyen de déclencher le blocage ou la mise hors service d’utilisateurs dans votre système, soit au moyen d’un appel d’API, soit par une interface utilisateur.
 
 <div id="user-invite">
   ## Invitation d’utilisateur
 </div>
 
-Dans la plupart des scénarios B2B, seules certaines personnes sont autorisées à accéder à l’application. Il est donc souvent plus simple qu’un administrateur provisionne les comptes d’utilisateurs plutôt que de laisser les utilisateurs s’inscrire puis attendre l’approbation d’un administrateur. Le provisionnement peut aussi souvent être automatisé lorsque des utilisateurs sont ajoutés à un système centralisé.
+Dans la plupart des scénarios B2B, seules certaines personnes sont autorisées à accéder à l’application. Il est donc souvent plus simple de demander à un administrateur de provisionner les comptes utilisateur plutôt que de laisser les utilisateurs s’inscrire, puis de faire approuver ces inscriptions par un administrateur. Le provisionnement peut aussi souvent se faire de façon automatisée lorsque des utilisateurs sont ajoutés à un système centralisé.
 
-Il existe trois types d’intervenants qui peuvent [inviter des utilisateurs](/docs/fr-CA/customize/email/send-email-invitations-for-application-signup) :
+Trois profils différents peuvent [inviter des utilisateurs](/docs/fr-CA/customize/email/send-email-invitations-for-application-signup) :
 
 * Un administrateur de votre entreprise peut créer les utilisateurs pour chaque organisation.
 * Un administrateur de chaque organisation peut être chargé de créer les utilisateurs.
-* Il peut exister un autre système chargé de créer les utilisateurs, et ce système peut alors créer un utilisateur dans Auth0. Quelle que soit l’<Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Nommée aud dans un jeton, sa valeur contient l’ID soit d’une application (Client ID) pour un ID Token, soit d’une API (API Identifier) pour un access token." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip>, la technique peut être semblable. Le reste consiste à utiliser le bon modèle d’autorisation pour l’application.
+* Il peut exister un autre système responsable de la création des utilisateurs, et ce système peut ensuite créer un utilisateur dans Auth0. Quelle que soit l’<Tooltip tip="Audience : identifiant unique du destinataire visé par un token émis. Nommée aud dans un token, sa valeur contient l’ID soit d’une application (Client ID) pour un ID Token, soit d’une API (API Identifier) pour un access token." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip>, la technique peut être semblable. Le reste consiste à utiliser le bon modèle d’autorisation pour l’application.
 
-L’approche recommandée pour l’invitation d’utilisateurs est d’utiliser la [fonctionnalité Organizations](/docs/fr-CA/manage-users/organizations/configure-organizations/invite-members). Si vous **n’utilisez pas** la fonctionnalité Organizations pour gérer les invitations d’utilisateurs et que vous créez votre propre solution, il est important de créer chaque utilisateur avec le paramètre `user.email_verified` défini à `false` et un mot de passe temporaire aléatoire. Le mot de passe généré ne doit être connu que d’Auth0 et **ne doit pas** être stocké dans un système externe ni transmis à l’utilisateur ! Ensuite, utilisez la [Management API](https://auth0.com/docs/api/management/v2#!/Tickets/post_password_change) pour envoyer un courriel à l’utilisateur contenant un lien pour réinitialiser son mot de passe; vous pouvez même modifier le modèle de courriel dans Auth0 pour indiquer qu’il s’agit d’un flux d’inscription sur invitation. Cela garantit que l’adresse courriel de l’utilisateur appartient bien à l’utilisateur en cours de création et que la seule personne qui connaît le mot de passe est l’utilisateur lui-même.
+L’approche recommandée pour l’invitation d’utilisateurs consiste à utiliser la [Organizations Feature](/docs/fr-CA/manage-users/organizations/configure-organizations/invite-members). Si vous **n’utilisez pas** la Organizations Feature pour mettre en place des invitations d’utilisateurs et que vous créez votre propre solution, il est important de créer chaque utilisateur avec le paramètre `user.email_verified` défini à `false` ainsi qu’un mot de passe temporaire aléatoire. Le mot de passe généré ne devrait être connu que d’Auth0 et **ne doit pas** être stocké dans un système externe ni transmis à l’utilisateur ! Ensuite, utilisez la [Management API](https://auth0.com/docs/api/management/v2#!/Tickets/post_password_change) pour envoyer à l’utilisateur un courriel contenant un lien lui permettant de réinitialiser son mot de passe; vous pouvez même modifier le modèle de courriel dans Auth0 pour indiquer qu’il s’agit d’un workflow d’inscription sur invitation. Cela garantit que l’adresse courriel de l’utilisateur appartient bien à la personne pour laquelle le compte est créé et que la seule personne qui connaît le mot de passe est l’utilisateur lui-même.
 
 <Warning>
-  L’un des principes fondamentaux d’OIDC est que personne, sauf l’utilisateur lui-même, ne connaît jamais son mot de passe. Si vous mettez en place un flux d’invitation, demandez à votre système backend de générer un mot de passe aléatoire, puis de le supprimer, et demandez ensuite à votre utilisateur de réinitialiser son mot de passe avant même de se connecter. Ne créez pas de mot de passe temporaire pour le lui remettre afin qu’il se connecte une première fois.
+  L’un des grands principes d’OIDC est que personne, sauf l’utilisateur lui-même, ne doit jamais connaître son mot de passe. Si vous mettez en place un flow d’invitation, demandez à votre système backend de générer un mot de passe aléatoire, puis de le supprimer, et obligez l’utilisateur à réinitialiser son mot de passe avant même sa première connexion. Ne créez pas de mot de passe temporaire à lui remettre pour qu’il se connecte une première fois.
 </Warning>
 
 <div id="enterprise-sign-up">
   ## Inscription d’entreprise
 </div>
 
-L’inscription d’entreprise correspond essentiellement à une [connexion d’entreprise](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/authentication) — il n’y a pas de véritable distinction ici, puisque la création du [profil](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/profile-management) utilisateur se fait automatiquement lors de la première connexion d’entreprise.
+L’inscription d’entreprise revient au même qu’une connexion par [connexion d’entreprise](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/authentication) — il n’y a pas de distinction à proprement parler, puisque la création du [profil](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/profile-management) utilisateur se fait automatiquement lors de la première connexion d’entreprise.
 
 <Info>
-  ### pratique exemplaire
+  ### Bonne pratique
 
-  L’un des grands avantages de permettre à vos clients d’utiliser leur propre IdP, c’est qu’ils peuvent gérer leurs utilisateurs et attribuer les rôles et les accès dans leur propre configuration IdP, au lieu de vous obliger à développer cette gestion pour eux. Définir le mappage pour ces clients vous facilitera grandement la tâche.
+  Un avantage important de permettre à vos clients d’utiliser leur propre IdP, c’est qu’ils peuvent gérer leurs utilisateurs et attribuer les rôles et les accès dans leur propre configuration IdP, plutôt que de vous obliger à mettre en place cette administration pour eux. Définir le mappage pour ces clients facilitera grandement les choses.
 </Info>
 
 <Warning>
-  Si le mappage ne suffit pas et que vous devez stocker des métadonnées dans votre système, gardez à l’esprit qu’Auth0 ne créera l’utilisateur qu’au moment de sa première connexion au système. Vous devrez donc utiliser l’extensibilité des règles pour aller chercher l’information initiale ailleurs, ou obliger les utilisateurs à se connecter une première fois avant de pouvoir ajouter les métadonnées.
+  Si le mappage ne suffit pas et que vous devez ajouter des métadonnées dans votre système, gardez à l’esprit qu’Auth0 ne créera pas l’utilisateur avant sa première connexion au système. Vous devrez donc utiliser l’extensibilité des règles pour extraire l’information initiale d’une autre source, ou forcer les utilisateurs à se connecter une première fois avant de pouvoir ajouter les métadonnées.
 </Warning>
 
 <div id="project-planning-guide">
   ## Guide de planification de projet
 </div>
 
-Nous mettons à votre disposition un guide de planification en format PDF que vous pouvez télécharger et consulter pour en savoir plus sur les stratégies que nous recommandons.
+Nous fournissons des conseils de planification au format PDF que vous pouvez télécharger et consulter pour en savoir plus sur nos stratégies recommandées.
 
 [Guide de planification de projet B2B IAM](https://assets.ctfassets.net/cdy7uua7fh8z/63F0WOPJdVzsPMxV1Xvp8x/7a329487c5e890d8e820f6a48983b46a/B2B_Project_Planning.pdf)
 
 <div id="multiple-organization-architecture-multitenancy">
-  ## Multiple Organization Architecture (Multitenancy)
+  ## Architecture à organisations multiples (multitenance)
 </div>
 
-De nombreuses plateformes B2B prévoient un certain degré d’isolation et/ou de branding pour l’organisation de leurs clients, ce qui peut complexifier tout système de gestion des identités et des accès (IAM). Si c’est votre cas, nous vous recommandons de prendre le temps de consulter nos recommandations et nos pratiques exemplaires pour ce type d’environnement.
+De nombreuses plateformes B2B mettent en œuvre une forme d’isolation et/ou d’image de marque pour l’organisation de leurs clients, ce qui peut ajouter de la complexité à tout système de gestion des identités et des accès (IAM). Si c’est votre cas, nous vous recommandons de prendre le temps de consulter nos recommandations et nos bonnes pratiques pour ce type d’environnement.
 
-[Multiple Organization Architecture](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture)
+[Architecture à organisations multiples](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture)

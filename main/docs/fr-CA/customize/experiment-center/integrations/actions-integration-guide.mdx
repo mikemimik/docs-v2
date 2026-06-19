@@ -1,14 +1,14 @@
 ---
-title: "Experiment Center et l’intégration Auth0 Actions"
-description: "Comment lire le contexte d’une expérience dans Auth0 Actions et adapter la logique en fonction de la variation attribuée."
-sidebarTitle: Intégration Actions
+title: "Experiment Center et Auth0 Actions Integration"
+description: "Comment lire le contexte d’une expérience dans Auth0 Actions et adapter la logique selon la variation attribuée."
+sidebarTitle: Actions Integration
 ---
 
 import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
 
-<ReleaseStageNotice feature="Auth0 Experiment Center" stage="bêta" terms="true" contact="Auth0 Support" />
+<ReleaseStageNotice feature="Auth0 Experiment Center" stage="beta" terms="true" contact="Auth0 Support" />
 
-Lorsqu’une expérience est active, Experiment Center injecte l’objet `ExperimentContext` dans les déclencheurs d’action pris en charge.
+Lorsqu’une expérience est active, Experiment Center injecte l’objet `ExperimentContext` dans les déclencheurs d’Action pris en charge.
 
 <Warning>
   Pendant la bêta, Experiment Center fonctionne uniquement sur les tenants de développement. Les tenants de production ne sont pas pris en charge.
@@ -18,7 +18,7 @@ Lorsqu’une expérience est active, Experiment Center injecte l’objet `Experi
   ## Déclencheurs pris en charge
 </div>
 
-Le contexte d’expérience est disponible dans les [Actions](/docs/fr-CA/customize/actions/actions-overview) Auth0 suivantes :
+Le contexte d’Experiment est disponible pour les [Actions](/docs/fr-CA/customize/actions/actions-overview) Auth0 suivantes :
 
 * le déclencheur [`post_login`](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger).
 * le déclencheur [`pre_user_registration`](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger).
@@ -28,43 +28,43 @@ Le contexte d’expérience est disponible dans les [Actions](/docs/fr-CA/custom
   ## L’objet event.experiment
 </div>
 
-Pour les déclencheurs pris en charge, Experiment Center ajoute un champ `experiment` à l’objet event :
+Pour les déclencheurs pris en charge, Experiment Center ajoute un champ `experiment` à l’objet d’événement :
 
 ```typescript
 interface ExperimentContext {
   experiment_id: string;   // L'ID de l'expérience active
-  variation_id: string;    // L'ID de variation assigné
-  config: {                // Configuration fusionnée : configuration de référence + overrides
+  variation_id: string;    // L'ID de variation assignée
+  config: {                // Configuration fusionnée : référence + overrides
     [paramName: string]: { value: unknown };
   };
   is_control: boolean;     // Vrai lorsqu'il s'agit de la variation de contrôle
 }
 ```
 
-Lorsqu’aucune expérience n’est active (ou lorsque la fonctionnalité n’est pas activée pour le tenant), `event.experiment` vaut `null` (et non `undefined`).
+Lorsqu’aucune expérience n’est active (ou que la fonctionnalité n’est pas activée pour le tenant), `event.experiment` vaut `null` (et non `undefined`).
 
 <div id="config-object-contains-the-full-merged-configuration">
-  ### l’objet `config` contient l’ensemble de la configuration fusionnée
+  ### l’objet config contient l’ensemble de la configuration fusionnée
 </div>
 
-L’objet `config` contient tous les paramètres définis dans le feature flag, fusionnés avec les overrides de la variation attribuée. Vous n’avez pas à rechercher les valeurs de configuration de référence ni à écrire de logique de repli. Si un paramètre existe dans le feature flag, il se trouve dans `config`.
+L’objet `config` contient tous les paramètres définis dans le feature flag, fusionnés avec les overrides de la variation attribuée. Vous n’avez jamais besoin de rechercher les valeurs de référence ni d’écrire une logique de repli. Si le paramètre existe dans le feature flag, il existe dans `config`.
 
 <div id="null-safety-pattern">
-  ## Patron de sécurité des valeurs nulles
+  ## Modèle de sécurité des valeurs nulles
 </div>
 
-Vérifiez qu’une expérience est active avant de consulter les propriétés :
+Vérifiez qu’une expérience est active avant de lire ses propriétés :
 
 ```javascript
 exports.onExecutePostLogin = async (event, api) => {
   const ec = event.experiment;
   if (!ec) return; // Aucune expérience active ; rien à faire
 
-  // On peut accéder à ec.config, ec.variation_id, ec.is_control ici en toute sécurité
+  // Accès sûr à ec.config, ec.variation_id, ec.is_control ici
 };
 ```
 
-Utilisez ce modèle dans les trois déclencheurs pris en charge. La sortie anticipée simplifie votre Action et garantit qu’elle se comporte correctement lorsqu’aucune expérience n’est en cours.
+Utilisez ce modèle dans les trois déclencheurs pris en charge. Le retour anticipé permet de garder votre Action claire et garantit qu’elle se comporte correctement pendant les périodes où aucune expérience n’est en cours.
 
 <div id="example-post_login-conditional-mfa-policy">
   ## Exemple : post_login — politique MFA conditionnelle
@@ -81,20 +81,20 @@ exports.onExecutePostLogin = async (event, api) => {
   const enforceMfa = ec.config?.require_mfa?.value;
 
   if (enforceMfa === true) {
-    // Variation de traitement : imposer l'AMF pour cet utilisateur
+    // Variation de traitement : appliquer le MFA pour cet utilisateur
     api.multifactor.enable("any", { allowRememberBrowser: false });
   }
-  // Variation de contrôle : aucun changement d'application de l'AMF (comportement de référence)
+  // Variation de contrôle : aucun changement d'application du MFA (comportement de référence)
 };
 ```
 
-`ec.config.require_mfa.value` est `true` pour les utilisateurs de la variation de traitement et `false` (la configuration de référence) pour les utilisateurs de la variation de contrôle. Aucune logique de repli n’est nécessaire.
+`ec.config.require_mfa.value` est `true` pour les utilisateurs de la variation de traitement et `false` (la référence) pour les utilisateurs de la variation témoin. Aucune logique de repli n’est nécessaire.
 
 <div id="example-post_login-set-a-custom-claim-based-on-variation">
-  ## Exemple : post_login — définir une revendication personnalisée en fonction de la variation
+  ## Exemple : post_login — définir un claim personnalisé selon la variation
 </div>
 
-Cet exemple ajoute l’assignation de l’expérience au jeton d’identité de l’utilisateur sous forme de revendication personnalisée. Certains pipelines d’analyse lisent les revendications du jeton plutôt que les journaux du tenant.
+Cet exemple inscrit l’assignation à l’expérience dans le jeton d’identité de l’utilisateur sous forme de claim personnalisé. Certains pipelines d’analyse lisent les claims du token plutôt que les logs du tenant.
 
 ```javascript
 // Action post_login
@@ -110,13 +110,13 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-Utilisez une URL de revendication qualifiée par un espace de noms, conformément à la convention des revendications personnalisées OIDC. Le destinataire (votre application) peut ensuite lire la revendication dans le token sans avoir à consulter les journaux du tenant.
+Utilisez une URL de claim avec espace de noms, conformément à la convention OIDC relative aux claims personnalisés. Le destinataire (votre application) peut ensuite lire le claim dans le token sans avoir à consulter les journaux du tenant.
 
 <div id="example-pre_user_registration-variation-based-metadata">
-  ## Exemple pre_user_registration — métadonnées selon la variation
+  ## Exemple pre_user_registration — métadonnées fondées sur une variation
 </div>
 
-Cet exemple utilise une expérience sur le flow d’inscription pour définir `user_metadata` selon la variante dans laquelle tombe l’utilisateur au moment de l’inscription.
+Cet exemple utilise une expérience sur le flux d’inscription pour définir `user_metadata` en fonction de la variation dans laquelle tombe l’utilisateur au moment de son inscription.
 
 ```javascript
 // Action pre_user_registration
@@ -133,13 +133,13 @@ exports.onExecutePreUserRegistration = async (event, api) => {
 };
 ```
 
-Les métadonnées sont enregistrées lors de l’inscription; elles suivent donc l’utilisateur d’une session à l’autre. Vous pourrez ensuite les interroger pour déterminer à quelle cohorte d’inscription appartient un utilisateur.
+Les métadonnées sont enregistrées au moment de l’inscription; elles suivent donc l’utilisateur d’une session à l’autre. Vous pourrez ensuite les interroger pour déterminer à quelle cohorte d’inscription appartient un utilisateur.
 
 <div id="example-post_user_registration-trigger-downstream-enrollment">
   ## Exemple : post_user_registration — déclencher l’inscription en aval
 </div>
 
-Cet exemple déclenche un webhook après l’inscription, selon la variation attribuée au nouvel utilisateur.
+Selon la variation attribuée au nouvel utilisateur, cet exemple déclenche un webhook après l’inscription.
 
 ```javascript
 // Action post_user_registration
@@ -164,13 +164,13 @@ exports.onExecutePostUserRegistration = async (event, api) => {
 };
 ```
 
-Seuls les utilisateurs de la variante de traitement déclenchent le webhook d’inscription. Les utilisateurs du groupe témoin suivent le parcours standard après l’inscription.
+Seuls les utilisateurs de la variation de test déclenchent le webhook d’inscription. Les utilisateurs du groupe témoin suivent le parcours standard après l’inscription.
 
 <div id="use-is_control">
   ## Utiliser is_control
 </div>
 
-Le paramètre `is_control` a la valeur `true` lorsque l’utilisateur appartient au groupe témoin (il a reçu la configuration de référence, sans overrides appliqués). Utilisez-le lorsque vous devez savoir quels utilisateurs ont vu l’expérience non modifiée, ou lorsque vous souhaitez ignorer un traitement facultatif pour les utilisateurs du groupe témoin.
+Le paramètre `is_control` vaut `true` lorsque l’utilisateur appartient au groupe témoin (il a reçu la configuration de référence, sans aucune substitution appliquée). Utilisez-le lorsque vous devez savoir quels utilisateurs ont vu l’expérience non modifiée, ou lorsque vous voulez ignorer un traitement facultatif pour les utilisateurs du groupe témoin.
 
 ```javascript
 exports.onExecutePostLogin = async (event, api) => {
@@ -185,4 +185,4 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-Pour faire varier le comportement (et non les analyses), vérifiez directement les valeurs du paramètre `config`. Elles sont plus explicites et plus lisibles.
+Pour gérer le comportement de façon conditionnelle (et non pour l’analyse), vérifiez directement les valeurs du paramètre `config`. Elles sont plus explicites et plus lisibles.

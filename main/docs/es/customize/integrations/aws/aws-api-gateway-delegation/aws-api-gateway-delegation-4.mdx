@@ -1,45 +1,45 @@
 ---
-description: Paso 4 del tutorial de Amazon API Gateway
-title: Paso 4 del tutorial de AWS API Gateway
+description: "Paso 4 del tutorial de Amazon API Gateway"
+title: "Tutorial de AWS API Gateway: paso 4"
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 <Warning>
-  Esta función utiliza delegación. De forma predeterminada, delegación está deshabilitada para los tenants que no tenían ningún add-on en uso al 8 de junio de 2017. Los tenants Legacy que actualmente usan un add-on que requiere delegación pueden seguir utilizando esta función. Si la funcionalidad de delegación cambia o se elimina del servicio en algún momento, se notificará con antelación a los clientes que la usan actualmente y se les dará tiempo suficiente para migrar. Además, ten en cuenta que delegación no admite el uso de dominios personalizados, por lo que cualquier función que dependa de ella podría no funcionar por completo junto con un dominio personalizado.
+  Esta funcionalidad usa delegación. De forma predeterminada, delegación está deshabilitada para los tenants que no tenían ningún add-on en uso a fecha del 8 de junio de 2017. Los tenants Legacy que actualmente usan un add-on que requiere delegación pueden seguir usando esta funcionalidad. Si la funcionalidad de delegación cambia o se retira del servicio en algún momento, se avisará con antelación a los clientes que la usan actualmente y se les dará tiempo suficiente para migrar. Además, ten en cuenta que delegación no admite el uso de dominios personalizados, por lo que cualquier funcionalidad que dependa de ella puede no funcionar por completo junto con un dominio personalizado.
 </Warning>
 
 <div id="step-4-use-multiple-roles-with-amazon-api-gateway">
-  ## Paso 4: usa varios roles con Amazon API Gateway
+  ## Paso 4 - Usar varios roles con Amazon API Gateway
 </div>
 
-En este paso, asignarás diferentes roles de AWS IAM a los usuarios según la información de autenticación:
+En este paso, asignarás distintos AWS IAM roles a los usuarios según la información de autenticación:
 
-* Los usuarios que se autentiquen con Social Connections serán tratados como compradores;
-* Los usuarios que se autentiquen con Database Connections serán tratados como administradores.
+* Los usuarios que se autentiquen con Social Connections se tratarán como compradores;
+* Los usuarios que se autentiquen con Database Connections se tratarán como administradores.
 
-Implementarás esta lógica de asignación de roles de dos maneras diferentes:
+Implementarás esta lógica de asignación de roles de dos maneras distintas:
 
 * JavaScript;
-* rules de Auth0.
+* reglas de Auth0.
 
-En muchas aplicaciones de Auth0, querrás que distintos usuarios tengan diferentes niveles de acceso, y querrás usar información adicional sobre una identidad determinada en la lógica de tu servicio. En los casos en que baste con restringir el acceso a nivel de API, puedes usar diferentes roles de AWS IAM (por ejemplo, los administradores pueden usar la función de actualización para agregar y eliminar mascotas, mientras que los usuarios de conexiones sociales solo pueden comprar mascotas).
+En muchas aplicaciones de Auth0, querrás que distintos usuarios tengan diferentes niveles de acceso, y también querrás usar información adicional sobre una identidad determinada en la lógica de tu servicio. En los casos en que baste con restringir el acceso a nivel de API, puedes usar distintos AWS IAM roles (por ejemplo, los administradores pueden usar la función de actualización para agregar y eliminar mascotas, mientras que los usuarios sociales solo pueden comprar mascotas).
 
-El siguiente diagrama ilustra las asignaciones de roles de AWS IAM para dos clases distintas de usuarios: usuarios autenticados mediante Social Connections y usuarios autenticados mediante Database Connections. También muestra que los roles de AWS IAM pueden asignarse a otras entidades, como las funciones de AWS Lambda, para controlar los permisos que se asignan a esas entidades dentro de una cuenta. En resumen, un rol de IAM es un conjunto de permisos sobre capacidades de AWS que se define mediante una o más políticas y luego se asigna a una entidad.
+El siguiente diagrama ilustra las asignaciones de AWS IAM roles para dos clases de usuarios diferentes: usuarios autenticados mediante Social Connections y usuarios autenticados mediante Database Connections. También muestra que los AWS IAM roles pueden asignarse a otras entidades, como las funciones de AWS Lamdba, para controlar los permisos asignados a esas entidades dentro de una cuenta. En resumen, un IAM role es un conjunto de permisos sobre capacidades de AWS definido mediante una o más políticas y luego asignado a una entidad.
 
-En los casos en que quieras tomar decisiones dentro de tu código (por ejemplo, podrías necesitar una verificación de crédito para un usuario que compra una mascota), también querrás transferir la identidad. Esto se demostrará a continuación en [Paso 5: uso de Identity Tokens para transferir la identidad](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-5).
+En los casos en que quieras tomar decisiones dentro de tu código (por ejemplo, puede que quieras realizar una verificación de crédito a un usuario que compra una mascota), también te convendrá propagar la identidad. Esto se mostrará a continuación en [Paso 5 - Uso de tokens de identidad para propagar la identidad](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-5).
 
 <div id="step-1-create-the-petpurchase-api-resource">
-  ### Paso 1. Crear el recurso de la API PetPurchase
+  ### Paso 1. Cree el recurso de la API PetPurchase
 </div>
 
-En la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway), selecciona tu API de Pets. Se te llevará a su página Resources.
+En la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway), seleccione su API de Pets. Se le dirigirá a su página Resources.
 
-Haz clic en **Actions** y en **Create Resource**. Asigna a New Child Resource el nombre `Purchase`. Haz clic en **Create Resource**.
+Haga clic en **Actions** y en **Create Resource**. Asigne al nuevo recurso secundario el nombre `Purchase`. Haga clic en **Create Resource**.
 
-Agrega un método OPTIONS para el recurso `purchase`, como se indicó anteriormente para `pets` en la [sección Configurar CORS e implementar la API del Paso 2: Protección e implementación de Amazon API Gateway](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2#set-up-cors-and-deploy-the-api).
+Agregue un método OPTIONS para el recurso `purchase`, como se indicó anteriormente para `pets` en la [sección Set Up Cors and Deploy the API del Paso 2: Securing and Deploying the Amazon API Gateway](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2#set-up-cors-and-deploy-the-api).
 
-Crea una nueva función de AWS Lambda para la compra de una mascota llamada `PetPurchase`, que agrega los atributos `isSold` y `soldTo` a una mascota de la siguiente manera:
+Cree una nueva función de AWS Lambda para la compra de una mascota llamada `PetPurchase`, que agrega los atributos `isSold` y `soldTo` a una mascota de la siguiente manera:
 
 ```javascript lines expandable
 var AWS = require('aws-sdk');
@@ -97,9 +97,9 @@ exports.handler = function(event, context) {
 };
 ```
 
-Una vez que haya definido la función Lambda, [agregue un método POST al recurso `purchase`](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-1#method-post-pet-information) que invoque la Lambda `PetPurchase`. Asegúrese también de agregar el encabezado `Access-Control-Allow-Origin` con un valor de `*` al método POST mediante la configuración de respuesta del método/respuesta de integración que se encuentra en la [sección Set Up Cors and Deploy the API del Paso 2: Securing and Deploying the Amazon API Gateway](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2#set-up-cors-and-deploy-the-api).
+Una vez que hayas definido la función Lambda, [agrega un método POST al recurso `purchase`](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-1#method-post-pet-information) que llame a la función Lambda `PetPurchase`. Asegúrate también de agregar el encabezado `Access-Control-Allow-Origin` con un valor de `*` al método POST mediante la configuración de respuesta del método y de respuesta de integración que se encuentra en la [sección Set Up Cors and Deploy the API del Step 2 - Securing and Deploying the Amazon API Gateway](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2#set-up-cors-and-deploy-the-api).
 
-Pruebe el método de API Gateway proporcionando lo siguiente como mensaje de entrada:
+Prueba el método de API Gateway e introduce lo siguiente como mensaje de entrada:
 
 ```json lines
 {
@@ -108,7 +108,7 @@ Pruebe el método de API Gateway proporcionando lo siguiente como mensaje de ent
  }
 ```
 
-En la respuesta de prueba, deberías ver que la mascota con ID 1 ahora se ha vendido a Fred Flintstone:
+En la respuesta de la prueba, deberías ver que la mascota con ID 1 ahora ya se vendió a Fred Flintstone:
 
 ```json lines
 [
@@ -124,16 +124,16 @@ En la respuesta de prueba, deberías ver que la mascota con ID 1 ahora se ha ven
 ```
 
 <div id="step-2-use-iam-to-secure-the-purchasepet-api">
-  ### Paso 2. Usar IAM para proteger la API de PurchasePet
+  ### Paso 2. Usa IAM para proteger la API de PurchasePet
 </div>
 
 <div id="update-iam">
   #### Actualizar IAM
 </div>
 
-Para proteger tu API, sigue el mismo proceso para agregar un nuevo rol que [seguiste en la Parte 2](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2) de este tutorial. Asigna al nuevo rol el nombre `auth0-api-social-role`.
+Para proteger tu API, sigue el mismo proceso para agregar un nuevo rol que [completaste en la Parte 2](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2) de este tutorial. Llama al nuevo rol `auth0-api-social-role`.
 
-El ARN del método que vas a proteger en la política de IAM debería verse más o menos así:
+El ARN del método que protegerás en la política de IAM debería verse más o menos así:
 
 ```bash wrap lines
 arn:aws:execute-api:us-east-1:your-accountid:your-api-id/*/pets/purchase
@@ -145,7 +145,7 @@ Ve a la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway) 
 
 En este punto, has definido dos roles que puedes usar con API Gateway:
 
-* `auth0-api-role`: permite actualizar mascotas
+* `auth0-api-role`: permite actualizar las mascotas
 * `auth0-api-social-role`: permite comprar una mascota
 
 <div id="configure-login-with-amazon-and-update-auth0">
@@ -158,47 +158,47 @@ Aunque este tutorial incluye instrucciones para usar Login with Amazon, ten en c
 
 1. Ve a [Auth0 Dashboard &gt; Authentication &gt; Social](https://manage.auth0.com/#/connections/social) y selecciona **Create Connection**.
 2. Elige la conexión que quieras configurar y da tu consentimiento.
-3. Copia y pega el `Client ID` y el `Client Secret` de tu proveedor de identidad social, selecciona los **Attributes** (y **Permissions**, cuando corresponda) y haz clic en **Save**.
-4. Selecciona la vista **Applications**, habilita el interruptor de cada una de tus aplicaciones de Auth0 que deban poder usar esta conexión y selecciona **Save**.
+3. Copia y pega el `ID de cliente` y el `secreto de cliente` de tu proveedor de identidad social, selecciona los **Atributos** (y los **Permisos**, cuando corresponda) y haz clic en **Save**.
+4. Selecciona la vista **Applications**, habilita el interruptor para cada una de tus aplicaciones de Auth0 que deban poder usar esta conexión y selecciona **Save**.
 
 Una vez que hayas introducido la información correspondiente, selecciona **Try Connection** para asegurarte de que todo esté configurado correctamente.
 
-Cuando configures LWA desde la consola de Amazon, asegúrate de introducir en Allowed Return URLs la URL de devolución de llamada de tu aplicación de Auth0, que debería verse como `https://johndoe.auth0.com/login/callback`. La página de ayuda de Auth0 te mostrará exactamente qué debes introducir.
+Cuando configures LWA en la consola de Amazon, asegúrate de introducir en Allowed Return URLs la URL de devolución de llamada de tu aplicación de Auth0, que debería verse más o menos así: `https://johndoe.auth0.com/login/callback`. La página de ayuda de Auth0 te mostrará exactamente qué debes introducir.
 
 Ve a [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y selecciona tu aplicación para ver su configuración. Selecciona la vista **Connections**, localiza la sección **Social** y asegúrate de que **Amazon** esté habilitado.
 
 <div id="deploy-the-api-and-update-the-single-page-application">
-  #### Despliega la API y actualiza la aplicación de página única
+  #### Implementar la API y actualizar la aplicación de página única
 </div>
 
 <div id="deploy-the-api">
-  ##### Desplegar la API
+  ##### Despliega la API
 </div>
 
-Con la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway), vuelva a [desplegar la API y generar un nuevo SDK de JavaScript](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2#set-up-cors-and-deploy-the-api).
+Usando la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway), volverás a [desplegar la API y generar un nuevo SDK de JavaScript](/docs/es/customize/integrations/aws/aws-api-gateway-delegation/aws-api-gateway-delegation-2#set-up-cors-and-deploy-the-api).
 
-En este punto, ya ha realizado los cambios de configuración necesarios para habilitar la compra de mascotas. Para ponerlo en producción, reemplace el SDK anterior por el que acaba de descargar, tanto en su carpeta `pets` como en su bucket de Amazon S3.
+En este punto, ya realizaste los cambios de configuración necesarios para habilitar la compra de mascotas. Para poner esto en funcionamiento, copia el SDK que acabas de descargar sobre el anterior en tu carpeta `pets`, así como en tu bucket de Amazon S3.
 
 <div id="update-the-login-controller-logic-to-choose-different-roles-for-different-types-of-users">
-  ##### Actualiza la lógica del controlador de login para elegir diferentes roles para distintos tipos de usuarios
+  ##### Actualiza la lógica del controlador de Login para elegir distintos roles para diferentes tipos de usuarios
 </div>
 
-La lógica del controlador de login usa `getOptionsForRole` para seleccionar diferentes roles para distintos usuarios. Cuando obtienes el token de delegación, puedes indicarle a Auth0 qué rol debe usar (es decir, si el usuario es administrador o no).
+La lógica del controlador de login usa `getOptionsForRole` para seleccionar distintos roles para diferentes usuarios. Cuando obtienes el token de delegación, puedes indicarle a Auth0 qué role usar (es decir, si el usuario es administrador o no).
 
-En el archivo `pets/login/login.js`, modifica los valores de `role` y `principal` del usuario no administrador para que usen los del rol de IAM para usuarios sociales que acabas de crear.
+En el archivo `pets/login/login.js`, modifica los valores `role` y `principal` del usuario no administrador para usar el IAM role de usuario social que acabas de crear.
 
-En este punto, deberías poder iniciar sesión con credenciales de Amazon **o** con el usuario de base de datos que creaste anteriormente. Ten en cuenta que la interfaz de usuario permite a un usuario social comprar mascotas, mientras que un usuario administrador puede agregar y eliminar mascotas.
+En este punto, deberías poder iniciar sesión con credenciales de Amazon **o** con el usuario de Database que creaste anteriormente. Ten en cuenta que la UI permite que un usuario social compre mascotas, mientras que un usuario administrador puede agregar y eliminar mascotas.
 
-Para probar esta funcionalidad, puedes ocultar temporalmente el botón de eliminar en la interfaz de usuario quitando `ng-show="isAdmin"` en `/pets/home/home.html`:
+Para probar esta funcionalidad, puedes ocultar temporalmente el botón de eliminar en la UI quitando `ng-show="isAdmin"` en `/pets/home/home.html`:
 
 ```html wrap lines
 <button ng-show="isAdmin" class="btn delete-btn" ng-click="removePet(pet.id)">remove</button>
 ```
 
-Después de copiar los cambios en tu bucket de S3, intenta eliminar una mascota mientras has iniciado sesión como usuario que accedió con un proveedor social.
+Después de copiar los cambios en tu bucket de S3, intenta eliminar una mascota con la sesión iniciada como usuario social.
 
 <div id="update-the-home-controller-logic-to-allow-social-users-to-purchase-pets">
-  ##### Actualiza la lógica del controlador Home para permitir que los usuarios de Social compren mascotas
+  ##### Actualiza la lógica del controlador Home para permitir que los usuarios que inician sesión con proveedores sociales compren mascotas
 </div>
 
 En `home.js`, modifica la función `buyPet` para permitir la compra de mascotas:
@@ -220,30 +220,30 @@ function buyPet(user, id) {
 …
 ```
 
-Copia el código en tu bucket de S3, cierra sesión y luego vuelve a iniciar sesión como usuario de una red social haciendo clic en el icono de Amazon en el cuadro de diálogo de inicio de sesión de Lock. Puede que tengas que hacer clic en **SHOW ALL** si tu sesión anterior sigue activa en el panel de Lock.
+Copia el código en tu bucket de S3, cierra sesión y luego vuelve a iniciarla como usuario social haciendo clic en el icono de Amazon en el cuadro de diálogo de inicio de sesión de Lock. Puede que tengas que hacer clic en **SHOW ALL** si tu sesión anterior sigue activa en el panel de Lock.
 
-Ten en cuenta que, como usuario de Amazon, puedes comprar una mascota, pero no añadir ni quitar mascotas. Sin embargo, si inicias sesión con un usuario asociado a una conexión de base de datos, podrás añadir y quitar mascotas, pero no comprar mascotas.
+Ten en cuenta que, como usuario de Amazon, puedes comprar una mascota, pero no añadir ni quitar mascotas. Sin embargo, si inicias sesión con un usuario asociado a una conexión de base de datos, puedes añadir y quitar mascotas, pero no comprar mascotas.
 
 <div id="enforce-role-assignment-with-auth0-rules">
-  ### Aplicar la asignación de roles con Auth0 Rules
+  ### Aplicar la asignación de roles con reglas de Auth0
 </div>
 
-En algunos casos, puedes determinar el rol adecuado usando la aplicación (como se muestra aquí), pero por motivos de seguridad (por ejemplo, para evitar que el usuario asuma un rol con más privilegios de los necesarios), quizá te convenga determinar los privilegios del usuario del lado del servidor.
+En algunos casos, podrías determinar el rol adecuado usando la aplicación (como se muestra aquí), pero por motivos de seguridad (por ejemplo, si quieres evitar que el usuario asuma un rol con más privilegios de los necesarios), puede que prefieras determinar los privilegios del usuario del lado del servidor.
 
-Con Auth0, esto se hace mediante rules, que son instrucciones de lógica de servicio que defines y que luego se ejecutan durante el proceso de autenticación de Auth0. Por ejemplo, podrías crear rules para:
+Con Auth0, esto se hace mediante reglas, que son sentencias de lógica de servicio que defines y que luego se ejecutan durante el proceso de autenticación de Auth0. Por ejemplo, podrías crear reglas para:
 
-* Evitar pasar información de roles del navegador a la aplicación;
-* Insertar información de roles en la solicitud de delegación según la fuente de autenticación.
+* Evitar pasar información del rol desde el navegador a la aplicación;
+* Insertar información del rol en la solicitud de delegación según la fuente de autenticación.
 
 <div id="enforce-role-assignment">
-  #### Aplicar la asignación de roles
+  #### Forzar la asignación de roles
 </div>
 
-Agregará una rule que comprobará si el role solicitado por el usuario está permitido, en función de su asociación con una conexión Social o una conexión de base de datos.
+Añadirá una Rule que comprobará si el rol solicitado por el usuario está permitido, en función de su asociación con una conexión Social o una conexión de base de datos.
 
-1. Vaya a [Auth0 Dashboard &gt; pipeline de autenticación &gt; Rules](https://manage.auth0.com/#/rules) y seleccione **Create Rule**.
-2. Elija la plantilla **Empty rule**
-3. Asigne a la rule el nombre **AWS Pets** (o algo similar) y, a continuación, complete el cuerpo de la rule con el siguiente código JavaScript:
+1. Vaya a [Auth0 Dashboard &gt; pipeline de autenticación &gt; Rules](https://manage.auth0.com/#/rules) y seleccione **Crear Rule**.
+2. Elija la plantilla **Rule vacío**
+3. Asigne a la Rule el nombre **AWS Pets** (o uno similar) y, a continuación, complete el cuerpo de la Rule con el siguiente código JavaScript:
 
 export const codeExample = `   function (user, context, callback) {
   if(context.clientID === '{yourClientId}') {
@@ -270,9 +270,9 @@ export const codeExample = `   function (user, context, callback) {
     if((requestRole && requestRole !== allowedRole.role) ||
       (requestPrincipal && requestPrincipal !== allowedRole.principal)) {
         console.log('el rol solicitado no coincide:',requestRole, ':', requestPrincipal);
-        console.log('sobrescribiendo');
+        console.log('se sobrescribirá');
     } else {
-      console.log('es válido o no se solicitó ningún rol para Delegation');
+      console.log('el rol es válido o no se solicitó ningún rol para Delegation');
     }
 
     context.addonConfiguration = context.addonConfiguration || {};
@@ -289,21 +289,21 @@ export const codeExample = `   function (user, context, callback) {
 
 <AuthCodeBlock children={codeExample} language="javascript" />
 
-Asegúrese de ajustar el código anterior con los valores correctos para su integración. Los campos son **ARN principal**, **ARN del rol** y **secreto de cliente**.
-4. **Guarde** los cambios.
+Asegúrate de ajustar el código anterior con los valores correctos para tu integración. Los campos son **Princial ARN**, **Role ARN** y **secreto de cliente**.
+4. **Guarda** los cambios.
 
 <div id="caveats">
   #### Advertencias
 </div>
 
-* Rules se ejecuta con alcance global en cada autenticación. Solo debes ejecutar la lógica en las solicitudes de autenticación asociadas a una aplicación determinada (por eso el script utilizado pide el clientID). Sin esta información, la lógica se ejecuta en cada solicitud de autenticación asociada a tu cuenta de Auth0.
+* Rules se ejecuta en un ámbito global para cada autenticación. Solo debes ejecutar la lógica en las solicitudes de autenticación asociadas a una aplicación determinada (por eso el script utilizado solicita el clientID). Sin esta información, la lógica se ejecuta para cada solicitud de autenticación asociada a tu cuenta de Auth0.
 * La información se pasa a la rule mediante el contexto y el usuario.
-* Puedes ampliar los objetos que se pasan a la rule. En el código anterior, la rule comprueba el cuerpo de la solicitud para obtener la información del rol. El rol se establece en el addonConfiguration del contexto como el rol permitido, que siempre sobrescribe la configuración del cuerpo de la solicitud.
+* Puedes ampliar los objetos que se pasan a la rule. En el código anterior, la rule comprueba el cuerpo de la solicitud para obtener la información del rol. El rol se establece en el addonConfiguration del contexto del rol permitido, lo que siempre sobrescribe la configuración del cuerpo de la solicitud.
 
 <div id="debug-your-rule">
   #### Depura tu Rule
 </div>
 
-Ya estás listo para depurar tu(s) rule(s). Selecciona **Probar esta Rule** y verás un script que pone a prueba la lógica de la rule. Selecciona **Probar**.
+Ya estás listo para depurar tu rule o tus rules. Selecciona **Try this Rule** y verás un script que prueba la lógica de la rule. Selecciona **Try**.
 
 A continuación, verás el resultado de ejecutar tu rule.

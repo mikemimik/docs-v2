@@ -1,0 +1,35 @@
+```php callback.php lines 
+<?php
+
+  declare(strict_types=1);
+
+  /**
+   * Después de regresar desde Auth0 Universal Login, se debe completar el flujo de autenticación
+   * usando el método `exchange()` para realizar el intercambio de código.
+   * Este proceso establece la sesión que utilizará la aplicación.
+   *
+   * Si se realiza correctamente, el usuario será redirigido a la ruta de índice.
+   */
+
+   $hasAuthenticated = isset($_GET['state']) && isset($_GET['code']);
+   $hasAuthenticationFailure = isset($_GET['error']);
+
+  // Si se realiza correctamente, la solicitud del usuario final contendrá los valores ?state y ?code.
+  if ($hasAuthenticated) {
+    try {
+      $sdk->exchange();
+    } catch (\Throwable $th) {
+      printf('Unable to complete authentication: %s', $th->getMessage());
+      exit;
+    }
+  }
+
+  // Si la autenticación falla, la solicitud del usuario final contendrá ?error.
+  if ($hasAuthenticationFailure) {
+    printf('Authentication failure: %s', htmlspecialchars(strip_tags(filter_input(INPUT_GET, 'error'))));
+    exit;
+  }
+
+  // Sin procesamiento: redirigir a la ruta de índice.
+  header('Location: /');
+```

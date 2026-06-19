@@ -1,41 +1,41 @@
 ---
-description: Décrit comment utiliser la rotation du jeton d’actualisation que vous avez reçu lors de l’autorisation.
+description: Décrit comment utiliser la rotation des jetons d’actualisation reçus lors de l’autorisation.
 title: Utiliser la rotation des jetons d’actualisation
 ---
 
-Pour utiliser la rotation du <Tooltip tip="Jeton d’actualisation : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à ouvrir une nouvelle session." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+token">jeton d’actualisation</Tooltip>, vous utiliserez le SDK Auth0 Single Page App. Le SDK Auth0 SPA gère le stockage des jetons, la gestion des sessions et d’autres détails pour vous.
+Pour utiliser la rotation des <Tooltip tip="Jeton d’actualisation : token utilisé pour obtenir un jeton d’accès renouvelé sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+token">jetons d’actualisation</Tooltip>, vous utiliserez l’Auth0 Single Page App SDK. L’Auth0 SPA SDK gère le stockage des tokens, la gestion des sessions et d’autres aspects pour vous.
 
 <div id="prerequisite">
   ## Prérequis
 </div>
 
-[Configurez la rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/configure-refresh-token-rotation) pour activer l’accès hors ligne et demander la portée d’accès hors ligne dans le SDK client.
+[Configurer la rotation du jeton d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/configure-refresh-token-rotation) afin d’activer l’accès hors ligne et de demander le scope offline&#95;access dans le SDK client.
 
 <div id="enable-userefreshtokens">
   ## Activer useRefreshTokens
 </div>
 
-Conformément aux spécifications OAuth2, lorsqu’un navigateur demande un jeton d’actualisation au /<Tooltip tip="Point de terminaison de jeton : point de terminaison du serveur d’autorisation utilisé pour demander des jetons de façon programmatique." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=token+endpoint">point de terminaison de jeton</Tooltip>, Auth0 ne renverra un jeton d’actualisation que si la <Tooltip tip="Point de terminaison de jeton : point de terminaison du serveur d’autorisation utilisé pour demander des jetons de façon programmatique." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Refresh+Token+Rotation">rotation des jetons d’actualisation</Tooltip> est activée pour ce client.
+Conformément aux spécifications OAuth2, lorsqu’un navigateur demande un jeton d’actualisation au /<Tooltip tip="Point de terminaison de jeton : point de terminaison du serveur d’autorisation utilisé pour demander des jetons par programmation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=token+endpoint">point de terminaison de jeton</Tooltip>, Auth0 ne renvoie un jeton d’actualisation que si la <Tooltip tip="Point de terminaison de jeton : point de terminaison du serveur d’autorisation utilisé pour demander des jetons par programmation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Refresh+Token+Rotation">rotation du jeton d’actualisation</Tooltip> est activée pour ce client.
 
-Utilisez l’option `useRefreshTokens` dans `createAuth0Client`, dont la valeur par défaut est `false`. Lorsque cette option est définie à `false`, si `getTokenSilently()` est appelée et qu’un nouveau <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip> est requis, le SDK tente d’obtenir un nouveau jeton d’accès au moyen d’un iframe caché et de `prompt=none`.
+Utilisez l’option `useRefreshTokens` dans `createAuth0Client`, dont la valeur par défaut est `false`. Lorsque cette option est définie à `false`, si `getTokenSilently()` est appelée et qu’un nouveau <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip> est requis, le SDK tente d’obtenir un nouveau jeton d’accès à l’aide d’un iframe caché et de `prompt=none`.
 
-Si vous définissez cette option à `true`, la portée `offline_access` est automatiquement demandée lors de l’utilisation de `loginWithRedirect(), loginWithPopup()` et `getTokenSilently()`. Lorsque `getTokenSilently()` est appelée et que le jeton d’accès a expiré, le SDK tente de renouveler les jetons ID et d’accès en appelant le point de terminaison `/token` au moyen du type d’attribution `refresh_token`, ainsi que du jeton d’actualisation stocké dans le cache.
+Si vous définissez cette option à `true`, la portée `offline_access` est automatiquement demandée lors de l’utilisation de `loginWithRedirect(), loginWithPopup()` et `getTokenSilently()`. Lorsque `getTokenSilently()` est appelée et que le jeton d’accès a expiré, le SDK tente de renouveler les jetons d’ID et d’accès en appelant le point de terminaison `/token` à l’aide du type d’autorisation `refresh_token`, avec le jeton d’actualisation provenant du cache.
 
-La réauthentification silencieuse se fait en envoyant un paramètre `prompt=none` dans la demande d’authentification et en utilisant un iframe caché, à condition qu’il y ait une session utilisateur active sur le <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités auxquelles un utilisateur a accès." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+server">serveur d’autorisation</Tooltip>. Le SDK utilise la méthode par iframe si vous avez défini `useRefreshTokens` à `true` mais qu’aucun jeton d’actualisation n’est disponible dans le cache. Cela aide les utilisateurs à passer silencieusement aux jetons d’actualisation sans avoir à se reconnecter.
+La réauthentification silencieuse se fait en envoyant un paramètre `prompt=none` dans la requête d’authentification et en utilisant un iframe caché, à condition qu’il y ait une session utilisateur active sur le <Tooltip tip="Serveur d’autorisation : serveur centralisé qui aide à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+server">serveur d’autorisation</Tooltip>. Le SDK utilise la méthode par iframe si vous avez défini `useRefreshTokens` à `true`, mais qu’aucun jeton d’actualisation n’est disponible dans le cache. Cela permet aux utilisateurs de passer silencieusement aux jetons d’actualisation sans avoir à se reconnecter.
 
-Si l’échange échoue parce que `useRefreshTokens` est `true` mais qu’il n’y a pas de jeton d’actualisation dans le cache, il revient alors à la méthode par iframe (qui peut aussi échouer si les cookies tiers sont bloqués).
+Si l’échange échoue parce que `useRefreshTokens` est `true`, mais qu’il n’y a pas de jeton d’actualisation dans le cache, le SDK revient alors à la méthode par iframe (qui peut aussi échouer si les cookies tiers sont bloqués).
 
 <div id="token-storage">
   ## Stockage des jetons
 </div>
 
-Avec les SPA, les jetons ID et d’accès sont obtenus auprès du serveur d’autorisation et sont généralement stockés en mémoire cache. Le renouvellement des jetons (en raison de l’actualisation du navigateur, des politiques d’éviction de la mémoire cache ou de l’expiration) est pris en charge par le SDK.
+Dans les SPA, les jetons d’identité et d’accès sont obtenus auprès du serveur d’autorisation et généralement conservés dans la mémoire cache. Leur renouvellement (à la suite de l’actualisation du navigateur, de l’éviction de la mémoire cache ou de leur expiration) est pris en charge par le SDK.
 
 <div id="example">
   ## Exemple
 </div>
 
-L’exemple suivant montre comment configurer le SDK pour qu’il utilise à la fois le stockage local et des jetons d’actualisation :
+L’exemple suivant montre comment configurer le SDK pour qu’il utilise à la fois le stockage local et les jetons d’actualisation :
 
 ```javascript lines
 const auth0 = await createAuth0Client({
@@ -58,6 +58,6 @@ const auth0 = await createAuth0Client({
   ## En savoir plus
 </div>
 
-* [Configurer la rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/configure-refresh-token-rotation)
-* [Désactiver la rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/disable-refresh-token-rotation)
-* [Bonnes pratiques relatives aux jetons](/docs/fr-CA/secure/tokens/token-best-practices)
+* [Configurer la rotation du jeton d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/configure-refresh-token-rotation)
+* [Désactiver la rotation du jeton d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/disable-refresh-token-rotation)
+* [Token Best Practices](/docs/fr-CA/secure/tokens/token-best-practices)

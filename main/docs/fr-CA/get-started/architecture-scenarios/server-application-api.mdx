@@ -1,45 +1,45 @@
 ---
-description: Explique le scénario d’Architecture avec communication de serveur à serveur et appels sécurisés à une API (serveur de ressources) au nom de l’application.
+description: Explique le scénario d’Architecture avec une communication de serveur à serveur et des appels sécurisés vers une API (serveur de ressources) au nom de l’application.
 title: Applications serveur avec API
 ---
 
-Dans ce scénario, nous allons créer une API Timesheet pour une entreprise fictive appelée ExampleCo. L’API permettra d’ajouter des entrées de feuille de temps pour un employé ou un contractuel.
+Dans ce scénario, nous allons créer une API de feuilles de temps pour une entreprise fictive nommée ExampleCo. L’API permettra d’ajouter des entrées de feuille de temps pour un employé ou un sous-traitant.
 
-Nous allons également créer une tâche cron qui traitera les entrées de feuille de temps provenant d’un système externe et les acheminera vers la base de données centralisée des feuilles de temps à l’aide de l’API.
+Nous créerons également une tâche cron qui traitera les entrées de feuille de temps provenant d’un système externe vers la base de données centralisée des feuilles de temps à l’aide de l’API.
 
 <Info>
-  ### En bref
+  ### TL;DR
 
-  * Auth0 fournit des fonctionnalités d’authentication and authorization d’API pour sécuriser l’accès aux API endpoints (lire [Authentification et autorisation de l’API](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-1#api-authentication-and-authorization))
+  * Auth0 fournit l’authentication et l’Authorization des API afin de sécuriser l’accès aux endpoints d’API (lire [API Authentication and Authorization](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-1#api-authentication-and-authorization))
   * Pour autoriser une Machine-to-Machine Application (un CLI, un service ou un démon sans interaction utilisateur), Auth0 prend en charge le Client Credentials Grant (lire [Client Credentials Grant](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-1#client-credentials-grant))
-  * La Machine-to-Machine Application et l’API doivent toutes deux être configurées dans l’Auth0 Dashboard (lire [Configuration d’Auth0](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-2))
-  * L’API sera sécurisée en veillant à ce qu’un access token valide (implémenté sous forme de JSON Web Token) soit transmis dans le header HTTP Authorization lors des appels à l’API (lire [Implémenter l’API](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3))
-  * Une fois l’autorisation accordée, un access token est émis à la Machine-to-Machine Application (lire [Obtenir un access token](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3#get-an-access-token))
-  * La Machine-to-Machine Application peut ensuite utiliser cet access token en le transmettant dans le header HTTP Authorization afin d’authentifier les appels aux API endpoints (lire [Appeler l’API](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3#invoke-the-api))
+  * La Machine-to-Machine Application et l’API doivent toutes deux être configurées dans l’Auth0 Dashboard (lire [Auth0 Configuration](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-2))
+  * L’API sera sécurisée en veillant à ce qu’un access token valide (implémenté sous forme de JSON Web Token) soit transmis dans l’en-tête HTTP Authorization lors des appels à l’API (lire [Implement the API](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3))
+  * Une fois l’autorisation réussie, un access token est émis pour la Machine-to-Machine Application (lire [Get an access token](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3#get-an-access-token))
+  * La Machine-to-Machine Application peut ensuite utiliser cet access token en le transmettant dans l’en-tête HTTP Authorization pour authentifier les appels aux endpoints d’API (lire [Invoke the API](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3#invoke-the-api))
 </Info>
 
 <div id="the-premise">
-  ## Le contexte
+  ## Le principe
 </div>
 
-ExampleCo est une jeune entreprise de services-conseils. Elle compte actuellement environ 100 employés et fait aussi appel à des sous-traitants externes. Tous les employés et sous-traitants externes doivent remplir des feuilles de temps chaque semaine. À cette fin, l’entreprise a créé une application de feuilles de temps, un scénario que nous avons abordé dans [l’authentification unique pour les applications Web traditionnelles](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps). Les employés à l’interne utilisent cette application Web pour remplir leurs feuilles de temps, mais certains sous-traitants externes utilisent déjà un autre outil pour consigner leurs heures. ExampleCo a besoin d’une solution pour éviter la double saisie et a donc décidé de créer une tâche cron pour lire les entrées de feuille de temps de ce système externe et les téléverser automatiquement vers le backend d’ExampleCo à l’aide d’une API.
+ExampleCo est une jeune entreprise de services-conseils. Elle compte actuellement environ 100 employés et fait aussi appel à des sous-traitants externes. Tous les employés et sous-traitants externes doivent remplir des feuilles de temps chaque semaine. À cette fin, l’entreprise a créé une application de feuilles de temps, un scénario que nous avons abordé dans [Single Sign-On pour les applications Web régulières](/docs/fr-CA/get-started/architecture-scenarios/sso-for-regular-web-apps). Les employés à l’interne utilisent cette application Web pour remplir leurs feuilles de temps, mais certains sous-traitants externes utilisent déjà un autre outil pour faire le suivi de leurs feuilles de temps. ExampleCo a besoin d’une solution pour éviter le dédoublement du travail et a donc décidé de créer une tâche cron pour lire les entrées de feuille de temps dans ce système externe et les téléverser automatiquement vers le backend d’ExampleCo au moyen d’une API.
 
 <div id="goals-requirements">
   ### Objectifs et exigences
 </div>
 
-ExampleCo veut créer une solution flexible qui :
+ExampleCo veut concevoir une solution flexible qui :
 
-* Permet d’automatiser des processus dans le backend
+* Permet l’exécution de processus automatisés dans le backend
 * Permet de futurs lancements d’applications, comme une application mobile, dans l’architecture
 * Permet à la Timesheets API d’être sécurisée et accessible aux utilisateurs et aux applications autorisés
-* Permet de partager une grande partie du code et de la logique d’affaires de l’application avec d’autres applications
+* Permet de partager une grande partie du code et de la logique d’affaires de l’application avec d’autres applis
 
 <div id="learn-more">
   ## En savoir plus
 </div>
 
-* [Présentation de la solution (applications serveur + API)](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-1)
+* [Aperçu de la solution (applications serveur + API)](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-1)
 * [Configuration d’Auth0 (applications serveur + API)](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-2)
-* [Implémentation de l’application (applications serveur + API)](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3)
+* [Mise en œuvre de l’application (applications serveur + API)](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-3)
 * [Conclusion (applications serveur + API)](/docs/fr-CA/get-started/architecture-scenarios/server-application-api/part-4)

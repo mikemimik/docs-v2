@@ -1,0 +1,23 @@
+```cs HasScopeHandler.cs lines highlight={}
+public class HasScopeHandler : AuthorizationHandler<HasScopeRequirement>
+{
+  protected override Task HandleRequirementAsync(
+    AuthorizationHandlerContext context,
+    HasScopeRequirement requirement
+  ) {
+    // Si l'utilisateur n'a pas le claim de scope, on sort d'ici
+    if (!context.User.HasClaim(c => c.Type == "scope" && c.Issuer == requirement.Issuer))
+      return Task.CompletedTask;
+
+    // Diviser la chaîne de scopes en un array
+    var scopes = context.User
+      .FindFirst(c => c.Type == "scope" && c.Issuer == requirement.Issuer).Value.Split(' ');
+
+    // Succès si l'array de scopes contient le scope requis
+    if (scopes.Any(s => s == requirement.Scope))
+      context.Succeed(requirement);
+
+    return Task.CompletedTask;
+  }
+}
+```

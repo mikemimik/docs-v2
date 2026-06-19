@@ -1,16 +1,16 @@
 ---
-description: Décrit comment identifier les attributs d’utilisateur que vous ne souhaitez pas conserver dans les bases de données d’Auth0.
-title: Ajouter des attributs d’utilisateur à la liste d’exclusion
+description: Décrit comment identifier les attributs utilisateur que vous ne souhaitez pas stocker dans les bases de données Auth0.
+title: Ajouter des attributs utilisateur à la Deny List
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Si certains champs utilisateur ne doivent pas être stockés dans les bases de données Auth0 pour des raisons de confidentialité, vous pouvez les ajouter à la liste d’exclusion. Pour ajouter des attributs à la liste d’exclusion, effectuez un appel `PATCH` vers le point de terminaison Update Connection de la <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>.
+S&#39;il y a des champs utilisateur qui ne devraient pas être stockés dans les bases de données Auth0 pour des raisons de confidentialité, vous pouvez les ajouter à la Deny List. Pour ajouter des attributs à la Deny List, effectuez un appel `PATCH` au point de terminaison Update Connection de la <Tooltip tip="Management API : un produit qui permet aux clients d'effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>.
 
-1. Obtenez un jeton d’accès valide pour accéder au point de terminaison [`/patch_connections_by_id`](https://auth0.com/docs/api/management/v2#!/Connections/patch_connections_by_id). Le jeton doit inclure la portée `update:connections`. Consultez [Management API Access Tokens](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens) pour en savoir plus.
-2. À l’aide du jeton d’accès et de la liste des attributs à refuser, appelez l’API. Voici un exemple de requête HTTP qui refuse deux attributs : l’origine ethnique et le genre. Gardez à l’esprit que vous devez récupérer l’objet options et envoyer l’objet complet dans votre requête PATCH, car il n’y a pas de &quot;fusion&quot; lorsque vous ne mettez à jour qu’une ou deux valeurs.
+1. Obtenez un jeton d&#39;accès valide pour accéder au point de terminaison [`/patch_connections_by_id`](https://auth0.com/docs/api/management/v2#!/Connections/patch_connections_by_id). Le jeton doit inclure la portée `update:connections`. Consultez [Management API Access Tokens](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens) pour en savoir plus.
+2. À l&#39;aide du jeton d&#39;accès et de la liste des attributs à rejeter, appelez l&#39;API. Voici un exemple de requête HTTP qui rejette deux attributs : ethnicity et gender. Gardez à l&#39;esprit que vous devez récupérer l&#39;objet `options` et envoyer l&#39;objet complet dans votre requête PATCH, car il n&#39;y a pas de &quot;fusion&quot; lorsque vous mettez à jour seulement une ou deux valeurs.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -168,9 +168,9 @@ Si certains champs utilisateur ne doivent pas être stockés dans les bases de d
 
 Où :
 
-1. `{yourConnectionId}` est l’[ID de connexion](/docs/fr-CA/authenticate/identity-providers/locate-the-connection-id) pour laquelle ces attributs seront rejetés.
+1. `{yourConnectionId}` est l’[ID de la connexion](/docs/fr-CA/authenticate/identity-providers/locate-the-connection-id) pour laquelle ces attributs seront rejetés.
    2. `{yourToken}` est le jeton d’accès que vous avez reçu à l’étape précédente.
-   3. L’objet `options.non_persistent_attrs` contient un tableau des attributs à rejeter. Si la revendication que vous souhaitez rejeter est envoyée par un fournisseur d’identité (IdP) en amont, vous devez indiquer la revendication exactement telle qu’elle est envoyée par l’IdP en amont. Par exemple, pour une revendication reçue sous la forme `https://acme.com/temporary_idtoken`, l’objet `non_persistent_attrs` de l’exemple ci-dessus serait :
+   3. L’objet `options.non_persistent_attrs` contient un tableau des attributs qui seront rejetés. Si la revendication que vous voulez rejeter est envoyée par un fournisseur d’identité en amont (IdP), vous devez définir la revendication exactement telle qu’elle est envoyée par l’IdP en amont. Par exemple, pour une revendication reçue sous la forme `https://acme.com/temporary_idtoken`, l’exemple d’objet `non_persistent_attrs` ci-dessus serait :
 
    ```json wrap lines
    {"non_persistent_attrs": ["ethnicity", "gender", "https://acme.com/temporary_idtoken"]}
@@ -183,21 +183,21 @@ Où :
 * Seuls les [champs racine](/docs/fr-CA/manage-users/user-accounts/user-profiles/user-profile-structure) (comme `user.name` ou `user.phone_number`) peuvent être rejetés.
 
   * Si `user.name` ou `user.nickname` sont rejetés, ils ne seront pas inclus dans les jetons.
-  * Si `user.email` est rejeté, la valeur ne peut pas être associée à une revendication personnalisée. Par exemple, dans une règle, `context.idToken[namespace + 'work_email'] = user.email` ne fonctionnerait pas.
-* Lorsque vous rejetez des attributs, ils demeurent accessibles par l’intermédiaire des règles et des jetons sortants. Toutefois, si l’un des cas suivants s’applique, les attributs de la liste d’exclusion ne seront **pas** inclus dans les jetons :
+  * Si `user.email` est rejeté, la valeur ne peut pas être mappée à une custom claim. Par exemple, dans une rule, `context.idToken[namespace + 'work_email'] = user.email` ne fonctionnerait pas.
+* Lorsque vous rejetez des attributs, ils restent accessibles via les rules et les jetons émis. Toutefois, si l&#39;un des cas suivants s&#39;applique, les attributs de la Deny List ne seront **pas** inclus dans les jetons :
 
-  * Vous avez activé l’authentification multifacteur (MFA)
-  * Vous avez effectué une redirection par l’intermédiaire des règles
-  * Votre application utilise la délégation (et vous n’avez pas défini `scope = passthrough`)
-  * Votre application utilise l’usurpation d’identité
+  * Vous avez activé l&#39;authentification multifacteur (MFA)
+  * Vous avez effectué une redirection via les rules
+  * Votre application utilise Delegation (et vous n&#39;avez pas défini `scope = passthrough`)
+  * Votre application utilise l&#39;impersonation
   * Vous avez activé le paramètre **Use Auth0 instead of the IdP to do Single Sign-On** (tenants Legacy uniquement)
-* Pour les connexions SAMLP, si vous activez le mode débogage, vos journaux contiendront de l’information sur les attributs de la liste d’exclusion
+* Pour les connexions SAMLP, si vous activez le mode Debug, vos logs contiendront de l&#39;information sur les attributs de la Deny List
 
-Si l’une ou l’autre de ces limitations est inacceptable, vous pouvez écrire une [règle](/docs/fr-CA/customize/rules) pour chiffrer les données et faire en sorte qu’elles soient conservées dans l’objet `user.app_metadata`.
+Si l&#39;une ou l&#39;autre de ces limitations est inacceptable, vous pouvez écrire une [rule](/docs/fr-CA/customize/rules) pour chiffrer les données et faire en sorte qu&#39;elles soient enregistrées dans l&#39;objet `user.app_metadata`.
 
 <div id="learn-more">
-  ## Pour en savoir plus
+  ## En savoir plus
 </div>
 
-* [Révoquer l’accès aux API à l’aide d’autorisations d’application](/docs/fr-CA/get-started/applications/revoke-api-access)
+* [Révoquer l’accès aux API au moyen des autorisations d’application](/docs/fr-CA/get-started/applications/revoke-api-access)
 * [Adresses IP d’Auth0 pour les listes d’autorisation](/docs/fr-CA/secure/security-guidance/data-security/allowlist)

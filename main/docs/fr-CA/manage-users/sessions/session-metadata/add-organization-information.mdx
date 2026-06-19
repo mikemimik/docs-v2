@@ -1,48 +1,48 @@
 ---
 description: Découvrez comment ajouter des métadonnées d’organisation aux métadonnées de session
-title: "Cas d’utilisation : renseignements sur l’organisation dans les métadonnées de session"
+title: 'Cas d’utilisation : Renseignement sur l’organisation dans les métadonnées de session'
 validatedOn: 2026-02-10
 ---
 
-Les métadonnées de session rendent les données de contexte de l’utilisateur portables et visibles pendant tout le cycle de vie de la session, ainsi que dans les événements de déconnexion.
+Les métadonnées de session rendent les données de contexte de l’utilisateur accessibles et visibles tout au long du cycle de vie de la session, ainsi que dans les événements de déconnexion.
 
-Les systèmes en aval peuvent utiliser les renseignements contenus dans les métadonnées de session pour effectuer des audits, réaliser des analyses et appliquer des pipelines de révocation, entre autres.
+Les systèmes en aval peuvent utiliser les renseignements contenus dans les métadonnées de session pour mener des audits, effectuer des analyses et appliquer des pipelines de révocation, entre autres.
 
 <Warning>
-  Les métadonnées de session Auth0 ne constituent pas un stockage sécurisé et ne doivent pas être utilisées pour conserver des renseignements sensibles. Cela comprend les secrets et les PII à risque élevé, comme les numéros d’assurance sociale ou de carte de crédit. Les clients Auth0 sont fortement encouragés à évaluer les données stockées dans les métadonnées et à ne conserver que celles qui sont nécessaires à des fins de gestion des identités et des accès. Pour en savoir plus, consultez [Auth0 General Data Protection Regulation Compliance](/docs/fr-CA/secure/data-privacy-and-compliance/gdpr).
+  Les métadonnées de session d’Auth0 ne constituent pas un espace de stockage sécurisé et ne doivent pas servir à stocker des renseignements sensibles. Cela comprend les secrets et les PII à risque élevé, comme les numéros d’assurance sociale ou de carte de crédit, etc. Les clients d’Auth0 sont fortement encouragés à évaluer les données stockées dans les métadonnées et à ne conserver que celles qui sont nécessaires à des fins de gestion des identités et des accès. Pour en savoir plus, consultez [la page de conformité d’Auth0 au Règlement général sur la protection des données](/docs/fr-CA/secure/data-privacy-and-compliance/gdpr).
 </Warning>
 
 <div id="add-organization-information-to-session-metadata">
-  ## Ajouter les renseignements sur l’organisation aux métadonnées de session
+  ## Ajouter des renseignements sur l’organisation aux métadonnées de session
 </div>
 
-Vous pouvez utiliser [Actions](/docs/fr-CA/customize/actions) pour stocker les identifiants de l’organisation dans les métadonnées de session à l’aide de la méthode `api.session.setMetadata()` de [post-login](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger), puis les consulter au moyen de l’objet `event.session.metadata`.
+Vous pouvez utiliser [Actions](/docs/fr-CA/customize/actions) pour stocker les identifiants de l’organisation dans une session à l’aide de la méthode `api.session.setMetadata()` de [post-login](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger), puis les consulter avec l’objet `event.session.metadata`.
 
-Code de l’action Post-Login :
+Code de la Post-Login Action :
 
 ```javascript lines
 /**
- * Action post-connexion (simple)
+ * Action post-login (simple)
  * Ajoute le contexte d'organisation aux métadonnées de session afin qu'il apparaisse dans les Actions suivantes,
- * la Management API, et (si activé) le jeton de déconnexion en canal arrière.
+ * la Management API, et (si activé) le jeton Back-Channel Logout.
  */
 exports.onExecutePostLogin = async (event, api) => {
-  // Ne continuer que si la transaction cible une organisation
+  // Ne continuer que si la transaction cible une Organisation
   if (!event.organization) return;
 
-  // Garder les valeurs courtes et en chaînes seulement (les métadonnées de session n'acceptent que des chaînes)
+  // Garder les valeurs courtes et de type chaîne uniquement (les métadonnées de session requièrent des chaînes)
   const orgId = String(event.organization.id || "");
   const orgSlug = String(event.organization.name || "");
   const orgDisplay = String(event.organization.display_name || orgSlug);
 
-  // Écritures minimales et idempotentes (quelques clés seulement pour rester bien en deçà des limites)
+  // Écritures minimales et idempotentes (quelques clés seulement pour rester bien en dessous des limites)
   api.session.setMetadata("org_id", orgId);
   api.session.setMetadata("org_slug", orgSlug);
   api.session.setMetadata("org_name", orgDisplay);
 };
 ```
 
-Les métadonnées de session sont accessibles dans les Actions suivantes, peuvent être récupérées au moyen de la [Management API](https://auth0.com/docs/api/management/v2) et peuvent être incluses dans le jeton de [OpenID Connect Back-Channel Logout](/docs/fr-CA/authenticate/login/logout/back-channel-logout).
+Les métadonnées de session sont accessibles dans les Actions suivantes, peuvent être récupérées au moyen de la [Management API](https://auth0.com/docs/api/management/v2) et peuvent être incluses dans le jeton [OpenID Connect Back-Channel Logout](/docs/fr-CA/authenticate/login/logout/back-channel-logout).
 
 * Dans les Actions suivantes, vous pouvez interroger les données au moyen de l’objet `event.session.metadata` :
 
@@ -72,7 +72,7 @@ Exemple de réponse :
   Les appels au point de terminaison `/api/v2/sessions/{id}` nécessitent un [jeton d’accès à l’API de gestion](/docs/fr-CA/secure/tokens/access-tokens) avec la portée `update:session`.
 </Callout>
 
-* Si votre application est configurée pour utiliser les [métadonnées de session OIDC Back-Channel Logout](/docs/fr-CA/manage-users/sessions/session-metadata/configure-session-metadata), le `logout_token` comprend les métadonnées de session :
+* Si vous avez une application configurée avec des [métadonnées de session OIDC Back-Channel Logout](/docs/fr-CA/manage-users/sessions/session-metadata/configure-session-metadata), le `logout_token` inclut les métadonnées de session :
 
 ```json lines
 {

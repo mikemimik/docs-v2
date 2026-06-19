@@ -1,17 +1,17 @@
 ---
-description: Aprende a usar el endpoint Unlink a User Account de la Management API para desvincular una identidad de la cuenta de usuario de destino y hacer que vuelva a ser una cuenta de usuario independiente.
+description: Aprende a usar el endpoint Desvincular una cuenta de usuario de Management API para desvincular una identity de la cuenta de usuario de destino y hacer que vuelva a ser una cuenta de usuario independiente.
 title: Desvincular cuentas de usuario
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
-Usa el endpoint de Auth0 <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> [Unlink a User Account](https://auth0.com/docs/api/management/v2#!/Users/delete_user_identity_by_user_id) o la biblioteca auth0.js para desvincular una identidad de la cuenta de usuario de destino y hacer que vuelva a ser una cuenta de usuario independiente.
+Usa la <Tooltip tip="Management API: Un producto para permitir a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> de Auth0, específicamente el endpoint [Desvincular una cuenta de usuario](https://auth0.com/docs/api/management/v2#!/Users/delete_user_identity_by_user_id), o la biblioteca Auth0.js para desvincular una identidad de la cuenta de usuario de destino y volver a convertirla en una cuenta de usuario independiente.
 
 El resultado del proceso de desvinculación es el siguiente:
 
-* La cuenta secundaria se elimina del arreglo de identidades de la cuenta principal.
+* La cuenta secundaria se elimina del arreglo `identities` de la cuenta principal.
 * Se crea una nueva cuenta de usuario secundaria.
-* La cuenta secundaria no tendrá metadatos.
+* La cuenta secundaria no tendrá metadata.
 
 Si tu objetivo es eliminar por completo la identidad secundaria, primero debes desvincular las cuentas y luego [eliminar la cuenta secundaria recién creada](/docs/es/manage-users/user-accounts/delete-users).
 
@@ -24,11 +24,11 @@ El endpoint usa los siguientes parámetros:
 
 | Parámetro  | Tipo     | Descripción                                                                                     |
 | ---------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `id`       | `string` | ID de la cuenta principal de usuario (obligatorio)                                              |
+| `id`       | `string` | ID de la cuenta de usuario principal (obligatorio)                                              |
 | `provider` | `string` | nombre del proveedor de identidad de la cuenta secundaria vinculada (p. ej., `google-oauth2`)   |
 | `user_id`  | `string` | ID de la cuenta secundaria vinculada (p. ej., la parte `123456789081523216417` después de &#96; |
 
-Si tu instancia tiene usuarios de varios proveedores, también puedes incluir `[connection_name]|` antes de la cadena `user_id` para indicar el nombre del proveedor (por ejemplo, `"user-id": "google-oauth2|123456789081523216417").`
+Si tu instancia tiene usuarios de varios proveedores, también puedes incluir `[connection_name]|` antes de la cadena `user_id` para indicar el proveedor (por ejemplo, `"user-id": "google-oauth2|123456789081523216417").`
 
 <div id="response-example">
   ## Ejemplo de respuesta
@@ -60,7 +60,7 @@ Si tu instancia tiene usuarios de varios proveedores, también puedes incluir `[
   ## Usa el JWT de la cuenta principal
 </div>
 
-Para desvincular cuentas, llama al endpoint [Unlink a User Account](https://auth0.com/docs/api/v2#!/Users/delete_user_identity_by_user_id) de la Management API usando el <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de access token) que se usa para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> de la cuenta principal para la autorización:
+Para desvincular cuentas, llama al endpoint [Desvincular una cuenta de usuario](https://auth0.com/docs/api/v2#!/Users/delete_user_identity_by_user_id) de la Management API usando el <Tooltip tip="JSON Web Token (JWT): Formato estándar del token de ID (y, a menudo, del token de acceso) que se utiliza para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> de la cuenta principal para la autorización:
 
 export const codeExample1 = `function unlinkAccount(secondaryProvider, secondaryUserId){
   var primaryUserId = localStorage.getItem('user_id');
@@ -73,7 +73,7 @@ export const codeExample1 = `function unlinkAccount(secondaryProvider, secondary
       'Authorization': 'Bearer ' + primaryJWT
     }
   }).then(function(identities){
-    alert('¡Desvinculado!');
+    alert('¡Cuenta desvinculada!');
     showLinkedAccounts(identities);
   }).fail(function(jqXHR){
     alert('Error al desvincular las cuentas: ' + jqXHR.status + ' ' + jqXHR.responseText);
@@ -86,7 +86,7 @@ export const codeExample1 = `function unlinkAccount(secondaryProvider, secondary
   ## Usa un token de acceso con el scope `update:users`
 </div>
 
-Si necesitas desvincular dos o más cuentas de usuario, llama al [endpoint Unlink a User Account](https://auth0.com/docs/api/v2#!/Users/delete_user_identity_by_user_id) de la Management API con un [token de acceso de la Management API](https://auth0.com/docs/api/v2/tokens) con el scope `update:users`.
+Si necesitas desvincular dos o más cuentas de usuario, llama al [endpoint Desvincular una cuenta de usuario](https://auth0.com/docs/api/v2#!/Users/delete_user_identity_by_user_id) de la Management API usando un [token de acceso de la Management API](https://auth0.com/docs/api/v2/tokens) con el scope `update:users`.
 
 ```javascript lines
 function unlinkAccount(secondaryProvider, secondaryUserId) {
@@ -114,10 +114,10 @@ function unlinkAccount(secondaryProvider, secondaryUserId) {
 ```
 
 <div id="unlink-accounts-from-server-side-code">
-  ## Desvincular cuentas desde el código del lado del servidor
+  ## Desvincular cuentas desde código del lado del servidor
 </div>
 
-1. Actualiza el usuario de la sesión con el nuevo arreglo de identidades (cada una de las cuales representa una cuenta de usuario independiente).
+1. Actualiza el usuario en la sesión con el nuevo arreglo de identidades (cada una de ellas representa una cuenta de usuario independiente).
 
 ```javascript lines
 const ensureLoggedIn = require('connect-ensure-login').ensureLoggedIn();
@@ -138,7 +138,7 @@ router.post('/unlink-accounts/:targetUserProvider/:targetUserId',ensureLoggedIn,
 });
 ```
 
-1. Llama al [endpoint Unlink a User Account](https://auth0.com/docs/api/v2#!/Users/delete_user_identity_by_user_id) de la Management API v2 con un [token de acceso de la Management API](https://auth0.com/docs/api/v2/tokens) con el `scope` `update:users`.
+1. Llama al endpoint [Desvincular una cuenta de usuario](https://auth0.com/docs/api/v2#!/Users/delete_user_identity_by_user_id) de la Management API v2 con un [token de acceso de la Management API](https://auth0.com/docs/api/v2/tokens) que tenga el scope `update:users`.
 
 export const codeExample2 = `const request = require('request');
 

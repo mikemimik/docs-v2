@@ -1,44 +1,44 @@
 ---
-description: Découvrez comment ajouter la fonctionnalité de connexion à votre application monopage (SPA) à l’aide du flux implicite avec Form Post.
-title: Ajouter la fonctionnalité de connexion à l’aide du flux implicite avec Form Post
+description: Découvrez comment ajouter la connexion à votre application monopage (SPA) à l’aide du flux implicite avec envoi de formulaire.
+title: Ajouter la connexion à l’aide du flux implicite avec envoi de formulaire
 validatedOn: 2026-02-18
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
-Vous pouvez ajouter la connexion à votre application monopage (SPA) à l’aide du flux implicite avec envoi de formulaire. Pour comprendre comment fonctionne ce flux et pourquoi vous devriez l’utiliser, consultez [Implicit Flow with Form Post](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post).
+Vous pouvez ajouter la connexion à votre application monopage (SPA) à l’aide de l’Implicit Flow with Form Post. Pour savoir comment ce flow fonctionne et pourquoi vous devriez l’utiliser, consultez [Implicit Flow with Form Post](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post).
 
-Utilisez le flux implicite avec envoi de formulaire pour les cas d’utilisation où seule la connexion est requise; si vous devez demander des <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> au moment de connecter l’utilisateur afin de pouvoir appeler votre API, utilisez le flux de code d’autorisation avec PKCE. Pour en savoir plus, consultez [Authorization Code Flow with Proof Key for Code Exchange (PKCE](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce)).
+Utilisez l’Implicit Flow with Form Post pour les cas d’utilisation axés uniquement sur la connexion; si vous devez demander des <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> pendant la connexion de l’utilisateur afin de pouvoir appeler votre API, utilisez l’Authorization Code Flow with PKCE. Pour en savoir plus, consultez [Authorization Code Flow avec clé de preuve pour l’échange de code (PKCE](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce)).
 
-Pour mettre en œuvre le flux implicite avec envoi de formulaire, vous pouvez utiliser les ressources suivantes :
+Pour mettre en œuvre l’Implicit Flow with Form Post, vous pouvez utiliser les ressources suivantes :
 
-* [Express OpenID Connect SDK](https://www.npmjs.com/package/express-openid-connect) : la façon la plus simple de mettre en œuvre ce flux, puisqu’il fera la majeure partie du travail pour vous. Si vous utilisez notre SDK Javascript, assurez-vous de mettre en place des mesures d’atténuation adaptées à votre architecture. Pour en savoir plus, consultez [Auth0.js Reference](/docs/fr-CA/libraries/auth0js).
-* [API d’authentification](https://auth0.com/docs/api/authentication) : si vous préférez créer votre propre solution, poursuivez votre lecture pour apprendre à appeler directement notre API.
+* [Express OpenID Connect SDK](https://www.npmjs.com/package/express-openid-connect): la façon la plus simple de mettre en œuvre ce flow; il fera le gros du travail pour vous. Si vous utilisez notre SDK Javascript, assurez-vous de mettre en place des mesures d’atténuation adaptées à votre architecture. Pour en savoir plus, consultez [Auth0.js Reference](/docs/fr-CA/libraries/auth0js).
+* [Authentication API](https://auth0.com/docs/api/authentication): si vous préférez créer votre propre solution, poursuivez votre lecture pour apprendre à appeler directement notre API.
 
-Après une connexion réussie, votre application aura accès au [jeton d’ID](/docs/fr-CA/secure/tokens/id-tokens) de l’utilisateur. Le <Tooltip tip="Jeton d’ID : justificatif destiné au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton d’ID</Tooltip> contiendra les renseignements de base du profil utilisateur.
+Après une connexion réussie, votre application aura accès à l’[ID token](/docs/fr-CA/secure/tokens/id-tokens) de l’utilisateur. L’<Tooltip tip="ID token : information d’authentification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">ID token</Tooltip> contiendra les renseignements de base du profil utilisateur.
 
 <div id="prerequisites">
   ## Prérequis
 </div>
 
-Enregistrez votre application dans Auth0. Pour en savoir plus, consultez [Enregistrer des applications monopages](/docs/fr-CA/get-started/auth0-overview/create-applications/single-page-web-apps).
+Enregistrez votre application dans Auth0. Pour en savoir plus, consultez [Enregistrer des applications à page unique](/docs/fr-CA/get-started/auth0-overview/create-applications/single-page-web-apps).
 
-* Sélectionnez **Application monopage** comme **Type d’application**.
-* Ajoutez `{https://yourApp/callback}` comme **URL de rappel autorisée**.
-* Assurez-vous que les **Types d’autorisation** de votre application incluent **Implicit**. Pour en savoir plus, consultez [Mettre à jour les types d’autorisation](/docs/fr-CA/get-started/applications/update-grant-types).
+* Sélectionnez **Application à page unique** comme **Type d’application**.
+* Ajoutez une **URL de rappel autorisée** : `{https://yourApp/callback}`.
+* Assurez-vous que les **types d’autorisation** de votre application comprennent **Implicit**. Pour en savoir plus, consultez [Mettre à jour les types d’autorisation](/docs/fr-CA/get-started/applications/update-grant-types).
 
 <div id="authorize-user">
   ## Autoriser l’utilisateur
 </div>
 
-Demandez l’autorisation de l’utilisateur et redirigez-le vers votre application. Pour lancer le flux, vous devrez obtenir l’autorisation de l’utilisateur. Cette étape peut inclure un ou plusieurs des processus suivants :
+Demandez l’autorisation de l’utilisateur et redirigez-le vers votre application. Pour amorcer le processus, vous devrez obtenir l’autorisation de l’utilisateur. Cette étape peut comprendre un ou plusieurs des processus suivants :
 
 * Authentifier l’utilisateur ;
-* Rediriger l’utilisateur vers un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseur d’identité</Tooltip> pour prendre en charge l’authentification ;
-* Vérifier s’il existe des sessions actives d’<Tooltip tip="Authentification unique (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on">authentification unique</Tooltip> (SSO) ;
-* Obtenir le consentement de l’utilisateur pour le niveau d’autorisation demandé, à moins que ce consentement n’ait déjà été accordé.
+* Rediriger l’utilisateur vers un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseur d’identité</Tooltip> pour gérer l’authentification ;
+* Vérifier s’il existe des sessions actives d’<Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur s’est connecté à une application, connecte automatiquement cet utilisateur à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on">authentification unique</Tooltip> (SSO) ;
+* Obtenir le consentement de l’utilisateur pour le niveau d’autorisation demandé, sauf s’il a déjà été accordé.
 
-Pour autoriser l’utilisateur, votre application doit le rediriger vers l’URL d’autorisation.
+Pour autoriser l’utilisateur, votre application doit l’envoyer à l’URL d’autorisation.
 
 <div id="authorization-url-example">
   ### Exemple d’URL d’autorisation
@@ -59,20 +59,20 @@ export const codeExample1 = `https://{yourDomain}/authorize?
   ### Paramètres
 </div>
 
-| Parameter Name  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `response_type` | Indique le type d’identifiant qu’Auth0 retournera (`code` ou `token`). Pour l’Implicit Flow, la valeur peut être `id_token`, `token` ou `id_token token`. Plus précisément, `id_token` retourne un ID Token et `token` retourne un access token.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `response_mode` | Précise la façon dont les paramètres de réponse doivent être retournés. Pour des raisons de sécurité, la valeur devrait être `form_post`. Dans ce mode, les paramètres de réponse sont encodés comme des valeurs de formulaire HTML transmises au moyen de la méthode HTTP POST et encodées dans le Body au format `application/x-www-form-urlencoded`.                                                                                                                                                                                                                                                                                                                                                                                         |
-| `client_id`     | Le Client ID de votre application. Vous trouverez cette valeur dans les [paramètres de votre application](https://manage.auth0.com/#/applications/\{yourClientId}/settings).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `redirect_uri`  | L’URL vers laquelle Auth0 redirigera le navigateur une fois l’autorisation accordée par l’utilisateur. Vous devez indiquer cette URL comme callback URL valide dans vos [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).<br /><br />**Avertissement :** Conformément à la [spécification OAuth 2.0](https://tools.ietf.org/html/rfc6749#section-3.1.2), Auth0 supprime tout ce qui suit le dièse et ne prend *pas* en charge les fragments.                                                                                                                                                                                                                                                            |
-| `scope`         | Précise les [scopes](/docs/fr-CA/get-started/apis/scopes) pour lesquels vous souhaitez demander une autorisation; ils déterminent quelles claims (ou quels attributs utilisateur) vous voulez obtenir en retour. Ils doivent être séparés par une espace. Vous pouvez demander n’importe lesquels des [scopes OpenID Connect (OIDC) standards](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims) concernant les utilisateurs, comme `profile` et `email`, des [custom claims](/docs/fr-CA/secure/tokens/json-web-tokens/json-web-token-claims#custom-claims) conformes à un [format namespaced](/docs/fr-CA/secure/tokens/json-web-tokens/create-custom-claims), ou tout scope pris en charge par l’API cible (par exemple, `read:contacts`). |
-| `state`         | (recommandé) Une chaîne alphanumérique opaque et arbitraire que votre application ajoute à la request initiale et qu’Auth0 inclut lors de la redirection vers votre application. Pour savoir comment utiliser cette valeur afin de prévenir les attaques de falsification de requête intersites (CSRF), consultez [Mitigate CSRF Attacks With State Parameters](/docs/fr-CA/secure/attack-protection/state-parameters).                                                                                                                                                                                                                                                                                                                               |
-| `nonce`         | (obligatoire si `response_type` contient `id_token token`, sinon recommandé) Une chaîne générée aléatoirement de façon cryptographiquement sécuritaire que votre application ajoute à la request initiale et qu’Auth0 inclut dans l’ID Token, [afin de prévenir les replay attacks de tokens](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/mitigate-replay-attacks-when-using-the-implicit-flow).                                                                                                                                                                                                                                                                                                       |
-| `connection`    | (facultatif) Force l’utilisateur à se connecter avec une connection précise. Par exemple, vous pouvez transmettre la valeur `github` pour envoyer directement l’utilisateur à GitHub afin qu’il se connecte avec son compte GitHub. Lorsque ce paramètre n’est pas précisé, l’utilisateur voit l’écran Auth0 Lock avec toutes les connections configurées. Vous pouvez consulter la liste de vos connections configurées dans l’onglet **Connections** de votre application.                                                                                                                                                                                                                                                                    |
-| `organization`  | (facultatif) ID de l’organization à utiliser lors de l’authentification d’un utilisateur. S’il n’est pas fourni et que votre application est configurée pour **Display Organization Prompt**, l’utilisateur pourra saisir le nom de l’organization au moment de l’authentification.                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `invitation`    | (facultatif) ID du ticket d’invitation à l’organization. Lorsque vous [invitez un membre dans une Organization](/docs/fr-CA/manage-users/organizations/configure-organizations/invite-members), votre application devrait gérer l’acceptation de l’invitation en transmettant les paires clé-valeur `invitation` et `organization` lorsque l’utilisateur accepte l’invitation.                                                                                                                                                                                                                                                                                                                                                                        |
+| Nom du paramètre | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `response_type`  | Indique le type d’identifiant qu’Auth0 renverra (`code` ou `token`). Pour l’Implicit Flow, la valeur peut être `id_token`, `token` ou `id_token token`. Plus précisément, `id_token` renvoie un ID Token et `token` renvoie un jeton d’accès.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `response_mode`  | Précise la façon dont les paramètres de réponse doivent être renvoyés. Pour des raisons de sécurité, la valeur devrait être `form_post`. Dans ce mode, les paramètres de réponse sont encodés comme des valeurs de formulaire HTML transmises au moyen de la méthode HTTP POST et encodées dans le corps au format `application/x-www-form-urlencoded`.                                                                                                                                                                                                                                                                                                                                                                                              |
+| `client_id`      | L’ID client de votre application. Vous trouverez cette valeur dans les [Paramètres de votre application](https://manage.auth0.com/#/applications/\{yourClientId}/settings).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `redirect_uri`   | L’URL vers laquelle Auth0 redirigera le navigateur une fois que l’utilisateur aura accordé l’autorisation. Vous devez indiquer cette URL comme URL de rappel valide dans les [Paramètres de l’application](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).<br /><br />**Avertissement :** Conformément à la [spécification OAuth 2.0](https://tools.ietf.org/html/rfc6749#section-3.1.2), Auth0 supprime tout ce qui suit le symbole # et ne prend *pas* en charge les fragments.                                                                                                                                                                                                                                                 |
+| `scope`          | Précise les [scopes](/docs/fr-CA/get-started/apis/scopes) pour lesquels vous souhaitez demander une autorisation, ce qui détermine quelles claims (ou quels attributs utilisateur) seront renvoyées. Elles doivent être séparées par une espace. Vous pouvez demander n’importe lequel des [scopes OpenID Connect (OIDC) standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims) concernant les utilisateurs, comme `profile` et `email`, des [claims personnalisées](/docs/fr-CA/secure/tokens/json-web-tokens/json-web-token-claims#custom-claims) conformes à un [format avec espace de noms](/docs/fr-CA/secure/tokens/json-web-tokens/create-custom-claims), ou tout scope pris en charge par l’API cible (par exemple, `read:contacts`). |
+| `state`          | (recommandé) Une chaîne alphanumérique arbitraire opaque que votre application ajoute à la demande initiale et qu’Auth0 inclut lors de la redirection vers votre application. Pour savoir comment utiliser cette valeur afin de prévenir les attaques de falsification de requête intersite (CSRF), consultez [Mitigate CSRF Attacks With State Parameters](/docs/fr-CA/secure/attack-protection/state-parameters).                                                                                                                                                                                                                                                                                                                                        |
+| `nonce`          | (obligatoire pour `response_type` contenant `id_token token`, sinon recommandé) Une chaîne aléatoire cryptographiquement sûre que votre application ajoute à la demande initiale et qu’Auth0 inclut dans l’ID Token, [utilisée pour prévenir les attaques par rejeu de jetons](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/mitigate-replay-attacks-when-using-the-implicit-flow).                                                                                                                                                                                                                                                                                                                           |
+| `connection`     | (facultatif) Force l’utilisateur à se connecter avec une connexion précise. Par exemple, vous pouvez transmettre la valeur `github` pour rediriger l’utilisateur directement vers GitHub afin qu’il se connecte avec son compte GitHub. Lorsqu’elle n’est pas précisée, l’utilisateur voit l’écran Auth0 Lock avec toutes les connexions configurées. Vous pouvez consulter la liste de vos connexions configurées dans l’onglet **Connections** de votre application.                                                                                                                                                                                                                                                                               |
+| `organization`   | (facultatif) ID de l’organisation à utiliser lors de l’authentification d’un utilisateur. S’il n’est pas fourni et que votre application est configurée pour **Display Organization Prompt**, l’utilisateur pourra saisir le nom de l’organisation pendant l’authentification.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `invitation`     | (facultatif) ID du ticket d’invitation à l’organisation. Lors de l’[invitation d’un membre à une organisation](/docs/fr-CA/manage-users/organizations/configure-organizations/invite-members), votre application doit gérer l’acceptation de l’invitation en transmettant les paires clé-valeur `invitation` et `organization` lorsque l’utilisateur accepte l’invitation.                                                                                                                                                                                                                                                                                                                                                                                 |
 
-À titre d’exemple, votre extrait HTML pour votre authorization URL lorsque vous ajoutez la connexion à votre application pourrait ressembler à ceci :
+À titre d’exemple, votre extrait HTML pour votre URL d’autorisation lors de l’ajout de la connexion à votre application pourrait ressembler à ceci :
 
 export const codeExample2 = `<a href="https://{yourDomain}/authorize?
   response_type=id_token token&
@@ -91,7 +91,7 @@ export const codeExample2 = `<a href="https://{yourDomain}/authorize?
   ### Réponse
 </div>
 
-Si tout se passe bien, vous recevrez une réponse `HTTP 302`. Les informations d’authentification demandées sont encodées dans le corps :
+Si tout se passe bien, vous recevrez une réponse `HTTP 302`. Les données d’authentification demandées sont encodées dans le corps de la réponse :
 
 ```json lines
 HTTP/1.1 302 Found
@@ -100,21 +100,21 @@ id_token=eyJ...acA&
 state=xyzABC123
 ```
 
-Notez que les valeurs renvoyées dépendent du `response_type` que vous avez demandé.
+Notez que les valeurs renvoyées dépendent du `response_type` demandé.
 
-| Type de réponse    | Composants                                                             |
-| ------------------ | ---------------------------------------------------------------------- |
-| id&#95;token       | ID Token                                                               |
-| token              | Access Token (plus les valeurs `expires_in` et `token_type`)           |
-| id&#95;token token | ID Token, Access Token (plus les valeurs `expires_in` et `token_type`) |
+| Type de réponse    | Éléments                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| id&#95;token       | Jeton d’identité                                                                     |
+| token              | Jeton d’accès (ainsi que les valeurs `expires_in` et `token_type`)                   |
+| id&#95;token token | Jeton d’identité, jeton d’accès (ainsi que les valeurs `expires_in` et `token_type`) |
 
-Auth0 renverra aussi toute valeur `state` que vous avez incluse dans votre appel à l’URL d’autorisation.
+Auth0 renverra également toute valeur `state` que vous avez incluse dans votre requête à l’URL d’autorisation.
 
 <Warning>
-  Validez vos tokens avant de les enregistrer. Pour savoir comment faire, consultez [Validate ID Tokens](/docs/fr-CA/secure/tokens/id-tokens/validate-id-tokens) et [Validate Access Tokens](/docs/fr-CA/secure/tokens/access-tokens/validate-access-tokens).
+  Validez vos jetons avant de les enregistrer. Pour savoir comment faire, consultez [valider le jeton d’identité](/docs/fr-CA/secure/tokens/id-tokens/validate-id-tokens) et [Valider les jetons d’accès](/docs/fr-CA/secure/tokens/access-tokens/validate-access-tokens).
 </Warning>
 
-Les ID tokens contiennent des renseignements sur l’utilisateur qui doivent être décodés et extraits.
+Les jetons d’identité contiennent des renseignements sur l’utilisateur qui doivent être décodés et extraits.
 
 <div id="use-cases">
   ## Cas d’utilisation
@@ -124,7 +124,7 @@ Les ID tokens contiennent des renseignements sur l’utilisateur qui doivent êt
   ### Requête d’authentification de base
 </div>
 
-Cet exemple montre la requête la plus simple que vous pouvez envoyer pour autoriser l’utilisateur à l’étape 1. Elle affiche l’écran de connexion Auth0 et permet à l’utilisateur de se connecter avec n’importe laquelle de vos connexions configurées :
+Cet exemple montre la requête la plus élémentaire que vous pouvez envoyer lorsque vous autorisez l’utilisateur à l’étape 1. Il affiche l’écran de connexion Auth0 et permet à l’utilisateur d’ouvrir une session avec n’importe laquelle de vos connexions configurées :
 
 export const codeExample3 = `https://{yourDomain}/authorize?
     response_type=id_token&
@@ -141,7 +141,7 @@ Cela renverra un ID token, que vous pourrez extraire de votre URL de redirection
   ### Demander le nom de l’utilisateur et sa photo de profil
 </div>
 
-En plus du processus habituel d’authentification de l’utilisateur, cet exemple montre comment demander des renseignements supplémentaires, comme son nom et sa photo de profil.
+En plus du processus habituel d’authentification de l’utilisateur, cet exemple montre comment demander des renseignements supplémentaires sur l’utilisateur, comme son nom et sa photo de profil.
 
 Pour demander le nom et la photo de profil de l’utilisateur, vous devez ajouter les scopes appropriés lors de l’autorisation de l’utilisateur :
 
@@ -156,7 +156,7 @@ export const codeExample4 = `https://{yourDomain}/authorize?
 
 <AuthCodeBlock children={codeExample4} language="http" />
 
-Maintenant, votre ID token contiendra les claims `name` et `picture` demandés. Une fois l’ID token décodé, il ressemblera à ceci :
+Votre ID token contiendra maintenant les claims `name` et `picture` que vous avez demandés. Lorsque vous décoderez l’ID token, il ressemblera à ceci :
 
 ```json lines
 {
@@ -174,9 +174,9 @@ Maintenant, votre ID token contiendra les claims `name` et `picture` demandés. 
   ### Demander à l’utilisateur de se connecter avec GitHub
 </div>
 
-En plus de l’authentification de l’utilisateur habituelle, cet exemple montre comment rediriger les utilisateurs directement vers un fournisseur d’identité social, comme GitHub. Pour que cet exemple fonctionne, vous devez aller dans [Auth0 Dashboard &gt; Authentification &gt; Social](https://manage.auth0.com/#/connections/social) et configurer la connexion appropriée. Prenez le nom de la connexion dans l’onglet **Settings**.
+En plus de l’authentification habituelle de l’utilisateur, cet exemple montre comment rediriger les utilisateurs directement vers un fournisseur d’identité social, comme GitHub. Pour que cet exemple fonctionne, vous devez aller dans [Auth0 Dashboard &gt; Authentification &gt; Social](https://manage.auth0.com/#/connections/social) et configurer la connexion appropriée. Récupérez le nom de la connexion dans l’onglet **Settings**.
 
-Pour envoyer les utilisateurs directement à l’écran de connexion GitHub, vous devez transmettre le paramètre `connection` et définir sa valeur sur le nom de la connexion (dans ce cas, `github`) lors de l’autorisation de l’utilisateur :
+Pour envoyer les utilisateurs directement à l’écran de connexion de GitHub, vous devez transmettre le paramètre `connection` et définir sa valeur sur le nom de la connexion (dans ce cas-ci, `github`) lors de l’autorisation de l’utilisateur :
 
 export const codeExample5 = `https://{yourDomain}/authorize?
     response_type=id_token token&
@@ -190,7 +190,7 @@ export const codeExample5 = `https://{yourDomain}/authorize?
 
 <AuthCodeBlock children={codeExample5} language="http" />
 
-Maintenant, votre ID Token contiendra une claim `sub` contenant l’identifiant unique de l’utilisateur renvoyé par GitHub. Lorsque vous décoderez l’ID Token, il ressemblera à ceci :
+Désormais, votre ID Token contiendra un claim `sub` avec l’ID unique de l’utilisateur renvoyé par GitHub. Lorsque vous décoderez l’ID Token, il ressemblera à ceci :
 
 ```json lines
 {
@@ -212,6 +212,6 @@ Maintenant, votre ID Token contiendra une claim `sub` contenant l’identifiant 
 * [Cadre d’autorisation OAuth 2.0](/docs/fr-CA/authenticate/protocols/oauth)
 * [Protocole OpenID Connect](/docs/fr-CA/authenticate/protocols/openid-connect-protocol)
 * [Jetons](/docs/fr-CA/secure/tokens)
-* [Réduire les risques d’attaques par rejeu lors de l’utilisation du flux implicite](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/mitigate-replay-attacks-when-using-the-implicit-flow)
+* [Atténuer les attaques par rejeu lors de l’utilisation du flux implicite](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/mitigate-replay-attacks-when-using-the-implicit-flow)
 * [Enregistrer des applications Web à page unique](/docs/fr-CA/get-started/auth0-overview/create-applications/single-page-web-apps)
 * [Mettre à jour les types d’octroi](/docs/fr-CA/get-started/applications/update-grant-types)

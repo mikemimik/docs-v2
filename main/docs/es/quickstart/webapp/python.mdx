@@ -1,8 +1,8 @@
 ---
 mode: wide
-description: 'Agrega autenticación de Auth0 a una aplicación web de Flask con inicio de sesión, rutas protegidas y perfiles de usuario'
+description: 'Añade autenticación con Auth0 a una aplicación web de Flask con inicio de sesión, rutas protegidas y perfiles de usuario'
 sidebarTitle: Flask
-title: 'Agrega el inicio de sesión a tu aplicación de Flask'
+title: 'Añade inicio de sesión a tu aplicación de Flask'
 ---
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
@@ -12,20 +12,20 @@ import {HowToSchema} from "/snippets/HowToSchema.jsx";
 <HowToSchema />
 
 <Note>
-  **Prerrequisitos:** Antes de comenzar, asegúrate de tener instalado lo siguiente:
+  **Requisitos previos:** Antes de empezar, asegúrate de tener instalado lo siguiente:
 
   * **[Python](https://www.python.org/downloads/)** 3.9 o posterior
   * **[pip](https://pip.pypa.io/en/stable/installation/)** 20.0 o posterior
-  * **[jq](https://jqlang.org/)** - Necesario para configurar Auth0 CLI
+  * **[jq](https://jqlang.org/)** - Necesario para la configuración de Auth0 CLI
 
-  **Compatibilidad de versiones de Flask:** Este Quickstart usa **Flask 2.0+** con el extra `[async]` para admitir async.
+  **Compatibilidad con versiones de Flask:** Este Quickstart usa **Flask 2.0+** con el extra `[async]` para ofrecer compatibilidad asíncrona.
 </Note>
 
 <div id="get-started">
   ## Primeros pasos
 </div>
 
-Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una aplicación Flask. Crearás una aplicación web segura con función de inicio de sesión, rutas protegidas y acceso al perfil de usuario mediante el [Auth0 WebApp Python SDK](https://github.com/auth0/auth0-server-python).
+Este Quickstart muestra cómo añadir la autenticación de Auth0 a una aplicación Flask. Crearás una aplicación web segura con inicio de sesión, rutas protegidas y acceso al perfil del usuario mediante el [Auth0 WebApp Python SDK](https://github.com/auth0/auth0-server-python).
 
 <Steps>
   <Step title="Configura tu entorno" stepNumber={1}>
@@ -35,7 +35,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
     mkdir auth0-flask-app && cd auth0-flask-app
     ```
 
-    Crear un entorno virtual:
+    Crea un entorno virtual:
 
     ```bash
     python -m venv venv
@@ -43,8 +43,8 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
     ```
   </Step>
 
-  <Step title="Instalar dependencias" stepNumber={2}>
-    Crea `requirements.txt` para hacer un seguimiento de tus dependencias:
+  <Step title="Instala las dependencias" stepNumber={2}>
+    Crea `requirements.txt` para registrar tus dependencias:
 
     ```txt requirements.txt
     auth0-server-python>=1.0.0b7
@@ -52,7 +52,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
     python-dotenv>=1.0.0
     ```
 
-    El archivo `requirements.txt` recoge todas las dependencias del proyecto. Para instalarlas, ejecuta:
+    El archivo `requirements.txt` enumera todas las dependencias del proyecto. Para instalarlas, ejecuta:
 
     ```bash
     pip install -r requirements.txt
@@ -70,11 +70,11 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
 
         <CodeGroup>
           ```shellscript Mac
-          AUTH0_APP_NAME="My Flask App" && brew tap auth0/auth0-cli && brew install auth0 && auth0 login --no-input && auth0 apps create -n "${AUTH0_APP_NAME}" -t regular -c http://localhost:5000/callback -l http://localhost:5000 -o http://localhost:5000 --reveal-secrets --json > app-details.json && CLIENT_ID=$(python3 -c "import json; print(json.load(open('app-details.json'))['client_id'])") && CLIENT_SECRET=$(python3 -c "import json; print(json.load(open('app-details.json'))['client_secret'])") && DOMAIN=$(auth0 tenants list --json | python3 -c "import sys, json; print([t['name'] for t in json.load(sys.stdin) if t.get('active')][0])") && SECRET=$(openssl rand -hex 64) && echo "AUTH0_DOMAIN=${DOMAIN}" > .env && echo "AUTH0_CLIENT_ID=${CLIENT_ID}" >> .env && echo "AUTH0_CLIENT_SECRET=${CLIENT_SECRET}" >> .env && echo "AUTH0_SECRET=${SECRET}" >> .env && echo "AUTH0_REDIRECT_URI=http://localhost:5000/callback" >> .env && rm app-details.json && echo "Archivo .env creado con los datos de tu Auth0:" && cat .env
+          AUTH0_APP_NAME="My Flask App" && brew tap auth0/auth0-cli && brew install auth0 && auth0 login --no-input && auth0 apps create -n "${AUTH0_APP_NAME}" -t regular -c http://localhost:5000/callback -l http://localhost:5000 -o http://localhost:5000 --reveal-secrets --json > app-details.json && CLIENT_ID=$(python3 -c "import json; print(json.load(open('app-details.json'))['client_id'])") && CLIENT_SECRET=$(python3 -c "import json; print(json.load(open('app-details.json'))['client_secret'])") && DOMAIN=$(auth0 tenants list --json | python3 -c "import sys, json; print([t['name'] for t in json.load(sys.stdin) if t.get('active')][0])") && SECRET=$(openssl rand -hex 64) && echo "AUTH0_DOMAIN=${DOMAIN}" > .env && echo "AUTH0_CLIENT_ID=${CLIENT_ID}" >> .env && echo "AUTH0_CLIENT_SECRET=${CLIENT_SECRET}" >> .env && echo "AUTH0_SECRET=${SECRET}" >> .env && echo "AUTH0_REDIRECT_URI=http://localhost:5000/callback" >> .env && rm app-details.json && echo "Archivo .env creado con los datos de Auth0:" && cat .env
           ```
 
           ```shellscript Windows
-          $AppName = "My Flask App"; winget install Auth0.CLI; auth0 login --no-input; auth0 apps create -n "$AppName" -t regular -c http://localhost:5000/callback -l http://localhost:5000 -o http://localhost:5000 --reveal-secrets --json | Set-Content -Path app-details.json; $ClientId = (Get-Content -Raw app-details.json | ConvertFrom-Json).client_id; $ClientSecret = (Get-Content -Raw app-details.json | ConvertFrom-Json).client_secret; $Domain = (auth0 tenants list --json | ConvertFrom-Json | Where-Object { $_.active -eq $true }).name; $Secret = [System.Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(64)).ToLower(); Set-Content -Path .env -Value "AUTH0_DOMAIN=$Domain"; Add-Content -Path .env -Value "AUTH0_CLIENT_ID=$ClientId"; Add-Content -Path .env -Value "AUTH0_CLIENT_SECRET=$ClientSecret"; Add-Content -Path .env -Value "AUTH0_SECRET=$Secret"; Add-Content -Path .env -Value "AUTH0_REDIRECT_URI=http://localhost:5000/callback"; Remove-Item app-details.json; Write-Output "Archivo .env creado con los datos de tu Auth0:"; Get-Content .env
+          $AppName = "My Flask App"; winget install Auth0.CLI; auth0 login --no-input; auth0 apps create -n "$AppName" -t regular -c http://localhost:5000/callback -l http://localhost:5000 -o http://localhost:5000 --reveal-secrets --json | Set-Content -Path app-details.json; $ClientId = (Get-Content -Raw app-details.json | ConvertFrom-Json).client_id; $ClientSecret = (Get-Content -Raw app-details.json | ConvertFrom-Json).client_secret; $Domain = (auth0 tenants list --json | ConvertFrom-Json | Where-Object { $_.active -eq $true }).name; $Secret = [System.Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(64)).ToLower(); Set-Content -Path .env -Value "AUTH0_DOMAIN=$Domain"; Add-Content -Path .env -Value "AUTH0_CLIENT_ID=$ClientId"; Add-Content -Path .env -Value "AUTH0_CLIENT_SECRET=$ClientSecret"; Add-Content -Path .env -Value "AUTH0_SECRET=$Secret"; Add-Content -Path .env -Value "AUTH0_REDIRECT_URI=http://localhost:5000/callback"; Remove-Item app-details.json; Write-Output "Archivo .env creado con los datos de Auth0:"; Get-Content .env
           ```
         </CodeGroup>
       </Tab>
@@ -83,7 +83,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
         Antes de empezar, crea un archivo `.env` en la raíz de tu proyecto:
 
         ```bash .env
-        # Configuración de Auth0
+        # Auth0 Configuration
         AUTH0_DOMAIN=YOUR_AUTH0_DOMAIN
         AUTH0_CLIENT_ID=YOUR_CLIENT_ID
         AUTH0_CLIENT_SECRET=YOUR_CLIENT_SECRET
@@ -100,9 +100,9 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
            * **Allowed Logout URLs**: `http://localhost:5000`
            * **Allowed Web Origins**: `http://localhost:5000`
         6. Haz clic en **Save Changes**
-        7. Sustituye `YOUR_AUTH0_DOMAIN` en `.env` por tu **Domain** de la pestaña **Settings** (por ejemplo, `your-tenant.auth0.com`)
-        8. Sustituye `YOUR_CLIENT_ID` en `.env` por tu **Client ID**
-        9. Sustituye `YOUR_CLIENT_SECRET` en `.env` por tu **Client Secret**
+        7. Reemplaza `YOUR_AUTH0_DOMAIN` en `.env` por tu **Domain** de la pestaña **Settings** (por ejemplo, `your-tenant.auth0.com`)
+        8. Reemplaza `YOUR_CLIENT_ID` en `.env` por tu **Client ID**
+        9. Reemplaza `YOUR_CLIENT_SECRET` en `.env` por tu **Client Secret**
 
         Genera un secreto seguro para `AUTH0_SECRET`:
 
@@ -111,20 +111,20 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
         ```
 
         <Info>
-          **Importante:** Nunca subas tu archivo `.env` al control de versiones. Añádelo a `.gitignore`.
+          **Importante:** Nunca hagas commit de tu archivo `.env` al control de versiones. Agrégalo a `.gitignore`.
         </Info>
       </Tab>
     </Tabs>
   </Step>
 
-  <Step title="Crea la configuración de Auth, las rutas y las plantillas" stepNumber={4}>
+  <Step title="Crear la configuración de Auth, las rutas y las plantillas" stepNumber={4}>
     Crear archivos
 
     ```bash
     mkdir templates static && touch app.py auth.py templates/index.html templates/profile.html static/style.css
     ```
 
-    Y agrega los siguientes fragmentos de código:
+    Y añade los siguientes fragmentos de código:
 
     <AuthCodeGroup>
       ```python auth.py expandable lines
@@ -135,7 +135,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
       load_dotenv()
 
       # Almacenamiento simple en memoria para desarrollo
-      # Para producción, use Redis, PostgreSQL u otro almacenamiento persistente
+      # Para producción, usa Redis, PostgreSQL u otro almacenamiento persistente
       class MemoryStateStore:
           """In-memory state store for session data (development only)"""
           def __init__(self):
@@ -172,7 +172,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
       state_store = MemoryStateStore()
       transaction_store = MemoryTransactionStore()
 
-      # Inicializar el Auth0 ServerClient
+      # Inicializar el ServerClient de Auth0
       auth0 = ServerClient(
           domain=os.getenv('AUTH0_DOMAIN'),
           client_id=os.getenv('AUTH0_CLIENT_ID'),
@@ -183,7 +183,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
           transaction_store=transaction_store,
           authorization_params={
               'scope': 'openid profile email',
-              'audience': os.getenv('AUTH0_AUDIENCE', '')  # Optional: for API access
+              'audience': os.getenv('AUTH0_AUDIENCE', '')  # Opcional: para acceso a la API
           }
       )
       ```
@@ -587,9 +587,9 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
     </AuthCodeGroup>
 
     <Info>
-      **Solo para desarrollo:** Este ejemplo usa clases simples de almacenamiento en memoria (`MemoryStateStore` y `MemoryTransactionStore`) con fines de demostración. Estos almacenes perderán todos los datos de la sesión cuando tu aplicación se reinicie y no funcionarán en entornos con varias instancias.
+      **Solo para desarrollo:** Este ejemplo usa clases sencillas de almacenamiento en memoria (`MemoryStateStore` y `MemoryTransactionStore`) con fines ilustrativos. Estos almacenamientos perderán todos los datos de la sesión cuando se reinicie tu aplicación y no funcionarán en entornos con varias instancias.
 
-      **Para aplicaciones de producción**, debes implementar almacenamiento persistente. El SDK es independiente del framework y requiere que proporciones implementaciones personalizadas de `StateStore` y `TransactionStore`. Consulta los [ejemplos oficiales de almacenamiento del SDK](https://github.com/auth0/auth0-server-python/blob/main/examples/ConfigureStore.md) para obtener una guía detallada sobre cómo implementar Redis, PostgreSQL u otros backends de almacenamiento persistente.
+      **Para aplicaciones en producción**, debes implementar almacenamiento persistente. El SDK es independiente del framework y requiere que proporciones implementaciones personalizadas de `StateStore` y `TransactionStore`. Consulta los [ejemplos oficiales de almacenamiento del SDK](https://github.com/auth0/auth0-server-python/blob/main/examples/ConfigureStore.md) para obtener orientación detallada sobre cómo implementar Redis, PostgreSQL u otros backends de almacenamiento persistente.
     </Info>
   </Step>
 
@@ -605,9 +605,9 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
 </Steps>
 
 <Check>
-  **Verificación**
+  **Comprobación**
 
-  Ahora deberías tener una Auth0 Login Page completamente funcional en tu [localhost](http://localhost:5000/)
+  Ahora deberías tener una página de inicio de sesión de Auth0 completamente funcional en tu [localhost](http://localhost:5000/)
 </Check>
 
 ***
@@ -624,13 +624,13 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
   @require_auth
   async def api_call():
       try:
-          # Obtén un token de acceso para tu API
+          # Obtener el token de acceso para tu API
           access_token = await auth0.get_access_token(
               audience='https://your-api.example.com',
               store_options=g.store_options
           )
           
-          # Usa el token para llamar a tu API
+          # Usar el token para llamar a tu API
           # headers = {'Authorization': f'Bearer {access_token}'}
           # response = requests.get('https://your-api.example.com/data', headers=headers)
           
@@ -640,7 +640,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
   ```
 
   <Info>
-    Para usar esta funcionalidad, debes:
+    Para usar esta función, debes:
 
     1. Configurar `AUTH0_AUDIENCE` en tu archivo `.env`
     2. Incluir `offline_access` en tus scopes (para tokens de actualización)
@@ -660,8 +660,8 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
   **Cuándo usar almacenamiento personalizado:**
 
   * Necesitas compartir sesiones entre varios servidores
-  * Tienes datos de sesión voluminosos que superan los límites de tamaño de las cookies
-  * Necesitas una gestión centralizada de sesiones para el logout por backchannel
+  * Tienes datos de sesión que superan los límites de tamaño de las cookies
+  * Necesitas una gestión centralizada de sesiones para el cierre de sesión por backchannel
 
   **Ejemplo con Redis:**
 
@@ -669,14 +669,14 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
   from auth0_server_python.stores.redis_state_store import RedisStateStore
   import redis.asyncio as redis
 
-  # Inicializa el almacén de estado personalizado
+  # Inicializar almacenamiento de state personalizado
   redis_client = redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379'))
   state_store = RedisStateStore(
       secret=os.getenv('AUTH0_SECRET'),
       redis_client=redis_client
   )
 
-  # Pásalo a ServerClient
+  # Pasarlo a ServerClient
   auth0 = ServerClient(
       domain=os.getenv('AUTH0_DOMAIN'),
       client_id=os.getenv('AUTH0_CLIENT_ID'),
@@ -696,7 +696,7 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
 ***
 
 <div id="common-issues">
-  ## Problemas comunes
+  ## Incidencias comunes
 </div>
 
 <AccordionGroup>
@@ -709,27 +709,27 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
 
     1. Verifica que el archivo `.env` exista en la raíz del proyecto
     2. Asegúrate de que `python-dotenv` esté instalado: `pip install python-dotenv`
-    3. Genera un nuevo secreto si hace falta: `openssl rand -hex 64`
-    4. Añádelo a `.env`: `AUTH0_SECRET=your_generated_secret`
+    3. Genera un nuevo secreto si es necesario: `openssl rand -hex 64`
+    4. Agrégalo al archivo `.env`: `AUTH0_SECRET=your_generated_secret`
     5. Reinicia tu aplicación Flask
   </Accordion>
 
-  <Accordion title="Error de URL de devolución de llamada no válida">
-    **Problema:** Ves el error &quot;Callback URL mismatch&quot; o &quot;invalid&#95;request&quot; durante el inicio de sesión
+  <Accordion title="Error por URL de devolución de llamada no válida">
+    **Problema:** Ves el error &quot;Callback URL mismatch&quot; o &quot;invalid&#95;request&quot; durante el login
 
-    **Causa:** La Redirect URI de tu código no coincide con la que está registrada en Auth0 Dashboard.
+    **Causa:** El Redirect URI de tu código no coincide con el que está registrado en Auth0 Dashboard.
 
     **Solución:**
 
     1. Revisa tu archivo `.env`: `AUTH0_REDIRECT_URI=http://localhost:5000/callback`
-    2. Ve a [Auth0 Dashboard](https://manage.auth0.com/dashboard/) → Applications → Your App → Settings
+    2. Ve a [Auth0 Dashboard](https://manage.auth0.com/dashboard/) → Applications → Tu aplicación → Settings
     3. Agrega `http://localhost:5000/callback` a **Allowed Callback URLs**
     4. Haz clic en **Save Changes**
     5. Reinicia tu aplicación de Flask
   </Accordion>
 
   <Accordion title="Errores del bucle de eventos de AsyncIO">
-    **Problema:** Ves &quot;RuntimeError: This event loop is already running&quot; u otros errores async similares
+    **Problema:** Aparece &quot;RuntimeError: This event loop is already running&quot; o errores asíncronos similares
 
     **Causa:** La compatibilidad con async de Flask 2.0+ puede dar problemas con ciertas configuraciones.
 
@@ -744,8 +744,8 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
     Luego, reinicia tu aplicación Flask.
   </Accordion>
 
-  <Accordion title="Errores de «módulo no encontrado»">
-    **Problema:** Aparece &quot;ModuleNotFoundError: No module named &#39;auth0&#95;server&#95;python&#39;&quot; o un error similar
+  <Accordion title="Errores de «No se encontró el módulo»">
+    **Problema:** Aparece &quot;ModuleNotFoundError: No module named &#39;auth0&#95;server&#95;python&#39;&quot; o un mensaje similar
 
     **Causa:** El SDK no está instalado o el entorno virtual no está activado.
 
@@ -768,15 +768,15 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
     ```
   </Accordion>
 
-  <Accordion title="Error ClaimDecodingFailed">
+  <Accordion title="Error al decodificar el claim">
     **Problema:** Ves el error &quot;ClaimDecodingFailed&quot; o &quot;Failed to decode claims&quot; durante la autenticación
 
-    **Causa:** El token de identidad o el token de acceso recibido de Auth0 no se pudo decodificar correctamente, normalmente debido a lo siguiente:
+    **Causa:** El token de ID o el token de acceso recibido de Auth0 no se pudo decodificar correctamente, normalmente por alguna de estas razones:
 
     * Formato de JWT no válido
-    * Datos de sesión corruptos
+    * Datos de sesión dañados
     * Algoritmos de firma que no coinciden
-    * Desfase horario entre tu servidor y Auth0
+    * Desajuste horario entre tu servidor y Auth0
 
     **Solución:**
 
@@ -794,28 +794,28 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
     5. Comprueba que Auth0 Dashboard → Applications → Your App → Settings → Advanced → OAuth → JsonWebToken Signature Algorithm coincida con la configuración de tu SDK
   </Accordion>
 
-  <Accordion title="Token caducado o no válido">
-    **Problema:** Aparecen los errores &quot;Token has expired&quot; o &quot;invalid&#95;token&quot;
+  <Accordion title="Token expirado o no válido">
+    **Problema:** Ves los errores &quot;Token has expired&quot; o &quot;invalid&#95;token&quot;
 
     **Causa:** El token de acceso o el token de ID ha superado su tiempo de validez, o la sesión ha expirado.
 
     **Solución:**
 
-    1. El SDK gestiona automáticamente la actualización del token si se incluye el `scope` `offline_access`:
+    1. El SDK gestiona automáticamente la renovación del token si incluyes el scope `offline_access`:
        ```python
        authorization_params={
            'scope': 'openid profile email offline_access',
        }
        ```
-    2. Para las API, asegúrese de solicitar tokens nuevos:
+    2. Para las API, asegúrate de solicitar tokens nuevos:
        ```python
        access_token = await auth0.get_access_token(
            audience='https://your-api.example.com',
-           force_refresh=True  # Forzar la actualización si es necesario
+           force_refresh=True  # Fuerza la renovación si es necesario
        )
        ```
-    3. Ajuste los tiempos de validez del token en Auth0 Dashboard → Applications → Your App → Settings → Advanced → OAuth
-    4. Implemente un manejo de errores adecuado para redirigir a los usuarios a iniciar sesión cuando los tokens expiren
+    3. Ajusta el tiempo de validez de los tokens en Auth0 Dashboard → Applications → Tu aplicación → Settings → Advanced → OAuth
+    4. Implementa un manejo de errores adecuado para redirigir a los usuarios al login cuando los tokens expiren
   </Accordion>
 
   <Accordion title="CORS y errores de origen cruzado">
@@ -825,16 +825,16 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
 
     **Solución:**
 
-    1. Añade el origen de tu aplicación en Auth0 Dashboard → Applications → Your App → Settings:
+    1. Agrega el origen de tu aplicación en Auth0 Dashboard → Applications → Your App → Settings:
        * **Allowed Web Origins**: `http://localhost:5000`
        * **Allowed Callback URLs**: `http://localhost:5000/callback`
        * **Allowed Logout URLs**: `http://localhost:5000`
-    2. En producción, añade las URL de producción:
+    2. En producción, agrega tus URL de producción:
        ```
        https://yourdomain.com
        https://yourdomain.com/callback
        ```
-    3. Asegúrate de que tu aplicación de Flask tenga una configuración de CORS adecuada si llama a las API de Auth0 desde JavaScript del frontend:
+    3. Asegúrate de que tu aplicación Flask tenga una configuración de CORS adecuada si llama a las API de Auth0 desde el frontend en JavaScript:
        ```python
        from flask_cors import CORS
        CORS(app, origins=['http://localhost:5000'])
@@ -842,14 +842,14 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
   </Accordion>
 
   <Accordion title="Se superó el límite de frecuencia">
-    **Problema:** Ves errores de &quot;Demasiadas solicitudes&quot; o &quot;Límite de frecuencia superado&quot;
+    **Problema:** Aparecen errores de &quot;Too many requests&quot; o &quot;Rate limit exceeded&quot;
 
     **Causa:** Tu aplicación ha superado los límites de frecuencia de Auth0 para las solicitudes de autenticación.
 
     **Solución:**
 
-    1. Revisa Auth0 Dashboard → Monitoreo → Registros para ver los detalles del límite de frecuencia
-    2. Implementa retroceso exponencial para los reintentos:
+    1. Revisa Auth0 Dashboard → monitoreo → registros para ver los detalles del límite de frecuencia
+    2. Implementa backoff exponencial en los reintentos:
        ```python
        import time
        from auth0_server_python.error import ApiError
@@ -868,6 +868,6 @@ Esta guía de inicio rápido muestra cómo añadir autenticación de Auth0 a una
        ```
     3. Revisa los límites de tu plan de suscripción de Auth0
     4. Optimiza el flujo de autenticación para reducir las solicitudes de token innecesarias
-    5. Almacena los tokens en caché de forma adecuada en lugar de solicitar nuevos con frecuencia
+    5. Guarda los tokens en caché adecuadamente en lugar de solicitar nuevos con frecuencia
   </Accordion>
 </AccordionGroup>

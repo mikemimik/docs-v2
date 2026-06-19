@@ -1,5 +1,5 @@
 ---
-title: "Flujo de autorización de dispositivos"
+title: "flujo de autorización de dispositivos"
 ---
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
@@ -8,19 +8,19 @@ import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
   ##### Por Rachel Khoriander
 </div>
 
-Este tutorial muestra cómo hacer llamadas a tu API desde un dispositivo con capacidad de entrada limitada mediante el flujo de autorización de dispositivos. Te recomendamos iniciar sesión para seguir esta Quickstart con ejemplos configurados para tu cuenta.
+Este tutorial muestra cómo llamar a tu API desde un dispositivo con capacidad de entrada limitada mediante el flujo de autorización de dispositivos. Te recomendamos iniciar sesión para seguir este Quickstart con ejemplos configurados para tu cuenta.
 
-Este tutorial muestra cómo hacer llamadas a tu API desde un dispositivo con capacidad de entrada limitada mediante el flujo de autorización de dispositivos.
+Este tutorial muestra cómo llamar a tu API desde un dispositivo con capacidad de entrada limitada mediante el flujo de autorización de dispositivos.
 
-{/* [Sigue Quickstart](#prerequisites)
+{/* [Sigue el Quickstart](#prerequisites)
 
-  [Ver en GitHub](https://github.com/undefined/undefined/tree/master/01-Login) */}
+  [Ver en Github](https://github.com/undefined/undefined/tree/master/01-Login) */}
 
 <Info>
-  Este tutorial te ayudará a llamar a tu propia API desde un dispositivo con capacidad de entrada limitada mediante flujo de autorización de dispositivos. Si quieres saber cómo funciona este flujo y por qué deberías usarlo, consulta [flujo de autorización de dispositivos](/docs/es/get-started/authentication-and-authorization-flow/device-authorization-flow).
+  Este tutorial te ayudará a llamar a tu propia API desde un dispositivo con capacidad de entrada limitada mediante el flujo de autorización de dispositivos. Si quieres saber cómo funciona el flujo y por qué deberías usarlo, consulta [flujo de autorización de dispositivos](/docs/es/get-started/authentication-and-authorization-flow/device-authorization-flow).
 </Info>
 
-Auth0 facilita que tu aplicación implemente flujo de autorización de dispositivos mediante:
+Auth0 facilita que tu aplicación implemente el flujo Device Authorization mediante:
 
 * Authentication API: Sigue leyendo para aprender a llamar directamente a nuestra API. Si prefieres una experiencia interactiva, consulta nuestro [Device Flow Playground](https://auth0.github.io/device-flow-playground/).
 
@@ -30,46 +30,46 @@ Auth0 facilita que tu aplicación implemente flujo de autorización de dispositi
 
 **Antes de comenzar este tutorial:**
 
-* Consulta las [limitaciones](#limitations) para asegurarte de que el flujo de autorización de dispositivos sea adecuado para tu implementación.
-* [Registra la aplicación en Auth0](/docs/es/get-started/auth0-overview/create-applications/native-apps).
+* Revisa las [limitaciones](#limitations) para asegurarte de que el flujo de autorización de dispositivos sea adecuado para tu implementación.
+* [Registra la aplicación con Auth0](/docs/es/get-started/auth0-overview/create-applications/native-apps).
 
-  * Selecciona **Native** como **Tipo de aplicación**.
-  * Si es necesario, configura **Orígenes web permitidos**. Puedes usar esta opción para permitir localhost como origen para el desarrollo local o para establecer un origen permitido para software de TV específico con una arquitectura sujeta a CORS (p. ej., HTML5 + JS). La mayoría de las aplicaciones no usarán esta configuración.
-  * Asegúrate de que la opción **OIDC Conformant** esté habilitada. Esta configuración se encuentra en el [Dashboard](https://manage.auth0.com/#), en **Application Settings &gt; Advanced &gt; OAuth**.
-  * Asegúrate de que los [**Grant Types**](/docs/es/get-started/applications/update-grant-types) de la aplicación incluyan **Device Code**. Esto también se encuentra en el [Dashboard](https://manage.auth0.com/#), en **Application Settings &gt; Advanced &gt; Grant Types**.
-  * Si quieres que tu aplicación pueda usar [tokens de actualización](/docs/es/secure/tokens/refresh-tokens), asegúrate de que los [**Grant Types**](/docs/es/get-started/applications/update-grant-types) de la aplicación incluyan **Refresh Token**.
+  * Selecciona un **Tipo de aplicación** de **Native**.
+  * Si es necesario, configura **Allowed Web Origins**. Puedes usar esta opción para permitir localhost como origen en el desarrollo local o para establecer un origen permitido para software específico de TV con una arquitectura sujeta a CORS (p. ej., HTML5 + JS). La mayoría de las aplicaciones no utilizarán esta configuración.
+  * Asegúrate de que el toggle **OIDC Conformant** esté habilitado. Esta configuración se encuentra en el [Dashboard](https://manage.auth0.com/#), en **Application Settings &gt; Advanced &gt; OAuth**.
+  * Asegúrate de que los [**Tipos de concesión**](/docs/es/get-started/applications/update-grant-types) de la aplicación incluyan **Device Code**. Esta opción también está en el [Dashboard](https://manage.auth0.com/#), en **Application Settings &gt; Advanced &gt; Grant Types**.
+  * Si quieres que tu aplicación pueda usar [tokens de actualización](/docs/es/secure/tokens/refresh-tokens), asegúrate de que los [**Tipos de concesión**](/docs/es/get-started/applications/update-grant-types) de la aplicación incluyan **token de actualización**.
 * Configura y habilita al menos una conexión para la aplicación: [conexiones de base de datos](/docs/es/get-started/applications/set-up-database-connections), [conexiones sociales](https://marketplace.auth0.com/features/social-connections)
-* [Registra tu API en Auth0](/docs/es/get-started/architecture-scenarios/mobile-api/part-2#create-the-api)
+* [Registra tu API con Auth0](/docs/es/get-started/architecture-scenarios/mobile-api/part-2#create-the-api)
 
-  * Si quieres que tu API reciba [tokens de actualización](/docs/es/secure/tokens/refresh-tokens) para poder obtener nuevos tokens cuando caduquen los anteriores, habilita **Allow Offline Access**.
+  * Si quieres que tu API reciba [tokens de actualización](/docs/es/secure/tokens/refresh-tokens) para que pueda obtener tokens nuevos cuando caduquen los anteriores, habilita **Allow Offline Access**.
 * [Configura los ajustes del código de usuario del dispositivo](/docs/es/get-started/tenant-settings/configure-device-user-code-settings) para definir el conjunto de caracteres, el formato y la longitud del código de usuario generado aleatoriamente.
 
 <div id="steps">
   ## Pasos
 </div>
 
-1. [Solicitar código de dispositivo](#request-device-code) (Flujo del dispositivo): Solicita un código de dispositivo que el usuario pueda usar para autorizar el dispositivo.
-2. [Solicitar activación del dispositivo](#request-device-activation) (Flujo del dispositivo): Pide al usuario que autorice el dispositivo desde su portátil o smartphone.
-3. [Solicitar tokens](#request-tokens) (Flujo del dispositivo): Consulta periódicamente el endpoint de token para solicitar un token.
-4. [Autorización del usuario](#user-authorization) (Flujo del navegador): El usuario autoriza el dispositivo para que este pueda recibir tokens.
-5. [Recibir tokens](#receive-tokens) (Flujo del dispositivo): Después de que el usuario autorice correctamente el dispositivo, recibe los tokens.
-6. [Llamar a tu API](#call-your-api) (Flujo del dispositivo): Usa el token de acceso obtenido para llamar a tu API.
-7. [Actualizar tokens](#refresh-tokens) (Flujo del dispositivo): Usa un token de actualización para solicitar nuevos tokens cuando caduquen los existentes.
+1. [Solicitar código de dispositivo](#request-device-code) (flujo de dispositivo): Solicita un código de dispositivo que el usuario pueda usar para autorizar el dispositivo.
+2. [Solicitar activación del dispositivo](#request-device-activation) (flujo de dispositivo): Solicita que el usuario autorice el dispositivo desde su laptop o smartphone.
+3. [Solicitar tokens](#request-tokens) (flujo de dispositivo): Consulta el endpoint de token para solicitar un token.
+4. [Autorización del usuario](#user-authorization) (flujo del navegador): El usuario autoriza el dispositivo para que este pueda recibir tokens.
+5. [Recibir tokens](#receive-tokens) (flujo de dispositivo): Después de que el usuario autorice correctamente el dispositivo, recibe los tokens.
+6. [Llamar a tu API](#call-your-api) (flujo de dispositivo): Usa el token de acceso obtenido para llamar a tu API.
+7. [Tokens de actualización](#refresh-tokens) (flujo de dispositivo): Usa un token de actualización para solicitar nuevos tokens cuando caduquen los actuales.
 
 Opcional: [Explorar casos de uso de ejemplo](#sample-use-cases)
 
-Opcional: [Resolución de problemas](#troubleshooting)
+Opcional: [Solución de problemas](#troubleshooting)
 
 <div id="request-device-code">
   ## Solicitar un código de dispositivo
 </div>
 
-Una vez que el usuario haya iniciado la aplicación en su dispositivo y quiera autorizar el dispositivo, tendrás que obtener un código de dispositivo. Cuando el usuario inicie su sesión en su dispositivo basado en navegador, este código quedará vinculado a esa sesión.
+Una vez que el usuario haya iniciado la aplicación de su dispositivo y quiera autorizar el dispositivo, tendrás que obtener un código de dispositivo. Cuando el usuario inicie su sesión en su dispositivo con navegador, este código quedará vinculado a esa sesión.
 
-Para obtener el código de dispositivo, tu aplicación debe solicitar un código en la [URL de código de dispositivo](https://auth0.com/docs/api/authentication#get-device-code), incluido el ID de cliente.
+Para obtener el código de dispositivo, tu aplicación debe solicitar un código en la [URL de código de dispositivo](https://auth0.com/docs/api/authentication#get-device-code), incluyendo el ID de cliente.
 
 <div id="example-post-to-device-code-url">
-  ### Ejemplo de POST a la URL del código de dispositivo
+  ### Ejemplo de POST a la URL del device code
 </div>
 
 <AuthCodeGroup>
@@ -216,29 +216,29 @@ Para obtener el código de dispositivo, tu aplicación debe solicitar un código
 </AuthCodeGroup>
 
 <div id="device-code-parameters">
-  #### Parámetros del código de dispositivo
+  #### Parámetros de Device Code
 </div>
 
-Ten en cuenta que, al solicitar un código de dispositivo para llamar a una API personalizada:
+Ten en cuenta que, al solicitar un device code para llamar a una API personalizada:
 
 * debes incluir un parámetro `audience`
-* puedes incluir scopes adicionales admitidos por la API de destino
+* puedes incluir scopes adicionales compatibles con la API de destino
 
 <Info>
-  Si tu aplicación solo quiere un token de acceso para recuperar información sobre el usuario autenticado, no se requiere ningún parámetro `audience`.
+  Si tu aplicación solo quiere un token de acceso para obtener información sobre el usuario autenticado, no se requiere ningún parámetro `audience`.
 </Info>
 
-| Nombre del parámetro | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client_id`          | El ID de cliente de tu aplicación. Puedes encontrar este valor en [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `scope`              | Los [scopes](/docs/es/get-started/apis/scopes) para los que quieres solicitar autorización. Deben ir separados por espacios. Puedes solicitar cualquiera de los [scopes estándar de OIDC](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims) sobre usuarios, como `profile` y `email`, [custom claims](/docs/es/secure/tokens/json-web-tokens/json-web-token-claims#custom-claims) que sigan un [formato con espacio de nombres](/docs/es/secure/tokens/json-web-tokens/create-custom-claims), o cualquier [scope admitido por la API de destino](/docs/es/get-started/apis/scopes/api-scopes) (por ejemplo, `read:contacts`). Incluye `openid` para obtener un token de ID o para poder usar el [endpoint `/userinfo`](https://auth0.com/docs/api/authentication#user-profile) y recuperar información del perfil del usuario. Incluye `offline_access` para obtener un token de actualización (asegúrate de que el campo **Allow Offline Access** esté habilitado en [API Settings](https://manage.auth0.com/#/apis)). Ten en cuenta que debe estar codificado en URL. |
-| `audience`           | El identificador único de la API a la que tu aplicación quiere acceder. Usa el valor de **Identifier** en la pestaña [Settings](https://manage.auth0.com/#/apis) de la API que creaste como parte de los requisitos previos de este tutorial. Ten en cuenta que debe estar codificado en URL.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Nombre del parámetro | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client_id`          | El ID de cliente de tu aplicación. Puedes encontrar este valor en [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `scope`              | Los [scopes](/docs/es/get-started/apis/scopes) para los que quieres solicitar autorización. Deben separarse con un espacio. Puedes solicitar cualquiera de los [scopes estándar de OIDC](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims) relacionados con usuarios, como `profile` y `email`, [claims personalizadas](/docs/es/secure/tokens/json-web-tokens/json-web-token-claims#custom-claims) que sigan un [formato con espacio de nombres](/docs/es/secure/tokens/json-web-tokens/create-custom-claims), o cualquier [scope compatible con la API de destino](/docs/es/get-started/apis/scopes/api-scopes) (por ejemplo, `read:contacts`). Incluye `openid` para obtener un token de ID o para poder usar el [endpoint /userinfo](https://auth0.com/docs/api/authentication#user-profile) y recuperar la información de perfil del usuario. Incluye `offline_access` para obtener un token de actualización (asegúrate de que el campo **Allow Offline Access** esté habilitado en [API Settings](https://manage.auth0.com/#/apis)). Ten en cuenta que esto debe estar codificado como URL. |
+| `audience`           | El identificador único de la API a la que tu aplicación quiere acceder. Usa el valor **Identifier** en la pestaña [Settings](https://manage.auth0.com/#/apis) de la API que creaste como parte de los requisitos previos de este tutorial. Ten en cuenta que esto debe estar codificado como URL.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 <div id="device-code-response">
   ### Respuesta de Device Code
 </div>
 
-Si todo sale bien, recibirás una respuesta HTTP 200 con un payload que incluye `device_code`, `user_code`, `verification_uri` y los valores `expires_in`, `interval` y `verification_uri_complete`:
+Si todo va bien, recibirás una respuesta HTTP 200 con un payload que contiene los valores `device_code`, `user_code`, `verification_uri`, `expires_in`, `interval` y `verification_uri_complete`:
 
 ```json lines
 {
@@ -251,15 +251,15 @@ Si todo sale bien, recibirás una respuesta HTTP 200 con un payload que incluye 
 }
 ```
 
-* `device_code` es el código único del dispositivo. Cuando el usuario vaya a la `verification_uri` desde su dispositivo con navegador, este código quedará vinculado a su sesión.
-* `user_code` contiene el código que debe introducirse en la `verification_uri` para autorizar el dispositivo.
+* `device_code` es el código único del dispositivo. Cuando el usuario acceda a `verification_uri` desde su dispositivo con navegador, este código quedará vinculado a su sesión.
+* `user_code` contiene el código que debe introducirse en `verification_uri` para autorizar el dispositivo.
 * `verification_uri` contiene la URL que el usuario debe visitar para autorizar el dispositivo.
 * `verification_uri_complete` contiene la URL completa que el usuario debe visitar para autorizar el dispositivo. Esto permite que tu aplicación incluya el `user_code` en la URL, si así lo deseas.
-* `expires_in` indica el tiempo de validez (en segundos) del `device_code` y del `user_code`.
+* `expires_in` indica el tiempo de validez (en segundos) de `device_code` y `user_code`.
 * `interval` indica el intervalo (en segundos) con el que la aplicación debe consultar la URL del token para solicitar un token.
 
 <Info>
-  Puedes [configurar el conjunto de caracteres, el formato y la longitud de tu código de usuario generado aleatoriamente](/docs/es/get-started/tenant-settings/configure-device-user-code-settings) en la Configuración del tenant.
+  Puedes [configurar el conjunto de caracteres, el formato y la longitud de tu código de usuario generado aleatoriamente](/docs/es/get-started/tenant-settings/configure-device-user-code-settings) en la configuración de tu tenant.
 
   Para evitar ataques de fuerza bruta, aplicamos los siguientes límites a `user_code`:
 
@@ -270,7 +270,7 @@ Si todo sale bien, recibirás una respuesta HTTP 200 con un payload que incluye 
 
   **Longitud máxima**:
 
-  * 20 caracteres (incluidos guiones y espacios, que pueden añadirse como separadores para facilitar la lectura)
+  * 20 caracteres (incluidos los guiones y los espacios, que pueden añadirse como separadores para facilitar la lectura)
 
   **Tiempo de expiración**:
 
@@ -281,11 +281,11 @@ Si todo sale bien, recibirás una respuesta HTTP 200 con un payload que incluye 
   ## Solicitar la activación del dispositivo
 </div>
 
-Una vez que hayas recibido un `device_code` y un `user_code`, debes pedirle al usuario que vaya a `verification_uri` en su portátil o smartphone e introduzca el `user_code`:
+Una vez que hayas recibido un `device_code` y un `user_code`, debes pedirle al usuario que vaya a `verification_uri` en su portátil o smartphone y que introduzca el `user_code`:
 
 <Frame>![Solicitar la activación del dispositivo](https://cdn2.auth0.com/docs/1.14550.0/media/articles/flows/guides/device-auth/request-device-activation.png)</Frame>
 
-El `device_code` no está destinado directamente al usuario y no debe mostrarse durante la interacción para evitar confundirlo.
+El `device_code` no está pensado para mostrarse directamente al usuario y no debe mostrarse durante la interacción para evitar confusiones.
 
 <Info>
   Al crear una CLI, puedes omitir este paso y abrir de inmediato el navegador con `verification_uri_complete`.
@@ -295,9 +295,9 @@ El `device_code` no está destinado directamente al usuario y no debe mostrarse 
   ## Solicitar tokens
 </div>
 
-Mientras espera a que el usuario active el dispositivo, comience a realizar sondeos a la URL del token para solicitar un token de acceso. Con el intervalo de sondeo extraído (`interval`) en el paso anterior, deberá enviar una solicitud `POST` a la [URL del token](https://auth0.com/docs/api/authentication#device-auth) junto con el `device_code`.
+Mientras esperas a que el usuario active el dispositivo, comienza a consultar la URL del token para solicitar un token de acceso. Con el intervalo de consulta (`interval`) extraído del paso anterior, tendrás que hacer `POST` a la [URL del token](https://auth0.com/docs/api/authentication#device-auth) enviando el `device_code`.
 
-Para evitar errores debidos a la latencia de red, debe empezar a contar cada intervalo después de recibir la respuesta a la última solicitud de sondeo.
+Para evitar errores debidos a la latencia de red, debes empezar a contar cada intervalo después de recibir la respuesta a la última solicitud de consulta.
 
 <div id="example-request-token-post-to-token-url">
   ### Ejemplo de solicitud POST de token a la URL del token
@@ -450,23 +450,23 @@ Para evitar errores debidos a la latencia de red, debe empezar a contar cada int
   #### Parámetros de la solicitud de token
 </div>
 
-| Nombre del parámetro | Descripción                                                                                                                                                                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `grant_type`         | Establece este valor en &quot;urn:ietf:params:oauth:grant-type:device&#95;code&quot;. Este es un tipo de concesión de extensión (según se define en la Sección 4.5 de [RFC6749](https://tools.ietf.org/html/rfc6749#section-4.5)). Ten en cuenta que debe estar codificado para URL. |
-| `device_code`        | El `device_code` obtenido en el paso anterior de este tutorial.                                                                                                                                                                                                                      |
-| `client_id`          | El ID de cliente de tu aplicación. Puedes encontrar este valor en la [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).                                                                                                             |
+| Nombre del parámetro | Descripción                                                                                                                                                                                                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grant_type`         | Establece este valor en &quot;urn:ietf:params:oauth:grant-type:device&#95;code&quot;. Este es un tipo de concesión de extensión (según se define en la Sección 4.5 de [RFC6749](https://tools.ietf.org/html/rfc6749#section-4.5)). Ten en cuenta que debe estar codificado en URL. |
+| `device_code`        | El `device_code` recuperado en el paso anterior de este tutorial.                                                                                                                                                                                                                  |
+| `client_id`          | El ID de cliente de tu aplicación. Puedes encontrar este valor en [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).                                                                                                                        |
 
 <div id="token-responses">
   ### Respuestas del token
 </div>
 
-Mientras esperas a que el usuario autorice el dispositivo, es posible que recibas varias respuestas `HTTP 4xx`:
+Mientras esperas a que el usuario autorice el dispositivo, es posible que recibas varias respuestas `HTTP 4xx` diferentes:
 
 <div id="authorization-pending">
   #### Autorización pendiente
 </div>
 
-Verás este error mientras esperas a que el usuario realice una acción. Sigue consultando periódicamente con el intervalo sugerido que se obtuvo en el paso anterior de este tutorial.
+Verá este error mientras espera a que el usuario actúe. Siga consultando con el intervalo sugerido obtenido en el paso anterior de este tutorial.
 
 ```
 `HTTP 403`
@@ -478,10 +478,10 @@ Verás este error mientras esperas a que el usuario realice una acción. Sigue c
 ```
 
 <div id="slow-down">
-  #### Más despacio
+  #### Reduce la velocidad
 </div>
 
-Está haciendo `polling` demasiado rápido. Vaya más despacio y use el intervalo sugerido obtenido en el paso anterior de este tutorial. Para evitar recibir este error debido a la latencia de red, debe empezar a contar cada intervalo después de recibir la respuesta de la última solicitud de `polling`.
+Estás consultando con demasiada frecuencia. Reduce la velocidad y usa el intervalo sugerido obtenido en el paso anterior de este tutorial. Para evitar este error debido a la latencia de la red, debes empezar a contar cada intervalo después de recibir la respuesta a la última solicitud de consulta.
 
 ```
 `HTTP 429`
@@ -496,10 +496,10 @@ Está haciendo `polling` demasiado rápido. Vaya más despacio y use el interval
   #### Token expirado
 </div>
 
-El usuario no ha autorizado el dispositivo con suficiente rapidez, por lo que el `device_code` ha expirado. Su aplicación debe notificar al usuario que el flujo ha expirado y pedirle que lo reinicie.
+El usuario no autorizó el dispositivo a tiempo, por lo que el `device_code` ha expirado. Su aplicación debe notificar al usuario que el flujo ha expirado y pedirle que lo reinicie.
 
 <Info>
-  En ese caso, el error `expired_token` se devolverá exactamente una vez; después, se devolverá el temido `invalid_grant`. Su dispositivo *debe* dejar de sondear.
+  El error `expired_token` se devolverá exactamente una vez; después de eso, se devolverá el temido `invalid_grant`. Su dispositivo *debe* dejar de consultar.
 </Info>
 
 ```
@@ -528,15 +528,15 @@ Por último, si se te deniega el acceso, recibirás:
 
 Esto puede ocurrir por diversos motivos, entre ellos:
 
-* el usuario rechazó autorizar el dispositivo
-* el servidor de autorización denegó la transacción
+* el usuario se negó a autorizar el dispositivo
+* el servidor de autorización rechazó la transacción
 * una [Rule](/docs/es/customize/rules) configurada denegó el acceso
 
 <div id="user-authorization">
   ## Autorización del usuario
 </div>
 
-El usuario escaneará el código QR o bien abrirá la página de activación e introducirá el código de usuario:
+El usuario escaneará el código QR o, de lo contrario, abrirá la página de activación e introducirá el código de usuario:
 
 <Frame>![Introducir código de usuario](https://cdn2.auth0.com/docs/1.14550.0/media/articles/flows/guides/device-auth/enter-user-code.png)</Frame>
 
@@ -547,13 +547,13 @@ Se mostrará una página de confirmación para que el usuario confirme que este 
 El usuario completará la transacción iniciando sesión. Este paso puede incluir uno o más de los siguientes procesos:
 
 * Autenticar al usuario;
-* Redirigir al usuario a un Proveedor de identidad para gestionar la autenticación;
-* Comprobar si hay sesiones de SSO activas;
+* Redirigir al usuario a un proveedor de identidad para gestionar la autenticación;
+* Comprobar si hay sesiones SSO activas;
 * Obtener el consentimiento del usuario para el dispositivo, a menos que ya se haya otorgado previamente.
 
 <Frame>![Autenticar usuario](https://cdn2.auth0.com/docs/1.14550.0/media/articles/flows/guides/device-auth/user-auth.png)</Frame>
 
-Tras completar correctamente la autenticación y el consentimiento, se mostrará el prompt de confirmación:
+Una vez completados correctamente la autenticación y el consentimiento, se mostrará la pantalla de confirmación:
 
 <Frame>![Confirmación del usuario](https://cdn2.auth0.com/docs/1.14550.0/media/articles/flows/guides/device-auth/user-confirmation.png)</Frame>
 
@@ -563,9 +563,9 @@ En este punto, el usuario se ha autenticado y el dispositivo ha sido autorizado.
   ## Recibir tokens
 </div>
 
-Mientras el usuario autentica y autoriza el dispositivo, la aplicación del dispositivo sigue consultando la URL del token para solicitar un token de acceso.
+Mientras el usuario se autentica y autoriza el dispositivo, la aplicación del dispositivo sigue consultando la URL del token para solicitar un token de acceso.
 
-Una vez que el usuario haya autorizado correctamente el dispositivo, recibirás una respuesta `HTTP 200` con una carga útil que contiene los valores `access_token`, `refresh_token` (opcional), `id_token` (opcional), `token_type` y `expires_in`:
+Una vez que el usuario haya autorizado correctamente el dispositivo, recibirás una respuesta `HTTP 200` con un payload que incluye los valores `access_token`, `refresh_token` (opcionalmente), `id_token` (opcionalmente), `token_type` y `expires_in`:
 
 ```json lines
 {
@@ -578,14 +578,14 @@ Una vez que el usuario haya autorizado correctamente el dispositivo, recibirás 
 ```
 
 <Warning>
-  Debe validar sus tokens antes de guardarlos. Para saber cómo hacerlo, consulte [Validar tokens de acceso](/docs/es/secure/tokens/access-tokens/validate-access-tokens) y [Validar tokens de ID](/docs/es/secure/tokens/id-tokens/validate-id-tokens).
+  Debes validar tus tokens antes de guardarlos. Para saber cómo hacerlo, consulta [Validate Access Tokens](/docs/es/secure/tokens/access-tokens/validate-access-tokens) y [Validate ID Tokens](/docs/es/secure/tokens/id-tokens/validate-id-tokens).
 </Warning>
 
-[Tokens de acceso](/docs/es/secure/tokens/access-tokens) se utilizan para llamar al [endpoint `/userinfo` de Auth0 Authentication API](https://auth0.com/docs/api/authentication#get-user-info) o a otra API. Solo podrá usar el token de acceso para llamar a `/userinfo` si incluyó el scope `openid`. Si está llamando a su propia API, lo primero que deberá hacer su API es [verificar el token de acceso](/docs/es/secure/tokens/access-tokens/validate-access-tokens).
+Los [tokens de acceso](/docs/es/secure/tokens/access-tokens) se usan para llamar al [endpoint `/userinfo` de Auth0 Authentication API](https://auth0.com/docs/api/authentication#get-user-info) o a otra API. Solo podrás usar el token de acceso para llamar a `/userinfo` si incluiste el `scope` `openid`. Si llamas a tu propia API, lo primero que deberá hacer es [verificar el token de acceso](/docs/es/secure/tokens/access-tokens/validate-access-tokens).
 
-[Tokens de ID](/docs/es/secure/tokens/id-tokens) contienen información del usuario que debe [decodificarse y extraerse](/docs/es/secure/tokens/id-tokens#id-token-payload). El `id_token` solo estará presente en la respuesta si incluyó el scope `openid`.
+Los [tokens de ID](/docs/es/secure/tokens/id-tokens) contienen información del usuario que debe [decodificarse y extraerse](/docs/es/secure/tokens/id-tokens#id-token-payload). El `id_token` solo estará presente en la respuesta si incluiste el `scope` `openid`.
 
-[Tokens de actualización](/docs/es/secure/tokens/refresh-tokens) se utilizan para obtener un nuevo token de acceso o token de ID después de que el anterior haya caducado. El `refresh_token` solo estará presente en la respuesta si incluyó el scope `offline_access` y habilitó **Allow Offline Access** para su API en el Dashboard.
+Los [tokens de actualización](/docs/es/secure/tokens/refresh-tokens) se usan para obtener un nuevo token de acceso o token de identidad después de que el anterior haya expirado. El `refresh_token` solo estará presente en la respuesta si incluiste el `scope` `offline_access` y habilitaste **Allow Offline Access** para tu API en el Dashboard.
 
 <Warning>
   Los tokens de actualización deben almacenarse de forma segura, ya que permiten que un usuario permanezca autenticado prácticamente para siempre.
@@ -595,7 +595,7 @@ Una vez que el usuario haya autorizado correctamente el dispositivo, recibirás 
   ## Llama a tu API
 </div>
 
-Para llamar a tu API, la aplicación debe enviar el token de acceso obtenido como token Bearer en el encabezado Authorization de la solicitud HTTP.
+Para llamar a tu API, la aplicación debe enviar el token de acceso obtenido como bearer token en el encabezado Authorization de la solicitud HTTP.
 
 <AuthCodeGroup>
   ```bash cURL lines
@@ -736,17 +736,17 @@ Para llamar a tu API, la aplicación debe enviar el token de acceso obtenido com
   ## Tokens de actualización
 </div>
 
-Ya has recibido un [token de actualización](/docs/es/secure/tokens/refresh-tokens) si has seguido este tutorial y completado lo siguiente:
+Ya recibiste un [token de actualización](/docs/es/secure/tokens/refresh-tokens) si has seguido este tutorial y completaste lo siguiente:
 
 * configuraste tu API para permitir el acceso sin conexión
 * incluiste el scope `offline_access` cuando iniciaste la solicitud de autenticación a través del endpoint [authorize](https://auth0.com/docs/api/authentication#authorize-application)
 
-Puedes usar el token de actualización para obtener un nuevo token de acceso. Normalmente, un usuario solo necesitará un nuevo token de acceso cuando el anterior caduque o cuando acceda a un nuevo recurso por primera vez. No es una buena práctica llamar al endpoint para obtener un nuevo token de acceso cada vez que llamas a una API, y Auth0 aplica límites de frecuencia que restringen la cantidad de solicitudes al endpoint que pueden ejecutarse con el mismo token desde la misma IP.
+Puedes usar el token de actualización para obtener un nuevo token de acceso. Por lo general, un usuario solo necesitará un nuevo token de acceso después de que el anterior caduque o cuando acceda a un nuevo recurso por primera vez. No es una buena práctica llamar al endpoint para obtener un nuevo token de acceso cada vez que llamas a una API, y Auth0 aplica límites de frecuencia que reducirán la cantidad de solicitudes al endpoint que se pueden ejecutar con el mismo token desde la misma IP.
 
 Para actualizar tu token, haz una solicitud `POST` al endpoint `/oauth/token` de la Authentication API usando `grant_type=refresh_token`.
 
 <div id="example-refresh-token-post-to-token-url">
-  ### Ejemplo de solicitud POST con token de actualización a la URL del token
+  ### Ejemplo de POST de un token de actualización a la URL del token
 </div>
 
 <AuthCodeGroup>
@@ -895,22 +895,22 @@ Para actualizar tu token, haz una solicitud `POST` al endpoint `/oauth/token` de
 </AuthCodeGroup>
 
 <div id="refresh-token-request-parameters">
-  #### Parámetros de la solicitud de token de actualización
+  #### Parámetros de solicitud del token de actualización
 </div>
 
-| Nombre del parámetro | Descripción                                                                                                                                                                                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `grant_type`         | Establézcalo como &quot;refresh&#95;token&quot;.                                                                                                                                                                                                          |
-| `client_id`          | El ID de cliente de su aplicación. Puede encontrar este valor en [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).                                                                                                |
-| `client_secret`      | El secreto de cliente de su aplicación. Puede encontrar este valor en [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientSecret}/settings).                                                                                       |
-| `refresh_token`      | El token de actualización que se va a usar.                                                                                                                                                                                                               |
-| `scope`              | (Opcional) Una lista de permisos de scope solicitados, delimitada por espacios. Si no se envía, se usarán los scopes originales; de lo contrario, puede solicitar un conjunto más reducido de scopes. Tenga en cuenta que debe estar codificado para URL. |
+| Nombre del parámetro | Descripción                                                                                                                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grant_type`         | Establece este valor en &quot;refresh&#95;token&quot;.                                                                                                                                                                                               |
+| `client_id`          | El ID de cliente de tu aplicación. Puedes encontrar este valor en la [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientId}/settings).                                                                             |
+| `client_secret`      | El secreto de cliente de tu aplicación. Puedes encontrar este valor en la [Application Settings](https://manage.auth0.com/#/Applications/\{yourClientSecret}/settings).                                                                    |
+| `refresh_token`      | El token de actualización que se utilizará.                                                                                                                                                                                                          |
+| `scope`              | (Opcional) Una lista de permisos de `scope` solicitados, separados por espacios. Si no se envía, se usarán los `scopes` originales; de lo contrario, puedes solicitar un conjunto reducido de `scopes`. Ten en cuenta que debe codificarse como URL. |
 
 <div id="refresh-token-response">
   ### Respuesta del token de actualización
 </div>
 
-Si todo va bien, recibirás una respuesta `HTTP 200` con un payload que incluye un nuevo `access_token`, `id_token` (opcional), el tiempo de validez del token en segundos (`expires_in`), los valores de `scope` concedidos y `token_type`:
+Si todo va bien, recibirás una respuesta `HTTP 200` con un payload que incluye un nuevo `access_token`, `id_token` (de forma opcional), la duración del token de acceso en segundos (`expires_in`), los valores de `scope` otorgados y `token_type`:
 
 ```json lines
 {
@@ -934,7 +934,7 @@ Si todo va bien, recibirás una respuesta `HTTP 200` con un payload que incluye 
   ### Detectar el uso de flujo de autorización de dispositivos
 </div>
 
-Puedes usar [Rules](/docs/es/customize/rules) para detectar si la transacción actual usa flujo de autorización de dispositivos. Para ello, comprueba la propiedad `protocol` del objeto `context`:
+Puedes usar [Rules](/docs/es/customize/rules) para detectar si la transacción actual utiliza flujo de autorización de dispositivos. Para ello, comprueba la propiedad `protocol` del objeto `context`:
 
 ```javascript lines
 function (user, context, callback) {
@@ -951,26 +951,26 @@ function (user, context, callback) {
 </div>
 
 * [Device Authorization Playground](https://auth0.github.io/device-flow-playground/)
-* [AppleTV (Swift)](https://github.com/pushpabrol/auth0-device-flow-appletv): Aplicación sencilla que muestra cómo puede usarse Auth0 con flujo de autorización de dispositivos desde un AppleTV.
-* [CLI (Node.js)](https://gist.github.com/panva/652c61e7d847e0ed99926c324fa91b36): Implementación de ejemplo de una CLI que usa flujo de autorización de dispositivos en lugar de Authorization Code Flow. La diferencia principal es que tu CLI no necesita ejecutar un servidor web ni escuchar en un puerto.
+* [AppleTV (Swift)](https://github.com/pushpabrol/auth0-device-flow-appletv): Aplicación sencilla que muestra cómo puede usarse Auth0 con el flujo de autorización de dispositivos en un Apple TV.
+* [CLI (Node.js)](https://gist.github.com/panva/652c61e7d847e0ed99926c324fa91b36): Implementación de ejemplo de una CLI que utiliza el flujo de autorización de dispositivos en lugar del flujo de código de autorización. La principal diferencia es que tu CLI no necesita alojar un servidor web ni escuchar en un puerto.
 
 <div id="troubleshooting">
   # Resolución de problemas
 </div>
 
-[Registros del tenant](/docs/es/deploy-monitor/logs) se crean para cada interacción que tiene lugar y pueden usarse para resolver problemas.
+[Registros del tenant](/docs/es/deploy-monitor/logs) se generan para cualquier interacción que tenga lugar y pueden usarse para resolver incidencias.
 
 <div id="error-codes">
   ## Códigos de error
 </div>
 
-| Código  | Nombre                                                | Descripción                               |
-| ------- | ----------------------------------------------------- | ----------------------------------------- |
-| `fdeaz` | Error en la solicitud de autorización del dispositivo |                                           |
-| `fdeac` | Error en la activación del dispositivo                |                                           |
-| `fdecc` | El usuario canceló la confirmación del dispositivo    |                                           |
-| `fede`  | Error en el intercambio                               | Código de dispositivo por token de acceso |
-| `sede`  | Intercambio exitoso                                   | Código de dispositivo por token de acceso |
+| Código  | Nombre                                             | Descripción                                           |
+| ------- | -------------------------------------------------- | ----------------------------------------------------- |
+| `fdeaz` | Solicitud de autorización del dispositivo fallida  |                                                       |
+| `fdeac` | Activación del dispositivo fallida                 |                                                       |
+| `fdecc` | El usuario canceló la confirmación del dispositivo |                                                       |
+| `fede`  | Intercambio fallido                                | Código de dispositivo para obtener un token de acceso |
+| `sede`  | Intercambio exitoso                                | Código de dispositivo para obtener un token de acceso |
 
 <div id="limitations">
   ## Limitaciones
@@ -980,16 +980,16 @@ Para usar el flujo de autorización de dispositivos, los dispositivos deben:
 
 * Admitir Server Name Indication (SNI)
 * Tener un [tipo de aplicación de Auth0](/docs/es/get-started/applications) **Native**
-* Tener el [**método de autenticación del endpoint de token**](/docs/es/get-started/applications/application-settings) configurado como **None**
+* Tener el [**método de autenticación del endpoint de token**](/docs/es/get-started/applications/application-settings) configurado en **None**
 * Ser [compatibles con OIDC](/docs/es/get-started/applications/application-settings#oauth)
-* No haberse creado mediante [registro dinámico de clientes](/docs/es/get-started/applications/dynamic-client-registration)
+* No haber sido creados mediante [registro dinámico de clientes](/docs/es/get-started/applications/dynamic-client-registration)
 
 Además, el flujo de autorización de dispositivos no permite:
 
-* [Conexiones sociales](/docs/es/authenticate/identity-providers) que usen [claves de desarrollador de Auth0](/docs/es/authenticate/identity-providers/social-identity-providers/devkeys), a menos que uses la nueva [experiencia de Universal Login](/docs/es/authenticate/login/auth0-universal-login/universal-login-vs-classic-login/universal-experience).
-* Acceder a parámetros de la query string desde la página de inicio de sesión alojada o las reglas
+* [Conexiones sociales](/docs/es/authenticate/identity-providers) que usen [claves de desarrollador de Auth0](/docs/es/authenticate/identity-providers/social-identity-providers/devkeys), a menos que uses la [nueva experiencia de Universal Login](/docs/es/authenticate/login/auth0-universal-login/universal-login-vs-classic-login/universal-experience).
+* Acceder a parámetros de la cadena de consulta desde la página de inicio de sesión alojada o las reglas
 
-Admitimos por completo el [Draft 15](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15), excepto para clientes confidenciales.
+Admitimos por completo [Draft 15](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15), excepto para clientes confidenciales.
 
 <div id="keep-reading">
   ## Sigue leyendo
@@ -998,6 +998,6 @@ Admitimos por completo el [Draft 15](https://tools.ietf.org/html/draft-ietf-oaut
 * [El protocolo OAuth 2.0](/docs/es/authenticate/protocols/oauth)
 * [El protocolo OpenID Connect](/docs/es/authenticate/protocols/openid-connect-protocol)
 * [Tokens](/docs/es/secure/tokens)
-* [Registros del tenant para dispositivos](/docs/es/deploy-monitor/logs)
+* [Registros del tenant para Devices](/docs/es/deploy-monitor/logs)
 
 [Editar en GitHub](https://github.com/auth0/docs/edit/master/articles/quickstart/native/device/01-login.md)

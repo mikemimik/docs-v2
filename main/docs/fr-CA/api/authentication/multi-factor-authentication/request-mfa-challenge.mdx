@@ -1,6 +1,6 @@
 ---
 title: "Demande de défi MFA"
-description: "Demander un défi MFA (OTP ou OOB) pour poursuivre l’authentification au point de terminaison des jetons."
+description: "Demandez un défi MFA (OTP ou OOB) pour poursuivre l’authentification au point de terminaison des jetons."
 ---
 
 import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
@@ -11,9 +11,9 @@ import { ResponseSchema } from '/snippets/ResponseSchema.jsx';
 
 `POST /mfa/challenge`
 
-Les points de terminaison de l’API d’authentification multifacteur (MFA) vous permettent d’imposer l’authentification multifacteur lorsque les utilisateurs interagissent avec [les points de terminaison de jeton](#get-token), ainsi que d’enrôler et de gérer les facteurs d’authentification des utilisateurs.
+Les points de terminaison de l’API d’authentification multifacteur (MFA) vous permettent d’imposer l’AMF lorsque les utilisateurs interagissent avec [les points de terminaison de jeton](#get-token), ainsi que d’inscrire et de gérer les authentificateurs des utilisateurs.
 
-Demandez d’abord un défi selon les types de défi pris en charge par l’application et l’utilisateur. Si vous savez qu’un mot de passe à usage unique (OTP) est pris en charge, vous pouvez sauter cette étape.
+Commencez par demander un défi selon les types de défi pris en charge par l’application et l’utilisateur. Si vous savez qu’un mot de passe à usage unique (OTP) est pris en charge, vous pouvez sauter cette demande.
 
 Ensuite, vérifiez l’authentification multifacteur à l’aide du point de terminaison `/oauth/token` et du type de défi indiqué : un mot de passe à usage unique (OTP), un code de récupération ou un défi hors bande (OOB).
 
@@ -27,31 +27,31 @@ Pour en savoir plus, consultez :
   ## Demande de défi
 </div>
 
-Demandez un défi pour l’authentification multifacteur (MFA) selon les types de défi pris en charge par l’application et l’utilisateur.
+Demandez un défi d’authentification multifacteur (MFA) selon les types de défi pris en charge par l’application et l’utilisateur.
 
-Le `challenge_type` indique comment l’utilisateur recevra le défi et prouvera qu’il en a bien la possession. Les types de défi pris en charge comprennent :
+Le `challenge_type` indique comment l’utilisateur recevra le défi et prouvera qu’il est bien en possession du facteur. Les types de défi pris en charge sont les suivants :
 
 * `otp` : pour un mot de passe à usage unique (OTP)
 * `oob` : pour les messages SMS/vocaux ou hors bande (OOB)
 
-Si l’utilisateur peut utiliser OTP et que vous ne souhaitez pas demander un autre facteur, vous pouvez ignorer la demande de défi et [vérifier l’authentification multifacteur avec un mot de passe à usage unique](#verify-with-one-time-password-otp-).
+Si l’OTP est pris en charge pour l’utilisateur et que vous ne voulez pas demander un autre facteur, vous pouvez sauter la demande de défi et [vérifier l’authentification multifacteur à l’aide d’un mot de passe à usage unique](#verify-with-one-time-password-otp-).
 
 <div id="remarks">
   ### Remarques
 </div>
 
-* Ce point de terminaison ne prend pas en charge l’enrôlement; l’utilisateur doit avoir déjà configuré la méthode privilégiée avant de demander un défi.
-* Auth0 choisit le type de défi en fonction des types pris en charge par l’application et de ceux que l’utilisateur a déjà configurés.
-* Une erreur `unsupported_challenge_type` est renvoyée si votre application ne prend en charge aucun des types de défi que l’utilisateur a déjà configurés.
-* Une erreur `unsupported_challenge_type` est renvoyée si l’utilisateur n’est pas enrôlé.
-* Si l’utilisateur n’est pas enrôlé, vous obtiendrez une erreur `association_required`, indiquant qu’il doit s’enrôler pour utiliser la MFA. Lisez [Ajouter un authentificateur](/multi-factor-authentication/add-an-authenticator) ci-dessous pour savoir comment procéder.
+* Ce point de terminaison ne prend pas en charge l’inscription; l’utilisateur doit être inscrit avec la méthode préférée avant de demander un défi.
+* Auth0 choisit le type de défi en fonction des types pris en charge par l’application et de ceux avec lesquels l’utilisateur est inscrit.
+* Une erreur `unsupported_challenge_type` est renvoyée si votre application ne prend en charge aucun des types de défi avec lesquels l’utilisateur est inscrit.
+* Une erreur `unsupported_challenge_type` est renvoyée si l’utilisateur n’est pas inscrit.
+* Si l’utilisateur n’est pas inscrit, vous obtiendrez une erreur `association_required`, indiquant que l’utilisateur doit s’inscrire pour utiliser l’authentification multifacteur. Lisez [Ajouter un authentificateur](/multi-factor-authentication/add-an-authenticator) ci-dessous pour savoir comment procéder.
 
 <div id="learn-more">
   ### En savoir plus
 </div>
 
-* [S’authentifier avec Resource Owner Password Grant et l’AMF](https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa)
-* [Gérer les facteurs d’authentification à l’aide de l’API d’AMF](https://auth0.com/docs/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api)
+* [S’authentifier avec l’octroi de mot de passe du propriétaire de la ressource et l’AMF](https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa)
+* [Gérer les facteurs d’authentification à l’aide de l’API AMF](https://auth0.com/docs/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api)
 
 <div id="body-parameters">
   ## Paramètres du corps
@@ -84,7 +84,7 @@ Si l’utilisateur peut utiliser OTP et que vous ne souhaitez pas demander un au
 </ParamField>
 
 <ParamField body="authenticator_id" type="string">
-  L’ID de l’authentificateur à utiliser pour le défi.
+  L’ID de l’authentificateur à solliciter.
 </ParamField>
 
 <div id="response-schema">
@@ -93,15 +93,15 @@ Si l’utilisateur peut utiliser OTP et que vous ne souhaitez pas demander un au
 
 <ResponseSchema statusCode="200">
   <ResponseField name="challenge_type" type="string">
-    Le type de demande de défi émis par cet authentificateur. Valeurs possibles : `otp`, `oob`.
+    Le type de défi émis par cet authentificateur. Valeurs possibles : `otp`, `oob`.
   </ResponseField>
 
   <ResponseField name="oob_code" type="string">
-    Le code de la demande de défi hors bande. Présent uniquement lorsque `challenge_type` est `oob`.
+    Le code du défi hors bande. Présent uniquement lorsque `challenge_type` est `oob`.
   </ResponseField>
 
   <ResponseField name="binding_method" type="string">
-    La méthode utilisée pour la liaison. Présente uniquement lorsque c’est applicable. Valeurs possibles : `prompt`.
+    La méthode de liaison utilisée. Présente uniquement lorsque cela s’applique. Valeurs possibles : `prompt`.
   </ResponseField>
 </ResponseSchema>
 
@@ -119,7 +119,7 @@ Si l’utilisateur peut utiliser OTP et que vous ne souhaitez pas demander un au
   ## Messages de réponse
 </div>
 
-| Statut | Description                                                                                         |
-| ------ | --------------------------------------------------------------------------------------------------- |
-| 200    | Demande de défi réussie                                                                             |
-| 400    | Requête invalide, par exemple un type de défi non pris en charge ou un enrôlement manquant. |
+| Statut | Description                                                                                       |
+| ------ | ------------------------------------------------------------------------------------------------- |
+| 200    | Demande de défi réussie                                                                      |
+| 400    | Requête invalide, par exemple un type de défi non pris en charge ou l’absence d’inscription. |

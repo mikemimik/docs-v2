@@ -1,13 +1,13 @@
 ---
-description: Décrit le flux de travail avec le SDK auth0-spa-js pour assurer la gestion des sessions multi-sites.
-title: Gérer les sessions multi-sites avec le SDK Auth0
+description: Décrit le flux de travail avec le SDK auth0-spa-js pour prendre en charge la gestion des sessions multisites.
+title: Gérer les sessions multisites avec le SDK Auth0
 ---
 
 <div id="short-lived-sessions">
   ## Sessions de courte durée
 </div>
 
-Ce flux de travail montre comment utiliser le SDK auth0-spa-js pour prendre en charge la gestion des sessions multisites. Dans ce scénario, on suppose que le délai d’inactivité du <Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement aux autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SSO">SSO</Tooltip> du tenant est fixé à 300 secondes et que le <Tooltip tip="ID Token : justificatif destiné au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+Token">ID Token</Tooltip> de chaque application SPA expire au bout de 150 secondes. On parle alors d’une session « de courte durée ».
+Ce flux de travail montre comment le SDK auth0-spa-js doit être mis en œuvre pour prendre en charge la gestion de sessions multisites. Dans ce scénario, on suppose que le délai d’inactivité du <Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur se connecte à une application, connecte automatiquement cet utilisateur aux autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SSO">SSO</Tooltip> du tenant est défini à 300 secondes et que l’expiration du <Tooltip tip="ID Token : justificatif destiné au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+Token">ID Token</Tooltip> de chaque application SPA est définie à 150 secondes. Il s’agit d’une session « de courte durée ».
 
 <div id="sdk-features">
   ### Fonctionnalités du SDK
@@ -17,62 +17,62 @@ Ce flux de travail montre comment utiliser le SDK auth0-spa-js pour prendre en c
   #### Flux PKCE
 </div>
 
-Pour toutes les méthodes permettant d’obtenir un ID Token ou un <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip>, le SDK prend en charge toutes les subtilités du mécanisme Proof Key for Code Exchange. Aucune configuration ni aucun effort supplémentaire ne sont nécessaires pour que cela fonctionne.
+Pour toutes les méthodes permettant d’obtenir un ID Token ou un <Tooltip tip="Jeton d’accès : jeton d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip>, le SDK prend en charge toute la complexité de la clé de preuve pour l’échange de code. Aucune configuration ni aucun effort supplémentaire ne sont nécessaires pour que cela fonctionne.
 
 <div id="deep-linking">
   #### Liens profonds
 </div>
 
-Pour améliorer l’expérience utilisateur, le SDK inclut un paramètre `appState` pour la méthode `loginWithRedirect()`. Les détails de l’application en cours sont inclus dans la requête envoyée au serveur Auth, puis renvoyés une fois l’authentification réussie, ce qui permet à l’utilisateur de reprendre son parcours sans interruption.
+Pour améliorer l’expérience utilisateur, le SDK comprend un paramètre `appState` pour la méthode `loginWithRedirect()`. Les détails sur l’état actuel de l’application sont inclus dans la requête au serveur Auth et renvoyés une fois l’authentification réussie, ce qui permet une continuation fluide du parcours utilisateur.
 
-Dans le Quickstart, le composant `PrivateRoute` définit le paramètre `state` à `targetUrl`, et la fonction `onRedirectCallback` de `index.js` récupère cette valeur afin de rediriger l’utilisateur une fois l’authentification terminée.
+Dans le Quickstart, le composant `PrivateRoute` définit un paramètre state `targetUrl`, et la fonction `onRedirectCallback` de `index.js` extrait cette valeur pour rediriger l’utilisateur une fois l’authentification terminée.
 
 <div id="token-storage">
   #### Stockage des jetons
 </div>
 
-Afin de stocker les jetons retournés de la façon la plus sécuritaire possible, tous les jetons sont placés dans un cache local. Les jetons d’identité et d’accès sont stockés par paires, et les valeurs d’<Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Nommée aud dans un jeton, sa valeur contient l’ID d’une application (Client ID) pour un ID Token ou d’une API (API Identifier) pour un Access Token." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip> et de portée servent à récupérer les jetons au besoin.
+Afin de conserver les jetons retournés de la manière la plus sécuritaire possible, tous les jetons sont placés dans un cache local. Les jetons d’ID et d’accès sont stockés par paires, les valeurs de <Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Appelée aud dans un jeton, sa valeur contient l’ID d’une application (Client ID) pour un ID Token ou d’une API (identifiant d’API) pour un jeton d’accès." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip> et de la portée étant utilisées pour récupérer les jetons au besoin.
 
-De plus, les jetons du cache sont supprimés dès que le jeton d’identité ou le jeton d’accès expire, de sorte que si un jeton se trouve dans le cache, on peut présumer qu’il est toujours valide.
+De plus, les jetons en cache sont supprimés dès que l’ID Token ou le jeton d’accès expire, de sorte que si un jeton se trouve dans le cache, on peut supposer qu’il est toujours valide.
 
 <div id="call-apis">
   #### Appeler des API
 </div>
 
-La méthode `getTokenSilently()` sert d’abord à tirer parti du cache de jetons et, s’il n’y en a aucun, elle lance un iframe invisible pour récupérer un nouveau jeton. À cette fin, toutes les requêtes aux API peuvent utiliser cette méthode pour construire l’en-tête d’autorisation avec le jeton porteur, sans logique supplémentaire pour gérer les jetons expirés.
+La méthode `getTokenSilently()` consulte d’abord le cache de jetons et, s’il n’y en a pas, ouvre un iframe invisible pour récupérer un nouveau jeton. À cette fin, toutes les requêtes adressées aux API peuvent utiliser cette méthode pour construire l’en-tête du jeton Bearer, sans qu’il soit nécessaire d’ajouter une logique supplémentaire pour gérer les jetons expirés.
 
-Dans le Quickstart, la vue `ExternalService` envoie une requête à l’API express à l’aide de cette fonctionnalité.
+Dans le Quickstart, la vue `ExternalService` envoie une requête à l’API Express à l’aide de cette fonctionnalité.
 
 <div id="warn-users-to-continue-their-sessions">
-  #### Avertir les utilisateurs de poursuivre leur session
+  #### Avertir les utilisateurs pour qu’ils poursuivent leur session
 </div>
 
-Lorsqu’un utilisateur n’a posé aucune action susceptible de mettre à jour la session Auth0, Auth0 recommande d’afficher un avertissement lui demandant de choisir explicitement de poursuivre sa session.
+Lorsqu’un utilisateur n’a effectué aucune action qui entraînerait la mise à jour de la session Auth0, Auth0 recommande d’afficher un avertissement invitant l’utilisateur à choisir explicitement de poursuivre sa session.
 
-Cette approche permet à la session de devenir inactive si l’utilisateur n’est plus présent, tout en offrant autrement un moyen de déclencher l’actualisation silencieuse du jeton afin qu’il puisse poursuivre sa session sans avoir à fournir de nouveau ses identifiants.
+L’objectif de cette approche est de laisser la session devenir inactive si l’utilisateur n’est plus présent, tout en permettant autrement de déclencher l’actualisation silencieuse du jeton pour qu’il puisse poursuivre sa session sans avoir à saisir de nouveau ses identifiants.
 
-Pour en savoir plus sur les minuteries d’inactivité et les fenêtres modales d’expiration, consultez [URL de logout propres à l’application](/docs/fr-CA/manage-users/sessions/configure-session-lifetime-settings).
+Pour en savoir plus sur les délais d’inactivité et les fenêtres modales d’expiration, consultez [les URL de déconnexion propres à l’application](/docs/fr-CA/manage-users/sessions/configure-session-lifetime-settings).
 
 <div id="example-workflow">
-  ### Exemple de flux de travail
+  ### Exemple de workflow
 </div>
 
 1. Authentification initiale
 2. Maintien de la session Auth0
-3. Seamless SSO
-4. Inviter l’utilisateur à prolonger la session
+3. SSO fluide
+4. Invitation à l’utilisateur à prolonger la session
 5. L’utilisateur se déconnecte explicitement de l’application
-6. L’utilisateur retourne à l’application initiale après s’être déconnecté
+6. L’utilisateur revient à l’application initiale après s’être déconnecté
 
 <div id="initial-authentication">
   #### Authentification initiale
 </div>
 
-1. Un nouvel onglet s’ouvre
+1. Ouverture d’un nouvel onglet
 2. Demande de connexion
 3. L’utilisateur saisit ses identifiants
-4. Le cookie SSO (avec expiration) est défini
-5. Échange de jeton effectué
+4. Définition du cookie SSO (avec expiration)
+5. Échange de jetons effectué
 
 <Frame>![Schéma du flux d’authentification initiale](/docs/images/cdy7uua7fh8z/2voC3vs36CJJlpDu4xl06Y/310fe5afe79ad7d083833baa2690dfa4/initial-authentication.png)</Frame>
 
@@ -83,33 +83,33 @@ Pour en savoir plus sur les minuteries d’inactivité et les fenêtres modales 
 1. L’utilisateur demande des données à une ressource protégée
 2. `getTokenSilently()` est appelé
 3. La ressource est récupérée
-4. L’utilisateur met à jour des données dans la ressource protégée
+4. L’utilisateur met à jour les données de la ressource protégée
 5. `getTokenSilently()` est appelé
 
-   1. Iframe ouvert
-   2. Échange de jeton effectué
+   1. Une iframe est ouverte
+   2. Un échange de jetons est effectué
 6. La ressource est mise à jour
 
 <Frame>![Schéma du maintien d’une session](/docs/images/cdy7uua7fh8z/7CI29ouvhuJ4TFC1G2C5n8/4d2bd0c9372a6cc16e75fc76f438a0bd/maintain-auth0-session.png)</Frame>
 
 <div id="seamless-sso">
-  #### Seamless SSO
+  #### SSO fluide
 </div>
 
-1. L’utilisateur accède à une route privée
-2. Vérifiez avec `isAuthenticated()`
-3. Si c’est faux, `loginWithRedirect()`
+1. L&#39;utilisateur accède à une route privée
+2. Vérifier avec `isAuthenticated()`
+3. Si non, `loginWithRedirect()`
 
-<Frame>![Schéma du flux Seamless SSO pour les sessions](/docs/images/cdy7uua7fh8z/38heJlnN0letWMVhpTtXad/4d4127150fb818522ea29eea28ccc00e/seamless-sso.png)</Frame>
+<Frame>![Schéma du flux SSO fluide pour les sessions](/docs/images/cdy7uua7fh8z/38heJlnN0letWMVhpTtXad/4d4127150fb818522ea29eea28ccc00e/seamless-sso.png)</Frame>
 
 <div id="prompt-user-to-extend-session">
   #### Inviter l’utilisateur à prolonger sa session
 </div>
 
-1. Après 240 secondes, inviter l’utilisateur à garder sa session active au moyen d’une fenêtre modale qui reste affichée pendant 60 secondes
+1. Après 240 secondes, inviter l’utilisateur à garder sa session active au moyen d’une fenêtre modale affichée pendant 60 secondes
 2. S’il choisit de maintenir sa session, `getTokenSilently()`
 
-<Frame>![Schéma montrant comment inviter un utilisateur à maintenir sa session](/docs/images/cdy7uua7fh8z/6kH2G3oclCfSudwd0hJEUM/70651da37771c9945c5a34dcad409d9f/prompt-user-extend-session.png)</Frame>
+<Frame>![Schéma montrant l’invite à l’utilisateur de maintenir sa session](/docs/images/cdy7uua7fh8z/6kH2G3oclCfSudwd0hJEUM/70651da37771c9945c5a34dcad409d9f/prompt-user-extend-session.png)</Frame>
 
 <div id="user-explicitly-logs-out-of-application">
   #### L’utilisateur se déconnecte explicitement de l’application
@@ -118,20 +118,20 @@ Pour en savoir plus sur les minuteries d’inactivité et les fenêtres modales 
 1. L’utilisateur choisit de se déconnecter
 2. `logout()` est appelé
 
-   1. Vider le cache de jetons
-   2. Appeler `/oidc/logout`
-   3. Effacer le cookie SSO et supprimer les données de session
-   4. Rediriger l’utilisateur vers la page de déconnexion
+   1. Le cache de jetons est vidé
+   2. Appel à `/oidc/logout`
+   3. Le cookie SSO est effacé et les données de session sont supprimées
+   4. Redirection de l’utilisateur vers la page de déconnexion
 
 <Frame>![Schéma d’un utilisateur qui se déconnecte](/docs/images/cdy7uua7fh8z/4b55FKM2vZBoskXTPY4nxs/1a9e69437677f2cfac9a3d8e6bff7ffe/user-explicitly-logs-out-of-app.png)</Frame>
 
 <div id="user-returns-to-initial-application-after-logging-out">
-  #### L’utilisateur revient à l’application initiale après s’être déconnecté
+  #### L’utilisateur retourne à l’application initiale après s’être déconnecté
 </div>
 
-1. L’utilisateur demande des données à une ressource protégée
+1. L’utilisateur demande des données à la ressource protégée
 2. `getTokenSilently()` est appelé
-3. Comportement variable selon l’application
+3. Comportement propre à l’application
 
 <Frame>![Schéma de l’utilisateur qui retourne à l’application initiale après s’être déconnecté](/docs/images/cdy7uua7fh8z/3geXGwsXkIgFkwopoGoLMx/01685b6b8e8473c6ce6f26e59b402cf3/user-returns-to-initial-app.png)</Frame>
 
@@ -139,8 +139,8 @@ Pour en savoir plus sur les minuteries d’inactivité et les fenêtres modales 
   ## Sessions de longue durée
 </div>
 
-Auth0 prend en charge les sessions de longue durée dans les plans Enterprise. Avec les sessions de longue durée, vous pouvez configurer des limites de session allant jusqu’à 100 jours d’inactivité (délai d’inactivité) et jusqu’à un an de durée totale (délai d’expiration absolu). Si vos échéances sont trimestrielles, mensuelles ou autres, cela vous permet de réduire les frictions pour les utilisateurs finaux et d’offrir l’accès à du contenu et à des fonctionnalités à faible risque. De plus, les entreprises médiatiques peuvent tirer parti des sessions de longue durée pour améliorer l’expérience utilisateur grâce à un accès transparent au contenu. Vous pouvez également choisir entre les sessions de longue durée et la validation du mot de passe selon vos exigences en matière d’expérience utilisateur et de sécurité.
+Auth0 prend en charge les sessions de longue durée avec les forfaits Enterprise. Avec les sessions de longue durée, vous pouvez configurer des limites de session pouvant aller jusqu’à 100 jours d’inactivité (délai d’inactivité) et jusqu’à un an au total (délai absolu). Si vos échéances sont trimestrielles, mensuelles ou autres, cela vous permet de réduire les frictions pour les utilisateurs finaux et d’offrir l’accès à du contenu et à des fonctionnalités à faible risque. De plus, les entreprises médiatiques peuvent tirer parti des sessions de longue durée pour améliorer l’expérience utilisateur grâce à un accès fluide au contenu. Vous pouvez aussi choisir entre les sessions de longue durée et la validation du mot de passe selon vos exigences en matière d’expérience utilisateur et de sécurité.
 
-Les détails du flux de travail seraient différents dans le cas d’une session de longue durée, où la session de l’application serait fort probablement plus courte que la session [d’authentification unique (SSO)](/docs/fr-CA/authenticate/single-sign-on).
+Les détails du workflow changeraient dans le cas d’une session de longue durée, où la session d’application serait très probablement plus courte que la session de [l’authentification unique (SSO)](/docs/fr-CA/authenticate/single-sign-on).
 
 Pour en savoir plus, consultez [Configurer les limites de durée de vie des sessions](/docs/fr-CA/manage-users/sessions/configure-session-lifetime-settings) et [Mettre à jour la durée de vie du jeton d’accès](/docs/fr-CA/secure/tokens/access-tokens/update-access-token-lifetime).

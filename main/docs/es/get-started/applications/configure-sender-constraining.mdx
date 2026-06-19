@@ -1,17 +1,17 @@
 ---
-description: Aprende a usar Sender Constraining con tokens en Auth0.
+description: Aprende a proteger los tokens con Sender Constraining en Auth0.
 title: Sender Constraining
 ---
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  El uso de Sender Constraining con tokens mediante Demonstrating Proof-of-Possession (DPoP) se encuentra actualmente en acceso anticipado. Para solicitar acceso a esta función, ponte en contacto con tu representante de Auth0.
+  La protección de tokens con Sender Constraining mediante Demonstrating Proof-of-Possession (DPoP) se encuentra actualmente en acceso anticipado. Para solicitar acceso a esta función, ponte en contacto con tu representante de Auth0.
 </Callout>
 
 Sender Constraining es un mecanismo de seguridad de <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> y <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) que vincula criptográficamente los tokens de acceso y los <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=refresh+tokens">tokens de actualización</Tooltip> a la aplicación que los solicitó, lo que evita el robo y el uso indebido de tokens.
 
-Tradicionalmente, los <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> de OAuth 2.0 son bearer tokens, lo que significa que cualquiera que “porte” o posea el token puede usarlo. Si se roba o se filtra un bearer token, un atacante puede presentarlo ante un <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip> (API) y obtener acceso no autorizado haciéndose pasar por la aplicación cliente o el usuario legítimos.
+Tradicionalmente, los <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> de OAuth 2.0 son bearer tokens, lo que significa que cualquiera que “porte” o posea el token puede usarlo. Si un bearer token es robado o se filtra, un atacante puede presentarlo a un <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip> (API) y obtener acceso no autorizado al hacerse pasar por la aplicación cliente o el usuario legítimos.
 
-Sender Constraining garantiza que la aplicación cliente que presenta el token de acceso a un servidor de recursos sea la propietaria legítima de ese token. Si la aplicación cliente no es la propietaria legítima del token de acceso, el servidor de recursos rechaza la solicitud a la API.
+Sender Constraining garantiza que la aplicación cliente que presenta el token de acceso a un servidor de recursos sea su propietaria legítima. Si la aplicación cliente no es la propietaria legítima del token de acceso, el servidor de recursos rechaza la solicitud a la API.
 
 <div id="how-it-works">
   ## Cómo funciona
@@ -19,45 +19,45 @@ Sender Constraining garantiza que la aplicación cliente que presenta el token d
 
 Puedes implementar Sender Constraining de una de estas dos maneras:
 
-* Vinculación de certificados Mutual-TLS (mTLS) en la capa de transporte:
+* Vinculación mediante certificados Mutual TLS (mTLS) en la capa de transporte:
 
-  * **Mecanismo:** Cuando la aplicación cliente solicita un token de acceso al Auth0 Authorization Server, establece una conexión de TLS mutuo (mTLS), en la que tanto la aplicación cliente como el servidor presentan y verifican los certificados X.509 de la otra parte.
-  * **Vinculación:** El Auth0 Authorization Server incluye un claim de confirmación (`cnf`) que incorpora la huella digital del certificado de la aplicación cliente directamente en el token de acceso emitido.
+  * **Mecanismo:** Cuando la aplicación cliente solicita un token de acceso al servidor de autorización de Auth0, establece una conexión TLS mutua (mTLS), en la que tanto la aplicación cliente como el servidor presentan y verifican mutuamente sus certificados X.509.
+  * **Vinculación:** El servidor de autorización de Auth0 incluye un claim de confirmación (`cnf`) con la huella digital del certificado de la aplicación cliente directamente en el token de acceso emitido.
   * **Prueba de posesión:** Cuando la aplicación cliente usa el token de acceso vinculado a mTLS para acceder a un servidor de recursos, debe volver a establecer una conexión mTLS con el mismo certificado. El servidor de recursos verifica que el certificado presentado por la aplicación cliente coincida con el vinculado al token de acceso. Si no coinciden, el servidor de recursos rechaza la solicitud.
-  * **Ventaja:** Incluso si un atacante roba el token de acceso, no podrá usarlo porque no tendrá la clave privada ni el certificado correspondientes necesarios para establecer la conexión mTLS correcta. El Sender Constraining con mTLS suele usarse en clientes confidenciales, como las aplicaciones del lado del servidor, que pueden almacenar y gestionar de forma segura certificados X.509 y sus claves privadas.
-* Prueba de posesión (DPoP) en la capa de aplicación:
+  * **Beneficio:** Incluso si un atacante roba el token de acceso, no podrá usarlo porque no tendrá la clave privada ni el certificado correspondientes necesarios para establecer la conexión mTLS correcta. El Sender Constraining con mTLS suele usarse con clientes confidenciales, como las aplicaciones del lado del servidor, que pueden almacenar y gestionar de forma segura certificados X.509 y sus claves privadas.
+* Demonstrating Proof-of-Possession (DPoP) en la capa de aplicación:
 
   * **Mecanismo:** DPoP opera en la capa de aplicación y no requiere mTLS. En su lugar, la aplicación cliente genera su propio par de claves criptográficas (clave privada/clave pública).
-  * **Vinculación:** Al solicitar un token de acceso, la aplicación cliente crea un JSON Web Token (JWT) llamado JWT de prueba DPoP. Este JWT de prueba contiene la clave pública del cliente y está firmado con su clave privada. La aplicación cliente envía el JWT de prueba DPoP junto con la solicitud de token de acceso. El Auth0 Authorization Server valida el JWT de prueba DPoP y luego vincula el token de acceso emitido a esa clave pública.
-  * **Prueba de posesión:** Cuando la aplicación cliente usa el token de acceso vinculado a DPoP para llamar a un servidor de recursos, genera otro JWT de prueba DPoP firmado con su clave privada para esa solicitud a la API. La aplicación cliente envía el JWT de prueba DPoP en un encabezado junto con el token de acceso. El servidor de recursos verifica que el token de acceso esté vinculado a la clave pública del JWT de prueba DPoP y que el propio JWT de prueba DPoP haya sido firmado con la clave privada correspondiente mediante un claim de confirmación (`cnf`).
-  * **Ventaja:** DPoP es más flexible que mTLS porque no requiere una infraestructura de clave pública. Pueden usarlo distintos tipos de clientes, incluidos clientes públicos como las SPA y las aplicaciones móviles.
+  * **Vinculación:** Al solicitar un token de acceso, la aplicación cliente crea un JSON Web Token (JWT) llamado JWT de prueba DPoP. Este JWT de prueba contiene la clave pública del cliente y está firmado con su clave privada. La aplicación cliente envía el JWT de prueba DPoP junto con la solicitud de token de acceso. El servidor de autorización de Auth0 valida el JWT de prueba DPoP y luego vincula el token de acceso emitido a la clave pública.
+  * **Prueba de posesión:** Cuando la aplicación cliente usa el token de acceso vinculado a DPoP para llamar a un servidor de recursos, genera otro JWT de prueba DPoP firmado con su clave privada para esa solicitud a la API. La aplicación cliente envía el JWT de prueba DPoP en un header junto con el token de acceso. El servidor de recursos verifica que el token de acceso esté vinculado a la clave pública del JWT de prueba DPoP y que el propio JWT de prueba DPoP haya sido firmado con la clave privada correspondiente mediante un claim de confirmación (`cnf`).
+  * **Beneficio:** DPoP es más flexible que mTLS porque no requiere una infraestructura de clave pública. Pueden usarlo distintos tipos de clientes, incluidos clientes públicos como las SPA y las aplicaciones móviles.
 
 <div id="mtls-vs-dpop">
   ## mTLS vs. DPoP
 </div>
 
-La siguiente tabla resume las diferencias principales entre mTLS y DPoP para tokens con Sender Constraining:
+La siguiente tabla resume las diferencias generales entre mTLS y DPoP para aplicar Sender Constraining a los tokens:
 
-| Atributo            | mTLS                                                         | DPoP                                                                 |
-| ------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Capa de operación   | Capa de transporte (TLS/SSL)                                 | Capa de aplicación (headers HTTP)                                    |
-| Criptografía        | Uso de infraestructura de clave pública (certificados X.509) | Uso de claves asimétricas (pares de claves generados por el cliente) |
-| prueba de posesión | handshake de TLS y validación de certificados                | prueba DPoP (JWT firmado en el header HTTP para cada solicitud)      |
-| Tipo de cliente     | clientes confidenciales                                      | clientes públicos (SPA, aplicaciones móviles)                        |
+| Atributo           | mTLS                                                         | DPoP                                                                 |
+| ------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Capa de operación  | Capa de transporte (TLS/SSL)                                 | Capa de aplicación (encabezados HTTP)                                |
+| Criptografía       | Uso de infraestructura de clave pública (certificados X.509) | Uso de claves asimétricas (pares de claves generados por el cliente) |
+| Prueba de posesión | handshake de TLS y validación de certificados                | Prueba DPoP (JWT firmado en el encabezado HTTP para cada solicitud)  |
+| Tipo de cliente    | clientes confidenciales                                      | clientes públicos (SPA, aplicaciones móviles)                        |
 
-Para obtener más información, consulta [mTLS Sender Constraining](/docs/es/secure/sender-constraining/mtls-sender-constraining) y [Demonstrating Proof-of-Possession (DPoP)](/docs/es/secure/sender-constraining/demonstrating-proof-of-possession-dpop).
+Para obtener más información, consulta [mTLS Sender Constraining](/docs/es/secure/sender-constraining/mtls-sender-constraining) y [Demostración de prueba de posesión (DPoP)](/docs/es/secure/sender-constraining/demonstrating-proof-of-possession-dpop).
 
 <div id="get-started">
   ## Primeros pasos
 </div>
 
-Para empezar a usar Sender Constraining en Auth0, lee lo siguiente:
+Para empezar a usar Sender Constraining en Auth0, consulta lo siguiente:
 
-| Lee                                                                                                                   | Aprenderás                                                                                          |
-| --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [mTLS Sender Constraining](/docs/es/secure/sender-constraining/mtls-sender-constraining)                                 | Cómo funciona mTLS Sender Constraining en Auth0, paso a paso.                                       |
+| Leer                                                                                                                | Para saber                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [mTLS Sender Constraining](/docs/es/secure/sender-constraining/mtls-sender-constraining)                               | Cómo funciona mTLS sender constraining en Auth0, paso a paso.                                       |
 | [Demonstrating Proof-of-Possession (DPoP)](/docs/es/secure/sender-constraining/demonstrating-proof-of-possession-dpop) | Cómo funciona DPoP en Auth0, paso a paso.                                                           |
-| [Configurar Sender Constraining](/docs/es/secure/sender-constraining/configure-sender-constraining)                      | Cómo configurar Sender Constraining para una aplicación cliente y un servidor de recursos en Auth0. |
+| [Configurar Sender Constraining](/docs/es/secure/sender-constraining/configure-sender-constraining)                     | Cómo configurar Sender Constraining para una aplicación cliente y un servidor de recursos en Auth0. |
 
 <div id="learn-more">
   ## Más información

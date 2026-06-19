@@ -3,7 +3,7 @@ description: Découvrez comment configurer Amazon Web Services (AWS) pour l’au
 title: Configurer Amazon Web Services pour l’authentification déléguée
 ---
 
-Vous pouvez configurer Amazon Web Services (AWS) pour l’authentification déléguée avec Auth0. Pour en savoir plus, consultez [Configurer Amazon Web Services pour l’authentification unique](/docs/fr-CA/customize/integrations/aws/configure-amazon-web-services-for-sso) et [Sécuriser les points de terminaison d’AWS API Gateway à l’aide d’authorizers personnalisés](/docs/fr-CA/customize/integrations/aws/aws-api-gateway-custom-authorizers).
+Vous pouvez configurer Amazon Web Services (AWS) pour l’authentification déléguée à l’aide d’Auth0. Pour en savoir plus, consultez [Configurer Amazon Web Services pour l’authentification unique](/docs/fr-CA/customize/integrations/aws/configure-amazon-web-services-for-sso) et [Sécuriser les endpoints d’API Gateway d’AWS à l’aide d’authorizers personnalisés](/docs/fr-CA/customize/integrations/aws/aws-api-gateway-custom-authorizers).
 
 <div id="create-a-saml-provider-in-aws">
   ## Créer un fournisseur SAML dans AWS
@@ -13,9 +13,9 @@ Vous pouvez configurer Amazon Web Services (AWS) pour l’authentification dél�
 
    | Paramètre               | Description et exemple de valeur                                                                                                                                                                      |
    | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | Type de fournisseur     | Le type de fournisseur. Définissez-le sur [`SAML`](/docs/fr-CA/glossary?term=%60SAML%60)                                                                                                                    |
+   | Type de fournisseur     | Le type de fournisseur. Réglez-le à [`SAML`](/docs/fr-CA/glossary?term=%60SAML%60)                                                                                                                          |
    | Nom du fournisseur      | Un nom descriptif pour le fournisseur, par exemple `auth0SamlProvider`                                                                                                                                |
-   | Document de métadonnées | Téléversez le fichier contenant les métadonnées Auth0, que vous trouverez dans **Dashboard &gt; Applications &gt; Application Settings &gt; Advanced Settings &gt; Endpoints &gt; SAML Metadata URL** |
+   | Document de métadonnées | Téléversez le fichier contenant les métadonnées Auth0, que vous trouverez sous **Dashboard &gt; Applications &gt; Application Settings &gt; Advanced Settings &gt; Endpoints &gt; SAML Metadata URL** |
 2. Cliquez sur **Next Step**.
 3. Vérifiez vos paramètres et cliquez sur **Create** si tout est correct.
 
@@ -23,17 +23,17 @@ Vous pouvez configurer Amazon Web Services (AWS) pour l’authentification dél�
   ## Créez un rôle pour votre fournisseur SAML
 </div>
 
-Pour utiliser le fournisseur, vous devez créer un rôle IAM en utilisant le fournisseur dans la politique de confiance du rôle.
+Pour utiliser le fournisseur, vous devez créer un rôle IAM en utilisant le fournisseur dans la politique d’approbation du rôle.
 
-1. Dans la console IAM, accédez à [Roles](https://console.aws.amazon.com/iam/home#/roles). Cliquez sur **Create role**. Vous serez redirigé vers la page **Trust**. Sélectionnez **Saml 2.0 federation** sous **Select type of trusted entity**. Indiquez les valeurs suivantes :
+1. Dans la console IAM, accédez à [Roles](https://console.aws.amazon.com/iam/home#/roles). Cliquez sur **Create role**. Vous serez redirigé vers la page **Trust**. Sous **Select type of trusted entity**, indiquez **Saml 2.0 federation**. Fournissez les valeurs suivantes :
 
    | Paramètre     | Valeur                       |
    | ------------- | ---------------------------- |
    | SAML Provider | Le nom de votre nouveau rôle |
-   | Attribut      | `SAML:iss`                   |
-   | Valeur        | `urn:{yourDomain}`           |
+   | Attribute     | `SAML:iss`                   |
+   | Value         | `urn:{yourDomain}`           |
 2. Cliquez sur **Next: Permissions** pour continuer.
-3. Vous devrez associer des politiques d’autorisation à votre nouveau rôle. Vous associerez une politique personnalisée. Pour en créer une, cliquez sur **Create Policy**.
+3. Vous devrez associer des politiques d’autorisation à votre nouveau rôle. Vous allez utiliser une politique personnalisée. Pour en créer une, cliquez sur **Create Policy**.
 4. Dans l’éditeur **Create policy** qui s’ouvre, passez à l’onglet **JSON**. Fournissez une politique personnalisée.
 
    ```json lines
@@ -51,28 +51,28 @@ Pour utiliser le fournisseur, vous devez créer un rôle IAM en utilisant le fou
    }
    ```
 
-   Cela définit les autorisations dont disposeront dans AWS les utilisateurs auxquels ce rôle est attribué. Cliquez sur **Review policy**.
-5. Passez en revue la politique que vous avez créée. Assurez-vous d’indiquer un **Name** pour votre politique et, au besoin, une **Description**.
-6. Cliquez sur **Create policy** lorsque vous avez terminé. Si tout s’est bien passé, le message suivant s’affichera pour confirmer la création de votre nouvelle politique : &quot;auth0SamlRolePolicy has been created&quot;.
-7. De retour dans l’assistant de création de rôle (vous devriez être à l’étape **2 - Permissions**), trouvez la nouvelle politique que vous venez de créer et cochez sa case pour l’associer à votre rôle. Nous vous recommandons d’utiliser le filtre **Customer managed** pour trouver votre politique.
+   Cela définit les permissions dont disposeront dans AWS les utilisateurs à qui ce rôle est attribué. Cliquez sur **Review policy**.
+5. Vérifiez la politique que vous avez créée. Assurez-vous de fournir un **Name** pour votre politique et, au besoin, une **Description**.
+6. Cliquez sur **Create policy** lorsque vous avez terminé. Si tout s’est bien passé, vous verrez le message suivant confirmant la création de votre nouvelle politique : &quot;auth0SamlRolePolicy has been created&quot;.
+7. De retour dans l’assistant de création du rôle (vous devriez être à l’étape **2 - Permissions**), repérez la nouvelle politique que vous venez de créer et cochez sa case pour l’associer à votre rôle. Nous vous recommandons d’utiliser le filtre **Customer managed** pour trouver votre politique.
 8. Cliquez sur **Next: Review** pour continuer.
-9. Passez en revue les renseignements sur votre rôle, indiquez un **Role name** et, au besoin, une **Role description**. Vous verrez également la politique que vous avez associée. Si tout semble correct, cliquez sur **Create role** pour continuer.
-10. Une fois créé, vous trouverez votre rôle sur la page principale **Roles**.
+9. Vérifiez les renseignements sur votre rôle, fournissez un **Role name** et, au besoin, une **Role description**. Vous verrez aussi la politique que vous avez associée. Si tout semble correct, cliquez sur **Create role** pour continuer.
+10. Une fois le rôle créé, vous pourrez le trouver sur la page principale **Roles**.
 
 <div id="copy-the-arn-values">
-  ## Copier les valeurs ARN
+  ## Copiez les valeurs d’ARN
 </div>
 
-Les instructions suivantes vous indiquent où trouver les valeurs de Provider et de Role ARN.
+Les instructions suivantes vous indiqueront où trouver les valeurs de Provider ARN et de Role ARN.
 
 <div id="provider-arn">
   ### Provider ARN
 </div>
 
-Dans la console IAM, accédez à [Identity providers](https://console.aws.amazon.com/iam/home#/providers). Sélectionnez le rôle qui vous intéresse pour afficher sa page de résumé. Copiez la valeur **Provider ARN**, qui apparaît en premier sous **Summary**.
+Dans la console IAM, accédez à [Identity Providers](https://console.aws.amazon.com/iam/home#/providers). Sélectionnez le rôle qui vous intéresse pour ouvrir sa page Summary. Copiez la valeur **Provider ARN**, qui apparaît en premier sous **Summary**.
 
 <div id="role-arn">
   ### Role ARN
 </div>
 
-Dans la console IAM, accédez à [Roles](https://console.aws.amazon.com/iam/home#/roles). Sélectionnez le rôle qui vous intéresse pour ouvrir sa page **Summary**. Copiez la valeur **Role ARN**, qui figure en premier sous **Summary**.
+Dans la console IAM, accédez à [Roles](https://console.aws.amazon.com/iam/home#/roles). Sélectionnez le rôle voulu pour ouvrir sa page Summary. Copiez la valeur **Role ARN**, qui apparaît en premier sous **Summary**.

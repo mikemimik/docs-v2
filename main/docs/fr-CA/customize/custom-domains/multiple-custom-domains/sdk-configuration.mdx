@@ -1,22 +1,22 @@
 ---
-description: Découvrez comment configurer les SDK Auth0 pour qu’ils fonctionnent avec plusieurs domaines personnalisés.
-title: Configuration des SDK Auth0 pour plusieurs domaines personnalisés
+description: Découvrez comment configurer les SDK Auth0 pour qu’ils fonctionnent avec Domaines personnalisés multiples.
+title: Configuration des SDK Auth0 pour Domaines personnalisés multiples
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Si vous utilisez [plusieurs domaines personnalisés](/docs/fr-CA/customize/custom-domains/multiple-custom-domains), vous devez configurer vos SDK Auth0 pour qu’ils utilisent le domaine personnalisé approprié pour l’authentification. Ce guide explique la configuration des SDK pour différentes plateformes et divers scénarios.
+Lorsque vous utilisez [Domaines personnalisés multiples](/docs/fr-CA/customize/custom-domains/multiple-custom-domains), vous devez configurer vos SDK Auth0 pour qu’ils utilisent le domaine personnalisé approprié pour l’authentification. Ce guide présente la configuration des SDK pour différentes plateformes et divers scénarios.
 
 <div id="key-concepts">
-  ## Concepts essentiels
+  ## Concepts clés
 </div>
 
 <div id="domain-parameter">
   ### Paramètre `domain`
 </div>
 
-Tous les SDK Auth0 exigent un paramètre `domain` qui indique quel domaine Auth0 utiliser pour l’authentification. Si vous utilisez des domaines personnalisés, définissez ce paramètre sur votre domaine personnalisé plutôt que sur votre domaine Auth0 canonique.
+Tous les SDK Auth0 exigent un paramètre `domain` qui indique quel domaine Auth0 utiliser pour l’authentification. Lorsque vous utilisez des domaines personnalisés, définissez ce paramètre sur votre domaine personnalisé plutôt que sur votre domaine canonique Auth0.
 
 **Sans domaine personnalisé :**
 
@@ -34,7 +34,7 @@ domain: 'login.example.com'
   ### Émetteur du jeton
 </div>
 
-Lorsque vous utilisez un domaine personnalisé, le claim `iss` (émetteur) des jetons aura pour valeur votre domaine personnalisé :
+Lorsque vous utilisez un domaine personnalisé, le claim `iss` (issuer) des jetons est défini sur votre domaine personnalisé :
 
 ```json
 {
@@ -44,21 +44,21 @@ Lorsque vous utilisez un domaine personnalisé, le claim `iss` (émetteur) des j
 }
 ```
 
-Vous devez configurer la validation de votre jeton pour accepter votre domaine personnalisé comme émetteur valide.
+Vous devez configurer la validation de votre jeton pour qu’elle accepte votre domaine personnalisé comme émetteur valide.
 
 <div id="authentication-sdks">
-  ## SDKs d’authentification
+  ## SDK d’authentification
 </div>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Lorsque vous utilisez MCD, le client est responsable de fournir et de valider tous les domaines personnalisés. Lorsque vous configurez des SDKs pour résoudre les domaines personnalisés du tenant à l’aide des fonctions de résolution de domaine, vous devez vous assurer que tous les domaines résolus sont fiables. Une mauvaise configuration du résolveur de domaine peut permettre de contourner l’authentification au niveau de la partie de confiance ou rendre l’application vulnérable à une falsification de requêtes côté serveur. Si vos domaines et vos serveurs proxy ne sont pas configurés correctement, cela peut entraîner des vulnérabilités de sécurité critiques dont Okta ne peut être tenue responsable.
+  Lorsque vous utilisez MCD, il incombe au client de fournir et de valider tous les domaines personnalisés. Lorsque vous configurez des SDK pour résoudre les domaines personnalisés du tenant à l’aide des fonctions de résolution de domaine, vous devez vous assurer que tous les domaines résolus sont dignes de confiance. Une mauvaise configuration du résolveur de domaine peut permettre de contourner l’authentification du côté de la partie de confiance ou exposer l’application à une falsification de requête côté serveur. Si vos domaines et vos serveurs proxy ne sont pas correctement configurés, cela peut entraîner des vulnérabilités de sécurité critiques dont Okta n’assume aucune responsabilité.
 </Callout>
 
 <div id="auth0-spa-sdk-javascript">
   ### Auth0 SPA SDK (JavaScript)
 </div>
 
-Pour les applications monopages utilisant le [Auth0 SPA SDK](https://github.com/auth0/auth0-spa-js) :
+Pour les applications à page unique qui utilisent le [Auth0 SPA SDK](https://github.com/auth0/auth0-spa-js) :
 
 <AuthCodeGroup>
   ```javascript Configuration statique
@@ -76,7 +76,7 @@ Pour les applications monopages utilisant le [Auth0 SPA SDK](https://github.com/
   ```javascript Configuration dynamique
   import { createAuth0Client } from '@auth0/auth0-spa-js';
 
-  // Déterminer le domaine selon le contexte de l’application
+  // Déterminer le domaine en fonction du contexte de l’application
   function getAuth0Domain() {
     const hostname = window.location.hostname;
 
@@ -137,7 +137,7 @@ Pour les applications Next.js qui utilisent le [Auth0 Next.js SDK](https://githu
 
   const auth0 = new Auth0Client({
     domain: ({ headers }) => {
-      // Associe les hôtes d’application aux domaines personnalisés Auth0
+      // Associer les hôtes d’application aux domaines personnalisés Auth0
       const host = headers.get('host') || '';
 
       if (host.includes('brand1.example.com')) {
@@ -158,12 +158,12 @@ Pour les applications Next.js qui utilisent le [Auth0 Next.js SDK](https://githu
   ```typescript Configuration dynamique (SaaS B2B)
   import { Auth0Client } from '@auth0/nextjs-auth0/server';
 
-  // Associe les identifiants de tenant aux domaines personnalisés (depuis la base de données, le cache, etc.)
+  // Associer les identifiants de tenant aux domaines personnalisés (depuis la base de données, le cache, etc.)
   async function resolveTenantDomain(host: string): Promise<string> {
-    // Extrait l’identifiant du tenant à partir du sous-domaine
+    // Extraire l’identifiant du tenant à partir du sous-domaine
     const subdomain = host.split('.')[0];
 
-    // Recherche le domaine personnalisé pour ce tenant (exemple : dans la base de données)
+    // Rechercher le domaine personnalisé pour ce tenant (par exemple, dans la base de données)
     const tenantConfig = await getTenantConfig(subdomain);
 
     return tenantConfig?.customDomain || 'login.example.com';
@@ -184,7 +184,7 @@ Pour les applications Next.js qui utilisent le [Auth0 Next.js SDK](https://githu
   ```bash Variables d’environnement
   # .env.local
 
-  # Configuration Auth0 (tenant unique avec plusieurs domaines personnalisés)
+  # Configuration Auth0 (tenant unique avec Domaines personnalisés multiples)
   AUTH0_DOMAIN=login.example.com           # Domaine personnalisé par défaut ou de repli
   AUTH0_CLIENT_ID=your_client_id
   AUTH0_CLIENT_SECRET=your_client_secret
@@ -196,16 +196,16 @@ Pour les applications Next.js qui utilisent le [Auth0 Next.js SDK](https://githu
 **Concepts clés pour MCD avec Next.js :**
 
 * **Un seul tenant Auth0, plusieurs domaines** : Tous les domaines personnalisés partagent le même `clientId` et le même `clientSecret`, puisqu’ils appartiennent au même tenant Auth0.
-* **Fonction DomainResolver** : Le paramètre `domain` accepte une fonction `(config: { headers: Headers; url?: URL }) => Promise<string> | string`. Cela permet de résoudre le domaine dynamiquement pour chaque requête en fonction des en-têtes de la requête entrante.
-* **Mise en cache des instances** : Le SDK met automatiquement en cache les instances `Auth0Client` par domaine au moyen d’un cache LRU de taille limitée (maximum de 100 entrées) pour améliorer les performances.
-* **Isolation des sessions** : Les sessions créées par l’intermédiaire d’un domaine personnalisé sont isolées à ce domaine et ne peuvent pas être utilisées de façon interchangeable avec les sessions d’un autre domaine.
-* **Paramètre d’URL** : Le paramètre `url` du résolveur est `undefined` dans les Server Components et les Server Actions; il est seulement disponible dans le middleware ou les routes API.
+* **Fonction DomainResolver** : Le paramètre `domain` accepte une fonction `(config: { headers: Headers; url?: URL }) => Promise<string> | string`. Cela permet de résoudre dynamiquement le domaine pour chaque requête en fonction des en-têtes de la requête entrante.
+* **Mise en cache des instances** : Le SDK met automatiquement en cache les instances `Auth0Client` par domaine à l’aide d’un cache LRU borné (maximum de 100 entrées) afin d’optimiser les performances.
+* **Isolation des sessions** : Les sessions créées via un domaine personnalisé sont isolées à ce domaine et ne peuvent pas être utilisées de façon interchangeable avec des sessions provenant d’un autre domaine.
+* **Paramètre d’URL** : Le paramètre `url` dans le résolveur est `undefined` dans les Server Components et les Server Actions; il est disponible uniquement dans le middleware ou les routes d’API.
 * **Réglage du cache de découverte** : Configurez la mise en cache des métadonnées OIDC avec l’option `discoveryCache` :
   ```typescript
   const auth0 = new Auth0Client({
     // ... autre configuration
     discoveryCache: {
-      ttl: 600,      // Met en cache pendant 10 minutes (par défaut)
+      ttl: 600,      // Mettre en cache pendant 10 minutes (par défaut)
       maxEntries: 100  // Nombre maximal d’émetteurs mis en cache (par défaut : 100, éviction LRU)
     }
   });
@@ -235,7 +235,7 @@ function App() {
 }
 ```
 
-Pour les scénarios multidomaines :
+Pour les scénarios à domaines multiples :
 
 ```jsx
 import { Auth0Provider } from '@auth0/auth0-react';
@@ -262,7 +262,7 @@ function App() {
   ### Auth0.js
 </div>
 
-Pour les applications utilisant [Auth0.js](https://github.com/auth0/auth0.js) :
+Pour les applications qui utilisent [Auth0.js](https://github.com/auth0/auth0.js) :
 
 ```javascript
 const webAuth = new auth0.WebAuth({
@@ -281,7 +281,7 @@ webAuth.authorize();
   ### Node.js (Express)
 </div>
 
-Pour les applications Node.js qui utilisent [express-openid-connect](https://github.com/auth0/express-openid-connect) :
+Pour les applications Node.js utilisant [express-openid-connect](https://github.com/auth0/express-openid-connect) :
 
 ```javascript
 const { auth } = require('express-openid-connect');
@@ -298,7 +298,7 @@ app.use(
 );
 ```
 
-Pour les scénarios multilocataires :
+Pour les scénarios multi-tenant :
 
 ```javascript
 const { auth } = require('express-openid-connect');
@@ -333,14 +333,14 @@ app.use((req, res, next) => {
 ```
 
 <div id="mobile-sdks">
-  ### SDK pour appareils mobiles
+  ### SDK mobiles
 </div>
 
 <div id="ios-swift">
   #### iOS (Swift)
 </div>
 
-À l’aide de [Auth0.swift](https://github.com/auth0/Auth0.swift) :
+Avec [Auth0.swift](https://github.com/auth0/Auth0.swift) :
 
 ```swift
 import Auth0
@@ -360,7 +360,7 @@ auth0
     }
 ```
 
-Pour sélectionner le domaine de façon dynamique :
+Pour sélectionner le domaine dynamiquement :
 
 ```swift
 import Auth0
@@ -418,7 +418,7 @@ WebAuthProvider.login(account)
     })
 ```
 
-Pour la prise en charge multidomaine :
+Pour prendre en charge plusieurs domaines :
 
 ```kotlin
 class AuthManager(private val context: Context) {
@@ -495,16 +495,16 @@ try {
   ## SDK de gestion
 </div>
 
-Les SDK de gestion permettent d’interagir avec l’Auth0 Management API. Lorsque vous utilisez des domaines personnalisés, vous devrez peut-être inclure l’en-tête `auth0-custom-domain` ou utiliser le [domaine par défaut](/docs/fr-CA/customize/custom-domains/multiple-custom-domains/default-domain).
+Les SDK de gestion servent à interagir avec l’Auth0 Management API. Lorsque vous utilisez des domaines personnalisés, vous devrez peut-être inclure l’en-tête `auth0-custom-domain` ou utiliser le [domaine par défaut](/docs/fr-CA/customize/custom-domains/multiple-custom-domains/default-domain).
 
 <div id="nodejs-management-sdk">
-  ### SDK de gestion pour Node.js
+  ### SDK de gestion Node.js
 </div>
 
 ```javascript
 import { ManagementClient, CustomDomainHeader } from "auth0";
 
-// Domaine personnalisé global (envoyé pour toutes les requêtes sur liste blanche)
+// Domaine personnalisé global (envoyé pour toutes les requêtes en liste blanche)
 const management = new ManagementClient({
   domain: 'tenant.auth0.com',
   clientId: 'YOUR_M2M_CLIENT_ID',
@@ -512,10 +512,10 @@ const management = new ManagementClient({
   withCustomDomainHeader: 'login.example.com', 
 });
 
-// Lister les utilisateurs (endpoint sur liste blanche - l'en-tête est envoyé automatiquement)
+// Lister les utilisateurs (endpoint en liste blanche - l'en-tête est envoyé automatiquement)
 const users = await management.users.getAll();
 
-// Remplacement par requête (a priorité sur le paramètre global)
+// Remplacement par requête (a la priorité sur le global)
 const reqOptions = {
   ...CustomDomainHeader("specific-user-request.exampleco.com"),
 };
@@ -523,7 +523,7 @@ const response = await management.users.getAll({}, reqOptions);
 ```
 
 <div id="python-management-sdk">
-  ### SDK Python de gestion
+  ### SDK de gestion pour Python
 </div>
 
 ```python
@@ -585,13 +585,13 @@ userList, err := mgmt.Users.List(
   ## Validation du jeton
 </div>
 
-Lorsque vous utilisez des domaines personnalisés, mettez à jour la validation du jeton pour accepter le domaine personnalisé comme émetteur.
+Lorsque vous utilisez des domaines personnalisés, mettez à jour la validation de votre jeton pour accepter le domaine personnalisé comme émetteur.
 
 <div id="nodejs-express">
   ### Node.js (Express)
 </div>
 
-À l’aide de [express-jwt](https://github.com/auth0/express-jwt) ou de [jose](https://github.com/panva/jose) :
+Avec [express-jwt](https://github.com/auth0/express-jwt) ou [jose](https://github.com/panva/jose) :
 
 ```javascript
 const { expressjwt } = require('express-jwt');
@@ -647,7 +647,7 @@ app.use(
   ### Python (Flask)
 </div>
 
-Avec [python-jose](https://github.com/mpdavis/python-jose) :
+À l’aide de [python-jose](https://github.com/mpdavis/python-jose) :
 
 ```python
 from jose import jwt
@@ -682,7 +682,7 @@ def requires_auth(f):
         ]
 
         try:
-            # Récupérer le JWKS depuis le domaine personnalisé
+            # Obtenir le JWKS depuis le domaine personnalisé
             unverified = jwt.get_unverified_header(token)
             issuer = jwt.get_unverified_claims(token)['iss']
 
@@ -758,7 +758,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
   ## Configuration propre à chaque environnement
 </div>
 
-Utilisez des variables d’environnement pour gérer les domaines personnalisés selon l’environnement :
+Utilisez des variables d’environnement pour gérer les domaines personnalisés d’un environnement à l’autre :
 
 <div id="env-file-structure">
   ### Structure du fichier .env
@@ -820,43 +820,43 @@ const auth0Config = {
     </tr>
 
     <tr>
-      <td>Échec de récupération du JWKS</td>
-      <td>L’URI JWKS pointe vers le domaine canonique</td>
-      <td>Mettez à jour l’URI JWKS pour utiliser le domaine personnalisé : `https://custom-domain/.well-known/jwks.json`</td>
+      <td>La récupération du JWKS échoue</td>
+      <td>L’URI du JWKS pointe vers le domaine canonique</td>
+      <td>Mettez à jour l’URI du JWKS pour utiliser le domaine personnalisé : `https://custom-domain/.well-known/jwks.json`</td>
     </tr>
 
     <tr>
-      <td>Non-correspondance de l’URI de redirection</td>
+      <td>Non-concordance de l’URI de redirection</td>
       <td>L’URL de rappel ne correspond pas aux URI de redirection configurées</td>
       <td>Ajoutez l’URL de rappel du domaine personnalisé aux paramètres de l’application</td>
     </tr>
 
     <tr>
-      <td>Erreurs cross-origin (CORS)</td>
-      <td>Le domaine personnalisé n’est pas inclus dans les origines autorisées</td>
+      <td>Erreurs d’origine croisée (CORS)</td>
+      <td>Le domaine personnalisé ne figure pas parmi les origines autorisées</td>
       <td>Ajoutez le domaine personnalisé à Allowed Web Origins dans les paramètres de l’application</td>
     </tr>
 
     <tr>
-      <td>Échec du chargement de Lock</td>
-      <td>`configurationBaseUrl` est manquant</td>
+      <td>Lock ne se charge pas</td>
+      <td>Il manque `configurationBaseUrl`</td>
       <td>Ajoutez le paramètre `configurationBaseUrl` avec l’URL du CDN régional</td>
     </tr>
   </tbody>
 </table>
 
 <div id="best-practices">
-  ## Pratiques exemplaires
+  ## Meilleures pratiques
 </div>
 
-1. **Utilisez des variables d’environnement** : stockez les domaines personnalisés dans des fichiers de configuration propres à chaque environnement
-2. **Validez plusieurs émetteurs** : si vous utilisez plusieurs domaines personnalisés, configurez la validation des jetons pour qu’ils soient tous acceptés comme émetteurs valides
-3. **Mettez à jour les URL de rappel** : assurez-vous que tous les domaines personnalisés sont ajoutés à Allowed Callback URLs dans les paramètres de l’application
-4. **Testez de façon approfondie** : testez l’authentification avec chaque domaine personnalisé avant la mise en production
-5. **Surveillez les émetteurs des jetons** : consignez et surveillez le claim `iss` dans les jetons afin de vous assurer que le bon domaine personnalisé est utilisé
-6. **Documentez les correspondances entre domaines** : tenez une documentation claire indiquant quelles applications utilisent quels domaines personnalisés
-7. **Gérez les échecs adéquatement** : prévoyez une gestion appropriée des erreurs en cas d’échec de l’authentification
-8. **Mettez JWKS en cache** : mettez les données JWKS en cache pour améliorer les performances et réduire les requêtes
+1. **Utilisez des variables d&#39;environnement** : stockez les domaines personnalisés dans des fichiers de configuration propres à chaque environnement
+2. **Validez plusieurs émetteurs** : si vous utilisez plusieurs domaines personnalisés, configurez la validation des jetons pour qu&#39;elle accepte tous les émetteurs valides
+3. **Mettez à jour les URL de rappel** : assurez-vous que tous les domaines personnalisés sont ajoutés aux Allowed Callback URLs dans les paramètres de l&#39;application
+4. **Testez de manière approfondie** : testez l&#39;authentification avec chaque domaine personnalisé avant le déploiement en production
+5. **Surveillez les émetteurs des jetons** : consignez et surveillez la revendication `iss` dans les jetons pour vous assurer que le bon domaine personnalisé est utilisé
+6. **Documentez les mappages de domaines** : tenez à jour une documentation claire indiquant quelles applications utilisent quels domaines personnalisés
+7. **Gérez les échecs adéquatement** : mettez en place une gestion appropriée des erreurs en cas d&#39;échec de l&#39;authentification
+8. **Mettez les JWKS en cache** : mettez les données JWKS en cache pour améliorer les performances et réduire les requêtes
 
 <div id="learn-more">
   ## En savoir plus
@@ -865,4 +865,4 @@ const auth0Config = {
 * [Domaines personnalisés multiples](/docs/fr-CA/customize/custom-domains/multiple-custom-domains)
 * [Domaine personnalisé par défaut](/docs/fr-CA/customize/custom-domains/multiple-custom-domains/default-domain)
 * [Configurer les fonctionnalités pour utiliser des domaines personnalisés](/docs/fr-CA/customize/custom-domains/configure-features-to-use-custom-domains)
-* [SDK Auth0](/docs/fr-CA/troubleshoot/customer-support/product-support-matrix#auth0-sdks)
+* [Auth0 SDKs](/docs/fr-CA/troubleshoot/customer-support/product-support-matrix#auth0-sdks)

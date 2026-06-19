@@ -1,19 +1,19 @@
 ---
-description: Découvrez les limites liées à l’utilisation des Actions d’Auth0.
-title: Limites des Actions
+description: Découvrez les limitations liées à l’utilisation des Actions Auth0.
+title: Limitations des Actions
 ---
 
-Les limites suivantes s’appliquent à l’utilisation des Actions :
+Les limitations suivantes s’appliquent à l’utilisation des Actions :
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Pour en savoir plus sur les limites d’entités, consultez [Limites d’entités des Actions](/docs/fr-CA/troubleshoot/customer-support/operational-policies/entity-limit-policy#actions).
+  Pour en savoir plus sur les limites des entités, consultez : [Limites des entités des Actions](/docs/fr-CA/troubleshoot/customer-support/operational-policies/entity-limit-policy#actions).
 </Callout>
 
 <div id="actions">
   ## Actions
 </div>
 
-* Chaque Action ne doit pas dépasser 100 kB. Plus sa taille est grande, plus elle entraîne de latence, ce qui peut avoir une incidence sur les performances de votre système. Cette limite de taille n&#39;inclut pas les modules `npm` qui pourraient être référencés dans des instructions `require`.
+* Chaque Action ne doit pas dépasser 100 kB. Plus sa taille est grande, plus elle ajoute de latence, ce qui peut nuire aux performances de votre système. Cette limite de taille n&#39;inclut aucun module `npm` susceptible d&#39;être référencé dans une instruction `require`.
 
 <div id="actions-modules">
   ## Actions Modules
@@ -23,95 +23,95 @@ Les limites suivantes s’appliquent à l’utilisation des Actions :
 * **Les Actions Modules n’ont pas leur propre runtime.** Ils s’exécutent dans le runtime de l’Action qui les inclut.
 
 <Warning>
-  **Lorsque vous générez un Action Module, Auth0 le génère avec le runtime du générateur. Toutefois, lorsque le module est exécuté, il utilise le runtime de l’Action qui l’importe.**
+  **Lorsque vous créez un Action Module, Auth0 le génère avec le runtime du builder. Toutefois, lorsque le module est exécuté, il utilise le runtime de l’Action qui l’importe.**
 
   *Exemple :*
 
-  *Si votre Action Module utilise des appels d’API Node.js qui sont obsolètes dans Node.js 22, les Actions qui utilisent le runtime Node.js 18 fonctionneront bien, mais les Actions qui utilisent le runtime Node.js 22 échoueront.*
+  *Si votre Action Module utilise des appels d’API Node.js obsolètes dans Node.js 22, les Actions qui utilisent le runtime Node.js 18 fonctionneront très bien, mais celles qui utilisent le runtime Node.js 22 échoueront.*
 </Warning>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Écrivez vos Actions Modules à l’aide d’API Node.js compatibles avec toutes les versions de runtime que vous prévoyez prendre en charge.
+  Rédigez vos Actions Modules à l’aide d’API Node.js compatibles avec toutes les versions de runtime que vous prévoyez prendre en charge.
 </Callout>
 
 <div id="account-linking-setprimaryuser">
   ## Liaison de comptes (`setPrimaryUser`)
 </div>
 
-* `primary_user_id` est limité à 128 caractères
-* `setPrimaryUser` ne peut être appelé qu’une seule fois par transaction
-* Toute valeur de `userMetadata` définie dans la même Action que `setPrimaryUser` est ignorée et sera perdue. Les Actions suivantes dans la même transaction conserveront `userMetadata` pour le nouvel utilisateur principal.
-* `setPrimaryUser` ne peut pas être utilisé dans la même transaction qu’une Rule qui définit `context.primaryUser.`
+* `primary_user_id` est limité à 128 caractères
+* `setPrimaryUser` ne peut être appelé qu’une fois par transaction
+* Toute valeur de userMetadata définie dans la même Action que `setPrimaryUser` sera ignorée et perdue. Les Actions suivantes de la même transaction conserveront userMetadata pour le nouvel utilisateur principal.
+* `setPrimaryUser` ne peut pas être utilisé dans la même transaction où une Rule définit `context.primaryUser.`
 
 <div id="cached-data">
-  ## Données mises en cache
+  ## Données en cache
 </div>
 
-* Les éléments mis en cache sont conservés pendant un maximum de 24 heures.
-* Un maximum de 20 entrées peut être mis en cache par Trigger.
-* Les clés du cache ont une taille maximale de 64 octets et les valeurs, une taille maximale de 4 kB.
+* Les éléments mis en cache sont enregistrés pendant un maximum de 24 heures.
+* Un maximum de 20 entrées peuvent être mises en cache par déclencheur.
+* Les clés de cache ont une taille maximale de 64 octets et les valeurs ont une taille maximale de 4 kB.
 * La taille cumulée des clés mises en cache et de leurs valeurs ne doit pas dépasser 8 kB.
-* Le cache devrait être accessible de façon fiable à toutes les Actions d’un même trigger pour une seule exécution; toutefois, cela n’est pas garanti pour les exécutions suivantes (comme un flow différent, le login d’un autre utilisateur ou le retour d’un utilisateur après une action de redirection).
-* Les Actions qui effectuent une Execution avec restitution du contrôle (comme une redirection) peuvent faire en sorte que les actions suivantes soient planifiées sur une instance distincte avec un état du cache différent. Les données mises en cache peuvent être incohérentes d’une Action à l’autre, même dans le cadre de la même exécution.
+* Le cache devrait être disponible de façon fiable pour toutes les Actions d’un même déclencheur au cours d’une seule exécution. Toutefois, cela n’est pas garanti pour les exécutions subséquentes (comme un flow différent, la connexion d’un autre utilisateur ou le retour d’un utilisateur à partir d’une action de redirection).
+* Les Actions qui effectuent une exécution qui rend la main (comme une redirection) peuvent faire en sorte que les actions subséquentes soient planifiées sur une instance distincte avec un état du cache différent. Les données mises en cache peuvent être incohérentes d’une Action à l’autre, même s’il s’agit de la même exécution.
 
 <div id="executions">
   ## Exécutions
 </div>
 
-* Chaque exécution d’un trigger doit se terminer en 20 secondes ou moins, faute de quoi le traitement échouera. Limiter les requêtes HTTP est la meilleure façon de respecter ce délai.
-* Chaque exécution d’un trigger doit se terminer en 20 secondes ou moins, faute de quoi le traitement échouera. Pour respecter ce délai, il faut limiter les processus de longue durée, comme les requêtes HTTP sortantes sans timeout. Une Action qui [redirige les utilisateurs vers une page externe](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/redirect-with-actions) a un timeout distinct avant la redirection et un autre après.
-* Un nouvel objet `event.request` est généré chaque fois qu’un Action trigger est suspendu, puis repris par la suite (par exemple, en raison d’une redirection ou d’une vérification <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=MFA">MFA</Tooltip>).
+* Chaque exécution d’un déclencheur doit se terminer en 20 secondes ou moins, faute de quoi le traitement se terminera par une erreur. Limiter les requêtes HTTP est le meilleur moyen de respecter cette limite de temps.
+* Chaque exécution d’un déclencheur doit se terminer en 20 secondes ou moins, faute de quoi le traitement se terminera par une erreur. Il est nécessaire de limiter les processus trop longs, comme les requêtes HTTP sortantes sans délai d’expiration, pour respecter cette limite de temps. Une Action qui [redirige les utilisateurs vers une page externe](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/redirect-with-actions) est soumise à un délai d’expiration distinct avant la redirection, puis à un autre après.
+* Un nouvel objet `event.request` est créé chaque fois qu’un déclencheur d’Action est suspendu, puis repris par la suite (par exemple, en raison d’une redirection ou d’une demande de vérification <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=MFA">MFA</Tooltip>).
 
 <div id="logs">
-  ## Journaux
+  ## Logs
 </div>
 
-* Un maximum de 256 caractères peut être conservé de manière persistante pour les sorties `console.log()` de chaque Action.
-* Les journaux d&#39;exécution sont conservés pendant 10 jours.
+* Un maximum de 256 caractères peut être enregistré de façon persistante pour les sorties `console.log()` de chaque Action.
+* Les logs d’exécution sont conservés pendant 10 jours.
 
 <div id="programming-languages">
   ## Langages de programmation
 </div>
 
-* Nous ne prenons pas en charge TypeScript dans les Actions. Les fichiers source doivent être rédigés en JavaScript avant d’être déployés.
+* Nous ne prenons pas en charge TypeScript dans les Actions. Les fichiers source doivent être écrits en JavaScript avant d’être déployés.
 
 <div id="secrets">
   ## Secrets
 </div>
 
-* Le nom de chaque secret peut compter au maximum 128 caractères.
-* La valeur de chaque secret peut compter au maximum 4096 caractères.
+* La clé de chaque secret peut comporter au maximum 128 caractères.
+* La valeur de chaque secret peut comporter au maximum 4096 caractères.
 
 <div id="saml-attributes">
   ## Attributs SAML
 </div>
 
-* Jusqu’à 100 attributs <Tooltip tip="Authentification multifacteur (MFA) : processus d’authentification de l’utilisateur qui utilise un facteur en plus du nom d’utilisateur et du mot de passe, comme un code par SMS." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SAML">SAML</Tooltip> peuvent être modifiés ou ajoutés par Actions.
-* Les noms d’attributs SAML ont une taille maximale de 1 kB.
+* Il est possible de modifier ou d’ajouter un maximum de 100 attributs <Tooltip tip="Authentification multifacteur (MFA) : processus d’authentification de l’utilisateur faisant appel à un facteur en plus du nom d’utilisateur et du mot de passe, comme un code envoyé par SMS." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SAML">SAML</Tooltip> au moyen d’Actions.
+* Les noms d’attribut SAML ont une taille maximale de 1 kB.
 * Les valeurs SAML ont une taille maximale de 2 kB.
-* La taille totale maximale des assertions SAML est de 10 kB.
+* La taille totale des assertions SAML ne peut pas dépasser 10 kB.
 
 <div id="saml-configuration">
   ## Configuration de SAML
 </div>
 
-* `audience` a une taille maximale de 2 kB
-* `recipient` a une taille maximale de 2 kB
-* `destination` a une taille maximale de 2 kB
-* `nameIdentifierFormat` a une taille maximale de 0,5 kB
-* `nameIdentifierProbes` peut contenir au maximum 10 sondes, d’une taille maximale de 0,5 kB chacune
-* `authnContextClassRef` a une taille maximale de 0,5 kB
-* `signingCert` a une taille maximale de 4 kB
-* `encryptionCert` a une taille maximale de 4 kB
-* `encryptionPublicKey` a une taille maximale de 4 kB
-* `cert` a une taille maximale de 4 kB
-* `key` a une taille maximale de 4 kB
+* `audience` a une taille maximale de 2kB
+* `recipient` a une taille maximale de 2kB
+* `destination` a une taille maximale de 2kB
+* `nameIdentifierFormat` a une taille maximale de 0.5kB
+* `nameIdentifierProbes` a un maximum de 10 probes, chacune d’une taille maximale de 0.5kB
+* `authnContextClassRef` a une taille maximale de 0.5kB
+* `signingCert` a une taille maximale de 4kB
+* `encryptionCert` a une taille maximale de 4kB
+* `encryptionPublicKey` a une taille maximale de 4kB
+* `cert` a une taille maximale de 4kB
+* `key` a une taille maximale de 4kB
 
 <div id="service-requests">
   ## Requêtes de service
 </div>
 
-* Les appels à l’Auth0 <Tooltip tip="Security Assertion Markup Language (SAML) : protocole normalisé permettant à deux parties d’échanger des renseignements d’authentification sans mot de passe." cta="Consulter le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> et les mises à jour des métadonnées utilisateur [sont soumises à des limites de débit](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy/management-api-endpoint-rate-limits).
+* Les appels effectués à l’API Auth0 <Tooltip tip="Security Assertion Markup Language (SAML) : protocole normalisé permettant à deux parties d’échanger des renseignements d’authentification sans mot de passe." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> ainsi que les mises à jour des User Metadata sont [assujettis à des limites de débit](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy/management-api-endpoint-rate-limits).
 * Les appels HTTP vers des services externes proviennent de [ces adresses IP](/docs/fr-CA/secure/security-guidance/data-security/allowlist).
 
 <div id="transaction-metadata">
@@ -119,28 +119,28 @@ Les limites suivantes s’appliquent à l’utilisation des Actions :
 </div>
 
 * Sont disponibles uniquement dans les [Actions post-login](/docs/fr-CA/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger).
-* Ne sont pas conservées après l’exécution d’un trigger d’authentification.
+* Ne sont pas enregistrées au-delà de la fin d’un déclencheur d’authentification.
 * Ne sont pas accessibles à l’extérieur des Actions d’une même transaction.
 * Les clés sont limitées à 64 caractères.
-* Les valeurs sont limitées à 8 KB.
+* Les valeurs sont limitées à 8 Ko.
 * Les valeurs prennent uniquement en charge les types `string`, `number` et `boolean`.
-* La taille totale maximale des métadonnées est de 16 KB pour une même transaction.
-* N’acceptent pas comme valeurs valides les nombres qui échouent à une vérification de sécurité. Les valeurs entières non sécuritaires doivent être sérialisées de manière sécuritaire par le développeur. Pour en savoir plus, consultez la documentation sur les [entiers sécuritaires](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isSafeInteger).
+* La taille totale maximale des métadonnées est de 16 Ko dans une même transaction.
+* N’acceptent pas comme valeurs valides les nombres qui échouent à une vérification de sécurité. Les entiers non sécuritaires doivent être sérialisés de façon sécuritaire par le développeur. Pour en savoir plus, consultez la documentation sur les [entiers sécuritaires](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isSafeInteger).
 
 <div id="upstream-tokens-from-external-idps">
-  ## Jetons en provenance d’IdP externes
+  ## Jetons provenant d’IdP externes
 </div>
 
-* Récupération des jetons d’<Tooltip tip="Identity Provider (IdP): Service that stores and manages digital identities." cta="View Glossary" href="/docs/fr-CA/glossary?term=IdP">IdP</Tooltip> externes à partir du tableau Identities
+* Récupération des jetons d’<Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=IdP">IdP</Tooltip> externes dans le tableau Identities
 
 <div id="user-metadata-and-app-metadata">
-  ## Métadonnées utilisateur et métadonnées d’application
+  ## Métadonnées utilisateur et métadonnées de l’application
 </div>
 
-* Chaque session peut stocker jusqu’à 32 kB de métadonnées utilisateur et 32 kB de métadonnées d’application.
+* Chaque session peut comporter au maximum 32 kB de métadonnées utilisateur enregistrées et 32 kB de métadonnées de l’application enregistrées.
 
 <div id="learn-more">
   ## En savoir plus
 </div>
 
-* [Comprendre comment fonctionnent les Actions Auth0](/docs/fr-CA/customize/actions/actions-overview)
+* [Comprendre le fonctionnement des Actions Auth0](/docs/fr-CA/customize/actions/actions-overview)

@@ -1,22 +1,22 @@
 ---
-description: Más información sobre cómo probar y gestionar tus eventos y flujos de eventos.
+description: Más información sobre cómo probar y gestionar eventos y Event Streams.
 title: Pruebas de eventos, observabilidad y recuperación ante fallos
 ---
 
-Las siguientes secciones ofrecen información sobre cómo probar los flujos de eventos y gestionar los eventos.
+En las siguientes secciones se explica cómo probar los Event Streams y gestionar los eventos.
 
 <div id="test-the-event-stream">
-  ## Probar el flujo de eventos
+  ## Probar el Event Stream
 </div>
 
-Después de crear y habilitar un flujo de eventos, puedes probarlo. Actualmente, Auth0 no admite enviar eventos a flujos de eventos deshabilitados.
+Después de crear y habilitar un Event Stream, puedes probarlo. Actualmente, Auth0 no admite enviar eventos a Event Streams deshabilitados.
 
-Para probar tu flujo de eventos, primero crea un usuario para tu aplicación ejecutando lo siguiente con las credenciales que prefieras:
+Para probar tu Event Stream, primero crea un usuario para tu aplicación ejecutando lo siguiente con las credenciales que prefieras:
 
 <Tabs>
   <Tab title="Auth0 CLI">
     ```bash lines
-    auth0 users create # sigue las indicaciones para crear un usuario de prueba
+    auth0 users create # sigue las instrucciones para crear un usuario de prueba
     ```
   </Tab>
 
@@ -35,7 +35,7 @@ Para probar tu flujo de eventos, primero crea un usuario para tu aplicación eje
   </Tab>
 </Tabs>
 
-Una vez creado el usuario, debería activarse el evento `user.created` en tu flujo de eventos y devolverse una respuesta. En este ejemplo, se usan webhooks para gestionar el flujo de eventos.
+Una vez creado el usuario, debería activar el evento `user.created` en tu Event Stream y devolver una respuesta. En este ejemplo, se usan webhooks para enviar el Event Stream.
 
 ```json lines expandable
 "Webhook received": {
@@ -70,7 +70,7 @@ Una vez creado el usuario, debería activarse el evento `user.created` en tu flu
 }
 ```
 
-Puedes listar los errores de entrega de un flujo de eventos específico ejecutando:
+Puedes consultar los errores de entrega de un Event Stream específico ejecutando:
 
 <Tabs>
   <Tab title="Auth0 CLI">
@@ -87,25 +87,25 @@ Puedes listar los errores de entrega de un flujo de eventos específico ejecutan
   </Tab>
 </Tabs>
 
-Si se devuelve un array vacío de errores de entrega, tu flujo de eventos está funcionando correctamente.
+Si se devuelve un arreglo vacío de errores de entrega, tu Event Stream funciona correctamente.
 
 <div id="observability">
-  ## Observabilidad
+  ## observabilidad
 </div>
 
-Para garantizar la fiabilidad de los flujos de eventos, implementa un proceso de supervisión que compruebe periódicamente si se producen errores de entrega y active alertas cuando sea necesario.
+Para garantizar la fiabilidad de los Event Streams, establezca un proceso de monitoreo que compruebe periódicamente si hay errores de entrega y active alertas cuando sea necesario.
 
 Los errores de entrega pueden deberse a lo siguiente:
 
-* Flujos de eventos deshabilitados.
-* Flujos de eventos no disponibles.
+* Event Streams deshabilitados.
+* Event Streams no disponibles.
 * Errores de conexión.
 
 <div id="polling-deliveries-endpoint">
-  ### Endpoint de Deliveries
+  ### Consulta periódica del endpoint Deliveries
 </div>
 
-Consulta el endpoint de Deliveries cada **5 minutos** para comprobar si hay eventos fallidos. Usa la siguiente llamada a la API para obtener las entregas recientes de eventos:
+Consulta el endpoint Deliveries cada **5 minutos** para comprobar si hay eventos fallidos. Usa la siguiente llamada a la API para obtener las entregas de eventos recientes:
 
 <Tabs>
   <Tab title="Auth0 CLI">
@@ -125,7 +125,7 @@ Consulta el endpoint de Deliveries cada **5 minutos** para comprobar si hay even
 Si se detectan fallos:
 
 * Registra los detalles del evento fallido.
-* Alerta al equipo o sistema correspondiente para que revise y diagnostique el problema.
+* Avisa al equipo o sistema correspondiente para revisar y diagnosticar el problema.
 
 <div id="recovery">
   ## Recuperación
@@ -133,13 +133,13 @@ Si se detectan fallos:
 
 La entrega de eventos se reintentará automáticamente. Para obtener más información, consulta [Prácticas recomendadas](/docs/es/customize/events/event-testing-observability-and-failure-recovery#batch-redelivery-of-failed-events).
 
-Si se producen fallos, usa la Redelivery API para volver a intentar la entrega del evento.
+Si se producen fallos, usa la Redelivery API para intentar entregar los eventos de nuevo.
 
 <div id="redeliver-a-single-failed-event">
-  ### Reenviar un único evento fallido
+  ### Volver a entregar un único evento fallido
 </div>
 
-Para volver a intentar un evento fallido específico, usa:
+Para volver a intentar la entrega de un evento fallido específico, usa:
 
 <Tabs>
   <Tab title="Auth0 CLI">
@@ -158,10 +158,10 @@ Para volver a intentar un evento fallido específico, usa:
 </Tabs>
 
 <div id="batch-redelivery-of-failed-events">
-  ### Reintento por lotes de eventos fallidos
+  ### Reenvío por lotes de eventos fallidos
 </div>
 
-Para reintentar todos los eventos fallidos en el flujo de eventos:
+Para volver a intentar todos los eventos fallidos del Event Stream:
 
 <Tabs>
   <Tab title="Auth0 CLI">
@@ -182,21 +182,21 @@ Para reintentar todos los eventos fallidos en el flujo de eventos:
   ### Mecanismo de desactivación automática
 </div>
 
-Auth0 desactiva automáticamente un flujo de eventos si se producen demasiados fallos.
+Auth0 desactiva automáticamente un Event Stream si se produce un número excesivo de fallos.
 
-| Condición               | Medida adoptada                                   |
+| Condición               | Acción realizada                                  |
 | ----------------------- | ------------------------------------------------- |
-| 500 fallos consecutivos | El flujo de eventos se desactiva automáticamente. |
-| 5000 fallos totales     | El flujo de eventos se desactiva automáticamente. |
+| 500 fallos consecutivos | El Event Stream se desactiva automáticamente. |
+| 5000 fallos en total    | El Event Stream se desactiva automáticamente. |
 
-* Si un flujo de eventos se desactiva automáticamente, **debes** usar la Redelivery API para procesar los eventos que hayan fallado.
-* El flujo de eventos **no puede** volver a activarse manualmente hasta que el recuento total de fallos sea inferior a 5000.
-* Una vez reducido el número de fallos, puedes volver a activar el flujo mediante la API.
+* Si un Event Stream se desactiva automáticamente, **debes** usar la Redelivery API para procesar cualquier evento fallido.
+* El Event Stream **no puede** volver a habilitarse manualmente hasta que el número total de fallos sea inferior a 5000.
+* Una vez reducido el número de fallos, puedes volver a habilitar el flujo mediante la API.
 
 <div id="learn-more">
   ## Más información
 </div>
 
 * [Tipos de eventos](/docs/es/customize/events/event-types)
-* [Crear un flujo de eventos](/docs/es/customize/events/create-an-event-stream)
-* [Prácticas recomendadas sobre eventos](/docs/es/customize/events/events-best-practices)
+* [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream)
+* [Prácticas recomendadas de Events](/docs/es/customize/events/events-best-practices)

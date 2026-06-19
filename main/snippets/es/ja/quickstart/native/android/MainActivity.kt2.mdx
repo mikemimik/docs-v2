@@ -1,0 +1,73 @@
+```kt MainActivity.kt lines highlight={40-52}
+import com.auth0.android.Auth0
+import com.auth0.android.provider.WebAuthProvider
+
+class MainActivity : AppCompatActivity() {
+
+  private lateinit var account: Auth0
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+
+    // Configurar el objeto de cuenta con los detalles de la aplicación Auth0
+    account = Auth0(
+      getString(R.string.com_auth0_client_id),
+      getString(R.string.com_auth0_domain),
+    )
+  }
+
+  private fun loginWithBrowser() {
+    // Configurar WebAuthProvider con un esquema personalizado y scope.
+
+    WebAuthProvider.login(account)
+      .withScheme("demo")
+      .withScope("openid profile email")
+      // Pasar una devolución de llamada para iniciar la autenticación y recibir el resultado
+      .start(this, object : Callback<Credentials, AuthenticationException> {
+        // Se llama cuando falla la autenticación
+        override fun onFailure(exception: AuthenticationException) {
+          // ¡Ocurrió un error!
+        }
+
+        // Se llama cuando la autenticación se completa correctamente
+        override fun onSuccess(credentials: Credentials) {
+          // Obtener el access token del objeto de credenciales.
+          // Se puede usar para llamar a la API
+          val accessToken = credentials.accessToken
+        }
+      })
+  }
+
+  private fun logout() {
+    WebAuthProvider.logout(account)
+      .withScheme("demo")
+      .start(this, object : Callback<Void?, AuthenticationException> {
+        override fun onSuccess(payload: Void?) {
+          // ¡El usuario cerró sesión!
+        }
+
+        override fun onFailure(error: AuthenticationException) {
+          // ¡Ocurrió un error!
+        }
+      })
+  }
+
+  private fun showUserProfile(accessToken: String) {
+    var client = AuthenticationAPIClient(account)
+
+    // Usar el access token para llamar a `userInfo` y obtener el perfil desde Auth0.
+    client.userInfo(accessToken)
+      .start(object : Callback<UserProfile, AuthenticationException> {
+        override fun onFailure(exception: AuthenticationException) {
+          // ¡Ocurrió un error!
+        }
+
+        override fun onSuccess(profile: UserProfile) {
+          // ¡Se obtuvo el perfil del usuario!
+          val email = profile.email
+          val name = profile.name
+        }
+      })
+  }
+}
+```

@@ -1,45 +1,45 @@
 ---
 description: Integra una experiencia de inicio de sesión y registro sin fricciones para tus aplicaciones PHP.
-title: 'PHP: inicio y cierre de sesión y obtención de perfiles de usuario con Auth0-PHP'
+title: 'PHP: Inicio y cierre de sesión, y obtención de perfiles de usuario con Auth0-PHP'
 ---
 
-El SDK de Auth0-PHP agrupa tres clases principales: `Auth0\SDK\Auth0`, `Auth0\SDK\API\Authentication` y `Auth0\SDK\API\Management`, cada una de las cuales ofrece interfaces para distintas funcionalidades de las API de Auth0. Si estás creando una aplicación web con estado que necesita hacer seguimiento de las sesiones de los usuarios, la clase base `Auth0` es con la que más trabajarás. Proporciona métodos para gestionar tareas habituales de autenticación y manejo de sesiones, como iniciar y cerrar sesión, recuperar credenciales de usuario, comprobar si hay una sesión disponible y gestionar la devolución de llamada. Estas tareas se explican a continuación.
+El SDK de Auth0-PHP agrupa tres clases principales: `Auth0\SDK\Auth0`, `Auth0\SDK\API\Authentication` y `Auth0\SDK\API\Management`, cada una de las cuales ofrece interfaces para distintas funcionalidades en las API de Auth0. Si estás creando una aplicación web con estado que necesita realizar un seguimiento de las sesiones de los usuarios, la clase base `Auth0` es con la que más trabajarás. Proporciona métodos para gestionar tareas comunes de autenticación y manejo de sesiones, como iniciar y cerrar sesión, recuperar credenciales de usuario, comprobar si hay una sesión disponible y gestionar la devolución de llamada. Estas tareas se explican a continuación.
 
-Para obtener más información sobre estas capacidades y otras más, consulta la [página de documentación de Authentication API](/docs/es/libraries/auth0-php/using-the-authentication-api-with-auth0-php).
+Para obtener más información sobre estas capacidades y otras más, consulta la [página de documentación de la Authentication API](/docs/es/libraries/auth0-php/using-the-authentication-api-with-auth0-php).
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-La documentación que aparece a continuación supone que seguiste los pasos de [Auth0-PHP](/docs/es/libraries/auth0-php) y que continúas a partir del código proporcionado allí.
+La documentación a continuación supone que seguiste los pasos de [Auth0-PHP](/docs/es/libraries/auth0-php) y continúa a partir del código proporcionado allí.
 
 <div id="logging-in">
   ### Inicio de sesión
 </div>
 
-El proceso de inicio de sesión predeterminado en el SDK de PHP usa una [concesión de código de autorización](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow/call-your-api-using-the-authorization-code-flow) combinada con la página de <Tooltip tip="Universal Login: Tu aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Universal+Login">Universal Login</Tooltip>. En resumen, el proceso es el siguiente:
+El proceso de inicio de sesión predeterminado del SDK de PHP usa una [concesión de código de autorización](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow/call-your-api-using-the-authorization-code-flow) combinada con la página de <Tooltip tip="Universal Login: Su aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Universal+Login">Universal Login</Tooltip>. En resumen, el proceso es el siguiente:
 
 1. Un usuario que solicita acceso es redirigido a la página de Universal Login.
-2. El usuario se autentica mediante una de las [muchas conexiones posibles](/docs/es/authenticate/identity-providers): social (Google, X, Facebook), base de datos (correo electrónico y contraseña), passwordless (correo electrónico, SMS) o empresarial (ActiveDirectory, ADFS, Office 365).
-3. Si el proceso se completa correctamente, el usuario es redirigido o enviado de vuelta a la URL de devolución de llamada de tu aplicación con los valores `code` y `state`; si no, con un `error` y `error_description`.
-4. Si la autenticación se realizó correctamente, se valida el valor `state`.
+2. El usuario se autentica mediante una de las [muchas conexiones posibles](/docs/es/authenticate/identity-providers): sociales (Google, X, Facebook), de base de datos (correo electrónico y contraseña), passwordless (correo electrónico, SMS) o empresariales (ActiveDirectory, ADFS, Office 365).
+3. Si el proceso se completa correctamente, el usuario es redirigido o enviado de vuelta a la URL de devolución de llamada de su aplicación con los valores `code` y `state`; si no, con `error` y `error_description`.
+4. Si la autenticación se completó correctamente, se valida el valor `state`.
 5. Si `state` es válido, el valor `code` se intercambia con Auth0 por un token de ID y/o un token de acceso.
-6. La identidad del token de ID puede usarse para crear una cuenta, iniciar una sesión específica de la aplicación o conservarse como sesión del usuario.
+6. La identidad contenida en el token de ID puede usarse para crear una cuenta, iniciar una sesión específica de la aplicación o conservarse como sesión del usuario.
 
-Auth0-PHP se encarga automáticamente de la mayoría de estos pasos. Tu aplicación deberá:
+Auth0-PHP gestiona automáticamente la mayoría de estos pasos. Su aplicación deberá:
 
-1. Llamar a `Auth0\SDK\Auth0::login()` cuando los usuarios necesiten iniciar sesión (por ejemplo: al hacer clic en un enlace, visitar contenido restringido, etc.)
-2. Llamar a `Auth0\SDK\Auth0::exchange()` cuando los usuarios sean redirigidos a tu URL de devolución de llamada.
-3. Llamar a `Auth0\SDK\Auth0::getCredentials()` cuando necesites comprobar si un usuario ha iniciado sesión y recuperar su información.
+1. Llamar a `Auth0\SDK\Auth0::login()` cuando los usuarios necesiten iniciar sesión (por ejemplo, al hacer clic en un enlace, visitar contenido protegido, etc.)
+2. Llamar a `Auth0\SDK\Auth0::exchange()` cuando los usuarios sean redirigidos a su URL de devolución de llamada.
+3. Llamar a `Auth0\SDK\Auth0::getCredentials()` cuando necesite comprobar si un usuario ha iniciado sesión y recuperar su información.
 
 Una implementación sencilla de estos pasos se ve así:
 
 ```php lines
-// 👆 Continuamos desde la guía de "introducción" vinculada en "Requisitos previos" arriba. Añade esto al archivo index.php que creaste allí.
+// 👆 Continuamos desde la guía de "introducción" enlazada en "Requisitos previos" arriba. Añade esto al archivo index.php que creaste allí.
 
 // getExchangeParameters() se puede usar en tu URL de devolución de llamada para verificar que todos los parámetros necesarios estén presentes para el intercambio de código posterior a la autenticación.
 if ($auth0->getExchangeParameters()) {
-    // Si están presentes, realizamos el intercambio de código.
+    // Si están presentes, debemos realizar el intercambio de código.
     $auth0->exchange();
 }
 
@@ -48,7 +48,7 @@ $session = $auth0->getCredentials();
 
 if ($session === null) {
     // ¡El usuario no ha iniciado sesión!
-    // Redirigir a la página Universal Login para autenticación.
+    // Redirigir a la página de Universal Login para autenticación.
     header("Location: " . $auth0->login());
     exit;
 }
@@ -57,17 +57,17 @@ if ($session === null) {
 echo "Authenticated!";
 ```
 
-Por último, tendrás que agregar la URL de tu aplicación al campo &quot;Allowed Callback URLs&quot; de tu aplicación de Auth0 en la página de Settings. Después de eso, al cargar tu página con scripts debería:
+Por último, tendrás que agregar la URL de tu aplicación al campo &quot;Allowed Callback URLs&quot; de tu aplicación de Auth0 en la página de configuración. Después de eso, al cargar tu página con script debería:
 
-1. Redirigirte inmediatamente a una página de inicio de sesión de Auth0 para tu tenant.
-2. Después de iniciar sesión correctamente con cualquier conexión, redirigirte de regreso a tu aplicación.
-3. Mostrar una página sencilla con el mensaje &#39;¡Autenticado!&#39;.
+1. Redirigirte de inmediato a una página de inicio de sesión de Auth0 para tu tenant.
+2. Después de iniciar sesión correctamente con cualquier conexión, redirigirte de vuelta a tu aplicación.
+3. Mostrar una página sencilla con &#39;¡Autenticado!&#39;.
 
 <div id="profile">
   ### Perfil
 </div>
 
-Ahora que hemos autenticado a un usuario, podemos trabajar con los datos persistentes de su sesión para mostrar, por ejemplo, perfiles de usuario.
+Ahora que hemos autenticado a un usuario, podemos trabajar con los datos persistentes de su sesión para hacer cosas como mostrar perfiles de usuario.
 
 ```php lines
 // 👆 Continuamos desde el código anterior. Añade esto al archivo index.php.
@@ -77,7 +77,7 @@ printf(
     <p><Frame><img width="100" src="/%s"></Frame></p>
     <p><strong>Last update:</strong> %s</p>
     <p><strong>Contact:</strong> %s %s</p>
-    <p><a href="/docs/logout.php">Logout</a></p>',
+    <p><a href="/docs/logout.php">cierre de sesión</a></p>',
     isset($session->user['nickname']) ? strip_tags($session->user['nickname']) : '[unknown]',
     isset($session->user['picture']) ? filter_var($session->user['picture'], FILTER_SANITIZE_URL) : 'https://gravatar.com/avatar/',
     isset($session->user['updated_at']) ? date('j/m/Y', strtotime($session->user['updated_at'])) : '[unknown]',
@@ -90,14 +90,14 @@ printf(
   ### Cierre de sesión
 </div>
 
-Además de iniciar sesión, también queremos que los usuarios puedan cerrar sesión. Cuando cierren sesión, deben invalidar su sesión en la aplicación. Para este SDK, eso significa eliminar sus datos persistentes de usuario y del token:
+Además de iniciar sesión, también queremos que los usuarios puedan cerrar sesión. Cuando lo hagan, deben invalidar su sesión en la aplicación. Para este SDK, eso significa eliminar sus datos persistentes de usuario y de token:
 
 ```php lines
 // Cerrar sesión de la aplicación.
 header("Location: $auth0->logout());
 ```
 
-Si usa <Tooltip tip="inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=Single+Sign-on">inicio de sesión único</Tooltip> (SSO) y además quiere cerrar la sesión de Auth0, consulte la [sección sobre cierre de sesión de SSO aquí](/docs/es/libraries/auth0-php/using-the-authentication-api-with-auth0-php). Puede encontrar más información sobre cómo cerrar sesión en general [aquí](/docs/es/authenticate/login/logout).
+Si usas <Tooltip tip="inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente su sesión en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=Single+Sign-on">Inicio de sesión único</Tooltip> (SSO) y además quieres cerrar su sesión de Auth0, consulta [la sección sobre cierre de sesión de SSO aquí](/docs/es/libraries/auth0-php/using-the-authentication-api-with-auth0-php). Puedes encontrar más información sobre el cierre de sesión en general [aquí](/docs/es/authenticate/login/logout).
 
 <div id="learn-more">
   ## Más información
@@ -106,5 +106,5 @@ Si usa <Tooltip tip="inicio de sesión único (SSO): servicio que, después de q
 * [PHP: Primeros pasos con Auth0-PHP](/docs/es/libraries/auth0-php)
 * [PHP: Uso de la Authentication API con Auth0-PHP](/docs/es/libraries/auth0-php/using-the-authentication-api-with-auth0-php)
 * [PHP: Uso de la Management API con Auth0-PHP](/docs/es/libraries/auth0-php/using-the-management-api-with-auth0-php)
-* [PHP: Validación de JWTs (JSON Web Tokens) con Auth0-PHP](/docs/es/libraries/auth0-php/validating-jwts-with-auth0-php)
-* [PHP: Resolución de problemas de la integración de Auth0-PHP](/docs/es/libraries/auth0-php/troubleshoot-auth0-php-library)
+* [PHP: Validación de JWT (JSON Web Tokens) con Auth0-PHP](/docs/es/libraries/auth0-php/validating-jwts-with-auth0-php)
+* [PHP: Solución de problemas de la integración de Auth0-PHP](/docs/es/libraries/auth0-php/troubleshoot-auth0-php-library)

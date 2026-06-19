@@ -1,30 +1,30 @@
 ---
 description: Découvrez comment exporter des listes d’utilisateurs et leurs métadonnées.
-title: Exportations d’utilisateurs en lot
+title: Exportations d’utilisateurs en bloc
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Vous pouvez utiliser le endpoint `POST /api/v2/jobs/users-exports` pour créer une tâche qui exporte tous les utilisateurs associés à une [connexion](/docs/fr-CA/authenticate/identity-providers) ou tous les utilisateurs du tenant.
+Vous pouvez utiliser le point de terminaison `POST /api/v2/jobs/users-exports` pour créer une tâche qui exporte tous les utilisateurs associés à une [connexion](/docs/fr-CA/authenticate/identity-providers), ou tous les utilisateurs du tenant.
 
-Pour obtenir la liste des champs du profil utilisateur qui peuvent être exportés, consultez [User Profile Structure](/docs/fr-CA/manage-users/user-accounts/user-profiles/user-profile-structure).
+Pour obtenir la liste des champs du profil utilisateur pouvant être exportés, consultez [User Profile Structure](/docs/fr-CA/manage-users/user-accounts/user-profiles/user-profile-structure).
 
-Lorsque vous créez votre tâche, vous devez fournir :
+Lorsque vous créez votre tâche, vous devrez fournir :
 
 * l’[ID de la connexion](/docs/fr-CA/authenticate/identity-providers/locate-the-connection-id) à partir de laquelle vous souhaitez exporter des utilisateurs (facultatif)
-* le format du fichier d’exportation (CSV ou JSON-compatible)
-* le nombre maximal d’enregistrements utilisateur à exporter (facultatif ; si ce paramètre est omis, tous les enregistrements seront exportés)
-* les champs liés à l’utilisateur (comme le user ID ou le nom) à inclure dans l’exportation
+* le format du fichier d’exportation (CSV ou compatible avec JSON)
+* le nombre maximal d’enregistrements d’utilisateurs à exporter (facultatif; si omis, tous les enregistrements seront exportés)
+* les champs liés à l’utilisateur (comme l’ID utilisateur ou le nom) que vous souhaitez inclure dans l’exportation
 
-Vous aurez aussi besoin d’un [Management API Access Token](https://auth0.com/docs/api/management/v2/tokens) valide.
+Vous aurez aussi besoin d’un [jeton d’accès à la Management API](https://auth0.com/docs/api/management/v2/tokens).
 
 <div id="create-a-request-body">
-  ## Créer le corps de la requête
+  ## Créer un corps de requête
 </div>
 
-Au besoin, repérez le `connection_id` et le nom de domaine de votre tenant Auth0 dans le <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Créez un nouveau fichier texte contenant le corps de la requête ci-dessous :
+Au besoin, trouvez le `connection_id` et le nom de domaine de votre tenant Auth0 dans le <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Créez un nouveau fichier texte avec le corps de la requête ci-dessous :
 
 ```json lines
 {
@@ -45,13 +45,13 @@ Au besoin, repérez le `connection_id` et le nom de domaine de votre tenant Auth
 }
 ```
 
-Mettez à jour le `connection_id` avec l’ID de votre connexion de base de données, ou supprimez-le pour exporter tous les utilisateurs du tenant.
+Mettez à jour le `connection_id` avec l’ID de votre connexion de base de données, ou retirez-le pour exporter tous les utilisateurs du tenant.
 
 <div id="request-example">
   ## Exemple de requête
 </div>
 
-Scopes requis : `read:users`
+Autorisations requises : `read:users`
 
 <AuthCodeGroup>
   ```bash cURL
@@ -241,16 +241,16 @@ La réponse devrait ressembler à ceci :
   ## Inclure les métadonnées utilisateur dans le CSV exporté
 </div>
 
-Si vous exportez des données utilisateur au format CSV et que vous voulez inclure des métadonnées, précisez chaque champ de métadonnées à exporter. Vous pouvez exporter jusqu’à 30 champs.
+Si vous exportez des données utilisateur au format CSV et souhaitez inclure des métadonnées, indiquez chaque champ de métadonnées à exporter. Vous pouvez exporter jusqu’à 30 champs.
 
 <Warning>
   Vous ne pouvez pas exporter l’intégralité de `app_metadata` ou de `user_metadata` en CSV. Vous devez préciser explicitement les champs des objets de métadonnées.
 
-  Pour exporter `app_metadata` ou `user_metadata` en tant qu’objets uniques, utilisez le format compatible avec JSON et incluez le champ souhaité dans le paramètre `fields` du corps de la requête. Par exemple :
+  Pour exporter `app_metadata` ou `user_metadata` comme objets uniques, utilisez le format compatible avec JSON et incluez le champ voulu dans le paramètre `fields` du corps de la requête. Par exemple :
 
   `{"name":"app_metadata"}`
 
-  Comme vous ne pouvez exporter qu’un maximum de 30 champs, il est recommandé d’utiliser le format JSON si les données utilisateur comportent de nombreux champs.
+  Comme vous ne pouvez exporter que 30 champs au maximum, il est recommandé d’utiliser le format JSON si les données utilisateur comportent de nombreux champs.
 </Warning>
 
 Par exemple, pour des métadonnées structurées comme ceci :
@@ -265,7 +265,7 @@ Par exemple, pour des métadonnées structurées comme ceci :
 }
 ```
 
-La requête d’exportation (pour les trois champs) ressemblerait à ceci :
+Voici à quoi ressemblerait la requête d’exportation (pour les trois champs) :
 
 <AuthCodeGroup>
   ```bash cURL
@@ -427,11 +427,11 @@ La requête d’exportation (pour les trois champs) ressemblerait à ceci :
 </AuthCodeGroup>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Dans les fichiers CSV d’exportation des utilisateurs, nous échappons les types de données chaîne de caractères conformément aux normes OWASP visant à atténuer l’injection CSV :
+  Dans les fichiers CSV d’exportation des utilisateurs, nous ajoutons des caractères d’échappement aux types de données String conformément aux normes de l’OWASP visant à atténuer les risques d’injection CSV :
 
   * Les guillemets doubles sont précédés d’un autre guillemet double.
   * Chaque chaîne est précédée d’une apostrophe.
-  * Chaque chaîne est mise entre guillemets doubles.
+  * Chaque chaîne est encadrée de guillemets doubles.
 
   Cela ne s’applique pas aux dates générées par Auth0 au format ISO 8601.
 </Callout>
@@ -440,13 +440,13 @@ La requête d’exportation (pour les trois champs) ressemblerait à ceci :
   ### Format compatible avec JSON
 </div>
 
-Si vous exportez les données dans un format compatible avec JSON, vous n’avez qu’à fournir la propriété root; il n’est pas nécessaire de nommer chaque propriété interne individuellement, puisqu’elles seront incluses automatiquement.
+Si vous exportez les données dans un format compatible avec JSON, vous n&#39;avez qu&#39;à fournir la propriété root ; vous n&#39;avez pas besoin de nommer chaque propriété interne individuellement, puisqu&#39;elles seront incluses automatiquement.
 
-En raison de leur grande taille, les fichiers d’exportation d’Auth0 utilisent le format [NDJSON](https://github.com/ndjson/ndjson-spec), tandis que la fonction d’importation attend un fichier JSON.
+Les fichiers d&#39;exportation d&#39;Auth0 utilisent le format [NDJSON](https://github.com/ndjson/ndjson-spec) en raison de leur grande taille, tandis que la fonctionnalité d&#39;importation attend un fichier JSON.
 
-Avant de pouvoir importer des utilisateurs à partir d’une exportation générée par Auth0, vous devrez convertir le fichier de NDJSON en JSON à l’aide de la bibliothèque de votre choix (comme [jq](https://stedolan.github.io/jq/)).
+Avant de pouvoir importer des utilisateurs à l&#39;aide d&#39;une exportation générée par Auth0, vous devrez convertir le fichier du format NDJSON au format JSON à l&#39;aide de la bibliothèque de votre choix (comme [jq](https://stedolan.github.io/jq/)).
 
-Dans ce cas, pour le même exemple que précédemment, la requête ressemblerait à ceci :
+Dans ce cas, pour le même exemple que celui utilisé précédemment, la requête ressemblerait à ceci :
 
 <AuthCodeGroup>
   ```bash cURL
@@ -603,10 +603,10 @@ Dans ce cas, pour le même exemple que précédemment, la requête ressemblerait
 </AuthCodeGroup>
 
 <div id="check-export-status">
-  ## Vérifier le statut de l’exportation
+  ## Vérifier l’état de l’exportation
 </div>
 
-Une fois la tâche d’exportation de vos utilisateurs créée, vous pouvez en vérifier le statut à l’aide du [endpoint Get a Job](https://auth0.com/docs/api/management/v2#!/Jobs/get_jobs_by_id).
+Une fois la tâche d’exportation de vos utilisateurs créée, vous pouvez en vérifier le status à l’aide du [point de terminaison Get a Job](https://auth0.com/docs/api/management/v2#!/Jobs/get_jobs_by_id).
 
 Indiquez l’ID de la tâche (que vous avez reçu dans la réponse lors de sa création). Si vous utilisez l’exemple de requête ci-dessous, remplacez l’espace réservé `{yourJobId}` par la valeur de l’ID.
 
@@ -738,7 +738,7 @@ Scopes requis : `create:users`, `read:users`, `create:passwords_checking_job`
   ```
 </AuthCodeGroup>
 
-Vous devriez obtenir une réponse comme celle-ci :
+Vous devriez obtenir une réponse semblable à la suivante :
 
 ```json lines expandable
 {
@@ -775,23 +775,23 @@ Vous devriez obtenir une réponse comme celle-ci :
 
 Vous pouvez accéder à vos fichiers d’exportation à l’aide de l’URL fournie comme valeur du paramètre **location**. Le nom de votre tenant correspond aussi au nom de votre fichier. Par exemple, si le nom de votre tenant est `auth0docs`, votre fichier sera `auth0docs.csv` ou `auth0docs.json`. Lorsque vous accédez à l’URL, le téléchargement du fichier démarre automatiquement.
 
-Le lien de téléchargement est valide pendant 60 secondes. Une fois ce délai écoulé, vous avez 24 heures pour refaire la demande avant l’expiration de la tâche.
+Le lien de téléchargement est valide pendant 60 secondes. Une fois ce délai expiré, vous avez 24 heures pour utiliser de nouveau l’URL avant l’expiration de la tâche.
 
 <div id="job-cleanup">
   ## Nettoyage des tâches
 </div>
 
-Toutes les données associées à vos tâches sont automatiquement supprimées après 24 heures et ne sont plus accessibles ensuite. Par conséquent, **nous vous recommandons fortement d’enregistrer les résultats des tâches dans le système de stockage de votre choix**.
+Toutes les données liées à vos tâches sont automatiquement supprimées après 24 heures et ne sont plus accessibles par la suite. Par conséquent, **nous vous recommandons fortement de stocker les résultats des tâches au moyen du mécanisme de stockage de votre choix**.
 
 <div id="filter-example">
   ## Exemple de filtre
 </div>
 
-Vous voudrez peut-être filtrer votre fichier `.csv` exporté pour n’en conserver qu’un sous-ensemble précis de vos données, comme la date de la dernière connexion des utilisateurs à votre application.
+Vous pourriez vouloir filtrer votre fichier `.csv` exporté pour n’en conserver qu’un sous-ensemble de données, par exemple la date de la dernière connexion des utilisateurs à votre application.
 
-1. Effectuez un appel `POST` au endpoint [Create export user&#39;s job](https://auth0.com/docs/api/management/v2/jobs/post-users-exports) de la Management API pour exporter les utilisateurs vers un fichier `.csv` :
+1. Faites un appel `POST` au point de terminaison [créer une tâche d’exportation des utilisateurs](https://auth0.com/docs/api/management/v2/jobs/post-users-exports) de la Management API pour exporter les utilisateurs vers un fichier `.csv` :
 
-   1. Créez une nouvelle tâche :
+   1. Créez une nouvelle tâche :
 
       ```bash lines
       curl -L 'https://{account.namespace}/api/v2/jobs/users-exports' \
@@ -801,7 +801,7 @@ Vous voudrez peut-être filtrer votre fichier `.csv` exporté pour n’en conser
       -d '{"format":"csv"}'
       ```
 
-   2. Vérifiez le statut :
+   2. Vérifiez le statut :
 
       ```bash lines
       curl -L 'https://{account.namespace}/api/v2/jobs/JOB_ID' \
@@ -809,9 +809,9 @@ Vous voudrez peut-être filtrer votre fichier `.csv` exporté pour n’en conser
       -H 'Authorization: Bearer MGMT_API_TOKEN'
       ```
 
-2. Accédez au fichier dans votre dossier de téléchargements sur votre machine locale.
+2. Accédez au fichier dans vos téléchargements sur votre ordinateur local.
 
-3. Utilisez un outil en ligne de commande pour ajouter un filtre. Dans cet exemple, nous utilisons [Miller](https://miller.readthedocs.io/en/latest/installing-miller/) :
+3. Utilisez un outil en ligne de commande pour ajouter un filtre. Dans cet exemple, nous utilisons [Miller](https://miller.readthedocs.io/en/latest/installing-miller/) :
 
    ```bash wrap lines
    mlr --csv filter '$last_login >= "2024-01-01T00:00:00Z"' file.csv > filtered.csv

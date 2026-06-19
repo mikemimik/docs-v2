@@ -1,5 +1,5 @@
 ---
-description: Descubre casos de uso de ejemplo de Custom Token Exchange con muestras de código para su implementación.
+description: Conoce casos de uso de ejemplo de Custom Token Exchange con ejemplos de código para su implementación.
 title: Casos de uso de ejemplo
 ---
 
@@ -7,38 +7,38 @@ import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
 
 <ReleaseStageNotice feature="Custom Token Exchange (CTE)" stage="ea" plans="B2C Professional, B2B Professional, and Enterprise" terms="true" />
 
-Puedes usar Custom Token Exchange para resolver casos avanzados de integración en los que no es posible aplicar estrategias habituales de inicio de sesión federado basadas en redirigir al usuario final, debido a limitaciones técnicas o de experiencia de usuario. El código proporcionado para los casos de uso está incompleto y solo busca mostrar los pasos lógicos que puedes seguir con tu código para abordar cada caso de uso. Consulta los [ejemplos de código](#code-samples) para ver ejemplos más detallados.
+Puedes usar Custom Token Exchange para resolver escenarios avanzados de integración en los que no pueden aplicarse las estrategias habituales de inicio de sesión federado que redirigen al usuario final, debido a limitaciones técnicas o de experiencia de usuario. El código proporcionado para los casos de uso está incompleto y solo pretende mostrar los pasos lógicos que puedes seguir con tu propio código para abordar cada caso de uso. Consulta los [ejemplos de código](#code-samples) para ver ejemplos más detallados.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Auth0 recomienda usar el inicio de sesión federado habitual, listo para usar, siempre que sea posible. Al permitirte establecer el usuario de la transacción, Custom Token Exchange te ofrece más flexibilidad, pero también te asigna la responsabilidad adicional de validar y gestionar la transacción de forma segura.
+  Auth0 recomienda usar, siempre que sea posible, el inicio de sesión federado estándar y listo para usar. Como Custom Token Exchange te permite establecer el usuario de la transacción, te ofrece más flexibilidad, pero también te asigna la responsabilidad adicional de validar y gestionar esa transacción de forma segura.
 </Callout>
 
 <div id="use-cases">
   ## Casos de uso
 </div>
 
-Esta sección describe casos de uso de ejemplo y ejemplos de código específicos, junto con recomendaciones para implementar su caso. Para ilustrar los casos de uso, usaremos GearUp, una empresa ficticia de alquiler de coches.
+Esta sección describe casos de uso y ejemplos de código concretos, junto con recomendaciones para implementar su escenario. Para ilustrar los casos de uso, usaremos GearUp, una empresa ficticia de alquiler de coches.
 
 <div id="use-case-seamless-migration-into-auth0">
-  ### Caso de uso: migración fluida a Auth0
+  ### Caso de uso: Migración fluida a Auth0
 </div>
 
 GearUp tiene una aplicación móvil que usan millones de personas y necesita modernizar su solución de identidad, por lo que ha decidido pasarse a Auth0. Sin embargo, quiere evitar obligar a los usuarios a volver a autenticarse mientras migran desde su proveedor de identidad heredado, o IdP, ya que eso añade fricción a la experiencia de usuario.
 
-Para resolverlo y limitar los riesgos, GearUp está migrando de forma gradual. Para cada usuario, quiere intercambiar el token de actualización de su IdP heredado por un conjunto de token de acceso de Auth0, token de actualización y <Tooltip tip="token de ID: Credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de identidad</Tooltip>. Esto permite que su aplicación empiece a usar Auth0 sin fricciones como IdP de ese usuario, así como consumir las API de GearUp con tokens emitidos por Auth0. Una vez completado el intercambio para todos los usuarios, la aplicación habrá migrado por completo y el IdP anterior podrá desconectarse, todo ello sin afectar a los usuarios finales ni al negocio de GearUp.
+Para resolver esto y limitar los riesgos, GearUp está migrando de forma incremental. Para cada usuario, quiere intercambiar el token de actualización de su IdP heredado por un conjunto de token de acceso de Auth0, token de actualización y <Tooltip tip="Token de ID: credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de identidad</Tooltip>. Esto permite que su aplicación empiece a usar Auth0 de forma transparente como IdP para este usuario, así como consumir las API de GearUp usando tokens emitidos por Auth0. Una vez que se haya realizado el intercambio para todos los usuarios, la aplicación estará completamente migrada y el antiguo IdP podrá desconectarse, todo ello sin afectar a los usuarios finales ni al negocio de GearUp.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/2Ke6p3yZl06KT4HHqtaVu9/5d9c5feb98d614d6d793fb01ccc03e92/Screenshot_2025-02-03_at_5.00.32_PM.png)</Frame>
 
 Como requisito previo, GearUp ha realizado una [importación masiva de usuarios](/docs/es/manage-users/user-migration/bulk-user-imports) en su tenant de Auth0 y la aplicación móvil tiene un token de actualización heredado válido para cada usuario que se va a migrar.
 
 1. La aplicación móvil hace una solicitud a Auth0 para intercambiar el token de actualización heredado, estableciéndolo como token de sujeto.
-2. Se ejecuta la Action correspondiente del perfil de Custom Token Exchange. Valida el token de actualización con el IdP heredado y obtiene el ID de usuario externo del perfil de usuario. Luego aplica la política de autorización requerida y, por último, establece el usuario.
-3. Auth0 responde con un token de acceso de Auth0, un token de ID y un token de actualización.
-4. La aplicación móvil ahora puede usar las API del cliente con tokens de Auth0 sin que el usuario tenga que volver a autenticarse.
+2. Se ejecuta la Action del perfil de Custom Token Exchange correspondiente. Valida el token de actualización con el IdP heredado y obtiene el ID de usuario externo del perfil de usuario. Después aplica la política de autorización requerida y, por último, establece el usuario.
+3. Auth0 responde con un token de acceso de Auth0, un token de identidad y un token de actualización.
+4. La aplicación móvil ya puede usar las Customer APIs con tokens de Auth0 sin que el usuario tenga que volver a autenticarse.
 
-El siguiente ejemplo de código muestra cómo implementar esto en la Action de Custom Token Exchange. En este caso, como los perfiles de usuario ya se importaron a una conexión de base de datos de Auth0:
+El siguiente ejemplo de código muestra cómo implementar esto en la Action de Custom Token Exchange. En este caso, dado que los perfiles de usuario ya se importaron en una conexión de base de datos de Auth0:
 
-* No queremos crear el usuario.
+* No queremos crear al usuario.
 * No queremos actualizar el perfil de usuario.
 
 Usamos el ID de usuario del IdP externo para establecer el usuario en la conexión correspondiente.
@@ -93,29 +93,29 @@ async function getUserProfile(refreshToken, clientSecret) {
 ```
 
 <div id="use-case-re-use-an-external-authentication-provider">
-  ### Caso de uso: reutilizar un proveedor de autenticación externo
+  ### Caso de uso: Reutilizar un proveedor de autenticación externo
 </div>
 
-Otro caso de uso consiste en que GearUp se asocie con Air0, un proveedor líder de viajes, para ofrecer sus servicios de alquiler de coches directamente en la aplicación de página única de Air0. GearUp ofrece una biblioteca de Javascript que encapsula el uso de sus API. De este modo, las API de GearUp pueden ser consumidas fácilmente por el sitio web de Air0, donde se ofrecen servicios de alquiler de coches.
+Otro caso de uso implica que GearUp se asocie con Air0, un importante proveedor de viajes, para ofrecer sus servicios de alquiler de coches directamente dentro de la aplicación de página única de Air0. GearUp ofrece una biblioteca de JavaScript que encapsula el uso de sus API. De esta forma, las API de GearUp pueden ser consumidas fácilmente por el sitio web de Air0, donde se ofrecen servicios de alquiler de coches.
 
-Una vez más, la solución debe ser invisible para los usuarios finales, evitando que tengan que volver a autenticarse en GearUp. Para resolver este problema, la biblioteca de Javascript de GearUp puede realizar un intercambio de tokens usando como entrada el token de identidad externo de Air0. Esto da como resultado un token de acceso de Auth0 que se genera y se asocia con el usuario correspondiente de GearUp en función de su dirección de correo electrónico. Una vez que la biblioteca de GearUp obtiene el token de acceso, puede empezar a usar las API de GearUp para ofrecer servicios de alquiler de coches directamente en el sitio web de Air0.
+Una vez más, la solución debe ser invisible para los usuarios finales, evitando que tengan que volver a autenticarse en GearUp. Para resolver este problema, la biblioteca de JavaScript de GearUp puede realizar un intercambio de tokens usando como entrada el token de identidad externo de Air0. Como resultado, se genera un token de acceso de Auth0 que se asocia con el usuario correspondiente de GearUp según su dirección de correo electrónico. Una vez que la biblioteca de GearUp obtiene el token de acceso, puede empezar a usar las API de GearUp para ofrecer servicios de alquiler de coches directamente dentro del sitio web de Air0.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/34AVzwyYARK6fn2IEnLsQn/409082d736d8495b637626406977fb1f/Screenshot_2025-02-03_at_5.08.47_PM.png)</Frame>
 
-Como requisito previo, GearUp ha configurado Air0 IdP como una conexión federada empresarial o Social, para que el usuario pueda autenticarse mediante inicio de sesión federado o, alternativamente, mediante Custom Token Exchange de la siguiente manera:
+Como requisito previo, GearUp ha configurado Air0 IdP como una conexión federada empresarial o social, de modo que el usuario pueda autenticarse mediante inicio de sesión federado o, alternativamente, mediante Custom Token Exchange de la siguiente manera:
 
 1. La aplicación de página única obtiene el token de identidad del IdP externo una vez que el usuario se autentica.
-2. Luego solicita el intercambio del token de identidad, estableciéndolo como token de sujeto.
-3. Se ejecuta la Action del perfil de Custom Token Exchange correspondiente. Valida el token de identidad y obtiene de él el ID del usuario y otros atributos del perfil. Luego aplica la política de autorización requerida y, por último, asigna el usuario.
-4. Auth0 responde con token de acceso de Auth0, token de identidad y token de actualización.
-5. El código Javascript que se ejecuta en la SPA ahora puede usar las API de Customer mediante tokens de Auth0 sin que el usuario tenga que volver a autenticarse.
+2. A continuación, solicita el intercambio del token de identidad y lo establece como token de sujeto.
+3. Se ejecuta la Action del perfil de Custom Token Exchange correspondiente. Valida el token de identidad y obtiene de él el user ID y otros atributos del perfil. Luego aplica la política de autorización requerida y, por último, establece el usuario.
+4. Auth0 responde con un token de acceso de Auth0, un token de identidad y un token de actualización.
+5. El código de JavaScript que se ejecuta en la SPA ya puede usar las Customer APIs con tokens de Auth0 sin que el usuario tenga que volver a autenticarse.
 
 El siguiente código muestra cómo implementar esto en la Action de Custom Token Exchange. En este caso:
 
-* Usamos el ID del usuario del IdP externo para asignar el usuario en la conexión correspondiente.
+* Usamos el user ID del IdP externo para establecer el usuario en la conexión correspondiente.
 * Queremos crear el usuario si todavía no existe.
-* No queremos reemplazar el perfil del usuario si se obtiene un conjunto de atributos más completo mediante inicio de sesión federado, en caso de que el usuario ya exista.
-* No queremos verificar las direcciones de correo electrónico cuando se crean usuarios.
+* No queremos reemplazar el perfil del usuario si se obtiene un conjunto más completo de atributos mediante el inicio de sesión federado, en caso de que el usuario ya exista.
+* No queremos verificar los correos electrónicos cuando se crean usuarios.
 
 ```javascript lines expandable
 const jwksUri = "https://example.com/.well-known/jwks.json";
@@ -136,12 +136,12 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
     // Marcar el token de sujeto como inválido y rechazar la transacción.
     api.access.rejectInvalidSubjectToken("Invalid subject_token");
   } else {
-    // 2. Aplicar la POLÍTICA DE AUTORIZACIÓN según corresponda para determinar si la solicitud es válida.
-    // Usar api.access.deny() para rechazar la transacción en esos casos.
+    // 2. Aplica tu POLÍTICA DE AUTORIZACIÓN según corresponda para determinar si la solicitud es válida.
+    // Usa api.access.deny() para rechazar la transacción en esos casos.
 
     // 3. ESTABLECER EL USUARIO en la conexión de destino.
-    // No se verifican los correos electrónicos al crear usuarios
-    // Este ejemplo asume que subject_token (id_token) contiene claims estándar de OIDC. También son posibles
+    // No queremos verificar correos electrónicos al crear usuarios
+    // Este ejemplo asume que subject_token (id_token) contiene claims OIDC estándar. También son posibles
     // otros mapeos personalizados.
     api.authentication.setUserByConnection(
       'Enterprise-OIDC',
@@ -171,37 +171,37 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
    * @returns {Promise<{ isValid: boolean, payload?: object }>} Payload del token
    */
   async function validateToken(subjectToken) {
-    // Agregue su código aquí. CONSULTE LOS EJEMPLOS DE CÓDIGO PARA VER EJEMPLOS DETALLADOS
+    // Agrega tu código aquí. CONSULTA LOS EJEMPLOS DE CÓDIGO PARA VER EJEMPLOS DETALLADOS
   }
 };
 ```
 
-Consulta las [muestras de código](#code-samples) para ver un ejemplo más detallado de cómo validar de forma segura los <Tooltip tip="JSON Web Token (JWT): formato estándar del token de identidad (y, a menudo, del token de acceso) que se utiliza para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWTs">JWTs</Tooltip>.
+Consulta los [ejemplos de código](#code-samples) para ver un ejemplo más detallado de cómo validar de forma segura <Tooltip tip="JSON Web Token (JWT): Formato estándar de token de ID (y, a menudo, de token de acceso) que se utiliza para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWTs">JWTs</Tooltip>.
 
 <div id="use-case-get-auth0-tokens-for-another-audience">
   ### Caso de uso: Obtener tokens de Auth0 para otra audiencia
 </div>
 
-GearUp quiere mejorar cómo autoriza las llamadas entre sus microservicios internos para procesar solicitudes de API. Quiere una política centralizada que controle los recursos que cada servicio puede consumir. Esto también puede resolverse mediante intercambio de tokens.
+GearUp quiere mejorar cómo autoriza las llamadas entre sus microservicios internos para atender solicitudes a la API. Quiere una política centralizada que controle los recursos que cada servicio puede consumir. Esto también puede resolverse con Token Exchange.
 
-Cuando la solicitud de API llega por primera vez al servicio A, este intercambia el token de acceso recibido por uno nuevo que le permite consumir el servicio B como nueva audiencia. Si la política de autorización que rige el intercambio de tokens lo permite, el servicio A recibe el nuevo token y ahora puede consumir el servicio B. El ID de usuario se mantiene sin cambios en el nuevo token, por lo que el contexto de usuario adecuado se conserva durante todo el proceso.
+Cuando la solicitud a la API llega por primera vez al servicio A, este intercambia el token de acceso recibido por uno nuevo que le permite consumir el servicio B como nueva audiencia. Si la política de autorización que rige el intercambio de tokens lo permite, el servicio A recibe el nuevo token y ahora puede consumir el servicio B. El ID de usuario se mantiene sin cambios en el nuevo token, por lo que se conserva el contexto de usuario correcto durante todo el proceso.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/5Zw7yaJGct9eHAl4rdf72D/42274a5896851a16bea402ac52037f52/Screenshot_2025-02-03_at_5.17.14_PM.png)</Frame>
 
-La aplicación GearUp ha obtenido inicialmente un token de acceso para consumir la API A en nombre de un usuario:
+La aplicación GearUp obtuvo inicialmente un token de acceso para consumir la API A en nombre de un usuario:
 
 1. La aplicación envía la solicitud con el token de acceso inicial a la API A.
-2. El servicio de backend de la API A valida el token de acceso y solicita intercambiarlo estableciéndolo como token de sujeto para obtener un nuevo token de acceso con el que consumir la API B.
-3. Se ejecuta la Action correspondiente del perfil de Custom Token Exchange. Valida el token de acceso y obtiene del token el ID de usuario de Auth0. Luego aplica la política de autorización requerida y, por último, establece el usuario.
+2. El servicio backend de la API A valida el token de acceso y solicita el intercambio estableciéndolo como token de sujeto para un nuevo token de acceso que le permita consumir la API B.
+3. Se ejecuta la Action correspondiente del perfil de Custom Token Exchange. Valida el token de acceso y obtiene de él el ID de usuario de Auth0. Luego aplica la política de autorización requerida y, por último, establece el usuario.
 4. Auth0 responde con un token de acceso de Auth0 para consumir la audiencia de la API B.
-5. El servicio de backend de la API A llama a la API B con el nuevo token de acceso, que sigue asociado al mismo usuario.
+5. El servicio backend de la API A llama a la API B usando el nuevo token de acceso, que sigue asociado al mismo usuario.
 
-El siguiente código ejemplifica cómo implementar esto en la Action de Custom Token Exchange. En este caso:
+El siguiente código muestra cómo implementar esto en la Action de Custom Token Exchange. En este caso:
 
-* Usamos el ID de usuario de Auth0 para establecer el usuario, por lo que no es necesario definirlo en el alcance de ninguna conexión.
+* Usamos el ID de usuario de Auth0 para establecer el usuario, por lo que no es necesario configurarlo en el scope de ninguna conexión.
 * No queremos crear ni actualizar al usuario.
 
-Consulta [Validate JWTs signed with asymmetric keys](#validate-jwts-signed-with-asymmetric-keys) para ver ejemplos de código ampliados sobre este caso de uso.
+Consulta [Validate JWTs signed with asymmetric keys](#validate-jwts-signed-with-asymmetric-keys) para ver ejemplos de código más completos sobre este caso de uso.
 
 ```javascript lines expandable
 const jwksUri = "https://example.com/.well-known/jwks.json";
@@ -239,17 +239,17 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
 };
 ```
 
-Consulta los [ejemplos de código](#code-samples) para ver un ejemplo más detallado de cómo validar JWT de forma segura.
+Consulta [ejemplos de código](#code-samples) para ver un ejemplo más detallado de cómo validar los JWT de forma segura.
 
 <div id="use-case-perform-mfa-during-custom-token-exchange">
   ### Caso de uso: Realizar MFA durante Custom Token Exchange
 </div>
 
-Partiendo del [Caso de uso: Reutilizar un proveedor de autenticación externo](#use-case%3A-re-use-an-external-authentication-provider), GearUp ahora quiere confirmar que el usuario está presente cuando se utiliza un token del proveedor de autenticación externo. Esto es necesario para mitigar riesgos de seguridad, como el robo de tokens o escenarios en los que el autenticador externo no admite MFA. GearUp tiene dos opciones para lograrlo: implementar una política de MFA para toda la organización o activar MFA mediante programación con una Action de Post Login.
+Basándose en el [Caso de uso: Reutilizar un proveedor de autenticación externo](#use-case%3A-re-use-an-external-authentication-provider), GearUp ahora quiere verificar la presencia del usuario cuando se usa un token del proveedor de autenticación externo. Esto es necesario para mitigar riesgos de seguridad como el robo de tokens o los casos en los que el autenticador externo no es compatible con MFA. GearUp tiene dos opciones para lograrlo: implementar una política de MFA para toda la organización o activar MFA mediante programación con una Action de Post Login.
 
-El siguiente ejemplo utiliza una Action de Post Login para activar la autenticación MFA durante la transacción de Custom Token Exchange. Para obtener más información sobre el uso de la concesión de MFA a través de APIs embebidas, consulte la [documentación](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa) sobre el uso de ROPG con MFA, ya que Custom Token Exchange sigue el mismo modelo.
+En el siguiente ejemplo, se usa una Action de Post Login para activar la autenticación MFA durante la transacción de Custom Token Exchange. Para obtener más información sobre el uso de la concesión de MFA a través de APIs embebidas, consulta la [documentación](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa) sobre cómo usar ROPG con MFA, ya que Custom Token Exchange sigue el mismo modelo.
 
-Primero, defina la Action con `api.multifactor.enable()` para activar un desafío MFA. Esta función se describe en la [documentación de la API de Post Login](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object).
+Primero, define la Action con `api.multifactor.enable()` para activar un desafío MFA. Esta función se describe en la [documentación de la API de Post Login](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object).
 
 ```js lines
 exports.onExecutePostLogin = async (event, api) => {
@@ -269,7 +269,7 @@ curl --location 'https://{yourDomain}/oauth/token' \
 --data-urlencode 'client_secret=<YOUR_CLIENT_SECRET>'
 ```
 
-Esto da como resultado un error `mfa_required` que devuelve un token de MFA:
+Esto genera un error `mfa_required` que devuelve un token de MFA:
 
 ```json lines
 403 Forbidden
@@ -280,9 +280,9 @@ Esto da como resultado un error `mfa_required` que devuelve un token de MFA:
 }
 ```
 
-Con el `mfa_token` devuelto, la aplicación puede llamar a la API de MFA para iniciar la comprobación y verificar un factor:
+Con el `mfa_token` devuelto, la aplicación puede llamar a la API de MFA para iniciar una comprobación y verificar un factor:
 
-Primero, obtenga una lista de autenticadores:
+Primero, devuelve una lista de autenticadores:
 
 ```bash lines
 curl --location 'https://{yourDomain}.auth0.com/mfa/authenticators' \
@@ -307,7 +307,7 @@ curl --location 'https://{yourDomain}.auth0.com/mfa/authenticators' \
 ]
 ```
 
-En segundo lugar, usa el ID del autenticador para activar un desafío:
+En segundo lugar, usa el ID del autenticador para activar una verificación:
 
 ```bash lines
 curl --location 'https://{yourDomain}.auth0.com/mfa/challenge' \
@@ -329,7 +329,7 @@ La solicitud de verificación genera la siguiente respuesta:
 }
 ```
 
-Usa `mfa_token` y `oob_code` (si se proporcionan) para completar el proceso de verificación mediante el endpoint de token y recibir tokens:
+Usa `mfa_token` y `oob_code` (si se devuelve) para completar el proceso de verificación mediante el endpoint de token y recibir tokens:
 
 ```bash lines
 curl --location 'https://{yourDomain}.auth0.com/oauth/token' \
@@ -340,27 +340,27 @@ curl --location 'https://{yourDomain}.auth0.com/oauth/token' \
 --data-urlencode 'binding_code=<YOUR_USER_CODE>'
 ```
 
-Lee los [ejemplos de código](#code-samples) para ver un ejemplo más detallado de cómo validar un token de actualización opaco con el IdP heredado.
+Consulte los [ejemplos de código](#code-samples) para ver un ejemplo más detallado de cómo validar un token de actualización opaco con el IdP heredado.
 
 <div id="use-case-support-agent-acting-on-behalf-of-an-end-user">
   ### Caso de uso: Agente de soporte que actúa en nombre de un usuario final
 </div>
 
-Los agentes de soporte de GearUp necesitan acceder a los datos del usuario final y realizar acciones a través de las API de backend de GearUp en nombre del usuario final. La herramienta de soporte autentica al agente y luego usa Custom Token Exchange para obtener un token de acceso que represente al usuario final, con el agente registrado como actor.
+Los agentes de soporte de GearUp necesitan acceder a los datos del usuario final y realizar acciones mediante las API de backend de GearUp en nombre del usuario final. La herramienta de soporte autentica al agente y luego usa Custom Token Exchange para obtener un token de acceso que represente al usuario final, con el agente registrado como actor.
 
 <Frame>![](/docs/images/custom-token-exchange/Support-agent-acting-on-behalf-of-an-end-user.png)</Frame>
 
-En este caso, el token de identidad de Auth0 del agente se envía como `actor_token` en la solicitud, y un JWT firmado que identifica al usuario final se envía como `subject_token`. Cuando `actor_token_type` se establece en `urn:ietf:params:oauth:token-type:id_token`, Auth0 valida automáticamente el token (firma, vencimiento, emisor) y rellena `event.transaction.actor_token_user` con el perfil del agente. Esto elimina la necesidad de usar código de validación personalizado para el token de actor.
+En este caso, el token de identidad de Auth0 del agente se envía como `actor_token` en la solicitud, y un JWT firmado que identifica al usuario final se envía como `subject_token`. Cuando `actor_token_type` se establece en `urn:ietf:params:oauth:token-type:id_token`, Auth0 valida automáticamente el token (firma, vencimiento, emisor) y rellena `event.transaction.actor_token_user` con el perfil del agente. Esto elimina la necesidad de código de validación personalizado para el token de actor.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  No es obligatorio usar un token de identidad de Auth0 como `actor_token`. Cuando `actor_token_type` es un valor personalizado, la Action debe validar el token de actor mediante código personalizado, de forma similar a como se validan los tokens de sujeto. El rellenado automático de `event.transaction.actor_token_user` solo se aplica a los tokens de identidad de Auth0.
+  Usar un token de identidad de Auth0 como `actor_token` no es obligatorio. Cuando `actor_token_type` es un valor personalizado, la Action debe validar el token de actor mediante código personalizado, de forma similar a como se validan los tokens de sujeto. El rellenado automático de `event.transaction.actor_token_user` solo se aplica a los tokens de identidad de Auth0.
 </Callout>
 
-1. La herramienta de soporte autentica al agente con Auth0 y obtiene su token de identidad.
+1. La herramienta de soporte autentica al agente con Auth0 y obtiene el token de identidad del agente.
 2. La herramienta de soporte llama al endpoint `/oauth/token` de Auth0 mediante una [solicitud de Custom Token Exchange](/docs/es/get-started/authentication-and-authorization-flow/token-exchange-flow/call-your-api-using-the-custom-token-exchange-flow), que incluye un JWT firmado con el identificador del usuario final como `subject_token` y el token de identidad del agente como `actor_token`.
 3. La [Action de Custom Token Exchange](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger) valida el token de sujeto, verifica que el actor tenga derecho a actuar en nombre del usuario final y llama a `api.authentication.setActor()`.
 4. Auth0 emite tokens con el claim `act` que identifica al agente de soporte.
-5. El agente de soporte consume la API en nombre del usuario final. Las API pueden inspeccionar el claim `act` para aplicar políticas de autorización específicas para el acceso delegado, como restringir operaciones de escritura o registrar actividad con fines de auditoría.
+5. El agente de soporte consume la API en nombre del usuario final. Las API pueden inspeccionar el claim `act` para aplicar políticas de autorización específicas para el acceso delegado, como restringir operaciones de escritura o registrar la actividad con fines de auditoría.
 
 La Action de Custom Token Exchange decide qué incluir en el objeto actor, incluidas las propiedades personalizadas y los niveles de anidación. Consulta la [documentación del objeto de API de Custom Token Exchange](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object) para conocer las restricciones.
 
@@ -410,7 +410,7 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
   }
 
   async function checkDelegationPolicy(agentId, userId) {
-    // Implemente aquí la verificación de la política de delegación.
+    // Implemente aquí la verificación de su política de delegación.
     // Por ejemplo, verifique que el agente pertenece al equipo de soporte
     // y está asignado a la región de este usuario.
     return true;
@@ -438,41 +438,41 @@ El token de acceso emitido incluirá el claim `act`:
 
 Al implementar la autorización delegada con Custom Token Exchange, sigue estas pautas:
 
-* **Implementa la lógica de autorización dentro de tu Action de Custom Token Exchange** para verificar que el actor esté autorizado para acceder a la cuenta de usuario específica. Por ejemplo, quizá quieras definir reglas de autorización para que solo determinados actores puedan realizar acceso delegado, o podrías comprobar que el usuario de destino tenga un ticket de soporte activo para evitar el acceso arbitrario a usuarios.
+* **Implementa la lógica de autorización dentro de tu Action de Custom Token Exchange** para verificar que el actor esté autorizado para acceder a la cuenta del usuario específica. Por ejemplo, puede que quieras implementar decisiones de autorización para que solo ciertos actores puedan realizar acceso delegado, o podrías comprobar que el usuario de destino tenga abierto un ticket de soporte activo para evitar el acceso arbitrario a usuarios.
 
-* **Valida los scopes solicitados** para garantizar que solo se emita el conjunto mínimo de scopes necesarios para la autorización delegada. Quizá quieras asegurarte de que ciertas operaciones sensibles nunca puedan realizarse en el contexto de la autorización delegada.
+* **Valida los scopes solicitados** para garantizar que solo se emita el conjunto mínimo de scopes necesarios para la autorización delegada. Puede que quieras asegurarte de que algunas operaciones sensibles nunca puedan realizarse en el contexto de la autorización delegada.
 
-* **Asegúrate de que tus APIs utilicen el contexto de delegación** del claim `act` del token de acceso. Debes mantener registros de auditoría en tus APIs sobre las acciones realizadas por un actor delegado y asegurarte de poder auditar claramente qué actor realizó operaciones en nombre del usuario.
+* **Asegúrate de que tus API utilicen el contexto de delegación** en el claim `act` del token de acceso. Debes mantener registros de auditoría en tus API sobre las acciones realizadas por un actor delegado y asegurarte de poder auditar claramente qué actor realizó operaciones en nombre del usuario.
 
-* **Con fines de auditoría**, puedes usar los detalles del actor en los registros del tenant de Auth0. Las transacciones exitosas de Custom Token Exchange (eventos de log `secte`) incluyen la propiedad `actor` con `sub` y cualquier información `actor` anidada.
+* **Con fines de auditoría**, puedes usar los detalles del actor en los registros del tenant de Auth0. Las transacciones exitosas de Custom Token Exchange (eventos de log `secte`) incluyen la propiedad `actor` con el `sub` y cualquier información `actor` anidada.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Auth0 no notifica al usuario final cuando se emite en su nombre un token de autorización delegada. Si tu caso de uso requiere notificar al usuario u obtener su consentimiento explícito antes de que se produzca el acceso delegado, considera usar [Client Initiated Backchannel Authentication (CIBA)](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-ciba-flow) para enviar una solicitud de consentimiento al dispositivo del usuario final antes de realizar el intercambio de tokens. Para necesidades de notificación más simples, puedes implementar la lógica de notificación dentro de tu Action de Custom Token Exchange, en una Action de Post Login o en tus servicios de destino.
+  Auth0 no notifica al usuario final cuando se emite en su nombre un token de autorización delegada. Si tu caso de uso requiere notificar al usuario u obtener su consentimiento explícito antes de que se produzca el acceso delegado, considera usar [Client Initiated Backchannel Authentication (CIBA)](/docs/es/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-ciba-flow) para enviar una solicitud de consentimiento al dispositivo del usuario final antes de realizar el intercambio de tokens. Para necesidades de notificación más simples, puedes implementar lógica de notificación dentro de tu Action de Custom Token Exchange, en una Action Post Login o en tus servicios de destino.
 </Callout>
 
 <div id="code-samples">
   ## Ejemplos de código
 </div>
 
-Los siguientes ejemplos de código muestran prácticas recomendadas para escenarios comunes de validación segura y eficiente de tokens de sujeto entrantes.
+Los siguientes ejemplos de código muestran prácticas recomendadas para casos habituales de validación segura y eficiente de tokens de sujeto entrantes.
 
-Usa algoritmos y claves asimétricos siempre que puedas, ya que así no necesitas compartir ningún secreto con Auth0. Esto también simplifica la rotación de claves, por ejemplo, al exponer un endpoint URI de JWKS para publicar las claves públicas correspondientes.
+Usa algoritmos y claves asimétricos siempre que sea posible, ya que así no necesitas compartir ningún secreto con Auth0. Esto también simplifica la rotación de claves, por ejemplo, al exponer un endpoint JWKS URI para anunciar las claves públicas aplicables.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Es tu responsabilidad garantizar que los tokens de sujeto estén protegidos con un algoritmo robusto y con claves o secretos con suficiente entropía.
+  Es tu responsabilidad asegurarte de que los tokens de sujeto estén protegidos con un algoritmo robusto y con claves o secretos con suficiente entropía.
 </Callout>
 
 <div id="validate-jwts-signed-with-asymmetric-keys">
   ### Validar JWT firmados con claves asimétricas
 </div>
 
-Ten en cuenta las siguientes recomendaciones:
+Tenga en cuenta las siguientes recomendaciones:
 
-* Usa los métodos de Actions [`api.cache ()`](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object) para evitar tener que obtener las claves de firma en cada transacción.
-* Sigue las prácticas recomendadas de [RFC8725](https://www.rfc-editor.org/rfc/rfc8725.txt)
-* Usa algoritmos RS*, PS*, ES* o Ed25519
-* No uses ni aceptes el algoritmo none
-* Usa RSA con una longitud mínima de 2048 bits.
+* Use los métodos [`api.cache ()`](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/custom-token-exchange-trigger/custom-token-exchange-api-object) de Actions para evitar tener que obtener las claves de firma en cada transacción.
+* Siga las prácticas recomendadas de [RFC8725](https://www.rfc-editor.org/rfc/rfc8725.txt)
+* Use algoritmos RS*, PS*, ES* o Ed25519
+* No use ni acepte el algoritmo none
+* Use RSA con una longitud mínima de 2048 bits.
 
 ```javascript lines expandable
 const { jwtVerify, importJWK } = require("jose");
@@ -499,7 +499,7 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
     // Marca el token de sujeto como inválido y falla la transacción.
     api.access.rejectInvalidSubjectToken("Invalid subject_token");
   } else {
-    // Establece el usuario de la solicitud actual como autenticado, usando el user ID del token de sujeto.
+    // Establece el usuario en la solicitud actual como autenticado, usando el user ID del token de sujeto.
     api.authentication.setUserById(payload.sub);
   }
 
@@ -532,8 +532,8 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
   }
 
   /**
-   * Obtiene la clave pública para la verificación. La carga desde la caché de Actions si está disponible;
-   * de lo contrario, la obtiene desde el endpoint JWKS y la almacena en la caché.
+   * Obtiene la clave pública para la verificación de claves. La carga desde la caché de Actions si está disponible;
+   * de lo contrario, la obtiene del endpoint JWKS y la almacena en la caché.
    * @param {string} kid - kid (ID de la clave) de la clave que se usará para la verificación
    * @returns {Promise<Object>}
    */
@@ -585,11 +585,11 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
   ### Validar JWT firmados con claves simétricas
 </div>
 
-Considere las siguientes recomendaciones:
+Ten en cuenta las siguientes recomendaciones:
 
-* Use [Secrets de Actions](/docs/es/customize/actions/write-your-first-action#add-a-secret) para almacenar de forma segura sus secretos simétricos.
-* Siga las prácticas recomendadas de [RFC8725](https://www.rfc-editor.org/rfc/rfc8725.txt)
-* Use algoritmos seguros, como HS256, junto con secretos aleatorios de alta entropía (por ejemplo, de al menos 256 bits de longitud)
+* Usa [Actions Secrets](/docs/es/customize/actions/write-your-first-action#add-a-secret) para almacenar de forma segura tus secretos simétricos.
+* Sigue las prácticas recomendadas de [RFC8725](https://www.rfc-editor.org/rfc/rfc8725.txt)
+* Usa algoritmos seguros, como HS256, junto con secretos aleatorios de alta entropía (por ejemplo, de al menos 256 bits de longitud)
 
 ```javascript lines expandable
 const { jwtVerify } = require("jose");
@@ -615,7 +615,7 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
   // Usa api.access.deny() para rechazar la transacción en esos casos.
 
   if (!isValid) {
-    // Marca el token de sujeto como inválido y falla la transacción.
+    // Marca el token de sujeto como inválido y cancela la transacción.
     api.access.rejectInvalidSubjectToken("Invalid subject_token");
   } else {
     // Establece el usuario de la solicitud actual como autenticado, usando el user ID del token de sujeto.
@@ -632,7 +632,7 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
 async function validateToken(subjectToken, symmetricKey) {
   try {
     // Valida que el token esté correctamente firmado con la clave simétrica compartida
-    // También verifica que no haya expirado, siempre que incluya un atributo 'exp'.
+    // También verifica que no haya expirado, siempre que incluya el atributo 'exp'.
     const { payload, protectedHeader } = await jwtVerify(
       subjectToken,
       symmetricKey,
@@ -653,7 +653,7 @@ async function validateToken(subjectToken, symmetricKey) {
   ### Validar token opaco con un servicio externo
 </div>
 
-Usa [Action Secrets](/docs/es/customize/actions/write-your-first-action#add-a-secret) para almacenar de forma segura el <Tooltip tip="secreto de cliente: secreto que usa un cliente (aplicación) para autenticarse con el servidor de autorización; solo deben conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio como para que no pueda adivinarse." cta="Ver glosario" href="/docs/es/glossary?term=client+secret">secreto de cliente</Tooltip> de tu IdP externo.
+Utiliza [Secrets de Actions](/docs/es/customize/actions/write-your-first-action#add-a-secret) para almacenar de forma segura el <Tooltip tip="Secreto de cliente: secreto utilizado por un cliente (aplicación) para autenticarse con el servidor de autorización; solo deben conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio como para que no pueda adivinarse." cta="Ver glosario" href="/docs/es/glossary?term=client+secret">secreto de cliente</Tooltip> de tu IdP externo.
 
 ```javascript lines expandable
 const tokenEndpoint = "EXTERNAL_TOKEN_ ENDPOINT";
@@ -674,7 +674,7 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
   );
 
   if (!isValid) {
-    // Marcar el token de sujeto como inválido y hacer fallar la transacción.
+    // Marca el token de sujeto como inválido y hace fallar la transacción.
     api.access.rejectInvalidSubjectToken("Invalid subject_token");
     return;
   }
@@ -781,7 +781,7 @@ async function refreshAccessToken(refreshToken, clientSecret) {
     }
   }
 
-  // Analiza la respuesta, con la forma { access_token: "...", expires_in: ..., }
+  // Analiza la respuesta, con el formato { access_token: "...", expires_in: ..., }
   const data = await response.json();
   console.log("Successfully exchanged refresh token");
   return { isValid: true, accessToken: data.access_token };

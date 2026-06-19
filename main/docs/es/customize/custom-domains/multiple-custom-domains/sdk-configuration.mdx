@@ -1,12 +1,12 @@
 ---
 description: Aprende a configurar los SDK de Auth0 para que funcionen con múltiples dominios personalizados.
-title: Configuración de SDK para múltiples dominios personalizados
+title: Configuración de SDKs para múltiples dominios personalizados
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Al usar [múltiples dominios personalizados](/docs/es/customize/custom-domains/multiple-custom-domains), debes configurar tus SDK de Auth0 para que utilicen el dominio personalizado adecuado para la autenticación. En esta guía se explica cómo configurar los SDK para distintas plataformas y escenarios.
+Al usar [múltiples dominios personalizados](/docs/es/customize/custom-domains/multiple-custom-domains), debes configurar tus SDKs de Auth0 para que usen el dominio personalizado adecuado para la autenticación. Esta guía explica la configuración de los SDK para distintas plataformas y escenarios.
 
 <div id="key-concepts">
   ## Conceptos clave
@@ -16,7 +16,7 @@ Al usar [múltiples dominios personalizados](/docs/es/customize/custom-domains/m
   ### Parámetro `domain`
 </div>
 
-Todos los SDK de Auth0 requieren un parámetro `domain` que indica qué dominio de Auth0 se debe usar para la autenticación. Si usas dominios personalizados, configura este parámetro con tu dominio personalizado en lugar del dominio canónico de Auth0.
+Todos los SDKs de Auth0 requieren un parámetro `domain` que especifica qué dominio de Auth0 se debe usar para la autenticación. Si usas dominios personalizados, configura este parámetro con tu dominio personalizado en lugar de tu dominio canónico de Auth0.
 
 **Sin dominio personalizado:**
 
@@ -34,7 +34,7 @@ domain: 'login.example.com'
   ### Emisor del token
 </div>
 
-Al usar un dominio personalizado, el claim `iss` (emisor) de los tokens se establecerá en tu dominio personalizado:
+Al usar un dominio personalizado, los tokens tendrán la claim `iss` (issuer) establecida en tu dominio personalizado:
 
 ```json
 {
@@ -44,21 +44,21 @@ Al usar un dominio personalizado, el claim `iss` (emisor) de los tokens se estab
 }
 ```
 
-Debes configurar la validación de tus tokens para que acepte tu dominio personalizado como emisor válido.
+Debe configurar la validación de tokens para que acepte su dominio personalizado como emisor válido.
 
 <div id="authentication-sdks">
   ## SDKs de autenticación
 </div>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Al usar MCD, el Cliente es responsable de proporcionar y validar todos los dominios personalizados. Al configurar los SDKs para resolver dominios personalizados del tenant mediante las funciones de resolución de dominios, usted es responsable de garantizar que todos los dominios resueltos sean de confianza. Una configuración incorrecta del resolvedor de dominios puede provocar una elusión de la autenticación en la parte usuaria o exponer la aplicación a ataques de falsificación de solicitudes del lado del servidor. No configurar correctamente sus dominios y servidores proxy puede generar vulnerabilidades de seguridad críticas por las que Okta no asume responsabilidad.
+  Al usar MCD, el cliente es responsable de proporcionar y validar todos los dominios personalizados. Al configurar los SDKs para resolver los dominios personalizados del tenant mediante las funciones de resolución de dominios, usted es responsable de garantizar que todos los dominios resueltos sean de confianza. Una configuración incorrecta del resolvedor de dominios puede permitir eludir la autenticación en la relying party o exponer la aplicación a falsificación de solicitudes del lado del servidor. No configurar correctamente sus dominios y servidores proxy puede generar vulnerabilidades de seguridad críticas de las que Okta no se hace responsable.
 </Callout>
 
 <div id="auth0-spa-sdk-javascript">
   ### Auth0 SPA SDK (JavaScript)
 </div>
 
-Para aplicaciones de página única que usan el [Auth0 SPA SDK](https://github.com/auth0/auth0-spa-js):
+Para aplicaciones web de página única que usan el [Auth0 SPA SDK](https://github.com/auth0/auth0-spa-js):
 
 <AuthCodeGroup>
   ```javascript Configuración estática
@@ -80,7 +80,7 @@ Para aplicaciones de página única que usan el [Auth0 SPA SDK](https://github.c
   function getAuth0Domain() {
     const hostname = window.location.hostname;
 
-    // Asigna los dominios de las aplicaciones a dominios personalizados de Auth0
+    // Asigna dominios de la aplicación a dominios personalizados de Auth0
     if (hostname.includes('app1.example.com')) {
       return 'login.brand1.com';
     } else if (hostname.includes('app2.example.com')) {
@@ -137,7 +137,7 @@ Para aplicaciones de Next.js que usan el [Auth0 Next.js SDK](https://github.com/
 
   const auth0 = new Auth0Client({
     domain: ({ headers }) => {
-      // Asigna hosts de aplicaciones a dominios personalizados de Auth0
+      // Asigna los hosts de la aplicación a dominios personalizados de Auth0
       const host = headers.get('host') || '';
 
       if (host.includes('brand1.example.com')) {
@@ -158,12 +158,12 @@ Para aplicaciones de Next.js que usan el [Auth0 Next.js SDK](https://github.com/
   ```typescript Configuración dinámica (SaaS B2B)
   import { Auth0Client } from '@auth0/nextjs-auth0/server';
 
-  // Asigna identificadores de tenant a dominios personalizados (desde base de datos, caché, etc.)
+  // Asigna identificadores de tenant a dominios personalizados (desde la base de datos, la caché, etc.)
   async function resolveTenantDomain(host: string): Promise<string> {
     // Extrae el identificador del tenant del subdominio
     const subdomain = host.split('.')[0];
 
-    // Busca el dominio personalizado para este tenant (por ejemplo, en la base de datos)
+    // Busca el dominio personalizado de este tenant (por ejemplo, en la base de datos)
     const tenantConfig = await getTenantConfig(subdomain);
 
     return tenantConfig?.customDomain || 'login.example.com';
@@ -193,20 +193,20 @@ Para aplicaciones de Next.js que usan el [Auth0 Next.js SDK](https://github.com/
   ```
 </AuthCodeGroup>
 
-**Conceptos clave de MCD con Next.js:**
+**Conceptos clave de MCD para Next.js:**
 
-* **Un solo tenant de Auth0, múltiples dominios**: Todos los dominios personalizados comparten el mismo `clientId` y `clientSecret` porque pertenecen al mismo tenant de Auth0.
-* **Función `DomainResolver`**: El parámetro `domain` acepta una función `(config: { headers: Headers; url?: URL }) => Promise<string> | string`. Esto permite resolver el dominio dinámicamente en cada solicitud según los headers de la solicitud entrante.
-* **Caché de instancias**: El SDK almacena automáticamente en caché las instancias de `Auth0Client` por dominio mediante una caché LRU acotada (máximo 100 entradas) para mejorar el rendimiento.
-* **Aislamiento de sesiones**: Las sesiones creadas mediante un dominio personalizado quedan aisladas en ese dominio y no pueden usarse indistintamente con sesiones de otro dominio.
-* **Parámetro de URL**: El parámetro `url` en la función de resolución es `undefined` en Server Components y Server Actions; solo está disponible en middleware o rutas de API.
-* **Ajuste de la caché de discovery**: Configura el almacenamiento en caché de metadatos de OIDC con la opción `discoveryCache`:
+* **Un solo tenant de Auth0, múltiples dominios**: Todos los dominios personalizados comparten el mismo `clientId` y `clientSecret`, ya que pertenecen al mismo tenant de Auth0.
+* **Función `DomainResolver`**: El parámetro `domain` acepta una función `(config: { headers: Headers; url?: URL }) => Promise<string> | string`. Esto permite resolver dinámicamente el dominio en cada solicitud según los `headers` entrantes.
+* **Caché de instancias**: El SDK almacena automáticamente en caché las instancias de `Auth0Client` por dominio mediante una caché LRU limitada (máximo 100 entradas) para mejorar el rendimiento.
+* **Aislamiento de sesiones**: Las sesiones creadas a través de un dominio personalizado quedan aisladas en ese dominio y no pueden usarse indistintamente con sesiones de otro dominio.
+* **Parámetro de URL**: El parámetro `url` del resolvedor es `undefined` en Server Components y Server Actions; solo está disponible en `middleware` o rutas de API.
+* **Ajuste de la caché de descubrimiento**: Configura la caché de metadatos de OIDC con la opción `discoveryCache`:
   ```typescript
   const auth0 = new Auth0Client({
     // ... otra configuración
     discoveryCache: {
-      ttl: 600,      // Caché durante 10 minutos (predeterminado)
-      maxEntries: 100  // Número máximo de issuers en caché (predeterminado: 100, expulsión LRU)
+      ttl: 600,      // Almacena en caché durante 10 minutos (predeterminado)
+      maxEntries: 100  // Número máximo de emisores en caché (predeterminado: 100, desalojo LRU)
     }
   });
   ```
@@ -215,7 +215,7 @@ Para aplicaciones de Next.js que usan el [Auth0 Next.js SDK](https://github.com/
   ### SDK de Auth0 para React
 </div>
 
-Para aplicaciones de React que utilizan el [SDK de Auth0 para React](https://github.com/auth0/auth0-react):
+Para las aplicaciones React que usan el [SDK de Auth0 para React](https://github.com/auth0/auth0-react):
 
 ```jsx
 import { Auth0Provider } from '@auth0/auth0-react';
@@ -235,7 +235,7 @@ function App() {
 }
 ```
 
-Para escenarios con múltiples dominios:
+En escenarios con varios dominios:
 
 ```jsx
 import { Auth0Provider } from '@auth0/auth0-react';
@@ -262,7 +262,7 @@ function App() {
   ### Auth0.js
 </div>
 
-Para las aplicaciones que usan [Auth0.js](https://github.com/auth0/auth0.js):
+Para las aplicaciones que utilizan [Auth0.js](https://github.com/auth0/auth0.js):
 
 ```javascript
 const webAuth = new auth0.WebAuth({
@@ -298,7 +298,7 @@ app.use(
 );
 ```
 
-Para escenarios multi-tenant:
+En escenarios multi-tenant:
 
 ```javascript
 const { auth } = require('express-openid-connect');
@@ -308,7 +308,7 @@ app.use((req, res, next) => {
   // Extraer el identificador del tenant desde el subdominio, la ruta o el encabezado
   const tenant = req.subdomains[0] || 'default';
 
-  // Asignar el tenant a su dominio personalizado
+  // Asignar el tenant al dominio personalizado
   const domainMap = {
     'customer1': 'login.customer1.com',
     'customer2': 'login.customer2.com',
@@ -418,7 +418,7 @@ WebAuthProvider.login(account)
     })
 ```
 
-Para admitir varios dominios:
+Para la compatibilidad con varios dominios:
 
 ```kotlin
 class AuthManager(private val context: Context) {
@@ -482,7 +482,7 @@ final auth0 = Auth0(
   'YOUR_CLIENT_ID'
 );
 
-// Inicio de sesión
+// Iniciar sesión
 try {
   final credentials = await auth0.webAuthentication().login();
   print('Logged in successfully');
@@ -495,7 +495,7 @@ try {
   ## SDKs de administración
 </div>
 
-Los SDKs de administración se usan para interactuar con la Auth0 Management API. Al usar dominios personalizados, es posible que tengas que incluir el encabezado `auth0-custom-domain` o usar el [dominio predeterminado](/docs/es/customize/custom-domains/multiple-custom-domains/default-domain).
+Los SDKs de administración se utilizan para interactuar con la Auth0 Management API. Al usar dominios personalizados, es posible que debas incluir el encabezado `auth0-custom-domain` o usar el [dominio predeterminado](/docs/es/customize/custom-domains/multiple-custom-domains/default-domain).
 
 <div id="nodejs-management-sdk">
   ### SDK de administración para Node.js
@@ -529,7 +529,7 @@ const response = await management.users.getAll({}, reqOptions);
 ```python
 from auth0.management import ManagementClient, CustomDomainHeader
 
-# Dominio personalizado global (enviado en todas las solicitudes de la lista blanca)
+# Dominio personalizado global (enviado en todas las solicitudes permitidas)
 client = ManagementClient(
     domain='tenant.auth0.com',
     client_id='YOUR_M2M_CLIENT_ID',
@@ -537,7 +537,7 @@ client = ManagementClient(
     custom_domain='login.example.com',
 )
 
-# Listar usuarios (endpoint en lista blanca - el encabezado se envía automáticamente)
+# Listar usuarios (endpoint permitido - el encabezado se envía automáticamente)
 users = client.users.list()
 
 # Anulación por solicitud (tiene prioridad sobre el global)
@@ -550,7 +550,7 @@ client.users.create(
 ```
 
 <div id="go-management-sdk">
-  ### SDK de administración para Go
+  ### SDK de administración de Go
 </div>
 
 ```go
@@ -560,7 +560,7 @@ import (
     "github.com/auth0/go-auth0/v2/management/option"
 )
 
-// Nivel de cliente: aplica automáticamente el encabezado de dominio personalizado a los endpoints en lista blanca
+// Nivel de cliente: aplica automáticamente el encabezado de dominio personalizado a los endpoints permitidos
 mgmt, err := management.New(
     "{yourDomain}",
     option.WithClientCredentials("{yourClientId}", "{yourClientSecret}"),
@@ -570,7 +570,7 @@ if err != nil {
     // Gestionar error
 }
 
-// Listar usuarios (endpoint en lista blanca - el encabezado se envía automáticamente)
+// Listar usuarios (endpoint permitido - el encabezado se envía automáticamente)
 userList, err := mgmt.Users.List(context.Background(), nil)
 
 // Anulación por solicitud (tiene prioridad sobre el nivel de cliente)
@@ -585,7 +585,7 @@ userList, err := mgmt.Users.List(
   ## Validación de tokens
 </div>
 
-Cuando uses dominios personalizados, actualiza la validación de tokens para que acepte el dominio personalizado como emisor.
+Al usar dominios personalizados, actualiza la validación de tus tokens para que acepte el dominio personalizado como emisor.
 
 <div id="nodejs-express">
   ### Node.js (Express)
@@ -611,7 +611,7 @@ app.use(
 );
 ```
 
-Para varios dominios personalizados:
+Para múltiples dominios personalizados:
 
 ```javascript
 const validIssuers = [
@@ -755,10 +755,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 ```
 
 <div id="environment-specific-configuration">
-  ## Configuración específica del entorno
+  ## Configuración específica de cada entorno
 </div>
 
-Usa variables de entorno para gestionar dominios personalizados entre distintos entornos:
+Usa variables de entorno para gestionar dominios personalizados en distintos entornos:
 
 <div id="env-file-structure">
   ### Estructura del archivo .env
@@ -782,7 +782,7 @@ AUTH0_CLIENT_SECRET=dev_client_secret
 ```
 
 <div id="loading-configuration">
-  ### Carga de la configuración
+  ### Carga de configuración
 </div>
 
 ```javascript
@@ -815,19 +815,19 @@ const auth0Config = {
   <tbody>
     <tr>
       <td>Error de emisor no válido</td>
-      <td>La validación de tokens espera el dominio canónico, pero recibe un dominio personalizado</td>
-      <td>Actualiza la validación de tokens para aceptar el dominio personalizado como emisor</td>
+      <td>La validación del token espera el dominio canónico, pero recibe un dominio personalizado</td>
+      <td>Actualiza la validación del token para aceptar el dominio personalizado como emisor</td>
     </tr>
 
     <tr>
       <td>Error al obtener el JWKS</td>
-      <td>El URI de JWKS apunta al dominio canónico</td>
-      <td>Actualiza el URI de JWKS para usar el dominio personalizado: `https://custom-domain/.well-known/jwks.json`</td>
+      <td>El URI del JWKS apunta al dominio canónico</td>
+      <td>Actualiza el URI del JWKS para usar el dominio personalizado: `https://custom-domain/.well-known/jwks.json`</td>
     </tr>
 
     <tr>
-      <td>Incompatibilidad de URI de redirección</td>
-      <td>La URL de devolución de llamada no coincide con los Redirect URIs configurados</td>
+      <td>La URI de redirección no coincide</td>
+      <td>La URL de devolución de llamada no coincide con las URI de redirección configuradas</td>
       <td>Agrega la URL de devolución de llamada del dominio personalizado a la configuración de la aplicación</td>
     </tr>
 
@@ -849,14 +849,14 @@ const auth0Config = {
   ## Prácticas recomendadas
 </div>
 
-1. **Use variables de entorno**: Almacene los dominios personalizados en archivos de configuración específicos del entorno
-2. **Valide múltiples emisores**: Si usa múltiples dominios personalizados, configure la validación de tokens para aceptar todos como emisores válidos
-3. **Actualice las URL de devolución de llamada**: Asegúrese de agregar todos los dominios personalizados a Allowed Callback URLs en la configuración de la aplicación
-4. **Pruebe exhaustivamente**: Pruebe la autenticación a través de cada dominio personalizado antes de pasar a Production
-5. **Supervise los emisores de tokens**: Registre y supervise el claim `iss` en los tokens para garantizar el uso correcto del dominio personalizado
-6. **Documente los mapeos de dominios**: Mantenga una documentación clara de qué aplicaciones usan qué dominios personalizados
-7. **Gestione los fallos correctamente**: Implemente un manejo adecuado de errores para los fallos de autenticación
-8. **Almacene JWKS en caché**: Almacene en caché los datos de JWKS para mejorar el rendimiento y reducir las solicitudes
+1. **Usar variables de entorno**: Almacene los dominios personalizados en archivos de configuración específicos de cada entorno
+2. **Validar varios emisores**: Si usa múltiples dominios personalizados, configure la validación de tokens para aceptar todos como emisores válidos
+3. **Actualizar las URL de devolución de llamada**: Asegúrese de que todos los dominios personalizados se agreguen a Allowed Callback URLs en la configuración de la aplicación
+4. **Probar exhaustivamente**: Pruebe la autenticación a través de cada dominio personalizado antes de pasar a Production
+5. **Supervisar los emisores de tokens**: Registre y supervise la `claim` `iss` en los tokens para garantizar el uso correcto del dominio personalizado
+6. **Documentar los mapeos de dominios**: Mantenga una documentación clara sobre qué aplicaciones usan qué dominios personalizados
+7. **Gestionar los errores correctamente**: Implemente un manejo de errores adecuado para los fallos de autenticación
+8. **Almacenar JWKS en caché**: Almacene en caché los datos de JWKS para mejorar el rendimiento y reducir las solicitudes
 
 <div id="learn-more">
   ## Más información
@@ -865,4 +865,4 @@ const auth0Config = {
 * [Múltiples dominios personalizados](/docs/es/customize/custom-domains/multiple-custom-domains)
 * [Dominio personalizado predeterminado](/docs/es/customize/custom-domains/multiple-custom-domains/default-domain)
 * [Configurar funcionalidades para usar dominios personalizados](/docs/es/customize/custom-domains/configure-features-to-use-custom-domains)
-* [Auth0 SDKs](/docs/es/troubleshoot/customer-support/product-support-matrix#auth0-sdks)
+* [SDKs de Auth0](/docs/es/troubleshoot/customer-support/product-support-matrix#auth0-sdks)

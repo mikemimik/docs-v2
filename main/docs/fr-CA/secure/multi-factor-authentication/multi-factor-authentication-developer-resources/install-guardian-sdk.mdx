@@ -1,5 +1,5 @@
 ---
-description: Décrit comment installer, configurer les options et utiliser les SDK Guardian.
+description: Décrit comment installer, configurer et utiliser les SDK Guardian.
 title: Installer le SDK Guardian
 ---
 
@@ -8,7 +8,7 @@ Le SDK Guardian fournit un client sans interface utilisateur pour Guardian.
 `npm install auth0-guardian-js`
 
 <div id="source-files">
-  ## Fichiers sources
+  ## Fichiers source
 </div>
 
 * [Version complète du SDK](https://cdn.auth0.com/js/guardian-js/1.3/guardian-js.js)
@@ -34,23 +34,23 @@ var auth0GuardianJS = require('auth0-guardian-js')({
 		name: "{{ userData.tenant }}",
 	},
 
-	// Le libellé du compte à afficher dans les applications de génération d'OTP
+	// L'étiquette du compte à afficher dans les applications de génération d'OTP
 	accountLabel: "{{ userData.friendlyUserId }}",
 
 	// Facultatif, à des fins de débogage uniquement,
-	// identifiant permettant d'associer un groupe de requêtes
+	// ID permettant d'associer un groupe de requêtes
 	// appartenant à la même « transaction » (au sens large)
 	globalTrackingId: "{{ globalTrackingId }}"
 });
 ```
 
-L’utilisation de `requestToken` ou de `ticket` dépend de la méthode d’authentification. Le ticket correspond à un [ticket d’enrôlement généré précédemment](/docs/fr-CA/secure/multi-factor-authentication/multi-factor-authentication-developer-resources/create-custom-enrollment-tickets).
+L’utilisation de `requestToken` ou de `ticket` dépend de la méthode d’authentification. Le ticket correspond à un [ticket d’inscription généré précédemment](/docs/fr-CA/secure/multi-factor-authentication/multi-factor-authentication-developer-resources/create-custom-enrollment-tickets).
 
 <div id="use-a-custom-domain">
   ### Utiliser un domaine personnalisé
 </div>
 
-Si vous avez configuré un <Tooltip tip="Domaine personnalisé : domaine tiers avec un nom spécialisé ou personnalisé." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=custom+domain">domaine personnalisé</Tooltip> pour votre tenant Auth0, vous devrez mettre à jour la propriété `serviceUrl` pour qu’elle pointe vers le point de terminaison Guardian :
+Si un <Tooltip tip="Domaine personnalisé : domaine tiers portant un nom spécialisé ou distinctif." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=custom+domain">domaine personnalisé</Tooltip> est configuré pour votre tenant Auth0, vous devrez mettre à jour la propriété `serviceUrl` pour qu’elle pointe vers le point de terminaison Guardian :
 
 ```javascript lines
 var auth0GuardianJS = require('auth0-guardian-js')({
@@ -61,18 +61,18 @@ var auth0GuardianJS = require('auth0-guardian-js')({
 ```
 
 <div id="enroll-devices">
-  ## Enrôler des appareils
+  ## Inscrire des appareils
 </div>
 
-L’enrôlement des appareils comprend les étapes suivantes :
+L’inscription des appareils comprend les étapes suivantes :
 
-1. Démarrez la transaction.
-2. (facultatif) Vérifiez si l’utilisateur est déjà enrôlé. Un utilisateur ne peut pas être enrôlé deux fois.
-3. Envoyez les renseignements nécessaires à l’enrôlement.
-4. Confirmez l’enrôlement.
-5. Affichez le code de récupération.
+1. Démarrer la transaction.
+2. (facultatif) Vérifier si l’utilisateur est déjà inscrit. Il n’est pas possible de l’inscrire deux fois.
+3. Envoyer les renseignements nécessaires à l’inscription.
+4. Confirmer l’inscription.
+5. Afficher le code de récupération.
 
-Certaines étapes peuvent être omises selon la méthode. Nous fournissons la même interface pour toutes les méthodes afin que vous puissiez écrire du code cohérent. Certaines méthodes complètent l’authentification, tandis que d’autres nécessitent une étape d’authentification supplémentaire. Vous pouvez le déterminer en écoutant l’événement `enrollment-complete`.
+Certaines étapes peuvent être omises selon la méthode. Nous fournissons la même interface pour toutes les méthodes afin que vous puissiez écrire du code uniforme. Certaines méthodes terminent l’authentification, tandis que d’autres nécessitent une étape d’authentification supplémentaire. Vous pouvez le déterminer en écoutant l’événement `enrollment-complete`.
 
 ```javascript lines expandable
 function enroll(transaction, method) {
@@ -84,7 +84,7 @@ function enroll(transaction, method) {
 	var enrollData = {};
 
 	if (method === 'sms') {
-		enrollData.phoneNumber = prompt('Phone number'); // Recueillir le numéro de téléphone
+		enrollData.phoneNumber = prompt('Phone number'); // Collecter le numéro de téléphone
 	}
 
 	return transaction.enroll(method, enrollData, function (err, otpEnrollment) {
@@ -100,7 +100,7 @@ function enroll(transaction, method) {
 
 		var confirmData = {};
 		if (method === 'otp' || method === 'sms') {
-			confirmData.otpCode = prompt('Otp code'); // Collect verification otp
+			confirmData.otpCode = prompt('Otp code'); // Collecter le mot de passe à usage unique de vérification
 		}
 
 		otpEnrollment.confirm(confirmData);
@@ -150,7 +150,7 @@ auth0GuardianJS.start(function(err, transaction) {
 	method = prompt('What method do you want to use, select one of '
 		+ availableEnrollmentMethods.join(', '));
 
-	enroll(transaction, method) // For sms
+	enroll(transaction, method) // Pour SMS
 });
 ```
 
@@ -161,13 +161,13 @@ auth0GuardianJS.start(function(err, transaction) {
 Pour vous authentifier à l’aide d’une méthode, vous devez suivre les étapes suivantes :
 
 1. Démarrez la transaction.
-2. (facultatif) Vérifiez si l’utilisateur est déjà enrôlé. Vous devez être enrôlé pour vous authentifier.
-3. Envoyez la request d’authentification (la notification push ou le SMS). La request est sans effet pour l’OTP.
-4. Vérifiez l’OTP (`.verify` est sans effet pour le push).
+2. (facultatif) Vérifiez si l’utilisateur est déjà inscrit. Vous devez être inscrit pour vous authentifier.
+3. Demandez l’authentification (la notification push ou le SMS). La requête est une noop pour l’OTP.
+4. Vérifiez l’OTP (`.verify` est une noop pour push).
 
-Certaines étapes peuvent être omises selon la méthode ; nous fournissons la même interface pour toutes les méthodes afin que vous puissiez écrire un code uniforme. Une fois le factor vérifié ou le push accepté, vous recevrez un événement `auth-response` avec le payload à envoyer au serveur. Vous pouvez utiliser `auth0GuardianJS.formPostHelper('{{ postActionURL }}', payload)` pour renvoyer le message au serveur.
+Certaines étapes peuvent être omises selon la méthode. Nous fournissons la même interface pour toutes les méthodes afin que vous puissiez écrire un code uniforme. Une fois le facteur vérifié ou la demande push acceptée, vous recevrez un événement `auth-response` avec le payload à envoyer au serveur. Vous pouvez utiliser `auth0GuardianJS.formPostHelper('{{ postActionURL }}', payload)` pour renvoyer le message au serveur.
 
-Vous pourriez aussi recevoir `auth-rejected` si la notification push a été reçue.
+Vous pouvez aussi recevoir `auth-rejected` si la notification push a été reçue.
 
 ```javascript lines expandable
 function authenticate(method) {

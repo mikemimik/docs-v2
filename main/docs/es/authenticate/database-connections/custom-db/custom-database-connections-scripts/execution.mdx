@@ -1,17 +1,17 @@
 ---
-description: Conozca las prácticas recomendadas para la ejecución de scripts de acción de bases de datos personalizadas.
-title: Prácticas recomendadas para la ejecución de scripts de acción de bases de datos personalizadas
+description: Conozca las prácticas recomendadas para la ejecución de scripts de acción de Custom Database.
+title: Prácticas recomendadas para la ejecución de scripts de acción de Custom Database
 ---
 
-Un tipo de conexión de base de datos personalizada le permite configurar scripts de acción, que contienen código personalizado que Auth0 utiliza para interactuar con su repositorio de identidades heredado. Los scripts de acción son funciones de JavaScript con nombre que aceptan un conjunto predefinido de parámetros.
+Un tipo de conexión de base de datos personalizada le permite configurar scripts de acción que contienen código personalizado que Auth0 utiliza para interactuar con su repositorio de identidades heredado. Los scripts de acción son funciones de JavaScript con nombre que aceptan un conjunto predefinido de parámetros.
 
 <div id="webtask-containers">
   ## Contenedores de Webtask
 </div>
 
-Los scripts de acción se ejecutan en un contenedor de Webtask individual con un límite de ejecución de aproximadamente 20 segundos. Una vez ejecutadas las funciones, el contenedor se recicla.
+Los scripts de acción se ejecutan en un contenedor de Webtask individual, con un límite de ejecución de aproximadamente 20 segundos. Una vez que las funciones se ejecutan, el contenedor se recicla.
 
-Cuando un contenedor se recicla, finaliza las operaciones pendientes del script de acción. Esto puede hacer que se devuelva un error y que el objeto `global` se restablezca. Para obtener más información sobre el objeto `global`, consulta [Prácticas recomendadas para el entorno de los scripts de acción de base de datos personalizada](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/environment).
+Cuando un contenedor se recicla, finaliza las operaciones pendientes del script de acción. Esto puede hacer que se devuelva un error y que el objeto `global` se restablezca. Para obtener más información sobre el objeto `global`, consulta [Prácticas recomendadas del entorno de scripts de acción de base de datos personalizada](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/environment).
 
 <div id="asynchronous-features">
   ## Características asíncronas
@@ -19,9 +19,9 @@ Cuando un contenedor se recicla, finaliza las operaciones pendientes del script 
 
 Las características asíncronas de JavaScript, incluidos los objetos [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) y las [funciones async](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function), son compatibles con los scripts de acción.
 
-Puedes usar características asíncronas para ejecutar operaciones no bloqueantes dentro de un script de acción, pero asegúrate de que estas operaciones no superen el límite de ejecución del contenedor de Webtask. Cuando el contenedor de Webtask se recicla, finaliza cualquier operación pendiente, lo que puede provocar un comportamiento inesperado o un error.
+Puede usar características asíncronas para ejecutar operaciones sin bloqueo dentro de un script de acción, pero asegúrese de que estas operaciones no superen el límite de ejecución del contenedor de Webtask. Cuando se recicle el contenedor de Webtask, se finalizarán las operaciones pendientes, lo que puede provocar comportamientos inesperados o errores.
 
-Si haces una llamada a un servicio externo o a una API dentro de tu script de acción, configura la función para que agote el tiempo de espera tras un intervalo razonable y [devuelva un error](#error-handling) si no se puede acceder al servicio externo o a la API.
+Si realiza una llamada a un servicio externo o a una API dentro de su script de acción, configure la función para que agote el tiempo de espera tras un intervalo razonable y [devuelva un error](#error-handling) si no se puede acceder al servicio externo o a la API.
 
 <div id="examples">
   ### Ejemplos
@@ -33,7 +33,7 @@ Auth0 permite usar objetos [Promise](https://developer.mozilla.org/en-US/docs/We
   #### Objeto Promise
 </div>
 
-Este ejemplo usa el método `fetch` integrado de JavaScript, que obtiene un recurso de la red y luego devuelve un objeto Promise, y está escrito usando [cadenas de promesas](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises#chaining).
+Este ejemplo utiliza el método `fetch` integrado de JavaScript, que obtiene un recurso de una red y luego devuelve un objeto Promise. Está escrito con [encadenamiento de promesas](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises#chaining).
 
 ```javascript lines expandable
 function login(userNameOrEmail, password, callback) {
@@ -77,7 +77,7 @@ function login(userNameOrEmail, password, callback) {
   #### Función async
 </div>
 
-Este ejemplo usa el método `fetch` integrado de JavaScript, que obtiene un recurso de la red y luego devuelve un objeto Promise. Está escrito con [funciones async](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function).
+Este ejemplo utiliza el método `fetch` integrado de JavaScript, que obtiene un recurso de la red y luego devuelve un objeto Promise, y está escrito con [funciones async](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function).
 
 ```js lines expandable
 async function login(userNameOrEmail, password, callback) {
@@ -113,48 +113,48 @@ async function login(userNameOrEmail, password, callback) {
 ```
 
 <div id="callback-function">
-  ## Función `callback`
+  ## Función de devolución de llamada
 </div>
 
-La función `callback` indica que la operación del script de acción ha finalizado y debe llamarse exactamente una vez. Un script de acción debe finalizar inmediatamente después de llamar a la función `callback`, preferiblemente mediante el uso explícito de la instrucción `return`.
+La función `callback` indica que la operación del script de acción ha finalizado y debe llamarse exactamente una vez. Un script de acción debería finalizar inmediatamente después de llamar a la función `callback`, preferiblemente mediante el uso explícito de la instrucción `return`.
 
 <Warning>
   Si la función `callback` se llama más de una vez, puede dar lugar a resultados inesperados y/o errores.
 
-  Si no se llama nunca a la función `callback`, la ejecución del script de acción se bloqueará y se devolverá un error cuando se recicle el contenedor de Webtask.
+  Si no se llama a la función `callback`, la ejecución del script de acción se quedará bloqueada y se devolverá un error cuando se recicle el contenedor de Webtask.
 </Warning>
 
 <div id="asynchronous-processing">
   ### Procesamiento asíncrono
 </div>
 
-Si un script de acción utiliza procesamiento asíncrono, la función `callback` debe llamarse una vez que hayan finalizado todas las operaciones asíncronas.
+Si un script de acción utiliza procesamiento asíncrono, la función `callback` debe llamarse una vez que se hayan completado todas las operaciones asíncronas.
 
 <div id="parameters">
   ### Parámetros
 </div>
 
-Si se llama a la función `callback` sin parámetros, se ejecutará como si se hubiera proporcionado un parámetro `null`.
+Si se llama a la función `callback` sin ningún parámetro, se ejecutará como si se hubiera pasado un parámetro `null`.
 
 <div id="size">
   ## Tamaño
 </div>
 
-La implementación total de cualquier script de acción no debe superar los 100 kB. Este límite de tamaño no incluye los módulos `npm` importados. Para obtener más información sobre los módulos `npm`, consulta [Prácticas recomendadas del entorno de los scripts de acción de base de datos personalizada](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/environment).
+El tamaño total de la implementación de cualquier script de acción no debe superar los 100 kB. Esta limitación de tamaño no incluye los módulos `npm` importados. Para obtener más información sobre los módulos `npm`, consulta [Prácticas recomendadas del entorno de scripts de acción de Custom Database](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/environment).
 
-Cuanto mayor sea el tamaño de un script, mayor será la latencia debido al proceso de empaquetado y transporte que emplea la plataforma Webtask. El tamaño afecta al rendimiento del sistema.
+Cuanto mayor sea el tamaño de un script, mayor será la latencia debido al proceso de empaquetado y transporte que utiliza la plataforma Webtask. El tamaño afecta al rendimiento del sistema.
 
 <div id="anonymous-functions">
   ## Funciones anónimas
 </div>
 
-Los scripts de acción pueden implementarse como funciones anónimas, pero no se recomienda hacerlo. Las funciones anónimas dificultan la depuración del script de acción y la interpretación de la pila de llamadas que se genera como resultado de cualquier condición de error excepcional. Para obtener más información sobre las funciones anónimas, consulta [IIFE en MDN Web Docs](https://developer.mozilla.org/en-US/docs/Glossary/IIFE).
+Los scripts de acción pueden implementarse como funciones anónimas, pero no se recomienda hacerlo. Las funciones anónimas dificultan la depuración del script de acción y la interpretación de la pila de llamadas que se genera cuando se produce un error excepcional. Para obtener más información sobre las funciones anónimas, consulta [IIFE en MDN Web Docs](https://developer.mozilla.org/en-US/docs/Glossary/IIFE).
 
 <div id="error-handling">
   ## Manejo de errores
 </div>
 
-Pasa un objeto `Error` a la función `callback` con un mensaje descriptivo del error:
+Pasa un objeto `Error` a la función `callback` con un mensaje descriptivo:
 
 ```js lines
 return callback(new Error('My custom error message'));
@@ -170,9 +170,9 @@ return callback(new Error('My custom error message'));
 
 Asegúrese de proteger todas las comunicaciones entre Auth0 y su repositorio de identidades heredado. Si su repositorio de identidades heredado aún no tiene una API implementada, es muy recomendable que implemente una.
 
-Si su repositorio de identidades heredado tiene una API disponible, puede [registrar la API](/docs/es/get-started/auth0-overview/set-up-apis) en Auth0 y [crear una Action](/docs/es/manage-users/access-control/sample-use-cases-actions-with-authorization#deny-access-to-anyone-calling-an-api) para restringir el acceso de los usuarios finales.
+Si su repositorio de identidades heredado tiene una API disponible, puede [registrar la API](/docs/es/get-started/auth0-overview/set-up-apis) a través de Auth0 y [crear una Action](/docs/es/manage-users/access-control/sample-use-cases-actions-with-authorization#deny-access-to-anyone-calling-an-api) para restringir el acceso de los usuarios finales.
 
-Si su repositorio de identidades heredado no tiene una API disponible y no es viable implementar una, aún puede comunicarse directamente con su base de datos. Asegúrese de [agregar las direcciones IP de Auth0 a la lista de permitidos de su firewall](/docs/es/secure/security-guidance/data-security/allowlist) para permitir el tráfico entrante desde Auth0.
+Si su repositorio de identidades heredado no tiene una API disponible, y no es viable implementar una, puede seguir comunicándose directamente con su base de datos. Asegúrese de [agregar las direcciones IP de Auth0 a la lista de permitidos de su firewall](/docs/es/secure/security-guidance/data-security/allowlist) para permitir el tráfico entrante desde Auth0.
 
 <div id="identity-provider-tokens">
   ## Tokens del proveedor de identidad
@@ -203,4 +203,4 @@ Si el objeto `user` devuelve las propiedades `access_token` y `refresh_token`, A
 }
 ```
 
-Si quieres obtener cualquiera de estas propiedades mediante la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> de Auth0, incluye el scope `read:user_idp_tokens` al [solicitar un token de acceso](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production).
+Si quieres recuperar cualquiera de estas propiedades con la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> de Auth0, incluye el scope `read:user_idp_tokens` al [solicitar un token de acceso](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production).

@@ -1,51 +1,51 @@
 ---
-description: Cómo las herramientas de Auth0 ayudan a automatizar la implementación del tenant.
-title: Automatización del despliegue (B2C)
+description: Cómo las herramientas de Auth0 ayudan a automatizar la implementación de tenants.
+title: Automatización de implementaciones (B2C)
 ---
 
-Además de adoptar las mejores prácticas para la gestión de cambios y [QA](/docs/es/get-started/architecture-scenarios/business-to-consumer/quality-assurance), los clientes que tienen éxito también integran la gestión de recursos de Auth0 como parte de un proceso de despliegue automatizado. Como se explica en la sección de Arquitectura, en [compatibilidad con SDLC](/docs/es/get-started/architecture-scenarios/business-to-consumer/architecture#sdlc-support), le convendrá asegurarse de configurar tenants de Auth0 independientes para los entornos de desarrollo, pruebas y producción, y de que la configuración del tenant en cada entorno sea casi idéntica. El uso de la automatización del despliegue ayuda a garantizar esto, de modo que el tenant de cada entorno esté configurado de la misma forma y sea menos probable que aparezcan errores como resultado de configuraciones inconsistentes entre entornos.
+Además de adoptar prácticas recomendadas para la gestión de cambios y [QA](/docs/es/get-started/architecture-scenarios/business-to-consumer/quality-assurance), los clientes que tienen éxito también integran la gestión de recursos de Auth0 como parte de un proceso de implementación automatizado. Como se explica en la sección de Arquitectura, en [soporte para SDLC](/docs/es/get-started/architecture-scenarios/business-to-consumer/architecture#sdlc-support), conviene asegurarse de configurar tenants de Auth0 separados para los entornos de desarrollo, pruebas y producción, y de que esa configuración sea casi idéntica en el tenant de cada entorno. Usar automatización de implementaciones ayuda a garantizarlo, de modo que el tenant de cada entorno quede configurado de la misma forma y sea menos probable que aparezcan errores como resultado de configuraciones inconsistentes entre entornos.
 
 <Info>
-  ### Buena práctica
+  ### Práctica recomendada
 
-  Independientemente de cómo configure la automatización del despliegue, le recomendamos que haga pruebas unitarias de sus reglas, scripts de base de datos personalizados y hooks antes del despliegue, y que también ejecute algunas pruebas de integración en su tenant después del despliegue. Para obtener más información al respecto, consulte la guía de [Aseguramiento de la calidad](/docs/es/get-started/architecture-scenarios/business-to-consumer/quality-assurance).
+  Independientemente de cómo configure la automatización de implementaciones, le recomendamos hacer pruebas unitarias de sus reglas, scripts de Custom DB y hooks antes de la implementación, y también ejecutar algunas pruebas de integración en su tenant después de implementarla. Para obtener más información al respecto, consulte la guía de [Quality Assurance](/docs/es/get-started/architecture-scenarios/business-to-consumer/quality-assurance).
 </Info>
 
-Auth0 ofrece dos opciones distintas en lo que respecta a los enfoques de automatización del despliegue que puede utilizar, y ambas pueden usarse conjuntamente si así lo desea:
+Auth0 ofrece soporte para un par de opciones distintas en cuanto a los enfoques de automatización de implementaciones que puede usar, y, si lo desea, ambas pueden utilizarse de forma conjunta:
 
-* La [herramienta Auth0 Deploy CLI](/docs/es/deploy-monitor/deploy-cli-tool) le proporciona un script fácil de usar que puede ayudarle a integrarse con su canalización actual de integración continua/implementación continua (CI/CD).
-* Si no puede integrarse directamente con una canalización de CI/CD, o si por algún motivo no tiene una, las [Extensiones de control de código fuente](/docs/es/customize/extensions) de Auth0 pueden proporcionarle un proceso básico de automatización, fácil de configurar y con muy poco mantenimiento.
+* La herramienta [Auth0 Deploy CLI tooling](/docs/es/deploy-monitor/deploy-cli-tool) le proporciona un script fácil de usar que puede ayudarle a integrarse con su pipeline actual de Integración Continua/Implementación Continua (CI/CD).
+* Si no puede integrarse directamente con un pipeline de CI/CD, o por alguna razón no dispone de uno, las [Source Control Extensions](/docs/es/customize/extensions) de Auth0 pueden proporcionarle un proceso básico de automatización fácil de configurar y de muy bajo mantenimiento.
 
 <Warning>
-  Tenga en cuenta que tanto Deploy CLI Tool como las extensiones de control de código fuente pueden provocar cambios destructivos; los cambios manuales realizados directamente en el panel entre despliegues automatizados podrían perderse. Por este motivo, si se utiliza cualquiera de las dos opciones, **todos** los cambios deben desplegarse desde el subsistema de control de código fuente al que hace referencia la herramienta, y no realizarse manualmente.
+  Tenga en cuenta que tanto la herramienta Deploy CLI como las Source Control Extensions pueden provocar cambios destructivos; los cambios manuales realizados directamente en el Dashboard entre implementaciones automatizadas podrían perderse. Por este motivo, si se utiliza cualquiera de las dos, **todos** los cambios deben implementarse desde el subsistema de control de código fuente al que hacen referencia las herramientas, y no hacerse manualmente.
 </Warning>
 
-Cada entorno también puede necesitar cierta configuración específica; por ejemplo, los <Tooltip tip="Client ID: Identification value given to your registered resource from Auth0." cta="View Glossary" href="/docs/es/glossary?term=Client+ID">Client ID</Tooltip> de la aplicación y los <Tooltip tip="Client Secret: Secret used by a client (application) to authenticate with the Authorization Server; it should be known to only the client and the Authorization Server and must be sufficiently random to not be guessable." cta="View Glossary" href="/docs/es/glossary?term=Client+Secrets">Client Secrets</Tooltip> serán diferentes entre los tenants de Auth0, por lo que le convendrá contar con alguna forma de hacer referencia a ellos dinámicamente en lugar de tener valores codificados de forma fija. Auth0 ofrece compatibilidad para gestionar la información de configuración específica del entorno mediante uno de estos dos enfoques:
+Cada entorno también puede necesitar cierta configuración específica; por ejemplo, el <Tooltip tip="ID de cliente: valor de identificación que Auth0 asigna a su recurso registrado." cta="Ver glosario" href="/docs/es/glossary?term=Client+ID">ID de cliente</Tooltip> y los <Tooltip tip="Secreto de cliente: secreto que utiliza un cliente (aplicación) para autenticarse con el servidor de autorización; solo deberían conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio como para que no se pueda adivinar." cta="Ver glosario" href="/docs/es/glossary?term=Client+Secrets">secretos de cliente</Tooltip> de la aplicación serán diferentes entre los tenants de Auth0, por lo que le convendrá contar con alguna forma de hacer referencia a esto dinámicamente en lugar de tener valores codificados de forma fija. Auth0 ofrece soporte para gestionar información de configuración específica del entorno mediante uno de estos dos enfoques:
 
-* Usar [variables específicas del tenant](#tenant-specific-variables)
-* Usar reemplazo de palabras clave si utiliza la herramienta Auth0 Deploy CLI
+* Use [variables específicas del tenant](#tenant-specific-variables)
+* Use reemplazo de palabras clave si utiliza la herramienta Auth0 Deploy CLI
 
 <div id="tenant-specific-variables">
   ## Variables específicas del tenant
 </div>
 
-Auth0 te permite configurar variables disponibles desde la [extensibilidad](/docs/es/customize/extensions) personalizada; pueden entenderse como variables de entorno para tu tenant de Auth0. En lugar de codificar de forma fija referencias que cambian al mover código entre entornos de desarrollo, prueba y producción, puedes usar un nombre de variable configurado en el tenant al que haga referencia el código de extensibilidad personalizado. Esto facilita que el mismo código personalizado funcione sin cambios en distintos tenants, ya que el código puede hacer referencia a variables que se completarán con valores específicos del tenant en el momento de la ejecución:
+Auth0 te permite configurar variables disponibles desde la [extensibilidad](/docs/es/customize/extensions) personalizada; puedes considerarlas variables de entorno para tu tenant de Auth0. En lugar de codificar de forma fija referencias que cambian al mover código entre los entornos de desarrollo, prueba y producción, puedes usar un nombre de variable configurado en el tenant y referenciado por el código de extensibilidad personalizado. Esto hace que sea más fácil que el mismo código personalizado funcione sin cambios en distintos tenants, ya que puede hacer referencia a variables que se rellenarán con valores específicos del tenant en el momento de la ejecución:
 
-* Para usar variables en Actions, consulta [Write Your First Action](/docs/es/customize/actions/write-your-first-action) para aprender a configurar secretos en el editor
+* Para usar variables en Actions, consulta [Write Your First Action](/docs/es/customize/actions/write-your-first-action) y aprende a configurar secretos en el editor
 * Para usar variables en Rules, consulta cómo [configurar valores](/docs/es/customize/rules/configuration)
 * Para usar variables en Hooks, consulta cómo configurar [secretos](/docs/es/customize/hooks/hook-secrets) en el editor
-* Para usar variables en Custom DB Scripts, consulta los [parámetros de configuración](/docs/es/authenticate/database-connections/custom-db/create-db-connection#step-3-add-configuration-parameters)
+* Para usar variables en scripts de Custom DB, consulta los [parámetros de configuración](/docs/es/authenticate/database-connections/custom-db/create-db-connection#step-3-add-configuration-parameters)
 
 <Info>
-  ### Buena práctica
+  ### Práctica recomendada
 
-  Se recomienda usar variables para almacenar valores específicos del tenant, así como cualquier secreto confidencial que no deba exponerse en tu código personalizado. Si tu código personalizado se despliega en GitHub/Gitlab/Bitbucket/VSTS, usar una variable específica del tenant evita exponer valores sensibles en tu repositorio.
+  Se recomienda usar variables para almacenar valores específicos del tenant, así como cualquier secreto sensible que no deba exponerse en tu código personalizado. Si tu código personalizado está desplegado en GitHub/Gitlab/Bitbucket/VSTS, usar una variable específica del tenant evita exponer valores sensibles a través de tu repositorio.
 </Info>
 
 <div id="project-planning-guide">
   ## Guía de planificación del proyecto
 </div>
 
-Ofrecemos una guía de planificación en formato PDF que puedes descargar y consultar para obtener más información sobre nuestras estrategias recomendadas.
+Ponemos a tu disposición una guía de planificación en formato PDF que puedes descargar y consultar para obtener más información sobre las estrategias que recomendamos.
 
 [Guía de planificación del proyecto de B2C IAM](https://assets.ctfassets.net/cdy7uua7fh8z/3er1aEQ7Ul0q3c9leJWczR/b1f18b4c16abb7e78b01e4eb2b52bb8e/B2C_Project_Planning.pdf)

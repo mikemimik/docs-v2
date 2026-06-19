@@ -1,50 +1,50 @@
 ---
-title: "Acceso de las aplicaciones a las API: autorizaciones de cliente"
-description: Obtén más información sobre las autorizaciones de cliente
+title: "Acceso de aplicaciones a las API: autorizaciones de cliente"
+description: Más información sobre las autorizaciones de cliente
 validatedOn: 2026-01-27
 ---
 
-En Auth0, puedes controlar cómo las aplicaciones acceden a tus API mediante [políticas de acceso de las aplicaciones a la API](/docs/es/get-started/apis/api-access-policies-for-applications) y autorizaciones de cliente.
+En Auth0, puedes controlar cómo las aplicaciones acceden a tus API mediante [políticas de acceso a la API para aplicaciones](/docs/es/get-started/apis/api-access-policies-for-applications) y autorizaciones de cliente.
 
-Una autorización de cliente proporciona acceso detallado de una aplicación a una API. Asocia:
+Una autorización de cliente proporciona acceso granular de una aplicación a una API. Asocia:
 
 * Una API identificada por su `audience` o identificador único.
 * Una aplicación identificada por su `client_id`.
-* Una lista de permisos, como scopes y/o `authorization_details_types`, que la aplicación puede solicitar para la audiencia especificada.
+* Una lista de permisos, como scopes y/o `authorization_details_types`, que la aplicación puede solicitar para el audience especificado.
 
 Para obtener más información sobre la lista de atributos que puedes definir en una autorización de cliente, consulta [Atributos de la autorización de cliente](#client-grant-attributes). Para obtener información sobre cómo definir y administrar autorizaciones de cliente, consulta [Crear autorización de cliente](#create-client-grant).
 
 <div id="application-api-access-policies-and-client-grants">
-  ## Políticas de acceso a la API para aplicaciones y autorizaciones de cliente
+  ## Políticas de acceso de las aplicaciones a la API y autorizaciones de cliente
 </div>
 
-Cuando configuras la [política de acceso para aplicaciones](/docs/es/get-started/apis/api-access-policies-for-applications) de una API como `require_client_grant`, solo las aplicaciones que tengan definida una autorización de cliente pueden obtener un token de acceso para esa API. La autorización de cliente establece los permisos máximos que una aplicación puede solicitar a la API, siguiendo el principio de privilegio mínimo. Por eso, Auth0 recomienda usar `require_client_grant` al configurar la política de acceso para aplicaciones de una API.
+Cuando configuras la [política de acceso de la aplicación](/docs/es/get-started/apis/api-access-policies-for-applications) de una API como `require_client_grant`, solo las aplicaciones que tengan definida una autorización de cliente pueden obtener un token de acceso para esa API. La autorización de cliente establece los permisos máximos que una aplicación puede solicitar a la API, siguiendo el principio de privilegio mínimo. Por ello, Auth0 recomienda usar `require_client_grant` al configurar la política de acceso de la aplicación de una API.
 
 <div id="example-social-media-api">
   ### Ejemplo: API de redes sociales
 </div>
 
-Para ilustrar cómo las autorizaciones de cliente aplican el principio de privilegio mínimo, supongamos que tiene una API de redes sociales con los permisos `read:posts`, `write:posts`, `read:friends` y `delete:posts`. Crea una aplicación y define una autorización de cliente con los permisos `read:posts` y `write:posts`.
+Para ilustrar cómo las autorizaciones de cliente se ajustan al principio de privilegio mínimo, supongamos que tienes una API de redes sociales con los permisos: `read:posts`, `write:posts`, `read:friends` y `delete:posts`. Creas una aplicación y defines una autorización de cliente con los permisos: `read:posts` y `write:posts`.
 
-Esta autorización de cliente ahora actúa como un límite máximo estricto. Aunque la API de redes sociales tenga otros permisos, su aplicación nunca podrá solicitar ni obtener `read:friends` o `delete:posts`.
+Esta autorización de cliente ahora actúa como un límite estricto. Aunque la API de redes sociales tiene otros permisos, tu aplicación nunca podrá solicitar ni obtener `read:friends` o `delete:posts`.
 
 <div id="user-delegated-access-vs-client-access">
-  ## Acceso delegado por el usuario vs. acceso del cliente
+  ## Acceso delegado por el usuario vs. acceso de cliente
 </div>
 
-En el acceso de usuario y de cliente, las autorizaciones de cliente definen el conjunto final de permisos que controla el acceso de una aplicación a una API. El atributo `subject_type` de la autorización de cliente determina el tipo de acceso de aplicación permitido para una API.
+Tanto en el acceso delegado por el usuario como en el acceso de cliente, las autorizaciones de cliente definen el conjunto final de permisos que controla el acceso de una aplicación a una API. El atributo `subject_type` de la autorización de cliente determina el tipo de acceso de la aplicación permitido para una API.
 
 Una aplicación puede tener hasta dos autorizaciones de cliente para una sola API:
 
 * Cuando estableces `subject_type` en `client`, defines sus permisos de máquina a máquina.
 * Cuando estableces `subject_type` en `user`, defines sus permisos para actuar en nombre del usuario.
 
-La siguiente tabla explica cómo las autorizaciones de cliente controlan el acceso de las aplicaciones a las API según el flujo del tipo de acceso:
+La siguiente tabla explica cómo las autorizaciones de cliente controlan el acceso de las aplicaciones a las API según el tipo de flujo de acceso:
 
-| Tipo de acceso                                                   | atributo `subject_type`               | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Acceso con credenciales de cliente (acceso de máquina a máquina) | Establece `subject_type` en `client`. | La autorización de cliente autoriza directamente a la aplicación a acceder a la API en su propio nombre, en lugar de hacerlo en nombre del usuario final. Los permisos que defines en la autorización de cliente son los que la aplicación está autorizada a recibir en el token de acceso.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| Acceso delegado por el usuario                                   | Establece `subject_type` en `user`.   | La autorización de cliente define los permisos máximos que la aplicación puede solicitar a la API. Los permisos finales del token de acceso emitido a la aplicación en nombre del usuario son la intersección de estos permisos:<br /><ul><li>Los solicitados por la aplicación</li><li>Los permitidos por la autorización de cliente</li><li>Los permitidos por las [políticas de control de acceso basado en roles](/docs/es/manage-users/access-control/rbac) para el usuario</li><li>Los [autorizados por el usuario final](/docs/es/get-started/applications/third-party-applications/user-consent-and-third-party-applications), si corresponde.</li></ul><br />Para obtener más información sobre los flujos de acceso delegado por el usuario, consulta [Flujos de autenticación y autorización](/docs/es/get-started/authentication-and-authorization-flow). Los flujos de acceso delegado por el usuario no incluyen el Client Credentials Flow. |
+| Tipo de acceso                                                | atributo `subject_type`               | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Acceso con credenciales de cliente (acceso máquina a máquina) | Establece `subject_type` en `client`. | La autorización de cliente autoriza directamente a la aplicación a acceder a la API en su propio nombre, en lugar de hacerlo en nombre del usuario final. Los permisos que defines en la autorización de cliente son los que la aplicación está autorizada a recibir en el token de acceso.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Acceso delegado por el usuario                                | Establece `subject_type` en `user`.   | La autorización de cliente define los permisos máximos que la aplicación puede solicitar a la API. Los permisos finales del token de acceso emitido a la aplicación en nombre del usuario son la intersección de estos permisos:<br /><ul><li>Solicitados por la aplicación</li><li>Permitidos por la autorización de cliente</li><li>Permitidos para el usuario por las [políticas de control de acceso basado en roles](/docs/es/manage-users/access-control/rbac)</li><li>[Autorizados por el usuario final](/docs/es/get-started/applications/third-party-applications/user-consent-and-third-party-applications), si corresponde.</li></ul><br />Para obtener más información sobre los flujos de acceso delegado por el usuario, consulta [Flujos de autenticación y autorización](/docs/es/get-started/authentication-and-authorization-flow). Los flujos de acceso delegado por el usuario no incluyen el Client Credentials Flow. |
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
   Puedes modificar los scopes finales concedidos por el servidor de autorización a la aplicación o al usuario mediante [Actions](/docs/es/customize/actions).
@@ -59,14 +59,14 @@ Una autorización de cliente tiene varios atributos que puedes definir para conf
 | Atributo                      | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `id`                          | Identificador único de la autorización de cliente.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `audience`                    | Identificador único de la API para la que se emite la autorización de cliente.                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `audience`                    | Identificador único de la API para la que se creó la autorización de cliente.                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `client_id`                   | El ID único de la aplicación a la que se le concede acceso.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `scopes`                      | Un arreglo de cadenas que representa los permisos que la aplicación puede solicitar.                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `authorization_details_types` | Un arreglo de cadenas que representa tipos de datos de autorización enriquecidos que la aplicación puede solicitar. Este atributo solo se puede especificar para flujos de acceso delegado por el usuario.                                                                                                                                                                                                                                                                                       |
-| `subject_type`                | El tipo de acceso de la aplicación que permite la autorización de cliente:<br /><ul><li>`user`: se usa para el acceso delegado por el usuario y corresponde a todos los flujos que generan un token asociado a un usuario final.</li><li>`client`: se usa para acceso entre máquinas y corresponde al Client Credentials Flow.</li></ul>                                                                                                                                                         |
-| `allow_all_scopes`            | Booleano. Indica si se permiten para la aplicación todos los scopes definidos en la API. En el caso de la API, los scopes que se definan en el futuro se permitirán automáticamente.                                                                                                                                                                                                                                                                                                             |
+| `authorization_details_types` | Un arreglo de cadenas que representa tipos de datos de autorización enriquecida que la aplicación puede solicitar. Este atributo solo se puede especificar para flujos de acceso delegado por el usuario.                                                                                                                                                                                                                                                                                        |
+| `subject_type`                | El tipo de acceso de la aplicación que permite la autorización de cliente:<br /><ul><li>`user`: se usa para acceso delegado por el usuario, lo que corresponde a todos los flujos que generan un token asociado a un usuario final.</li><li>`client`: se usa para acceso de máquina a máquina, lo que corresponde al Client Credentials Flow.</li></ul>                                                                                                                                          |
+| `allow_all_scopes`            | Boolean. Indica si se permiten para la aplicación todos los scopes definidos en la API. En esa API, los scopes que se definan en el futuro se permitirán automáticamente.                                                                                                                                                                                                                                                                                                                        |
 | `organization_usage`          | Determina cómo la aplicación puede usar Organizations al acceder a la API mediante el Client Credentials Flow. Los valores posibles son: `deny`, `allow` o `require`.<br /><br />Para obtener más información sobre la configuración de Organizations, consulta [Organizations para aplicaciones M2M: Definir el comportamiento de la organización](/docs/es/manage-users/organizations/organizations-for-m2m-applications/configure-your-application-for-m2m-access#define-organization-behavior). |
-| `allow_any_organization`      | Determina si la aplicación puede acceder a cualquier organización al usar el Client Credentials Flow.<br /><br />Para obtener más información sobre la configuración de Organizations, consulta [Organizations para aplicaciones M2M: Definir el comportamiento de la organización](/docs/es/manage-users/organizations/organizations-for-m2m-applications/configure-your-application-for-m2m-access#define-organization-behavior).                                                                 |
+| `allow_any_organization`      | Determina si la aplicación puede acceder a cualquier organización cuando usa el Client Credentials Flow.<br /><br />Para obtener más información sobre la configuración de Organizations, consulta [Organizations para aplicaciones M2M: Definir el comportamiento de la organización](/docs/es/manage-users/organizations/organizations-for-m2m-applications/configure-your-application-for-m2m-access#define-organization-behavior).                                                              |
 
 <div id="create-client-grant">
   ## Crear autorización de cliente
@@ -74,10 +74,10 @@ Una autorización de cliente tiene varios atributos que puedes definir para conf
 
 Puede crear:
 
-* [Permisos por aplicación](#per-application-permissions): Aplicar permisos granulares a cada aplicación de su tenant.
-* [Permisos predeterminados para aplicaciones de terceros](#default-permissions-for-third-party-applications): Aplicar permisos predeterminados a todas las aplicaciones de terceros de su tenant.
+* [Permisos por aplicación](#per-application-permissions): Aplique permisos granulares a cada aplicación de su tenant.
+* [Permisos predeterminados para aplicaciones de terceros](#default-permissions-for-third-party-applications): Aplique permisos predeterminados a todas las aplicaciones de terceros de su tenant.
 
-Cuando ambos existen para la misma API, los permisos por aplicación tienen prioridad sobre los permisos predeterminados para aplicaciones de terceros.
+Cuando ambos están configurados para la misma API, los permisos por aplicación tienen prioridad sobre los permisos predeterminados para aplicaciones de terceros.
 
 <div id="per-application-permissions">
   ### Permisos por aplicación
@@ -85,33 +85,33 @@ Cuando ambos existen para la misma API, los permisos por aplicación tienen prio
 
 <Tabs>
   <Tab title="Auth0 Dashboard">
-    Para configurar permisos por aplicación con el Auth0 Dashboard:
+    Para configurar los permisos por aplicación mediante el Auth0 Dashboard:
 
-    1. Ve a [Dashboard &gt;  Applications &gt; APIs](https://manage.auth0.com/#/apis) y selecciona la API para la que quieres configurar el acceso de las aplicaciones.
-    2. Ve a la pestaña **Settings** y desplázate hacia abajo hasta **Application Access Policy**.
-       * Configura **User-Delegated Access** como **No apps allowed**, **Per-app authorization** o **All apps allowed**.
+    1. Vaya a [Dashboard &gt;  Applications &gt; APIs](https://manage.auth0.com/#/apis) y seleccione la API para la que desea configurar el acceso de las aplicaciones.
+    2. Vaya a la pestaña **Settings** y desplácese hacia abajo hasta **Application Access Policy**.
+       * Configure **User-Delegated Access** como **No apps allowed**, **Per-app authorization** o **All apps allowed**.
          * **No apps allowed**: Ninguna aplicación puede obtener un token de acceso para la API.
          * **Per-app authorization**: Solo las aplicaciones con una autorización de cliente definida pueden obtener un token de acceso para la API.
-         * **All apps allowed**: Cualquier aplicación de tu tenant puede obtener un token de acceso para la API.
-       * Configura **Client Access** como **Per-app authorization** o **All apps allowed**.
+         * **All apps allowed**: Cualquier aplicación de su tenant puede obtener un token de acceso para la API.
+       * Configure **Client Access** como **Per-app authorization** o **All apps allowed**.
          * **Per-app authorization**: Solo las aplicaciones con una autorización de cliente definida pueden obtener un token de acceso para la API.
-         * **All apps allowed**: Cualquier aplicación de tu tenant puede obtener un token de acceso para la API.
-    3. Selecciona **Save** para guardar la configuración de **Application Access Policy**.
+         * **All apps allowed**: Cualquier aplicación de su tenant puede obtener un token de acceso para la API.
+    3. Seleccione **Save** para guardar la configuración de **Application Access Policy**.
 
-    <Frame>![Configuración de la API en el Dashboard para Application Access Policy](/docs/images/third-party-applications/application_access_policy.png)</Frame>
+    <Frame>![Configuración de la API en Dashboard para Application Access Policy](/docs/images/third-party-applications/application_access_policy.png)</Frame>
 
-    Para los permisos por aplicación, debes autorizar el acceso a la API para cada aplicación de forma individual.
+    Para los permisos por aplicación, debe autorizar individualmente el acceso a la API para cada aplicación.
 
-    1. Ve a **Applications &gt; APIs** y selecciona la API.
-    2. Ve a la pestaña **Application Access**.
-    3. Desplázate hasta la aplicación, selecciona **Edit** y luego **Grant Access** para **User-Delegated Access** y/o **Client Access**. Después, selecciona los permisos que quieras.
-    4. Selecciona **Save**.
+    1. Vaya a **Applications &gt; APIs** y seleccione la API.
+    2. Vaya a la pestaña **Application Access**.
+    3. Desplácese hasta la aplicación, seleccione **Edit** y luego **Grant Access** para **User-Delegated Access** y/o **Client Access**. Después, seleccione los permisos que desee.
+    4. Seleccione **Save**.
 
-    <Frame>![Configuración de la API en el Dashboard para conceder acceso a la API a una aplicación](/docs/images/third-party-applications/grant-api-access.png)</Frame>
+    <Frame>![Configuración de la API en Dashboard para conceder acceso a la API a una aplicación](/docs/images/third-party-applications/grant-api-access.png)</Frame>
   </Tab>
 
   <Tab title="Management API">
-    Haz una solicitud [`POST`](https://auth0.com/docs/api/management/v2/client-grants/post-client-grants) al endpoint `/client-grants` con el siguiente cuerpo de la solicitud:
+    Realice una solicitud [`POST`](https://auth0.com/docs/api/management/v2/client-grants/post-client-grants) al endpoint `/client-grants` con el siguiente cuerpo de la solicitud:
 
     ```bash lines
     curl --location 'https://{yourDomain}/api/v2/client-grants' \
@@ -134,31 +134,31 @@ Cuando ambos existen para la misma API, los permisos por aplicación tienen prio
   ### Permisos predeterminados para aplicaciones de terceros
 </div>
 
-Las [aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications) siempre requieren una autorización de cliente explícita para acceder a cualquier API, incluso cuando la [política de acceso](/docs/es/get-started/apis/api-access-policies-for-applications) de la API está configurada como **Allow All**. Para simplificar la administración cuando tienes muchas aplicaciones de terceros o usas [registro dinámico de clientes](/docs/es/get-started/applications/dynamic-client-registration), configura autorizaciones o permisos predeterminados que se apliquen automáticamente a todas las aplicaciones de terceros.
+Las [aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications) siempre requieren una autorización de cliente explícita para acceder a cualquier API, incluso cuando la [política de acceso](/docs/es/get-started/apis/api-access-policies-for-applications) de la API está configurada como **Allow All**. Para simplificar la gestión cuando tienes muchas aplicaciones de terceros o usas [registro dinámico de clientes](/docs/es/get-started/applications/dynamic-client-registration), configura autorizaciones o permisos predeterminados que se apliquen automáticamente a todas las aplicaciones de terceros.
 
-Una autorización de cliente predeterminada para terceros usa el atributo `default_for` en lugar de `client_id`. También puedes definir permisos por aplicación creando una autorización de cliente con un `client_id` específico. Cuando ambos existen para la misma API, los permisos por aplicación tienen prioridad.
+Una autorización de cliente predeterminada para aplicaciones de terceros usa el atributo `default_for` en lugar de `client_id`. También puedes definir permisos por aplicación creando una autorización de cliente con un `client_id` específico. Si ambos existen para la misma API, los permisos por aplicación tienen prioridad.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Las API del sistema (la Management API, My Account API y otras) no admiten autorizaciones de cliente predeterminadas para terceros. No se puede conceder acceso a las API del sistema a aplicaciones de terceros.
+  Las API del sistema (Management API, My Account API y otras) no admiten autorizaciones de cliente predeterminadas para aplicaciones de terceros. No se puede conceder a aplicaciones de terceros acceso a las API del sistema.
 </Callout>
 
 Los atributos `default_for` y `client_id` son mutuamente excluyentes. Cada autorización de cliente debe especificar exactamente uno de ellos.
 
-Para obtener información sobre cómo configurar políticas de acceso a API para aplicaciones de terceros, consulta [Configure Third-Party Applications](/docs/es/get-started/applications/third-party-applications/configure-third-party-applications#configure-api-access-policies).
+Para obtener información sobre cómo configurar políticas de acceso a la API para aplicaciones de terceros, consulta [Configure Third-Party Applications](/docs/es/get-started/applications/third-party-applications/configure-third-party-applications#configure-api-access-policies).
 
 <Tabs>
   <Tab title="Auth0 Dashboard">
-    Para configurar permisos predeterminados para aplicaciones de terceros en el Auth0 Dashboard:
+    Para configurar permisos predeterminados para aplicaciones de terceros desde Auth0 Dashboard:
 
-    1. Ve a [Dashboard &gt;  Applications &gt; APIs](https://manage.auth0.com/#/apis) y selecciona la API para la que quieres configurar el acceso de las aplicaciones.
+    1. Ve a [Dashboard &gt;  Applications &gt; APIs](https://manage.auth0.com/#/apis) y selecciona la API para la que quieres configurar el acceso de la aplicación.
     2. Ve a la pestaña **Settings** y desplázate hacia abajo hasta **Default Permissions for Third-Party Applications**.
        * Configura **User-Delegated Access** y/o **Client Access** como **Unauthorized**, **Authorized** o **All**.
          * **Unauthorized**: No se permite ningún permiso.
-         * **Authorized**: Selecciona los permisos.
+         * **Authorized**: Selecciona permisos específicos.
          * **All**: Incluye los permisos actuales y futuros.
     3. Selecciona **Save**.
 
-    <Frame>![Configuración de API en el Dashboard con permisos predeterminados para aplicaciones de terceros](/docs/images/third-party-applications/default-permissions-settings.png)</Frame>
+    <Frame>![Configuración de la API en el Dashboard con permisos predeterminados para aplicaciones de terceros](/docs/images/third-party-applications/default-permissions-settings.png)</Frame>
   </Tab>
 
   <Tab title="Management API">
@@ -179,9 +179,9 @@ Para obtener información sobre cómo configurar políticas de acceso a API para
 
     | **Parámetro**  | **Tipo** | **Descripción**                                                                                                                                                                                                                                                                                                    |
     | -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-    | `default_for`  | String   | Especifica si esta concesión se aplica automáticamente a determinados tipos de aplicaciones. Establécelo como `third_party_clients` para garantizar que todas las aplicaciones de terceros tengan acceso a esta API de forma predeterminada.                                                                       |
-    | `audience`     | String   | El identificador único (URI) de la API para la que se está creando la concesión.                                                                                                                                                                                                                                   |
-    | `scope`        | arreglo  | Una lista de permisos (`scopes`) permitidos como parte de esta concesión.                                                                                                                                                                                                                                          |
+    | `default_for`  | String   | Especifica si esta autorización se aplica automáticamente a determinados tipos de aplicación. Establécelo en `third_party_clients` para garantizar que todas las aplicaciones de terceros tengan acceso a esta API de forma predeterminada.                                                                        |
+    | `audience`     | String   | El identificador único (URI) de la API para la que se está creando la autorización.                                                                                                                                                                                                                                |
+    | `scope`        | Arreglo  | Una lista de permisos (scopes) permitidos como parte de esta autorización.                                                                                                                                                                                                                                         |
     | `subject_type` | String   | Define el tipo de acceso de aplicación permitido para la API:<br /><ul><li>`user`: Se usa para el acceso delegado por el usuario, que corresponde a flujos que generan un token asociado a un usuario final.</li><li>`client`: Se usa para acceso de máquina a máquina, como el Client Credentials Flow.</li></ul> |
   </Tab>
 </Tabs>
@@ -190,7 +190,7 @@ Para obtener información sobre cómo configurar políticas de acceso a API para
   ## Actualizar autorización de cliente
 </div>
 
-Para actualizar una autorización de cliente existente, haz una solicitud [`PATCH`](https://auth0.com/docs/api/management/v2/client-grants/patch-client-grants-by-id) a `/client-grants/{id}`:
+Para actualizar una autorización de cliente existente, envía una solicitud [`PATCH`](https://auth0.com/docs/api/management/v2/client-grants/patch-client-grants-by-id) a `/client-grants/{id}`:
 
 ```bash lines
 curl --location --request PATCH 'https://{yourDomain}/api/v2/client-grants/{CLIENT_GRANT_ID}' \
@@ -209,7 +209,7 @@ curl --location --request PATCH 'https://{yourDomain}/api/v2/client-grants/{CLIE
   ## Eliminar autorización de cliente
 </div>
 
-Para eliminar una autorización de cliente, envíe una solicitud [`DELETE`](https://auth0.com/docs/api/management/v2/client-grants/delete-client-grants-by-id) a `/client-grants/{id}`:
+Para eliminar una autorización de cliente, haz una solicitud [`DELETE`](https://auth0.com/docs/api/management/v2/client-grants/delete-client-grants-by-id) a `/client-grants/{id}`:
 
 ```bash lines
 curl --location --request DELETE 'https://{yourDomain}/api/v2/client-grants/{CLIENT_GRANT_ID}' \
@@ -217,10 +217,10 @@ curl --location --request DELETE 'https://{yourDomain}/api/v2/client-grants/{CLI
 ```
 
 <div id="retrieve-client-grants">
-  ## Recuperar autorizaciones de cliente
+  ## Obtener autorizaciones de cliente
 </div>
 
-También puedes consultar y paginar las colecciones de `client-grants` mediante parámetros como `client_id`, `audience` o `subject_type`:
+También puedes consultar y paginar las colecciones `client-grants` mediante parámetros como `client_id`, `audience` o `subject_type`:
 
 ```bash lines
 curl --request GET \
@@ -234,6 +234,6 @@ curl --request GET \
 </div>
 
 * [Políticas de acceso a la API para aplicaciones](/docs/es/get-started/apis/api-access-policies-for-applications)
-* [Tipos de concesión para aplicaciones](/docs/es/get-started/applications/application-grant-types)
+* [Tipos de concesión de aplicaciones](/docs/es/get-started/applications/application-grant-types)
 * [Aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications)
 * [Configurar aplicaciones de terceros](/docs/es/get-started/applications/third-party-applications/configure-third-party-applications)

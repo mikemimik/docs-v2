@@ -1,56 +1,56 @@
 ---
-description: Describe los escenarios de integración de Auth0 con WordPress
+description: Describe cómo Auth0 se integra con WordPress
 title: Integrar con WordPress
 ---
 
-El plugin Login by Auth0 gestiona automáticamente los procesos de inicio de sesión y creación de cuentas al crear o vincular cuentas de usuario con los datos del perfil de Auth0 que recibe. El proceso de inicio de sesión y el proceso de registro son similares, y se creará una cuenta o se vinculará una existente según los datos de tu base de datos de WordPress. Iniciar sesión mediante Auth0 crea una cuenta de WordPress, y registrarse mediante Auth0 vincula una cuenta de WordPress existente.
+El plugin Login by Auth0 gestiona automáticamente los flujos de inicio de sesión y creación de cuentas al crear cuentas de usuario o hacerlas coincidir con los datos de perfil de Auth0 recibidos. El proceso de inicio de sesión y el proceso de registro son similares, y se creará una cuenta o se hará coincidir una existente según los datos de tu base de datos de WordPress. Iniciar sesión a través de Auth0 crea una cuenta de WordPress, y registrarse a través de Auth0 hace coincidir una cuenta existente de WordPress.
 
-Si estás usando la configuración de Migración de usuarios en el plugin, el flujo de inicio de sesión será ligeramente diferente de lo que se explica a continuación. Para obtener más información, consulta [Migración de usuarios en el plugin de WordPress Login by Auth0](/docs/es/customize/integrations/cms/wordpress-plugin/user-migration-in-login-by-auth0).
+Si estás usando la configuración de Migración de usuarios en el plugin, el flujo de inicio de sesión será ligeramente distinto de lo que se explica a continuación. Para obtener más información, consulta [Migración de usuarios en Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/user-migration-in-login-by-auth0).
 
-A continuación se muestran los pasos del proceso:
+A continuación, se muestran los pasos del proceso:
 
-1. El usuario accede a la página de inicio de sesión del sitio de WordPress. Puede ser la página principal de inicio de sesión en `[SITE URL]/wp-login.php` o una página que contenga un widget o un shortcode.
-2. El usuario introduce su nombre de usuario y contraseña, hace clic en un icono social para usar otro proveedor de identidad o completa el proceso passwordless en Lock, el formulario de inicio de sesión de Auth0.
+1. El usuario accede a la página de inicio de sesión del sitio de WordPress. Puede ser la página principal de inicio de sesión en `[SITE URL]/wp-login.php` o una página que contenga un widget o shortcode.
+2. El usuario introduce su nombre de usuario y contraseña, hace clic en un icono social para usar otro proveedor de identidad o completa el proceso Passwordless en el formulario de inicio de sesión de Auth0, Lock.
 3. Auth0 intenta autenticar al usuario mediante el método seleccionado.
 
-   1. Si el inicio de sesión o el registro con nombre de usuario + contraseña, o con Passwordless, fallan, aparece un mensaje de error en Lock.
-   2. Si se realiza correctamente, el proceso continúa.
-4. El usuario es redirigido al endpoint `/authorize` con un ticket de inicio de sesión y un valor de `state` generado por el plugin. Una vez completado esto, ya se ha creado el registro de usuario de Auth0 y el resto del proceso ocurre en el sitio de WordPress.
-5. El proceso de inicio de sesión varía según uses el [flujo de código de autorización](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow) o el [flujo implícito](/docs/es/authenticate/login/oidc-conformant-authentication/oidc-adoption-implicit-flow):
+   1. Si el inicio de sesión o el registro con nombre de usuario + contraseña, o con Passwordless, fallan, se muestra un mensaje de error en Lock.
+   2. Si todo sale bien, el proceso continúa.
+4. El usuario es redirigido al endpoint `/authorize` con un ticket de inicio de sesión y un valor `state` generado por el plugin. Una vez completado esto, ya se ha creado el registro de usuario de Auth0 y el resto del proceso tiene lugar en el sitio de WordPress.
+5. El proceso de inicio de sesión varía según si utiliza el [flujo de código de autorización](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow) o el [flujo implícito](/docs/es/authenticate/login/oidc-conformant-authentication/oidc-adoption-implicit-flow):
 
-   1. Para inicios de sesión con Authorization Code Flow:
+   1. Para inicios de sesión con flujo de código de autorización:
 
-      1. Se redirige al usuario a una URL de devolución de llamada, `SITE URL/index.php?auth0=1`, con un código de autorización y el mismo valor de `state` en los parámetros de URL.
-      2. Se valida el valor de `state`. Si la validación falla, se muestra un error de &quot;Invalid state&quot; y el proceso de inicio de sesión se detiene. Para obtener más información sobre la validación de `state`, consulta [Solucionar problemas de Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/troubleshoot-login-by-auth0).
-      3. Se valida el token de identidad para asegurarse de que no se haya modificado nada durante la transmisión. Si el token de identidad no es válido, se muestra un mensaje de error y el proceso de inicio de sesión se detiene (consulta la página de Solución de problemas para obtener más información sobre la validación del token de identidad)
-      4. Los datos del perfil de usuario se recuperan a través de la Management API mediante el flujo de máquina a máquina. Para obtener más información, consulta [Flujo de máquina a máquina](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow).
+      1. El usuario es redirigido a una URL de devolución de llamada, `SITE URL/index.php?auth0=1`, con un código de autorización y el mismo valor de `state` en los parámetros de URL.
+      2. Se valida el valor de `state`. Si la validación falla, se muestra un error de &quot;Estado no válido&quot; y el proceso de inicio de sesión se detiene. Para obtener más información sobre la validación de `state`, lee [Solucionar problemas de Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/troubleshoot-login-by-auth0).
+      3. El token de identidad se valida para asegurarse de que no se haya modificado nada durante la transmisión. Si el token de identidad no es válido, se muestra un mensaje de error y el proceso de inicio de sesión se detiene (consulta la página de Troubleshooting para obtener más información sobre la validación del token de identidad)
+      4. Los datos del perfil del usuario se recuperan a través de la Management API mediante el flujo de máquina a máquina. Para obtener más información, lee [Flujo de máquina a máquina](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow).
    2. Para inicios de sesión con flujo implícito:
 
-      1. Se redirige al usuario a una URL de devolución de llamada, `SITE URL/wp-login.php?auth0=implicit`, con un token de identidad y el mismo valor de `state` en un fragmento de anclaje.
-      2. Este fragmento de anclaje se procesa en JS y luego se vuelve a enviar mediante POST a una URL de devolución de llamada, `SITE URL/index.php?auth0=implicit`, con esos mismos 2 valores en los parámetros de URL.
-      3. Se valida el token de identidad para asegurarse de que no se haya modificado nada durante la transmisión. Si el token de identidad no es válido, se muestra un mensaje de error y el proceso de inicio de sesión se detiene (consulta la página de Solución de problemas para obtener más información sobre la validación del token de identidad)
-      4. La información del token de identidad válido se usa como datos del perfil de usuario.
-6. El proceso de autenticación de Auth0 ha finalizado y el plugin intenta asociar los datos del perfil con un usuario de WordPress.
+      1. El usuario es redirigido a una URL de devolución de llamada, `SITE URL/wp-login.php?auth0=implicit`, con un token de identidad y el mismo valor de `state` en un fragmento de URL.
+      2. Este fragmento de URL se analiza en JS y luego se vuelve a enviar mediante POST a una URL de devolución de llamada `SITE URL/index.php?auth0=implicit` con esos mismos 2 valores en los parámetros de URL.
+      3. El token de identidad se valida para asegurarse de que no se haya modificado nada durante la transmisión. Si el token de identidad no es válido, se muestra un mensaje de error y el proceso de inicio de sesión se detiene (consulta la página de Troubleshooting para obtener más información sobre la validación del token de identidad)
+      4. La información del token de identidad válido se utiliza como datos del perfil del usuario.
+6. El proceso de autenticación de Auth0 se ha completado y el plugin intenta asociar los datos del perfil con un usuario de WordPress.
 7. El plugin comprueba si el sitio requiere una dirección de correo electrónico (pestaña **Advanced** de la configuración del plugin) y si el perfil recibido tiene establecido el indicador `email_verified`.
 
-   1. Si el sitio requiere una dirección de correo electrónico y el usuario que intenta acceder no proporciona una (algunos proveedores de identidad social, como X, no incluyen una dirección de correo electrónico), el proceso de inicio de sesión se detiene con un mensaje de error que dice: &quot;Esta cuenta no tiene una dirección de correo electrónico asociada.&quot;
-   2. Si el sitio requiere una dirección de correo electrónico y el usuario que intenta acceder no tiene el indicador `email_verified` establecido en `true`, el proceso de inicio de sesión se detiene con un mensaje de error que dice: &quot;Este sitio requiere una dirección de correo electrónico verificada&quot; y un enlace para volver a enviar el correo electrónico de verificación. Esto seguirá mostrándose hasta que el usuario verifique correctamente su dirección de correo electrónico.
-   3. Si el sitio no requiere una dirección de correo electrónico o el usuario que intenta acceder tiene el indicador `email_verified` establecido en `true`, el proceso de inicio de sesión continúa.
-8. El plugin verifica si hay un usuario en la base de datos de WordPress con un valor de `usermeta` que coincida con el ID de usuario de Auth0 recibido (lo que significa que el usuario ya se registró o inició sesión con Auth0 anteriormente):
+   1. Si el sitio requiere una dirección de correo electrónico y el usuario que llega no proporciona una (algunos proveedores de identidad social, como X, no incluyen una dirección de correo electrónico), el proceso de inicio de sesión se detiene con un mensaje de error que indica &quot;Esta cuenta no tiene un correo electrónico asociado.&quot;
+   2. Si el sitio requiere una dirección de correo electrónico y el usuario que llega no tiene el indicador `email_verified` establecido en `true`, el proceso de inicio de sesión se detiene con un mensaje de error que indica &quot;Este sitio requiere una dirección de correo electrónico verificada&quot; y un enlace para volver a enviar el correo electrónico de verificación. Esto seguirá mostrándose hasta que el usuario verifique correctamente su dirección de correo electrónico.
+   3. Si el sitio no requiere una dirección de correo electrónico o el usuario que llega tiene el indicador `email_verified` establecido en `true`, el proceso de inicio de sesión continúa.
+8. El complemento comprueba si hay un usuario en la base de datos de WordPress con un valor de `usermeta` que coincida con el ID de usuario de Auth0 recibido (lo que significa que el usuario ya se registró o inició sesión con Auth0 anteriormente):
 
    1. Si se encuentra un usuario con el ID de usuario recibido, el proceso de inicio de sesión continúa.
    2. Si no se encuentra ningún usuario con el ID de usuario de Auth0 recibido, el plugin busca una dirección de correo electrónico que coincida con el usuario recibido:
 
       1. Si se encuentra una coincidencia, se selecciona ese usuario y el proceso de inicio de sesión continúa.
-      2. Si no se encuentra ninguna coincidencia, el plugin comprueba si el registro está activado en el sitio de WordPress:
+      2. Si no se encuentra ninguna coincidencia, el plugin comprueba si el registro está habilitado en el sitio de WordPress:
 
-         1. Si el registro está desactivado, el proceso de inicio de sesión se detiene con un mensaje de error que indica &quot;No se pudo crear el usuario. El proceso de registro no está disponible&quot;`.`
-         2. Si el registro está activado, se crea un usuario nuevo y el proceso de inicio de sesión continúa.
-9. El usuario encontrado o creado se actualiza con los datos entrantes del perfil de Auth0, incluido su ID de usuario de Auth0.
-10. Se inicia la sesión del usuario en su cuenta de WordPress con `wp_set_auth_cookie` y se activa la acción principal `do_login`.
-11. Se redirige al usuario a una página del sitio, que podría ser la predeterminada configurada en la pestaña **Advanced** de la configuración del plugin, o la URL de inicio de sesión original si se utilizó un shortcode o widget, o bien otra diferente proporcionada durante el proceso de inicio de sesión.
+         1. Si el registro está deshabilitado, el proceso de inicio de sesión se detiene con un mensaje de error que dice &quot;No se pudo crear el usuario. El proceso de registro no está disponible&quot;`.`
+         2. Si el registro está habilitado, se crea un nuevo usuario y el proceso de inicio de sesión continúa.
+9. El usuario encontrado o creado se actualiza con los datos del perfil de Auth0 recibidos, incluido su ID de usuario de Auth0.
+10. El usuario inicia sesión en su cuenta de WordPress con `wp_set_auth_cookie` y se activa la acción principal `do_login`.
+11. Se redirige al usuario a una página del sitio, que puede ser la predeterminada establecida en la pestaña **Advanced** de la configuración del plugin, la URL de inicio de sesión original si se usó un shortcode o widget, o una distinta proporcionada durante el proceso de inicio de sesión.
 
-El usuario ha iniciado sesión en Auth0 y en su cuenta de WordPress, ambas vinculadas mediante su ID de usuario de Auth0.
+El usuario ha iniciado sesión en Auth0 y en su cuenta de WordPress, y ambas han quedado asociadas mediante su ID de usuario de Auth0.
 
 <div id="learn-more">
   ## Más información
@@ -58,5 +58,5 @@ El usuario ha iniciado sesión en Auth0 y en su cuenta de WordPress, ambas vincu
 
 * [Instalar Login by Auth0](/docs/es/customize/integrations/cms/wordpress-plugin/install-login-by-auth0)
 * [Configurar Login by Auth0](/docs/es/customize/integrations/cms/wordpress-plugin/configure-login-by-auth0)
-* [Solucionar problemas del plugin de WordPress Login by Auth0](/docs/es/customize/integrations/cms/wordpress-plugin/troubleshoot-login-by-auth0)
-* [Extender el plugin de WordPress Login by Auth0](/docs/es/customize/integrations/cms/wordpress-plugin/extend-login-by-auth0)
+* [Solucionar problemas con Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/troubleshoot-login-by-auth0)
+* [Extender Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/extend-login-by-auth0)

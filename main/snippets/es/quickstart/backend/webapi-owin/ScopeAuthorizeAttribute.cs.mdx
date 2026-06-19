@@ -1,0 +1,36 @@
+```cs ScopeAuthorizeAttribute.cs lines highlight={}
+public class ScopeAuthorizeAttribute : AuthorizeAttribute
+{
+    private readonly string scope;
+
+    public ScopeAuthorizeAttribute(string scope)
+    {
+        this.scope = scope;
+    }
+
+    public override void OnAuthorization(HttpActionContext actionContext)
+    {
+        base.OnAuthorization(actionContext);
+
+        // Obtener el Auth0 domain para validar el issuer
+        var domain = $"https://{ConfigurationManager.AppSettings["Auth0Domain"]}/";
+
+        // Obtener el claim principal
+        ClaimsPrincipal principal = actionContext.ControllerContext.RequestContext.Principal as ClaimsPrincipal;
+
+        // Obtener el claim de scope. Verificar que el issuer corresponde al Auth0 domain correcto
+        var scopeClaim = principal?.Claims.FirstOrDefault(c => c.Type == "scope" && c.Issuer == domain);
+        if (scopeClaim != null)
+        {
+            // Separar los scopes
+            var scopes = scopeClaim.Value.Split(' ');
+
+            // Retornar si el arreglo de scopes contiene el scope requerido
+            if (scopes.Any(s => s == scope))
+                return;
+        }
+
+        HandleUnauthorizedRequest(actionContext);
+    }
+}
+```

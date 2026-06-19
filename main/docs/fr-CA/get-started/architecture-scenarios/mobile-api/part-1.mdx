@@ -1,88 +1,88 @@
 ---
-description: Aperçu des solutions pour le scénario d’architecture mobile + API
+description: Aperçu des solutions pour le scénario d’architecture Mobile + API
 title: Aperçu de la solution (Applications mobiles + API)
 ---
 
-Afin de s’assurer que seuls les utilisateurs et les applications autorisés peuvent accéder à la Timesheets API, ExampleCo a décidé de recourir au [framework d’autorisation OAuth 2.0](https://tools.ietf.org/html/rfc6749). Ce framework offre à l’entreprise la flexibilité recherchée, puisque les différents types de grants lui permettent d’autoriser facilement les divers types d’applications qui doivent communiquer avec la Timesheets API.
+Afin de veiller à ce que seuls les utilisateurs et les applications autorisés puissent accéder à l’API Timesheets, ExampleCo a décidé d’utiliser le [framework d’autorisation OAuth 2.0](https://tools.ietf.org/html/rfc6749). Ce framework offre à l’entreprise la souplesse recherchée, puisque les différents types d’octroi lui permettent d’autoriser facilement les divers types d’applications qui doivent communiquer avec l’API Timesheets.
 
 <div id="api-authentication-and-authorization">
-  ## Authentification et autorisation des API
+  ## Authentification et autorisation de l’API
 </div>
 
-Une API permet d’exposer les fonctionnalités de votre application à d’autres applications. Une application peut envoyer une requête à un endpoint d’API et recevoir des informations en réponse.
+Une API est un moyen d’exposer les fonctionnalités de votre application à d’autres applications. Une application peut effectuer une requête en envoyant un message à un point de terminaison d’une API et recevoir des informations en réponse.
 
-Un API endpoint peut être sécurisé ou non. Dans notre cas, puisque les feuilles de temps contiennent des renseignements sensibles qui ont une incidence sur les évaluations et les paiements, il est important de veiller à ce que seuls les utilisateurs et les applications autorisés puissent appeler les endpoints de notre API. Lorsqu’une application cliente veut accéder à des endpoints protégés d’une API, elle doit présenter un <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip> comme preuve qu’elle possède les permissions requises pour appeler l’endpoint.
+Un point de terminaison d’API peut être sécurisé ou non. Dans notre cas, puisque les feuilles de temps contiennent des renseignements sensibles qui ont une incidence sur les approbations et les paiements, il est important de s’assurer que seuls les utilisateurs et les applications autorisés peuvent appeler les points de terminaison de notre API. Lorsqu’une application cliente veut accéder à des points de terminaison protégés sur une API, elle doit présenter un <Tooltip tip="Jeton d’accès : donnée d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip> comme preuve qu’elle possède les permissions requises pour effectuer l’appel au point de terminaison.
 
-Un jeton d’accès est obtenu en authentifiant l’utilisateur auprès d’un <Tooltip tip="Serveur d’autorisation : serveur centralisé qui contribue à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités offertes à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">serveur d’autorisation</Tooltip>, après quoi l’utilisateur peut autoriser l’application à accéder à l’API en son nom.
+Un jeton d’accès est obtenu en authentifiant l’utilisateur auprès d’un <Tooltip tip="Serveur d’autorisation : serveur centralisé qui aide à définir les limites de l’accès d’un utilisateur. Par exemple, votre serveur d’autorisation peut contrôler les données, les tâches et les fonctionnalités accessibles à un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">serveur d’autorisation</Tooltip> et l’utilisateur peut ensuite, à son tour, autoriser l’application à accéder à l’API en son nom.
 
 <Card title="Qu’est-ce qu’un jeton d’accès ?">
-  Un jeton d’accès (aussi appelé `access_token`) est une chaîne opaque qui représente une autorisation accordée à l’application. Il peut s’agir d’un identifiant servant à récupérer les renseignements d’autorisation, ou encore contenir lui-même les renseignements d’autorisation (par exemple, l’identité de l’utilisateur, les permissions, etc.) de façon vérifiable.
+  Un jeton d’accès (aussi appelé `access_token`) est une chaîne opaque représentant une autorisation accordée à l’application. Il peut s’agir d’un identificateur servant à récupérer l’information d’autorisation, ou contenir lui-même l’information d’autorisation (par exemple, l’identité de l’utilisateur, les permissions, etc.) d’une manière vérifiable.
 
-  Il est très courant que les jetons d’accès soient mis en œuvre sous forme de [JSON Web Tokens](/docs/fr-CA/secure/tokens/json-web-tokens).
+  Il est assez courant que les jetons d’accès soient mis en œuvre sous forme de [JSON Web Tokens](/docs/fr-CA/secure/tokens/json-web-tokens).
 
-  Pour en savoir plus sur les jetons d’accès Auth0, consultez [Access Token](/docs/fr-CA/secure/tokens/access-tokens).
+  Pour plus d’information sur les jetons d’accès Auth0, consultez [Access Token](/docs/fr-CA/secure/tokens/access-tokens).
 </Card>
 
-Une API peut appliquer un contrôle fin sur l’accès aux différents endpoints qu’elle expose. Ces permissions sont exprimées sous forme de scopes.
+Une API peut appliquer un contrôle précis sur les personnes pouvant accéder aux différents points de terminaison qu’elle expose. Ces permissions sont exprimées sous forme de scopes.
 
-Lorsqu’un utilisateur autorise une application cliente, l’application peut aussi indiquer les permissions dont elle a besoin. L’utilisateur peut alors examiner ces permissions et les accorder. Ces permissions sont ensuite incluses dans le jeton d’accès dans la revendication `scope`.
+Lorsqu’un utilisateur autorise une application cliente, l’application peut aussi indiquer les permissions dont elle a besoin. L’utilisateur peut alors examiner et accorder ces permissions. Ces permissions sont ensuite incluses dans le jeton d’accès dans la revendication `scope`.
 
-Par la suite, lorsque le client transmet le jeton d’accès dans des requêtes à l’API, celle-ci peut inspecter la revendication `scope` pour s’assurer que les permissions requises ont bien été accordées pour appeler l’API endpoint en question.
+Par la suite, lorsque le client transmet le jeton d’accès au moment d’effectuer des requêtes à l’API, l’API peut inspecter la revendication `scope` pour s’assurer que les permissions requises ont bien été accordées afin d’appeler le point de terminaison d’API en question.
 
 <Card title="Que sont les scopes ?">
-  Chaque jeton d’accès peut inclure une liste des permissions accordées au client. Lorsqu’un client s’authentifie auprès d’Auth0, il précise la liste des scopes (ou permissions) qu’il demande. Si ces scopes sont autorisés, le jeton d’accès contiendra une liste des scopes autorisés.
+  Chaque jeton d’accès peut inclure une liste des permissions qui ont été accordées au client. Lorsqu’un client s’authentifie avec Auth0, il précise la liste des scopes (ou permissions) qu’il demande. Si ces scopes sont autorisés, le jeton d’accès contiendra alors une liste des scopes autorisés.
 
-  Par exemple, l’API de feuille de temps peut accepter quatre niveaux d’autorisation différents : lire les feuilles de temps (scope `read:timesheets`), créer des feuilles de temps (scope `create:timesheets`), supprimer des feuilles de temps (scope `delete:timesheets`) et approuver des feuilles de temps (scope `approve:timesheets`).
+  Par exemple, l’API de feuilles de temps peut accepter quatre niveaux d’autorisation différents : la lecture des feuilles de temps (scope `read:timesheets`), la création de feuilles de temps (scope `create:timesheets`), la suppression de feuilles de temps (scope `delete:timesheets`) et l’approbation de feuilles de temps (scope `approve:timesheets`).
 
-  Lorsqu’un client demande à l’API de créer une nouvelle entrée de feuille de temps, le jeton d’accès doit alors contenir le scope `create:timesheets`. De la même façon, pour supprimer des feuilles de temps existantes, le jeton d’accès doit contenir le scope `delete:timesheets`.
+  Lorsqu’un client demande à l’API de créer une nouvelle entrée de feuille de temps, le jeton d’accès doit alors contenir le scope `create:timesheets`. De façon semblable, pour supprimer des feuilles de temps existantes, le jeton d’accès doit contenir le scope `delete:timesheets`.
 
-  Pour en savoir plus sur les scopes, consultez [Scopes](/docs/fr-CA/get-started/apis/scopes).
+  Pour plus d’information sur les scopes, consultez [Scopes](/docs/fr-CA/get-started/apis/scopes).
 </Card>
 
-En utilisant le framework d’autorisation <Tooltip tip="OAuth 2.0 : framework d’autorisation qui définit les protocoles et workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip>, vous pouvez accorder à vos propres applications ou à des applications tierces un accès limité à vos API, au nom de l’application elle-même. Avec Auth0, vous pouvez facilement prendre en charge différents flows dans vos propres API sans avoir à vous soucier de la spécification OAuth 2.0/<Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker les renseignements de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) ni des nombreux autres aspects techniques de l’autorisation d’API.
+En utilisant le framework d’autorisation <Tooltip tip="OAuth 2.0 : framework d’autorisation qui définit les protocoles et workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip>, vous pouvez accorder à vos propres applications ou à des applications tierces un accès limité à vos API pour le compte de l’application elle-même. Avec Auth0, vous pouvez facilement prendre en charge différents flux dans vos propres API sans vous soucier de la spécification OAuth 2.0/<Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker les renseignements de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC), ni des nombreux autres aspects techniques de l’autorisation d’API.
 
 <Card title="Rôles OAuth">
   Dans tout flux OAuth 2.0, on peut distinguer les rôles suivants :
 
-  * **Resource Owner** : l’entité qui peut accorder l’accès à une ressource protégée. Il s’agit généralement de l’utilisateur final.
-  * **Resource Server** : le serveur qui héberge les ressources protégées. C’est l’API à laquelle vous souhaitez accéder.
-  * **Client** : une application qui demande l’accès à une ressource protégée au nom du Resource Owner.
-  * **Authorization Server** : le serveur qui authentifie le Resource Owner et émet des jetons d’accès après avoir obtenu l’autorisation requise. Dans ce cas, il s’agit de l’Authentication API d’Auth0.
+  * **Resource Owner**: l&#39;entité qui peut accorder l&#39;accès à une ressource protégée. Il s&#39;agit généralement de l&#39;utilisateur final.
+  * **Resource Server**: le serveur qui héberge les ressources protégées. C&#39;est l&#39;API à laquelle vous voulez accéder.
+  * **Client**: une application qui demande l&#39;accès à une ressource protégée au nom du **Resource Owner**.
+  * **Authorization Server**: le serveur qui authentifie le **Resource Owner** et émet des jetons d&#39;accès après avoir obtenu l&#39;autorisation appropriée. Dans ce cas-ci, il s&#39;agit de l&#39;**Authentication API** d&#39;Auth0.
 
-  Les [types d’octroi (ou flux)](/docs/fr-CA/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use) déterminent comment ces participants interagissent pour accorder aux applications un accès limité aux API que vous créez. L’application obtient ainsi un jeton d’accès qui peut être utilisé pour appeler l’API au nom de l’utilisateur.
+  [Les types d’octroi (ou flux)](/docs/fr-CA/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use) déterminent comment ces participants interagissent afin d&#39;accorder aux applications un accès limité aux API que vous créez. L&#39;application obtiendra ainsi un jeton d&#39;accès qui pourra être utilisé pour appeler l&#39;API au nom de l&#39;utilisateur.
 </Card>
 
 <div id="proof-key-for-code-exchange-pkce">
   ## Clé de preuve pour l’échange de code (PKCE)
 </div>
 
-OAuth 2 offre plusieurs types d’octroi pour différents cas d’utilisation. Dans ce cas d’utilisation précis, nous voulons accéder à l’API à partir d’une application mobile, qui utilisera le [flux du code d’autorisation avec clé de preuve pour l’échange de code (PKCE)](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
+OAuth 2 offre plusieurs types d’octroi pour différents cas d’utilisation. Dans ce cas d’utilisation précis, nous voulons accéder à l’API à partir d’une application mobile, qui utilisera le [flux de code d’autorisation avec clé de preuve pour l’échange de code (PKCE)](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) pour ce faire.
 
-Le [flux du code d’autorisation](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow) présente certaines failles de sécurité lorsqu’il est mis en œuvre dans des applications natives. Par exemple, un attaquant peut intercepter le `authorization_code` renvoyé par Auth0 et l’échanger contre un [jeton d’accès](/docs/fr-CA/secure/tokens/access-tokens) (et possiblement un [jeton d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens)).
+Le [flux de code d’autorisation](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow) présente certains problèmes de sécurité lorsqu’il est mis en œuvre dans des applications natives. Par exemple, un acteur malveillant peut intercepter le `authorization_code` renvoyé par Auth0 et l’échanger contre un [jeton d’accès](/docs/fr-CA/secure/tokens/access-tokens) (et possiblement un [jeton d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens)).
 
-La clé de preuve pour l’échange de code (PKCE) (définie dans la [RFC 7636](https://tools.ietf.org/html/rfc7636)) est une technique utilisée pour atténuer cette attaque d’interception du code d’autorisation.
+La clé de preuve pour l’échange de code (PKCE) (définie dans [RFC 7636](https://tools.ietf.org/html/rfc7636)) est une technique utilisée pour atténuer ce type d’attaque par interception du code d’autorisation.
 
-Avec PKCE, l’Application crée, pour chaque requête d’autorisation, une clé aléatoire générée de façon cryptographiquement sûre appelée `code_verifier` et sa valeur transformée appelée `code_challenge`, qui est envoyée à Auth0 pour obtenir le `authorization_code`. Lorsque l’Application reçoit le `authorization_code`, elle envoie le code et le `code_verifier` au point de terminaison de jeton d’Auth0 <Tooltip tip="Point de terminaison de jeton : point de terminaison du serveur d’autorisation utilisé pour demander des jetons par programmation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=token+endpoint">point de terminaison de jeton</Tooltip> pour les échanger contre les jetons demandés.
+Avec PKCE, l’application crée, pour chaque demande d’autorisation, une clé aléatoire cryptographiquement sûre appelée `code_verifier` et sa valeur transformée appelée `code_challenge`, qui est envoyée à Auth0 pour obtenir le `authorization_code`. Lorsque l’application reçoit le `authorization_code`, elle envoie le code et le `code_verifier` au <Tooltip tip="Point de terminaison de jeton : endpoint sur le serveur d’autorisation utilisé pour demander des jetons de façon programmatique." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=token+endpoint">point de terminaison de jeton</Tooltip> d’Auth0 pour les échanger contre les jetons demandés.
 
-<Frame>![Diagram - Microsite - Auth Code with PKCE](/docs/images/cdy7uua7fh8z/7pd2I8RXINIihsTyuGxvMb/cdbad014a576df5a15d53f84a5d97a55/authorization-code-grant-pkce.png)</Frame>
+<Frame>![Diagramme - Microsite - Code d’autorisation avec PKCE](/docs/images/cdy7uua7fh8z/7pd2I8RXINIihsTyuGxvMb/cdbad014a576df5a15d53f84a5d97a55/authorization-code-grant-pkce.png)</Frame>
 
-1. L’application native lance le flux et redirige l’utilisateur vers Auth0 (plus précisément vers le point de terminaison [/authorize](https://auth0.com/docs/api/authentication#authorization-code-grant-pkce-)), en envoyant les paramètres `code_challenge` et `code_challenge_method`.
+1. L’application native lance le flux et redirige l’utilisateur vers Auth0 (plus précisément vers l’[endpoint /authorize](https://auth0.com/docs/api/authentication#authorization-code-grant-pkce-)), en envoyant les paramètres `code_challenge` et `code_challenge_method`.
 2. Auth0 redirige l’utilisateur vers l’application native avec un `authorization_code` dans la chaîne de requête.
-3. L’application native envoie le `authorization_code` et le `code_verifier`, ainsi que le `redirect_uri` et le `client_id`, à Auth0. Cela se fait au moyen du point de terminaison [/oauth/token](https://auth0.com/docs/api/authentication?http#authorization-code-pkce-).
-4. Auth0 valide ces renseignements et renvoie un jeton d’accès (et, au besoin, un jeton d’actualisation).
+3. L’application native envoie le `authorization_code` et le `code_verifier`, ainsi que le `redirect_uri` et le `client_id`, à Auth0. Cela se fait au moyen de l’[endpoint /oauth/token](https://auth0.com/docs/api/authentication?http#authorization-code-pkce-).
+4. Auth0 valide ces renseignements et renvoie un jeton d’accès (et, facultativement, un jeton d’actualisation).
 5. L’application native peut utiliser le jeton d’accès pour appeler l’API au nom de l’utilisateur.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Si la [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation) est activée, un nouveau jeton d’actualisation est généré à chaque requête et émis avec le jeton d’accès. Lorsqu’un jeton d’actualisation est échangé, le jeton d’actualisation précédent est invalidé, mais l’information sur ce lien est conservée par le serveur d’autorisation.
+  Si la [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation) est activée, un nouveau jeton d’actualisation est généré à chaque demande et émis avec le jeton d’accès. Lorsqu’un jeton d’actualisation est échangé, le jeton d’actualisation précédent est invalidé, mais l’information sur cette relation est conservée par le serveur d’autorisation.
 </Callout>
 
 <div id="authorization-extension">
   ## Authorization Extension
 </div>
 
-L’[Auth0 Authorization Extension](/docs/fr-CA/customize/extensions/authorization-extension) vous permet d’ajouter la prise en charge de l’autorisation à votre application en attribuant des Roles, des Groups et des Permissions aux Users.
+L’[Auth0 Authorization Extension](/docs/fr-CA/customize/extensions/authorization-extension) vous permet d’ajouter la prise en charge de l’autorisation à votre application en attribuant des rôles, des groupes et des permissions aux utilisateurs.
 
-L’Authorization Extension crée une [Rule](/docs/fr-CA/customize/rules) qui enrichit le profil utilisateur pendant le flux d’authentification avec les Roles, Groups et Permissions attribués à l’utilisateur. Vous pouvez ensuite utiliser cette information pour vous assurer que le jeton d’accès émis à un utilisateur ne contient que les scopes autorisés en fonction des permissions définies dans l’Authorization Extension.
+L’Authorization Extension crée une [Rule](/docs/fr-CA/customize/rules) qui enrichit le profil de l’utilisateur pendant le flux d’authentification avec les rôles, les groupes et les permissions qui lui sont attribués. Vous pouvez ensuite utiliser ces renseignements pour vous assurer que le jeton d’accès émis à un utilisateur ne contient que les scopes autorisés en fonction des permissions définies dans l’Authorization Extension.
 
 TUTORIEL PRÉCÉDENT [Introduction](/docs/fr-CA/get-started/architecture-scenarios/mobile-api)
 
