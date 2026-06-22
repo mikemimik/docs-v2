@@ -1,132 +1,132 @@
 ---
-description: Aprende a configurar Cloudflare para usarlo como proxy de dominio personalizado para Auth0.
+description: Aprende a configurar Cloudflare para usarlo como proxy para el dominio personalizado de Auth0.
 title: Configurar Cloudflare como proxy inverso
 ---
 
 <Card title="La disponibilidad varía según el plan de Auth0">
-  La disponibilidad de esta función depende de tu plan de Auth0 o de tu acuerdo personalizado. Para obtener más información, consulta la [página de precios de Auth0](https://auth0.com/pricing).
+  Tu plan de Auth0 o tu acuerdo personalizado determina la disponibilidad de esta funcionalidad. Para obtener más información, consulta [la página de precios de Auth0](https://auth0.com/pricing).
 </Card>
 
-Para configurar Cloudflare como proxy inverso con el enfoque recomendado, se requiere un plan Enterprise de Cloudflare con las siguientes funciones:
+Para configurar Cloudflare como proxy inverso siguiendo el enfoque recomendado, se requiere un plan Enterprise de Cloudflare con las siguientes funcionalidades:
 
-| Función               | Descripción                                                                                                                                                                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host Header Override  | Reescribe los encabezados `Host` mediante distintas reglas de Cloudflare. Para obtener más información, consulta [Rewrite Host headers en la documentación de Cloudflare](https://developers.cloudflare.com/rules/origin-rules/tutorials/change-uri-path-and-host-header/).                                               |
-| True-Client-IP Header | Al habilitar el encabezado `True-Client-IP`, este se añade a todas las solicitudes a tu servidor de origen e incluye la dirección IP del usuario final. Para obtener más información, consulta [Understanding the True-Client-IP Header en Cloudflare](https://developers.cloudflare.com/network/true-client-ip-header/). |
+| Funcionalidad             | Descripción                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host Header Override      | Reescribe los encabezados Host mediante distintas reglas de Cloudflare. Para obtener más información, consulta [Rewrite Host headers en la documentación de Cloudflare](https://developers.cloudflare.com/rules/origin-rules/tutorials/change-uri-path-and-host-header/).                                                                       |
+| Encabezado True-Client-IP | Al habilitar el encabezado True-Client-IP, se añade el encabezado True-Client-IP a todas las solicitudes a tu servidor de origen, incluida la dirección IP del usuario final. Para obtener más información, consulta [Understanding the True-Client-IP Header on Cloudflare](https://developers.cloudflare.com/network/true-client-ip-header/). |
 
 <div id="configure-cloudflare">
   ## Configurar Cloudflare
 </div>
 
 <Warning>
-  Como requisito previo, el dominio principal del dominio personalizado que elijas debe estar [agregado y activado en el Dashboard de Cloudflare](https://developers.cloudflare.com/learning-paths/get-started/add-domain-to-cf/minimize-downtime/#activate-your-domain). Además, confirma que el dominio personalizado que quieres usar no exista ya en tu zona de Cloudflare. Si ya existe, la verificación de Cloudflare fallará.
+  Como requisito previo, el dominio raíz del dominio personalizado que elijas debe [agregarse y activarse en el Dashboard de Cloudflare](https://developers.cloudflare.com/learning-paths/get-started/add-domain-to-cf/minimize-downtime/#activate-your-domain). Además, confirma que el dominio personalizado que deseas usar no exista ya en tu zona de Cloudflare. Si ya existe, la verificación de Cloudflare fallará.
 </Warning>
 
-Para configurar Cloudflare como proxy inverso, tendrás que crear un registro CNAME, una Page Rule y una Transform Rule en Cloudflare.
+Para configurar Cloudflare como proxy inverso, deberás crear un registro CNAME, una Page Rule y una Transform Rule en Cloudflare.
 
-1. [Configura y verifica un dominio personalizado con Self-Managed Certificates](/docs/es/customize/custom-domains/self-managed-certificates) si aún no lo has hecho. Anota los valores de **Origin Domain Name** y **cname-api-key**, ya que los necesitarás más adelante.
+1. [Configura y verifica un dominio personalizado con Self-Managed Certificates](/docs/es/customize/custom-domains/self-managed-certificates) si todavía no lo has hecho. Toma nota de los valores de **Origin Domain Name** y **cname-api-key**, ya que los necesitarás más adelante.
 2. En el Dashboard de Cloudflare de la zona de destino, [crea un registro CNAME](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/#create-dns-records) con la siguiente configuración:
 
-   | Setting      | Value                                                          |
-   | ------------ | -------------------------------------------------------------- |
-   | Name         | El nombre del dominio personalizado.                           |
-   | Target       | El valor de **Origin Domain Name** que anotaste anteriormente. |
-   | Proxy Status | `Proxied`                                                      |
+   | Setting      | Value                                                  |
+   | ------------ | ------------------------------------------------------ |
+   | Name         | El nombre de dominio personalizado.                    |
+   | Target       | El valor de **Origin Domain Name** que anotaste antes. |
+   | Proxy Status | `Proxied`                                              |
 3. [Crea una Page Rule](https://developers.cloudflare.com/rules/page-rules/) que se aplique a todas las URL del dominio personalizado elegido y con la siguiente configuración:
 
-   | Setting              | Value                                                          |
-   | -------------------- | -------------------------------------------------------------- |
-   | Host Header Override | El valor de **Origin Domain Name** que anotaste anteriormente. |
-   | True-Client-IP       | `Enable`                                                       |
+   | Setting              | Value                                                  |
+   | -------------------- | ------------------------------------------------------ |
+   | Host Header Override | El valor de **Origin Domain Name** que anotaste antes. |
+   | True-Client-IP       | `Enable`                                               |
 4. [Crea una Transform Rule](https://developers.cloudflare.com/rules/transform/request-header-modification/create-dashboard/):
 
    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-     Aunque es posible usar Cloudflare Workers en lugar de Page Rules y Transform Rules para configurar un proxy inverso que cumpla los requisitos de un dominio personalizado con certificados autogestionados, recomendamos usar el enfoque basado en rules porque elimina la necesidad de código personalizado.
+     Aunque es posible usar Cloudflare Workers en lugar de Page Rules y Transform Rules para configurar un proxy inverso que cumpla los requisitos de un dominio personalizado con certificados autogestionados, recomendamos usar el enfoque basado en reglas porque evita la necesidad de escribir código personalizado.
    </Callout>
 
    1. Cambia a la vista **Modify Request Header**.
    2. Selecciona **Create Rule** y asígnale el nombre que prefieras.
-   3. En **When incoming requests match**, selecciona **Custom filter expression** y configura una expresión que limite la Rule a las solicitudes asociadas con el dominio personalizado elegido. Por ejemplo, usa una coincidencia exacta en el campo **Hostname**.
+   3. En **When incoming requests match**, selecciona **Custom filter expression** y define una expresión que limite la Rule a las solicitudes asociadas con el dominio personalizado elegido. Por ejemplo, usa una coincidencia exacta en el campo **Hostname**.
    4. En Modify request header, selecciona **Set static** y luego configura los siguientes campos:
 
-      | Field       | Value                                                     |
-      | ----------- | --------------------------------------------------------- |
-      | Header name | `cname-api-key`                                           |
-      | Value       | El valor de **cname-api-key** que anotaste anteriormente. |
-5. Asegúrate de que [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/) esté habilitado y de que el [modo de cifrado](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/) esté configurado, como mínimo, en **Full** para el dominio personalizado elegido.
+      | Field       | Value                                             |
+      | ----------- | ------------------------------------------------- |
+      | Header name | `cname-api-key`                                   |
+      | Value       | El valor de **cname-api-key** que anotaste antes. |
+5. Asegúrate de que [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/) esté habilitado y de que el [encryption mode](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/) esté configurado, como mínimo, en **Full** para el dominio personalizado elegido.
 
 <div id="use-managed-challenges">
-  ## Usa Managed Challenges
+  ## Usar Managed Challenges
 </div>
 
-Los [Managed Challenges](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/#managed-challenges) de Cloudflare te permiten filtrar el tráfico de bots antes de que las solicitudes lleguen a Auth0 Universal Login. Cuando una solicitud coincide con tu rule, Cloudflare la intercepta y muestra un desafío de verificación. Como las páginas de desafío devuelven HTML, Managed Challenges solo son compatibles con flujos basados en navegador; aplicarlos a endpoints de API o a flujos sin navegador hará que esos flujos fallen, ya que el cliente recibe una página HTML de desafío en lugar de la respuesta esperada.
+Los [Managed Challenges](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/#managed-challenges) de Cloudflare te permiten filtrar el tráfico de bots antes de que las solicitudes lleguen a Auth0 Universal Login. Cuando una solicitud coincide con tu regla, Cloudflare la intercepta y muestra un desafío de verificación. Como las páginas de desafío devuelven HTML, Managed Challenges solo son compatibles con flujos basados en navegador; aplicarlos a endpoints de API o a flujos sin interfaz hará que esos flujos fallen, porque el cliente recibe una página HTML de desafío en lugar de la respuesta esperada.
 
 <div id="universal-login-browser-based-endpoints">
-  ### Endpoints de Universal Login basados en navegador
+  ### Endpoints de Universal Login para navegador
 </div>
 
-Los siguientes endpoints sirven páginas HTML a un navegador y son compatibles con Managed Challenges:
+Los siguientes endpoints muestran páginas HTML en el navegador y son compatibles con Managed Challenges:
 
-| Endpoint                                                                                                                                  | Descripción                                                                           |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `/u/email-verification`                                                                                                                   | Verificación de correo electrónico                                                    |
-| `/u/login`                                                                                                                                | prompts de identificador y de identificador primero                                   |
-| Endpoints de organización: <br /><ul><li>`u/organization`</li><li>`/u/organization-picker`</li><li>`/u/pre-organization-picker`</li></ul> | prompts de selección de organización                                                  |
-| `/u/login/password`                                                                                                                       | prompt de contraseña                                                                  |
-| `/u/login-email-verification`                                                                                                             | prompt de verificación de correo electrónico                                          |
-| `/u/signup`                                                                                                                               | prompts de identificador                                                              |
-| `/u/signup/password`                                                                                                                      | prompt de contraseña                                                                  |
-| `/u/consent`                                                                                                                              | solicitud de consentimiento                                                           |
-| `/u/customized-consent`                                                                                                                   | prompt de consentimiento personalizado                                                |
-| `/u/reset-password`                                                                                                                       | prompts de restablecimiento de contraseña                                             |
-| `/u/reset-password/request`                                                                                                               | prompt de correo electrónico/nombre de usuario para el restablecimiento de contraseña |
-| `/u/reset-password/change`                                                                                                                | prompt de nueva contraseña                                                            |
-| `/u/reset-verify`                                                                                                                         | Verificación del restablecimiento de contraseña                                       |
-| `/u/mfa-begin-enroll-options`                                                                                                             | Selección de factor para la inscripción en MFA                                        |
-| `/u/mfa-enroll-options`                                                                                                                   | Opciones de inscripción en MFA                                                        |
-| `/u/mfa-otp`                                                                                                                              | prompts de OTP                                                                        |
-| `/u/mfa-push`                                                                                                                             | prompts de notificación push                                                          |
-| `/u/mfa-webauthn`                                                                                                                         | prompts de WebAuthn y passkey                                                         |
-| `/u/mfa-recovery-code`                                                                                                                    | prompts de código de recuperación                                                     |
-| `/u/mfa-sms`                                                                                                                              | prompts de SMS                                                                        |
-| `/u/mfa-email`                                                                                                                            | prompts de correo electrónico para MFA                                                |
-| `/u/mfa-voice`                                                                                                                            | prompts de voz para MFA                                                               |
-| `/u/passkey-enrollment`                                                                                                                   | Inscripción de passkey                                                                |
+| Endpoint                                                                                                                                  | Descripción                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `/u/email-verification`                                                                                                                   | Verificación de correo electrónico                                            |
+| `/u/login`                                                                                                                                | prompts de identifier e identifier-first                                      |
+| Endpoints de organización: <br /><ul><li>`u/organization`</li><li>`/u/organization-picker`</li><li>`/u/pre-organization-picker`</li></ul> | prompts de selección de organización                                          |
+| `/u/login/password`                                                                                                                       | prompt de contraseña                                                          |
+| `/u/login-email-verification`                                                                                                             | prompt de verificación de correo electrónico                                  |
+| `/u/signup`                                                                                                                               | prompts de identifier                                                         |
+| `/u/signup/password`                                                                                                                      | prompt de contraseña                                                          |
+| `/u/consent`                                                                                                                              | solicitud de consentimiento                                                   |
+| `/u/customized-consent`                                                                                                                   | solicitud de consentimiento personalizada                                     |
+| `/u/reset-password`                                                                                                                       | prompts de restablecimiento de contraseña                                     |
+| `/u/reset-password/request`                                                                                                               | prompt de correo electrónico/nombre de usuario para restablecer la contraseña |
+| `/u/reset-password/change`                                                                                                                | prompt de nueva contraseña                                                    |
+| `/u/reset-verify`                                                                                                                         | Verificación de restablecimiento de contraseña                                |
+| `/u/mfa-begin-enroll-options`                                                                                                             | selección de factor para la inscripción en MFA                                |
+| `/u/mfa-enroll-options`                                                                                                                   | opciones de inscripción en MFA                                                |
+| `/u/mfa-otp`                                                                                                                              | prompts de contraseña de un solo uso                                          |
+| `/u/mfa-push`                                                                                                                             | prompts de notificación push                                                  |
+| `/u/mfa-webauthn`                                                                                                                         | prompts de WebAuthn y clave de acceso                                         |
+| `/u/mfa-recovery-code`                                                                                                                    | prompts de código de recuperación                                             |
+| `/u/mfa-sms`                                                                                                                              | prompts de SMS                                                                |
+| `/u/mfa-email`                                                                                                                            | prompts de correo electrónico de MFA                                          |
+| `/u/mfa-voice`                                                                                                                            | prompts de voz de MFA                                                         |
+| `/u/passkey-enrollment`                                                                                                                   | inscripción de clave de acceso                                                |
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Si usas Classic Universal Login, incluye también `/login` en tu rule de Managed Challenge.
+  Si usas Classic Universal Login, incluye también `/login` en tu regla de Managed Challenge.
 </Callout>
 
 <div id="endpoints-to-exclude">
-  ### Endpoints para excluir
+  ### Endpoints que se deben excluir
 </div>
 
-No apliques un Managed Challenge a los siguientes endpoints. Los llaman servidores, SDKs o servidores de recursos y no pueden completar un desafío interactivo:
+No aplique un Managed Challenge a los siguientes endpoints. Los llaman servidores, SDKs o servidores de recursos, y no pueden resolver un desafío interactivo:
 
-| Endpoint                            | Descripción                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------------- |
-| `/oauth/token`                      | endpoint de token                                                               |
-| `/oauth/revoke`                     | endpoint de revocación de token                                                 |
-| `/userinfo`                         | endpoint de UserInfo                                                            |
-| `/.well-known/openid-configuration` | documento de descubrimiento de OIDC                                             |
-| `/.well-known/jwks.json`            | JSON Web Key Set; obtenido por servidores de recursos para validar tokens       |
-| `/api/v2/*`                         | Management API                                                                  |
-| `/co/authenticate`                  | autenticación de origen cruzado                                                 |
-| `/dbconnections/signup`             | conexiones de base de datos: registro                                           |
-| `/dbconnections/change_password`    | conexiones de base de datos: cambiar la contraseña                              |
-| `/usernamepassword/login`           | envío del formulario de Classic Universal Login                                 |
-| `/mfa/challenge`                    | solicitud de desafío                                                            |
-| `/mfa/associate`                    | asociación de autenticador                                                      |
-| `/passwordless/start`               | Passwordless: solicitud de inicio                                               |
-| `/samlp/*`                          | endpoints del protocolo SAML                                                    |
-| `/wsfed/*`                          | endpoints de WS-Federation                                                      |
-| `/v2/logout`                        | Puede llamarse del lado del servidor en flujos de cierre de sesión back-channel |
+| Endpoint                            | Descripción                                                                            |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| `/oauth/token`                      | endpoint de token                                                                      |
+| `/oauth/revoke`                     | endpoint de revocación de tokens                                                       |
+| `/userinfo`                         | UserInfo endpoint                                                                      |
+| `/.well-known/openid-configuration` | documento de descubrimiento de OIDC                                                    |
+| `/.well-known/jwks.json`            | JSON Web Key Set; lo recuperan los servidores de recursos para la validación de tokens |
+| `/api/v2/*`                         | Management API                                                                         |
+| `/co/authenticate`                  | autenticación de origen cruzado                                                        |
+| `/dbconnections/signup`             | conexiones de base de datos: registro                                                  |
+| `/dbconnections/change_password`    | conexiones de base de datos: cambiar la contraseña                                     |
+| `/usernamepassword/login`           | envío del formulario de Classic Universal Login                                        |
+| `/mfa/challenge`                    | solicitud de desafío                                                                   |
+| `/mfa/associate`                    | asociación del autenticador                                                            |
+| `/passwordless/start`               | Passwordless: solicitud de inicio                                                      |
+| `/samlp/*`                          | endpoints del protocolo SAML                                                           |
+| `/wsfed/*`                          | endpoints de WS-Federation                                                             |
+| `/v2/logout`                        | Puede llamarse del lado del servidor en flujos de cierre de sesión por back-channel    |
 
 <div id="example-rule">
-  ### Ejemplo de rule
+  ### Ejemplo de regla
 </div>
 
-Para aplicar Managed Challenges solo a los flujos de Universal Login en navegador, crea una [rule personalizada de WAF](https://developers.cloudflare.com/waf/custom-rules/) en Cloudflare. Configura la acción de la rule como **Managed Challenge** y usa la siguiente expresión; sustituye `YOUR_CUSTOM_DOMAIN` por tu dominio personalizado (por ejemplo, `login.example.com`):
+Para aplicar Managed Challenges solo a los flujos de Universal Login en el navegador, crea una [regla personalizada de WAF](https://developers.cloudflare.com/waf/custom-rules/) en Cloudflare. Configura la acción de la regla como **Managed Challenge** y usa la siguiente expresión, sustituyendo `YOUR_CUSTOM_DOMAIN` por tu dominio personalizado (por ejemplo, `login.example.com`):
 
 ```text
 (http.host eq "YOUR_CUSTOM_DOMAIN" and (
@@ -136,17 +136,17 @@ Para aplicar Managed Challenges solo a los flujos de Universal Login en navegado
 ))
 ```
 
-Esto limita el desafío solo a los endpoints de Universal Login con interfaz de usuario y evita interrupciones en el tráfico de API y de máquina a máquina.
+Esto limita el challenge únicamente a los endpoints con interfaz de Universal Login y evita interrupciones en el tráfico de API y de máquina a máquina.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Algunos casos de uso pueden comportarse de manera diferente:
+  Algunos casos de uso pueden comportarse de forma diferente:
 
-  * **Persistencia de la cookie de validación**: Una vez que un navegador resuelve un Managed Challenge, Cloudflare emite una cookie de validación que normalmente se mantiene durante la sesión. Según tu configuración, limitar la rule solo a `/authorize` puede ser suficiente para cubrir todo el flujo de Universal Login sin aplicarla a cada ruta `/u/*`.
-  * **Puntos de entrada que no usan OAuth**: Los flujos que comienzan desde puntos de entrada iniciados por SAML SP o WS-Federation usan `/samlp/*` o `/wsfed/*` en lugar de `/authorize`. Estas rutas están en la lista de exclusión y no se les debe aplicar un Managed Challenge.
+  * **Persistencia de la cookie de clearance**: Una vez que un navegador resuelve un Managed Challenge, Cloudflare emite una cookie de clearance que normalmente persiste durante la sesión. Según tu configuración, limitar la rule solo a `/authorize` puede ser suficiente para cubrir todo el flujo de login de Universal Login sin aplicarla a cada ruta `/u/*`.
+  * **Puntos de entrada no OAuth**: Los flujos que comienzan en puntos de entrada iniciados por SP de SAML o de WS-Federation usan `/samlp/*` o `/wsfed/*` en lugar de `/authorize`. Estas rutas están en la lista de exclusión y no se les debe aplicar un Managed Challenge.
 </Callout>
 
 <div id="configure-auth0">
-  ## Configura Auth0
+  ## Configurar Auth0
 </div>
 
 Llama al endpoint [Actualizar la configuración del dominio personalizado](https://auth0.com/docs/api/management/v2#!/Custom_Domains/patch_custom_domains_by_id) de la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> de Auth0 con el siguiente payload en el cuerpo:
@@ -162,4 +162,4 @@ Llama al endpoint [Actualizar la configuración del dominio personalizado](https
 </div>
 
 * [Configurar funcionalidades para usar dominios personalizados](/docs/es/customize/custom-domains/configure-features-to-use-custom-domains)
-* [Versiones y cifrados de TLS (SSL)](/docs/es/customize/custom-domains/self-managed-certificates/tls-ssl)
+* [Versiones de TLS (SSL) y algoritmos de cifrado](/docs/es/customize/custom-domains/self-managed-certificates/tls-ssl)

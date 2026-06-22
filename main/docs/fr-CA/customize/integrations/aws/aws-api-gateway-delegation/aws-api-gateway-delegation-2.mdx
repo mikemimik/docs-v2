@@ -6,27 +6,27 @@ title: "Tutoriel AWS API Gateway : étape 2"
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 <Warning>
-  Cette fonctionnalité utilise la délégation. Par défaut, la délégation est désactivée pour les tenants qui n’utilisaient pas d’add-on en date du 8 juin 2017. Les tenants Legacy qui utilisent actuellement un add-on nécessitant la délégation peuvent continuer à utiliser cette fonctionnalité. Si la fonctionnalité de délégation est modifiée ou retirée du service un jour, les clients qui l’utilisent actuellement en seront avisés à l’avance et disposeront de suffisamment de temps pour migrer. De plus, notez que la délégation ne prend pas en charge l’utilisation de custom domains; toute fonctionnalité qui en dépend pourrait donc ne pas être entièrement compatible avec un custom domain.
+  Cette fonctionnalité utilise la délégation. Par défaut, la délégation est désactivée pour les tenants qui n’utilisaient aucun module complémentaire au 8 juin 2017. Les tenants Legacy qui utilisent actuellement un module complémentaire nécessitant la délégation peuvent continuer à utiliser cette fonctionnalité. Si la fonctionnalité de délégation devait être modifiée ou retirée du service, les clients qui l’utilisent actuellement en seraient avisés au préalable et disposeraient de suffisamment de temps pour migrer. De plus, notez que la délégation ne prend pas en charge l’utilisation de domaines personnalisés; par conséquent, toute fonctionnalité qui en dépend pourrait ne pas être entièrement fonctionnelle avec un domaine personnalisé.
 </Warning>
 
 <div id="step-2-secure-and-deploy-the-amazon-api-gateway">
-  ## Étape 2 - Sécuriser et déployer Amazon API Gateway
+  ## Étape 2 - Sécuriser et déployer Amazon API Gateway
 </div>
 
-Maintenant que votre API fonctionne, vous devez la sécuriser. Dans cette étape, vous allez :
+Maintenant que votre API est en cours d’exécution, vous devez en renforcer la sécurité. À cette étape, vous allez :
 
-* Sécuriser l’API de mise à jour afin de limiter l’accès aux utilisateurs authentifiés ayant un rôle AWS IAM précis ;
-* Configurer la délégation Auth0 pour utiliser les capacités de fédération AWS IAM ;
+* Sécuriser l’API de mise à jour afin de limiter l’accès aux utilisateurs authentifiés ayant un rôle AWS IAM précis;
+* Configurer la délégation Auth0 pour utiliser les capacités de fédération d’AWS IAM;
 * Obtenir un <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip> AWS qui utilise le rôle AWS IAM.
 
-Une fois votre API sécurisée, vous créerez une application monopage (SPA) sans serveur. La SPA s’appuiera sur la fédération d’identité pour déterminer quels utilisateurs sont autorisés à y accéder. En combinant l’intégration AWS IAM à Amazon API Gateway, la fédération d’identité AWS IAM pour <Tooltip tip="Security Assertion Markup Language (SAML) : protocole normalisé permettant à deux parties d’échanger des renseignements d’authentification sans mot de passe." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SAML">SAML</Tooltip> et la délégation Auth0 pour AWS, vous pouvez permettre à des utilisateurs de nombreuses sources différentes, y compris des fournisseurs sociaux ou des connexions d’entreprise, d’accéder à vos API. Le diagramme suivant illustre un exemple de flux utilisant un <Tooltip tip="fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseur d’identité</Tooltip> basé sur SAML, ainsi que la fédération SAML Auth0 et la délégation pour AWS.
+Une fois votre API sécurisée, vous créerez une application monopage (SPA) sans serveur. La SPA s’appuiera sur la fédération d’identité pour déterminer quels utilisateurs sont autorisés à y accéder. En combinant l’intégration AWS IAM pour Amazon API Gateway, la fédération d’identités AWS IAM pour <Tooltip tip="Security Assertion Markup Language (SAML) : protocole normalisé permettant à deux parties d’échanger des informations d’authentification sans mot de passe." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SAML">SAML</Tooltip> et Auth0 Delegation for AWS, vous pouvez permettre à des utilisateurs provenant de nombreuses sources différentes, y compris des fournisseurs d’identité sociale ou des connexions d’entreprise, d’accéder à vos API. Le schéma suivant illustre un exemple de flux utilisant un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère des identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseur d’identité</Tooltip> basé sur SAML ainsi qu’Auth0 SAML Federation and Delegation for AWS.
 
 Vous verrez deux façons de mettre en œuvre ce flux :
 
-1. Utiliser la délégation Auth0 avec AWS IAM ;
+1. Utiliser Auth0 Delegation avec AWS IAM;
 2. Ajouter un jeton d’identité pour transmettre l’identité à la fonction Lambda.
 
-La délégation vous permet d’obtenir facilement des jetons d’AWS pour accéder aux services AWS dans votre application.
+La délégation vous permet d’obtenir facilement des jetons AWS pour accéder aux services AWS dans votre application.
 
 <div id="ways-to-secure-the-amazon-api-gateway">
   ### Façons de sécuriser Amazon API Gateway
@@ -38,73 +38,73 @@ AWS API Gateway offre plusieurs méthodes pour sécuriser vos API :
 2. IAM ;
 3. [Amazon Cognito](/docs/fr-CA/customize/integrations/aws/aws-api-gateway-cognito).
 
-L’utilisation de clés API convient généralement aux interactions de service à service, comme illustré ci-dessous. Cependant, cette approche présente plusieurs inconvénients :
+L’utilisation de clés API convient généralement aux interactions de service à service, comme illustré ci-dessous. Cette approche comporte toutefois plusieurs inconvénients :
 
-* Il est risqué d’intégrer à l’application un secret ayant une longue durée de vie (les applications étant plus faciles à compromettre) ;
-* La mise en place d’un mécanisme pour émettre et gérer des clés API exige une implémentation sécurisée, ce qui peut être complexe à développer.
+* Il est risqué de stocker un secret à longue durée de vie dans l’application (les applications sont plus faciles à compromettre) ;
+* La création d’un framework pour émettre et gérer des clés API exige une mise en œuvre sécurisée qui peut être complexe à développer.
 
-Cette section du tutoriel s’appuie sur les rôles IAM et les politiques pour sécuriser votre API dans API Gateway, mais vous pouvez aussi choisir de le faire à l’aide des User Pools d’Amazon Cognito. Pour consulter des instructions détaillées sur la sécurisation de votre API AWS, lisez [Secure AWS API Gateway Using Cognito](/docs/fr-CA/customize/integrations/aws/aws-api-gateway-cognito). Pour plus d’information sur l’utilisation des rôles IAM et des politiques, consultez l’article d’Amazon, [Control access to an API with IAM permissions](http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html). Pour en savoir plus sur les User Pools dans Cognito, consultez [Amazon Cognit user pool](http://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html).
+Cette section du tutoriel utilise des rôles IAM et des politiques pour sécuriser votre API dans API Gateway, mais vous pouvez aussi choisir de le faire à l’aide des pools d’utilisateurs dans Amazon Cognito. Pour consulter des instructions détaillées sur la sécurisation de votre API AWS, lisez [Secure AWS API Gateway Using Cognito](/docs/fr-CA/customize/integrations/aws/aws-api-gateway-cognito). Pour en savoir plus sur l’utilisation des rôles IAM et des politiques, consultez l’article d’Amazon, [Control access to an API with IAM permissions](http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html). Pour en apprendre davantage sur les pools d’utilisateurs dans Cognito, consultez [Amazon Cognit user pool](http://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html).
 
 <div id="step-1-configure-iam-and-auth0-for-saml-integration-with-the-api-gateway">
-  ### Étape 1. Configurer IAM et Auth0 pour l’intégration SAML à API Gateway
+  ### Étape 1. Configurer IAM et Auth0 pour l’intégration SAML avec Amazon API Gateway
 </div>
 
-Vous pouvez spécifier un rôle AWS IAM pour le jeton SAML que vous échangez contre un jeton AWS. Selon les permissions accordées à ce rôle IAM (qui sont définies à l’aide de votre fournisseur d’identité), le jeton reçu dispose de ces mêmes permissions. En émettant différents jetons SAML, chacun associé à son propre rôle AWS IAM, vous pouvez contrôler les niveaux d’accès de vos utilisateurs.
+Vous pouvez indiquer un rôle AWS IAM pour le jeton SAML que vous échangez contre un jeton AWS. Selon les autorisations accordées à ce rôle IAM (définies à l’aide de votre fournisseur d’identité), le jeton reçu dispose de ces mêmes autorisations. En émettant différents jetons SAML, chacun associé à son propre rôle AWS IAM, vous pouvez contrôler les niveaux d’accès de vos utilisateurs.
 
-Par exemple, l’IdP peut spécifier le rôle IAM en fonction de l’appartenance à un groupe (par exemple, un administrateur dans Active Directory) ou de la source d’authentification (par exemple, une connexion de base de données ou un fournisseur social comme Facebook). Cette approche vous permet de différencier l’accès des utilisateurs à vos méthodes Amazon API Gateway lorsqu’elles sont sécurisées au moyen d’AWS IAM.
+Par exemple, le fournisseur d’identité pourrait indiquer le rôle IAM en fonction de l’appartenance à un groupe (par exemple, un administrateur dans Active Directory) ou de la source d’authentification (par exemple, une connexion de base de données ou un fournisseur d’identité sociale comme Facebook). Cette approche vous permet de moduler l’accès de vos utilisateurs aux méthodes de votre Amazon API Gateway lorsqu’elles sont sécurisées à l’aide d’AWS IAM.
 
 <div id="configure-auth0">
   #### Configurer Auth0
 </div>
 
-Connectez-vous à votre compte Auth0. Vous accéderez au Management Dashboard. Cliquez sur **+ New Application**, situé dans le coin supérieur droit de la page.
+Connectez-vous à votre compte Auth0. Vous serez redirigé vers le Management Dashboard. Cliquez sur **+ New Application**, situé dans le coin supérieur droit de la page.
 
-Donnez à votre nouvelle application le nom AWS API Gateway et indiquez que cette Application sera de type application monopage. Cliquez sur **Create**.
+Nommez votre nouvelle application AWS API Gateway, puis indiquez que cette Application sera une application monopage. Cliquez sur **Create**.
 
-Accédez à l’onglet Addons de votre Application nouvellement créée. À l’aide du bouton bascule approprié, activez Amazon Web Services. Cela active AWS Delegation.
+Accédez à l’onglet Addons de votre Application nouvellement créée. À l’aide du bouton approprié, activez Amazon Web Services. Cela active AWS Delegation.
 
 <div id="configure-aws">
   #### Configurer AWS
 </div>
 
-Suivez le tutoriel [How to Set Up AWS for Delegated Authentication](/docs/fr-CA/customize/integrations/aws/how-to-set-up-aws-for-delegated-authentication) pour configurer AWS pour l’accès délégué, qui utilise SAML. Quelques points à noter :
+Suivez le tutoriel [Comment configurer AWS pour l’authentification déléguée](/docs/fr-CA/customize/integrations/aws/how-to-set-up-aws-for-delegated-authentication) afin de configurer AWS pour l’accès délégué, qui utilise SAML. Quelques points à noter :
 
-* Suivez les [instructions ci-dessous](#setting-the-permissions-policy-on-your-iws-iam-role) pour associer la politique d’autorisations à votre rôle plutôt que de suivre celles du tutoriel en lien;
-* Nommez le fournisseur SAML que vous créez `auth0`;
+* Suivez les [instructions ci-dessous](#setting-the-permissions-policy-on-your-iws-iam-role) pour attacher la politique d’autorisations à votre rôle plutôt que celles du tutoriel en lien ;
+* Nommez le fournisseur SAML que vous créez `auth0` ;
 * Nommez le rôle AWS IAM `auth0-api-role`.
 
 <div id="set-the-permissions-policy-on-your-iws-iam-role">
-  ##### Définissez la politique d’autorisations pour votre rôle AWS IAM IWS
+  ##### Définissez la politique d’autorisations de votre rôle IAM IWS
 </div>
 
-Une fois le rôle AWS IAM configuré, vous ajouterez une politique à `auth0-api-role` qui vous permettra d’exécuter les méthodes de votre API Gateway. Pour en savoir plus sur ce processus, consultez [Autorisations d’accès des utilisateurs pour Amazon API Gateway](http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html).
+Une fois le rôle AWS IAM configuré, vous ajouterez une politique à `auth0-api-role` pour pouvoir exécuter les méthodes de votre API Gateway. Pour en savoir plus sur ce processus, consultez [Autorisations d’accès des utilisateurs pour Amazon API Gateway](http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html).
 
 <div id="getting-the-gateway-api-arn">
-  #### Obtenir l’ARN de l’API Gateway
+  #### Obtention de l’ARN de Gateway API
 </div>
 
-Avant de commencer, vous aurez besoin de l’ARN de votre API Gateway :
+Avant de commencer, vous aurez besoin de l’ARN de votre Gateway API :
 
-1. Accédez à la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway) et ouvrez une session.
+1. Accédez à [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway) et connectez-vous.
 2. Sélectionnez l’API appropriée.
-3. Cliquez sur l’une des méthodes associées à l’API pour afficher la page Method Execution.
-4. Sur la page Method Execution, la boîte Method Request, dans le coin supérieur gauche, affiche l’**ARN** de l’API, mais il inclut le nom de la méthode :
+3. Cliquez sur l’une des **Methods** associées à l’API pour afficher la page **Method Execution**.
+4. Sur la page **Method Execution**, la zone **Method Request**, dans le coin supérieur gauche, affiche l’**ARN** de l’API, mais celui-ci comprend le nom de la méthode :
 
 `arn:aws:execute-api:us-east-2:484857107747:97i1dwv0j4/*/POST/`
 
-Vous retirerez le nom de la méthode pour obtenir l’ARN de base de l’API :
+Vous devrez supprimer le nom de la méthode pour obtenir l’ARN de base de l’API :
 
 `arn:aws:execute-api:us-east-2:484857107747:97i1dwv0j4/*`
 
-Le caractère générique (`*`) dans l’ARN ci-dessus active les permissions pour votre API à toutes les étapes, mais vous pouvez déployer différentes étapes individuellement (par exemple, développement, puis test, puis production).
+Le caractère générique (`*`) dans l’ARN ci-dessus accorde les permissions à votre API pour tous les stages, mais vous pouvez déployer différents stages individuellement (par exemple, développement, puis test, puis production).
 
 Sélectionnez le rôle `auth0-api-role` que vous venez de créer pour ouvrir sa page Summary.
 
 Développez **Inline Policies**, puis cliquez sur **click here**.
 
-Sélectionnez **Custom Policy**, puis cliquez sur **Select**.
+Sélectionnez **Custom Policy** et cliquez sur **Select**.
 
-Modifiez votre document de stratégie. Vous pouvez attribuer à **Policy Name** le nom de votre choix, mais nous vous suggérons quelque chose comme `api-gateway-policy`. Pour activer l’accès aux méthodes de l’API pour ce rôle, appliquez la stratégie suivante après avoir mis à jour l’ARN avec celui de votre API.
+Modifiez votre document de politique. Vous pouvez attribuer au **Policy Name** le nom de votre choix, mais nous vous suggérons quelque chose comme `api-gateway-policy`. Pour activer l’accès aux méthodes de l’API pour ce rôle, appliquez la politique suivante après avoir remplacé l’ARN par celui de votre API.
 
 ```json lines
 {
@@ -123,11 +123,11 @@ Modifiez votre document de stratégie. Vous pouvez attribuer à **Policy Name** 
 }
 ```
 
-Cliquez sur **Appliquer la stratégie**.
+Cliquez sur **Appliquer la politique**.
 
-Puisque l’API Gateway assumera ce rôle au nom de l’utilisateur, la stratégie d’approbation doit autoriser cette opération. Pour ce faire, modifiez les relations d’approbation du rôle en accédant à cet onglet dans la page Résumé du rôle.
+Comme API Gateway assumera ce rôle pour le compte de l’utilisateur, la politique d’approbation doit autoriser cette opération. Pour ce faire, modifiez les Trust Relationships du rôle en accédant à cet onglet dans la page Summary du rôle.
 
-La relation d’approbation finale devrait ressembler à ce qui suit :
+La relation d’approbation finale devrait ressembler à ceci :
 
 export const codeExample = `{
   "Version": "2012-10-17",
@@ -158,40 +158,40 @@ export const codeExample = `{
 
 <AuthCodeBlock children={codeExample} language="json" />
 
-À cette étape, vous devrez configurer les paramètres d’autorisation dans [API Gateway](https://console.aws.amazon.com/apigateway).
+À cette étape, vous devrez définir les paramètres d’autorisation dans [API Gateway](https://console.aws.amazon.com/apigateway).
 
 Dans la vue **Resources**, sélectionnez la méthode POST sous `/pets`.
 
 Cliquez sur le lien **Method Request**.
 
-Cliquez sur l’icône de modification à côté de **Authorization Type**, puis sélectionnez AWS&#95;IAM. Cliquez ensuite sur le **bouton Check** à côté du champ pour enregistrer ce paramètre.
+Cliquez sur l’icône de modification à côté de **Authorization Type**, puis sélectionnez AWS&#95;IAM. Cliquez ensuite sur le bouton de validation à côté du champ pour enregistrer le paramètre.
 
 <div id="step-2-set-up-cors-and-deploy-the-api">
   ### Étape 2. Configurer CORS et déployer l’API
 </div>
 
-Notre application monopage (SPA) accédera aux méthodes de la Web API à partir d’un domaine différent de celui de la page. Le paramètre Cross-Origin Resource Sharing doit explicitement autoriser cette action pour que le navigateur permette l’accès à l’AWS API Gateway. En général, le navigateur envoie d’abord une requête `OPTIONS` pour vérifier quelles actions le site autorise.
+Notre application monopage (SPA) accédera aux méthodes de l’API Web à partir d’un domaine différent de celui de la page. Le paramètre Cross-Origin Resource Sharing doit explicitement autoriser cette action pour que le navigateur permette l’accès à AWS API Gateway. En général, le navigateur enverra d’abord une requête `OPTIONS` pour voir quelles actions le site autorise.
 
 Sélectionnez `/pets` sous Resources, puis cliquez sur **Create Method**. Dans la liste déroulante, sélectionnez **OPTIONS**, puis cliquez sur la **coche** pour enregistrer ce paramètre.
 
-La méthode Options est utilisée par le navigateur pour obtenir les en-têtes HTTP nécessaires, mais la fonction doit aussi recevoir des instructions supplémentaires sur ce qu’elle doit faire. Dans l’écran Setup de `OPTIONS`, définissez les variables/paramètres suivants :
+La méthode Options est utilisée par le navigateur pour obtenir les en-têtes HTTP nécessaires, mais la fonction a besoin d’instructions supplémentaires quant à ce qu’elle doit faire. Dans l’écran Setup de `OPTIONS`, définissez les variables/paramètres suivants :
 
 * **Integration Type** : Lambda Function;
-* **Use Lambda Proxy Integration** : laissez décoché;
+* **Use Lambda Proxy Integration** : laissez cette option décochée;
 * **Lambda Region** : sélectionnez votre région;
 * **Lambda Function** : NoOp.
 
-Cliquez sur **Save**. Dans la fenêtre contextuelle suivante, accordez à votre fonction Lambda les permissions dont elle a besoin.
+Cliquez sur **Save**. Dans la fenêtre contextuelle suivante, accordez à votre fonction Lambda les autorisations nécessaires.
 
 Vous serez ensuite automatiquement redirigé vers la page Method Execution de `OPTIONS`. Ouvrez la page Method Response.
 
-Développez la section **200** située sous la barre HTTP Status, puis ajoutez les en-têtes de réponse suivants :
+Développez la section **200** située sous la barre HTTP Status et ajoutez les en-têtes de réponse suivants :
 
 * Access-Control-Allow-Headers;
 * Access-Control-Allow-Methods;
 * Access-Control-Allow-Origin.
 
-Ensuite, associez les valeurs appropriées à chacun des en-têtes de réponse. De retour sur la page Method Execution, cliquez sur **Integration Response**. Après avoir développé la ligne associée au status de réponse de méthode **200**, développez **Header Mappings**, puis appliquez les mappings suivants :
+Ensuite, mappez les valeurs appropriées à chacun des en-têtes de réponse. Après être revenu à la page Method Execution, cliquez sur **Integration Response**. Après avoir développé la ligne associée à l’état de réponse de méthode **200**, développez **Header Mappings**, puis appliquez les mappages suivants :
 
 * Access-Control-Allow-Headers: `'Content-Type,X-Amz-Date,Authorization,x-api-key,x-amz-security-token'`;
 * Access-Control-Allow-Origin: `'*'`
@@ -203,10 +203,10 @@ Enfin, répétez les étapes ci-dessus pour activer CORS pour les méthodes POST
   ### Déployer l’API
 </div>
 
-Retournez à la vue **Resources** de votre API. Cliquez sur **Actions**, puis sélectionnez **DEPLOY API**.
+Revenez à la vue **Resources** de votre API. Cliquez sur **Actions**, puis sélectionnez **DEPLOY API**.
 
-Sélectionnez **New Stage** pour **Deploy State**, puis nommez l’étape `Test`. Cliquez sur le bouton **Deploy**.
+Pour **Deploy State**, sélectionnez **New Stage**, puis nommez l’étape `Test`. Cliquez sur le bouton **Deploy**.
 
 Sur la page de résultats, accédez à **SDK Generation**. Sélectionnez JavaScript comme **Platform**. Cliquez sur le bouton **Generate SDK**.
 
-Enregistrez le fichier ZIP téléchargé pour l’utiliser plus tard.
+Conservez le fichier ZIP téléchargé pour l’utiliser plus tard.

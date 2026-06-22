@@ -8,25 +8,25 @@ import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
   ##### Por Evan Sims
 </div>
 
-Esta guía muestra cómo integrar Auth0 con una aplicación PHP mediante el SDK de Auth0 para PHP. Recomendamos que inicie sesión para seguir este Quickstart con ejemplos configurados para su cuenta.
+Esta guía muestra cómo integrar Auth0 con una aplicación de PHP mediante el SDK de Auth0 para PHP.Recomendamos que inicie sesión para seguir este Quickstart con ejemplos configurados para su cuenta.
 
-{/* <Card title="Ver en GitHub" href="https://github.com/auth0-samples/auth0-php-web-app/tree/main/app" icon="github">
+{/* <Card title="Ver en Github" href="https://github.com/auth0-samples/auth0-php-web-app/tree/main/app" icon="github">
   Requisitos del sistema: PHP 7.4+ (8.0 recomendado) | Auth0-PHP 8.0 | Composer
   </Card> */}
 
 <Info>
-  **¿Nuevo en Auth?** Aprende [cómo funciona Auth0](/docs/es/get-started/auth0-overview), cómo [se integra con aplicaciones web clásicas](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps) y qué [protocolo](/docs/es/get-started/authentication-and-authorization-flow) utiliza.
+  **¿No conoces Auth?** Aprende [cómo funciona Auth0](/docs/es/get-started/auth0-overview), cómo [se integra con aplicaciones web clásicas](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps) y qué [protocolo](/docs/es/get-started/authentication-and-authorization-flow) utiliza.
 </Info>
 
 <div id="configure-auth0">
-  ## Configura Auth0
+  ## Configurar Auth0
 </div>
 
 <div id="get-your-application-keys">
   ### Obtén las claves de tu aplicación
 </div>
 
-Cuando te registraste en Auth0, se creó una aplicación nueva para ti, o puede que hayas creado una nueva. Necesitarás algunos datos de esa aplicación para comunicarte con Auth0. Puedes obtenerlos en la sección [Application Settings](https://manage.auth0.com/#/applications) del Auth0 Dashboard.
+Cuando te registraste en Auth0, se creó una nueva aplicación para ti, o es posible que hayas creado una nueva. Necesitarás algunos datos de esa aplicación para comunicarte con Auth0. Puedes obtenerlos en la sección [Application Settings](https://manage.auth0.com/#/applications) del Auth0 Dashboard.
 
 <Frame>![Dashboard de la aplicación](https://cdn2.auth0.com/docs/1.14550.0/media/articles/dashboard/client_settings.png)</Frame>
 
@@ -34,69 +34,69 @@ Necesitas la siguiente información:
 
 * **Domain**
 * **ID de cliente**
-* **Secreto de cliente**
+* **secreto de cliente**
 
 <Info>
-  Si descargas el ejemplo de la parte superior de esta página, estos datos ya estarán completados.
+  Si descargas el ejemplo desde la parte superior de esta página, estos datos ya estarán completados.
 </Info>
 
 <div id="configure-callback-urls">
-  ### Configura las URL de devolución de llamada
+  ### Configurar las URL de devolución de llamada
 </div>
 
-Una URL de devolución de llamada es una URL de tu aplicación a la que Auth0 redirige al usuario después de autenticarse. La URL de devolución de llamada de tu aplicación debe agregarse al campo **Allowed Callback URLs** de [Application Settings](https://manage.auth0.com/#/applications). Si este campo no está configurado, los usuarios no podrán iniciar sesión en la aplicación y recibirán un error.
+Una URL de devolución de llamada es una URL de tu aplicación a la que Auth0 redirige al usuario después de autenticarse. La URL de devolución de llamada de tu aplicación debe añadirse al campo **Allowed Callback URLs** en [Application Settings](https://manage.auth0.com/#/applications). Si este campo no se configura, los usuarios no podrán iniciar sesión en la aplicación y verán un error.
 
 <Info>
-  Si estás siguiendo el proyecto de ejemplo que descargaste de la parte superior de esta página, la URL de devolución de llamada que debes agregar al campo **Allowed Callback URLs** es `http://127.0.0.1:3000/`.
+  Si estás siguiendo el proyecto de ejemplo que descargaste al principio de esta página, la URL de devolución de llamada que debes agregar al campo **Allowed Callback URLs** es `http://127.0.0.1:3000/`.
 </Info>
 
 <div id="configure-logout-urls">
-  ### Configurar las URL de cierre de sesión
+  ### Configurar Logout URLs
 </div>
 
-Una URL de cierre de sesión es una URL de tu aplicación a la que Auth0 puede redirigir después de que el usuario haya cerrado sesión en el servidor de autorización. Esto se especifica en el parámetro de consulta `returnTo`. La URL de cierre de sesión de tu aplicación debe agregarse al campo **Allowed Logout URLs** en [Application Settings](https://manage.auth0.com/#/applications). Si este campo no está configurado, los usuarios no podrán cerrar sesión en la aplicación y recibirán un error.
+Una logout URL es una URL de tu aplicación a la que Auth0 puede redirigir después de que el usuario haya cerrado sesión en el servidor de autorización. Esto se especifica en el parámetro de consulta `returnTo`. La logout URL de tu aplicación debe añadirse al campo **Allowed Logout URLs** en [Application Settings](https://manage.auth0.com/#/applications). Si este campo no está configurado, los usuarios no podrán cerrar sesión en la aplicación y recibirán un error.
 
 <Info>
-  Si estás siguiendo el proyecto de ejemplo que descargaste desde la parte superior de esta página, la URL de cierre de sesión que debes agregar al campo **Allowed Logout URLs** es `http://127.0.0.1:3000`.
+  Si estás siguiendo el proyecto de ejemplo que descargaste desde la parte superior de esta página, la logout URL que debes añadir al campo **Allowed Logout URLs** es `http://127.0.0.1:3000`.
 </Info>
 
 <div id="integrate-your-php-application">
   ## Integra tu aplicación PHP
 </div>
 
-Vamos a crear una aplicación de ejemplo para autenticar a un usuario en una aplicación PHP. Aquí seguiremos un enfoque sencillo, adecuado para este formato. Aun así, te recomendamos consultar la [aplicación Quickstart en GitHub](https://github.com/auth0-samples/auth0-php-web-app/) para ver un ejemplo más completo.
+Vamos a crear una aplicación de ejemplo que autentique a un usuario en una aplicación PHP. Aquí seguiremos un enfoque sencillo, apropiado para este formato escrito. Aun así, te recomendamos consultar la [aplicación Quickstart en GitHub](https://github.com/auth0-samples/auth0-php-web-app/) para ver un ejemplo más completo.
 
 <div id="installing-http-client-and-messaging-factories">
   ### Instalación del cliente HTTP y las fábricas de mensajes
 </div>
 
-El SDK de Auth0 para PHP es compatible con muchos estándares de [PHP-FIG](https://www.php-fig.org), lo que ofrece opciones de interoperabilidad con tu arquitectura. Dos de especial importancia son [PSR-17](https://www.php-fig.org/psr/psr-17/) y [PSR-18](https://www.php-fig.org/psr/psr-18/). Estos estándares te permiten integrar los componentes de red que prefieras para gestionar mensajes y solicitudes. Tendrás que instalar bibliotecas compatibles en tu proyecto para que el SDK pueda utilizarlas.
+El SDK de Auth0 para PHP es compatible con muchos estándares de [PHP-FIG](https://www.php-fig.org), lo que ofrece opciones de interoperabilidad con tu arquitectura. Dos especialmente importantes son [PSR-17](https://www.php-fig.org/psr/psr-17/) y [PSR-18](https://www.php-fig.org/psr/psr-18/). Estos estándares te permiten conectar los componentes de red que prefieras para gestionar mensajes y solicitudes. Tendrás que instalar bibliotecas compatibles en tu proyecto para que el SDK pueda usarlas.
 
-La biblioteca de red más utilizada para PHP es [Guzzle](https://docs.guzzlephp.org/), aunque hay muchas otras entre las que elegir dentro de la comunidad de PHP. Usemos Guzzle para esta aplicación de ejemplo. Una vez más, desde el directorio de tu proyecto, ejecuta el siguiente comando de shell:
+La biblioteca de red más extendida para PHP es [Guzzle](https://docs.guzzlephp.org/), aunque hay muchas otras disponibles en la comunidad de PHP. Usemos Guzzle para esta aplicación de ejemplo. Una vez más, desde el directorio de tu proyecto, ejecuta el siguiente comando de shell:
 
 ```bash lines
 composer require guzzlehttp/guzzle guzzlehttp/psr7 http-interop/http-factory-guzzle
 ```
 
 <div id="installing-the-php-sdk">
-  ### Instalación del SDK de PHP
+  ### Instalación del SDK para PHP
 </div>
 
-El SDK de PHP de Auth0 requiere [Composer](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-macos), una herramienta de gestión de dependencias para PHP. Composer te permite declarar las bibliotecas de las que depende tu proyecto y las instala por ti. Asegúrate de que Composer esté instalado y disponible desde tu shell antes de continuar.
+El SDK de Auth0 para PHP requiere [Composer](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-macos), una herramienta para la gestión de dependencias en PHP. Composer te permite declarar las bibliotecas de las que depende tu proyecto y las instala por ti. Asegúrate de que Composer esté instalado y sea accesible desde tu shell antes de continuar.
 
-Ejecuta el siguiente comando en la shell dentro del directorio de tu proyecto para instalar el SDK de PHP de Auth0:
+Ejecuta el siguiente comando de shell en el directorio de tu proyecto para instalar el SDK de Auth0 para PHP:
 
 ```bash lines
 composer require auth0/auth0-php
 ```
 
-Esto creará una carpeta `vendor` dentro de tu proyecto y descargará todas las dependencias necesarias para usar el SDK de Auth0 para PHP. También creará un archivo `vendor/autoload.php` que se usa en el ejemplo para cargar todas las clases necesarias para que tu aplicación funcione. Es importante que incluyas este archivo de carga automática en tu proyecto para que el SDK funcione.
+Esto creará una carpeta `vendor` dentro de tu proyecto y descargará todas las dependencias necesarias para usar el SDK de Auth0 para PHP. También creará un archivo `vendor/autoload.php` que se usa en el ejemplo para cargar todas las clases necesarias para que tu aplicación funcione. Es importante que incluyas este archivo de autocarga en tu proyecto para que el SDK funcione.
 
 <div id="configuring-the-sdk">
   ### Configuración del SDK
 </div>
 
-Para comenzar, creemos un archivo `.env` en el directorio raíz de tu proyecto para guardar la configuración de nuestra aplicación de ejemplo y completar las variables de entorno:
+Para empezar, vamos a crear un archivo `.env` en el directorio raíz de tu proyecto para almacenar la configuración de nuestra aplicación de ejemplo y completar las variables de entorno:
 
 export const codeExample = `# El ID de cliente de tu aplicación de Auth0
 AUTH0_CLIENT_ID={yourClientId}
@@ -107,22 +107,22 @@ AUTH0_DOMAIN={yourDomain}
 # El secreto de cliente de tu aplicación de Auth0
 AUTH0_CLIENT_SECRET={yourClientSecret}
 
-# Un valor largo y secreto que se usa para cifrar la cookie de sesión.
-# Puedes generarlo con \`openssl rand -hex 32\` desde tu terminal.
+# Un valor largo y secreto que se utiliza para cifrar la cookie de sesión.
+# Puedes generarlo con \`openssl rand -hex 32\` desde tu shell.
 AUTH0_COOKIE_SECRET=
 
-# La URL desde la que se puede acceder a tu aplicación. Actualízala según corresponda.
+# Una URL desde la que tu aplicación es accesible. Actualízala según corresponda.
 AUTH0_BASE_URL=http://127.0.0.1:3000`;
 
 <AuthCodeBlock children={codeExample} language="env" />
 
-Como PHP no puede leer por sí solo nuestro archivo `.env`, tendremos que instalar una biblioteca que nos ayude con eso. Aunque para nuestra aplicación de ejemplo usaremos una biblioteca concreta, en una aplicación real funcionará cualquier cargador de &#39;dotenv&#39; que prefieras. Desde el directorio de nuestro proyecto, ejecutemos el siguiente comando de shell para instalar la biblioteca:
+Como PHP no puede leer por sí solo nuestro archivo `.env`, tendremos que instalar una biblioteca que nos ayude a hacerlo. Aunque para nuestra aplicación de ejemplo usaremos una biblioteca concreta, en una aplicación real servirá cualquier cargador de &#39;dotenv&#39; que prefieras. Desde el directorio de nuestro proyecto, ejecutemos el siguiente comando de shell para instalar la biblioteca:
 
 ```bash lines
 composer require vlucas/phpdotenv
 ```
 
-A continuación, vamos a crear el archivo fuente PHP que usaremos para estos ejemplos de código, `index.php`, y a configurar una instancia del SDK de Auth0 para PHP para nuestra aplicación de ejemplo:
+A continuación, creemos el archivo fuente de PHP que usaremos en estos ejemplos de código, `index.php`, y configuremos una instancia del SDK de Auth0 para PHP para nuestra aplicación de ejemplo:
 
 ```php lines
 <?php
@@ -133,7 +133,7 @@ require 'vendor/autoload.php';
 // Cargar las variables de entorno desde el archivo .env:
 (Dotenv\Dotenv::createImmutable(__DIR__))->load();
 
-// Ahora instanciamos la clase Auth0 con nuestra configuración:
+// Ahora instanciar la clase Auth0 con nuestra configuración:
 $auth0 = new \Auth0\SDK\Auth0([
     'domain' => $_ENV['AUTH0_DOMAIN'],
     'clientId' => $_ENV['AUTH0_CLIENT_ID'],
@@ -143,10 +143,10 @@ $auth0 = new \Auth0\SDK\Auth0([
 ```
 
 <div id="setting-up-your-application-routes">
-  ### Configurar las rutas de tu aplicación
+  ### Configuración de las rutas de la aplicación
 </div>
 
-Las aplicaciones modernas de PHP usan un sistema de enrutamiento para dirigir las solicitudes HTTP entrantes al código que las procesa, y así determinar qué debe ocurrir cuando los usuarios visitan una determinada &quot;página&quot; de nuestra aplicación. No existe una única forma correcta de implementar el enrutamiento en tu aplicación, y hay muchas bibliotecas entre las que puedes elegir. Para nuestra aplicación de ejemplo usaremos una biblioteca concreta, pero en una aplicación real puedes elegir la que prefieras.
+Las aplicaciones modernas de PHP usan un patrón de enrutamiento para dirigir las solicitudes HTTP entrantes al código que las gestiona, lo que determina qué debe suceder cuando los usuarios visitan una determinada &quot;página&quot; de nuestra aplicación. No existe una única forma correcta de implementar el enrutamiento en una aplicación, y hay muchas bibliotecas entre las que elegir para hacerlo. Para nuestra aplicación de ejemplo usaremos una biblioteca concreta, pero en una aplicación real puedes elegir la que prefieras.
 
 Desde el directorio de nuestro proyecto, ejecutemos el siguiente comando de shell para instalar la biblioteca de enrutamiento:
 
@@ -154,12 +154,12 @@ Desde el directorio de nuestro proyecto, ejecutemos el siguiente comando de shel
 composer require steampixel/simple-php-router
 ```
 
-A continuación, volvamos a abrir nuestro `index.php` y demos vida a nuestra aplicación. Empieza importando la biblioteca de enrutamiento y definiendo las URL completas de las rutas de nuestra aplicación de ejemplo como constantes con nombre para mayor comodidad, ya que necesitaremos consultarlas en varios puntos de la aplicación:
+A continuación, volvamos a abrir nuestro `index.php` y demos vida a nuestra aplicación. Empieza importando la biblioteca de enrutamiento y definiendo las URL completas de las rutas de nuestra aplicación de ejemplo como constantes con nombre para mayor comodidad, ya que necesitaremos hacer referencia a ellas en varios puntos de la aplicación:
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Agrega esto a tu archivo index.php.
 
-// Importa la biblioteca de enrutamiento:
+// Importa nuestra biblioteca de enrutamiento:
 use Steampixel\Route;
 
 // Define las constantes de ruta:
@@ -169,13 +169,13 @@ define('ROUTE_URL_CALLBACK', ROUTE_URL_INDEX . '/callback');
 define('ROUTE_URL_LOGOUT', ROUTE_URL_INDEX . '/logout');
 ```
 
-Ahora podemos pasar a agregar la lógica de gestión de rutas de nuestra aplicación y las integraciones con el SDK:
+Ahora podemos pasar a agregar la lógica de gestión de rutas de nuestra aplicación y las integraciones del SDK:
 
 <div id="checking-for-a-session">
-  ## Comprobar si hay una sesión
+  ## Comprobar la sesión
 </div>
 
-El SDK de Auth0 para PHP tiene un método práctico para comprobar si nuestro usuario se ha autenticado y ha devuelto su perfil, `getCredentials()`. Vamos a añadirlo a nuestra ruta de índice para mostrar el perfil del usuario si ha iniciado sesión o indicar que necesita iniciar sesión.
+El SDK de Auth0 para PHP tiene un método muy práctico, `getCredentials()`, para comprobar si el usuario se ha autenticado y recuperar su perfil. Vamos a usarlo en nuestra ruta principal para mostrar el perfil del usuario si ha iniciado sesión o indicar que debe iniciar sesión.
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Añade esto a tu archivo index.php.
@@ -198,9 +198,9 @@ Route::add('/', function() use ($auth0) {
 });
 ```
 
-Podemos acceder a todas las propiedades del perfil de nuestro usuario desde la propiedad `user` de la respuesta, que es un arreglo. Así, por ejemplo, podemos obtener el nickname del usuario con `$session->user<a href="https://auth0.com/docs/users/user-profile-structure" target="_blank" rel="noreferrer">nickname`, o su dirección de correo electrónico desde `$session->useremail`. La estructura es un perfil de usuario normalizado, sobre el que puedes obtener más información [aquí](https://auth0.com/docs/users/normalized-user-profiles).
+Podemos acceder a todas las propiedades del perfil de nuestro usuario desde la propiedad `user` de la respuesta, que es un arreglo. Así, por ejemplo, podemos obtener el nickname del usuario usando `$session->user<a href="https://auth0.com/docs/users/user-profile-structure" target="_blank" rel="noreferrer">nickname`, o su dirección de correo electrónico desde `$session->useremail`. La estructura es un perfil de usuario normalizado, sobre el que puedes obtener más información [aquí](https://auth0.com/docs/users/normalized-user-profiles).
 
-Es importante tener en cuenta que el contenido del perfil de usuario variará en función de los proveedores sociales que utilices, por lo que nunca debes asumir que un valor concreto siempre estará presente en la lógica de tu aplicación. Usa construcciones del lenguaje PHP como `isset` o la coalescencia nula para gestionar correctamente la presencia o ausencia de un valor; por ejemplo:
+Es importante tener en cuenta que el contenido del perfil del usuario variará según el proveedor o los proveedores sociales que uses, por lo que nunca debes dar por hecho que un valor concreto siempre estará presente en la lógica de tu aplicación. Usa construcciones del lenguaje PHP, como `isset` o la coalescencia nula, para gestionar correctamente la presencia de un valor, o su ausencia, por ejemplo:
 
 ```php lines
 // ✋ No necesitamos incluir esto en nuestra aplicación de ejemplo, es solo un ejemplo.
@@ -211,16 +211,16 @@ $name = $session->user['name'] ?? $session->user['nickname'] ?? $session->user['
   ## Iniciar sesión
 </div>
 
-Ahora creemos nuestra ruta /login, que usará el método `login()` del SDK de Auth0 para PHP para configurar la sesión del usuario y devolver una URL personalizada de la página de Universal Login de Auth0, donde el usuario podrá iniciar sesión.
+Ahora creemos nuestra ruta /login, que usará el método `login()` del SDK de Auth0 para PHP para configurar la sesión del usuario y devolver una URL personalizada de la Universal Login Page de Auth0 para que este usuario inicie sesión.
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Añade esto a tu archivo index.php.
 
 Route::add('/login', function() use ($auth0) {
-    // Es buena práctica restablecer las sesiones de usuario cada vez que inicien sesión para evitar errores de "estado inválido", en caso de que encuentren problemas de red u otros inconvenientes que interrumpan un proceso de inicio de sesión anterior:
+    // Es buena práctica restablecer las sesiones de usuario cada vez que inicien sesión para evitar errores de "invalid state", en caso de que surjan problemas de red u otros inconvenientes que interrumpan un proceso de inicio de sesión anterior:
     $auth0->clear();
 
-    // Por último, configura la sesión local de la aplicación y redirige al usuario a la página de Universal Login de Auth0 para autenticarse.
+    // Por último, configura la sesión local de la aplicación y redirige al usuario a la página Universal Login de Auth0 para autenticarse.
     header("Location: " . $auth0->login(ROUTE_URL_CALLBACK));
     exit;
 });
@@ -230,15 +230,15 @@ Route::add('/login', function() use ($auth0) {
   ## Gestión de la devolución de llamada de autenticación
 </div>
 
-Después de que nuestros usuarios regresen de autenticarse con la página de Universal Login de Auth0, volverán a nuestra aplicación de ejemplo en la ruta de devolución de llamada, `/callback`, que gestionaremos en este paso.
+Después de que nuestros usuarios regresen de autenticarse con la Universal Login Page de Auth0, volverán a nuestra aplicación de ejemplo a través de nuestra ruta de devolución de llamada, `/callback`, que gestionaremos en este paso.
 
-Cuando Auth0 nos redirige de vuelta a los usuarios, incluye algunos parámetros esenciales en la cadena de consulta de la solicitud HTTP. El método `exchange()` del SDK de Auth0 para PHP se encarga de procesarlos, así que completar nuestro flujo de autenticación es sencillo:
+Cuando Auth0 nos devuelve a nuestros usuarios, incluye algunos parámetros esenciales en la consulta de la solicitud HTTP. El método `exchange()` del SDK de Auth0 para PHP se encarga de ello, por lo que completar nuestro flujo de autenticación es sencillo:
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Añade esto a tu archivo index.php.
 
 Route::add('/callback', function() use ($auth0) {
-    // Haz que el SDK complete el flujo de autenticación:
+    // Permite que el SDK complete el flujo de autenticación:
     $auth0->exchange(ROUTE_URL_CALLBACK);
 
     // Por último, redirige al usuario final de vuelta a la ruta / index para mostrar su perfil:
@@ -248,16 +248,16 @@ Route::add('/callback', function() use ($auth0) {
 ```
 
 <div id="logging-out">
-  ## Cerrar sesión
+  ## Cierre de sesión
 </div>
 
-Por último, aunque no por ello menos importante, veamos cómo cerrar correctamente la sesión de nuestros usuarios. El método `logout()` del SDK de Auth0 para PHP se encarga de borrar las cookies de sesión de nuestra aplicación de ejemplo, redirigir al usuario al [endpoint /logout](https://auth0.com/docs/logout) de Auth0 (que cierra la capa de sesión de Auth0 y cualquier capa de sesión del proveedor de identidad) y, a continuación, devolver al usuario a nuestra ruta /index.
+Por último, aunque no menos importante, veamos cómo gestionar correctamente el cierre de sesión de nuestros usuarios. El método `logout()` del SDK de Auth0 para PHP se encarga de eliminar las cookies de sesión de nuestra aplicación de ejemplo, redirigir al usuario al [endpoint /logout](https://auth0.com/docs/logout) de Auth0 (que cierra la capa de sesión de Auth0 y cualquier capa de sesión del proveedor de identidad) y, después, devolver al usuario a nuestra ruta principal /.
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Agrega esto a tu archivo index.php.
 
 Route::add('/logout', function() use ($auth0) {
-    // Borra la sesión local del usuario en nuestra app y redirigelo al endpoint de cierre de sesión de Auth0 para borrar su Auth0 session.
+    // Borra la sesión local del usuario en nuestra app y redirigelo al endpoint de cierre de sesión de Auth0 para borrar su sesión de Auth0.
     header("Location: " . $auth0->logout(ROUTE_URL_INDEX));
     exit;
 });
@@ -267,12 +267,12 @@ Route::add('/logout', function() use ($auth0) {
   ## ¡Ejecuta tu aplicación!
 </div>
 
-Por último, aunque no por ello menos importante, necesitamos indicarle a nuestro middleware de enrutamiento que efectivamente enrute las solicitudes:
+Por último, pero no menos importante, tenemos que indicarle a nuestro middleware de enrutamiento que se encargue de enrutar las solicitudes:
 
 ```php lines
 // 👆 Continuamos desde los pasos anteriores. Añade esto a tu archivo index.php.
 
-// Esto le indica a nuestro router que hemos terminado de configurar nuestras rutas y que estamos listos para comenzar a enrutar las solicitudes HTTP entrantes:
+// Esto le indica a nuestro router que hemos terminado de configurar nuestras rutas y que estamos listos para empezar a enrutar las solicitudes HTTP entrantes:
 Route::run('/');
 ```
 
@@ -282,13 +282,13 @@ Route::run('/');
 php -S 127.0.0.1:3000 index.php
 ```
 
-Abre tu navegador en [http://127.0.0.1:3000](https://127.0.0.1:3000) y pruébalo.
+Abre [http://127.0.0.1:3000](https://127.0.0.1:3000) en tu navegador y pruébala.
 
 <Note>
-  ##### ¿Qué puedes hacer ahora?
+  ##### ¿Qué puedes hacer a continuación?
 
   | [Configurar otros proveedores de identidad](/docs/es/authenticate/identity-providers)                           | [Habilitar la autenticación multifactor](/docs/es/secure/multi-factor-authentication) |
   | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-  | [Más información sobre la protección contra ataques](/docs/es/secure/attack-protection)                         | [Más información sobre las reglas](/docs/es/customize/rules)                          |
+  | [Más información sobre la protección contra ataques](/docs/es/secure/attack-protection)                         | [Más información sobre Rules](/docs/es/customize/rules)                               |
   | [Editar en GitHub](https://github.com/auth0/docs/edit/master/articles/quickstart/native/flutter/01-login.md) |                                                                                    |
 </Note>

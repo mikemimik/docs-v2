@@ -1,34 +1,34 @@
 ---
-title: Récupérer les logs à l’aide de la Management API
-description: Découvrez comment récupérer des logs à l’aide du endpoint get_logs de l’Auth0 Management API, par point de contrôle ou selon des critères de recherche.
+title: Récupérer les journaux à l’aide de la Management API
+description: Découvrez comment récupérer des journaux à l’aide du point de terminaison get_logs de l’Auth0 Management API, par point de contrôle ou selon des critères de recherche.
 ---
 
-Vous pouvez utiliser la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> pour récupérer jusqu’à 100 logs par requête à l’aide du endpoint [/get&#95;logs](https://auth0.com/docs/api/management/v2/#!/Logs/get_logs), qui prend en charge deux modes d’utilisation :
+Vous pouvez utiliser la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> pour récupérer jusqu’à 100 journaux par requête à l’aide du point de terminaison [/get&#95;logs](https://auth0.com/docs/api/management/v2/#!/Logs/get_logs), qui prend en charge deux modes d’utilisation :
 
-* **Par point de contrôle** : Recommandé si vous souhaitez exporter des logs vers un service externe d’analyse de données.
-* **Par critères de recherche** : Utilisé par le Dashboard.
+* **Par point de contrôle** : recommandé si vous souhaitez exporter des journaux vers un service externe d’analyse de données.
+* **Selon des critères de recherche** : utilisé par le Dashboard.
 
-Les logs stockés par Auth0 sont soumis à une période de conservation selon votre Auth0 subscription. Pour en savoir plus, consultez [Log Data Retention](/docs/fr-CA/deploy-monitor/logs/log-data-retention).
+Les journaux stockés par Auth0 sont assujettis à une période de conservation qui dépend de votre abonnement Auth0. Pour en savoir plus, consultez [Log Data Retention](/docs/fr-CA/deploy-monitor/logs/log-data-retention).
 
-Vous pouvez également utiliser ces endpoints pour rechercher des logs :
+Vous pouvez aussi utiliser ces points de terminaison pour rechercher des journaux :
 
-* `/api/v2/logs/{id}`: Récupère l’unique log entry associée à l’ID de log fourni.
-* `/api/v2/users/{user_id}/logs`: Récupère les logs associés à un user ID précis.
+* `/api/v2/logs/{id}`: récupère l’unique entrée de journal associée à l’ID de journal fourni.
+* `/api/v2/users/{user_id}/logs`: récupère les journaux d’un ID utilisateur précis.
 
 <div id="retrieve-logs-by-checkpoint">
   ## Récupérer les journaux par point de contrôle
 </div>
 
-Cette méthode vous permet de récupérer les log plus récents qu’un `log_id` donné. Elle
-est couramment utilisée pour envoyer vos journaux à un système externe, comme Splunk, Datadog,
+Cette méthode vous permet de récupérer les journaux plus récents qu’un `log_id` donné. Elle
+est couramment utilisée pour envoyer vos journaux vers un système externe, comme Splunk, Datadog,
 Application Insights, Mixpanel, et plus encore.
 
-Pour effectuer une recherche par point de contrôle, utilisez les paramètres suivants :
+Pour faire une recherche par point de contrôle, utilisez les paramètres suivants :
 
-| Paramètre | Description                                                                                                                                              |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `from`    | ID de l’événement du journal à partir duquel commencer à récupérer les journaux. Vous pouvez limiter le nombre de journaux à l’aide du paramètre `take`. |
-| `take`    | Le nombre total d’entrées à récupérer lorsque vous utilisez le paramètre `from`.                                                                         |
+| Paramètre | Description                                                                                                                                  |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `from`    | ID de l’événement de journal à partir duquel commencer à récupérer les journaux. Vous pouvez limiter le nombre de journaux à l’aide du paramètre `take`. |
+| `take`    | Le nombre total d’entrées à récupérer lorsque vous utilisez le paramètre `from`.                                                             |
 
 Tout paramètre autre que `from` et `take` sera ignoré. Les journaux sont triés selon le `log_id`.
 
@@ -36,61 +36,61 @@ Tout paramètre autre que `from` et `take` sera ignoré. Les journaux sont trié
   #### Sémantique
 </div>
 
-La récupération des logs par point de contrôle a la sémantique suivante :
+La récupération des journaux par point de contrôle fonctionne comme suit :
 
-* Tous les logs auxquels les autorisations de votre rôle donnent accès seront renvoyés
-* Les logs sont triés par `log_id`, plutôt que selon le moment où le log a été généré, afin d’éviter d’omettre des enregistrements en raison des délais du système Auth0
-* La pagination est illimitée, ce qui signifie qu’il n’y a aucune limite, contrairement à la limite de `1,000` enregistrements lors de la récupération des logs par critères de recherche
+* Tous les journaux auxquels les autorisations de votre rôle vous donnent accès seront renvoyés
+* Les journaux sont triés selon le `log_id`, plutôt qu’en fonction de l’heure de génération, afin d’éviter d’omettre des enregistrements en raison des délais du système Auth0
+* La pagination est illimitée, c’est-à-dire qu’il n’y a aucune limite, contrairement à la limite de `1,000` enregistrements lors de la récupération des journaux par critères de recherche
 
 <div id="pagination">
   #### Pagination
 </div>
 
-Lors de la récupération des log à l’aide d’un point de contrôle, seule la première requête doit être effectuée
-manuellement. Chaque requête suivante doit être effectuée à l’aide de l’URL de la relation `next`
-figurant dans l’en-tête `Link`. Cela simplifie l’intégration à l’API et permet à Auth0 d’apporter des
-optimisations sans nuire à l’expérience client.
+Lors de la récupération des journaux par point de contrôle, seule la première requête doit être effectuée
+manuellement. Chaque requête suivante doit être effectuée à l’aide de l’URL associée à la relation `next`
+dans l’en-tête `Link`. Cela simplifie l’intégration à l’API
+et permet à Auth0 d’effectuer des optimisations sans nuire à l’expérience
+client.
 
 <div id="example">
   #### Exemple
 </div>
 
-Supposons que le nom de votre tenant dans la région `us` soit `acme`. Pour commencer à récupérer des enregistrements à partir d’un
-point de contrôle :
+Supposons que le nom de votre tenant dans `us` est `acme`. Pour commencer à récupérer des enregistrements à partir d’un point de contrôle :
 
-1. Récupérez le `log_id` de n’importe quel log de votre système.
+1. Récupérez le `log_id` de n’importe quel journal de votre système.
    Exemple : `90020211201185132572079310688835925971249535794074878050`.
-2. Faites une requête à `https://TENANT_NAME.LOCALITY.auth0.com/api/v2/logs?from=LOG_ID&take=100` pour demander les `100` prochains logs plus récents que le `LOG_ID` fourni.
+2. Faites une requête à `https://TENANT_NAME.LOCALITY.auth0.com/api/v2/logs?from=LOG_ID&take=100` pour demander les `100` journaux suivants plus récents que le `LOG_ID` donné.
 3. La réponse HTTP contiendra
 
-   1. Un array JSON de `0` à `100` logs plus récents que le `LOG_ID` fourni
-   2. Un header HTTP `Link` avec une relation `next`
-4. Si l’ensemble de résultats est vide, vous recevrez un array vide, et la relation `next` correspondra à la même URL que celle utilisée dans la requête la plus récente
+   1. Un tableau JSON de `0` à `100` journaux plus récents que le `LOG_ID` donné
+   2. Un en-tête HTTP `Link` avec une relation `next`
+4. Si l’ensemble des résultats est vide, vous recevrez un tableau vide, et la relation `next` correspondra à la même URL que celle utilisée dans la requête la plus récente
 
 <div id="retrieve-logs-by-search-criteria">
-  ## Récupérer les logs selon des critères de recherche
+  ## Récupérer des journaux selon des critères de recherche
 </div>
 
-Cette méthode permet de récupérer les logs qui correspondent aux critères de recherche spécifiés ou, si aucun critère n’est utilisé, d’obtenir la liste de tous les logs. Pour effectuer une recherche selon des critères, utilisez les paramètres suivants :
+Cette méthode vous permet de récupérer les journaux qui correspondent aux critères de recherche spécifiés ou, si aucun critère n’est fourni, de lister tous les journaux. Pour effectuer une recherche par critères, utilisez les paramètres suivants :
 
-| Paramètre        | Description                                                                                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `q`              | Critères de recherche utilisant la syntaxe de chaîne de requête.                                                                                                    |
-| `page`           | Le numéro de page commençant à zéro.                                                                                                                                |
-| `per_page`       | Le nombre d’entrées par page.                                                                                                                                       |
-| `sort`           | Le champ à utiliser pour le tri. Utilisez `field:order`, où `order` vaut `1` pour l’ordre croissant et `-1` pour l’ordre décroissant. Par exemple : `date:-1`.      |
-| `fields`         | Une liste de champs séparés par des virgules à inclure ou à exclure (selon `include_fields`) du résultat. Laissez ce paramètre vide pour récupérer tous les champs. |
-| `include_fields` | `true` si les champs indiqués doivent être inclus dans le résultat, sinon `false`. La valeur par défaut est `true`.                                                 |
+| Paramètre        | Description                                                                                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `q`              | Critères de recherche utilisant la syntaxe de chaîne de requête.                                                                                                |
+| `page`           | Le numéro de page commençant à zéro.                                                                                                                            |
+| `per_page`       | Le nombre d’entrées par page.                                                                                                                                   |
+| `sort`           | Le champ à utiliser pour le tri. Utilisez `field:order`, où `order` vaut `1` pour l’ordre croissant et `-1` pour l’ordre décroissant. Par exemple, `date:-1`.   |
+| `fields`         | Une liste de champs séparés par des virgules à inclure ou à exclure du résultat (selon `include_fields`). Laissez ce champ vide pour récupérer tous les champs. |
+| `include_fields` | `true` si les champs indiqués doivent être inclus dans le résultat, `false` sinon. La valeur par défaut est `true`.                                             |
 
-Pour voir la liste des champs et des paramètres de tri pouvant être utilisés dans la requête de recherche, consultez [Syntaxe des requêtes de recherche dans les logs](/docs/fr-CA/deploy-monitor/logs/log-search-query-syntax).
+Pour consulter la liste des champs et des paramètres de tri pouvant être utilisés dans la requête de recherche, consultez [Log Search Query Syntax](/docs/fr-CA/deploy-monitor/logs/log-search-query-syntax).
 
 <div id="limitations">
   ## Limites
 </div>
 
-Outre la limite de 100 logs par requête pour récupérer les logs, vous ne pouvez paginer que dans les 1 000 premiers résultats de recherche.
+En plus de la limite de 100 journaux par request pour récupérer les journaux, vous ne pouvez paginer que dans les 1 000 premiers résultats de recherche.
 
-Si vous obtenez l’erreur `414 Request-URI Too Large`, cela signifie que votre chaîne de requête dépasse la longueur prise en charge. Dans ce cas, affinez votre recherche.
+Si vous obtenez l’erreur `414 Request-URI Too Large`, cela signifie que votre query string dépasse la longueur prise en charge. Dans ce cas, affinez votre recherche.
 
 <Card title="Limites des champs de recherche de Private Cloud">
   Les champs suivants sont interrogeables uniquement dans Private Cloud :
@@ -101,13 +101,13 @@ Si vous obtenez l’erreur `414 Request-URI Too Large`, cela signifie que votre 
   * `type`
   * `ip`
 
-  Utilisez des guillemets doubles pour les recherches exactes (par exemple, `application:"test"` recherchera tous les événements de log propres à l’application nommée `test`, tandis que `application:test` recherchera les événements de log des applications dont le nom contient « test ».
+  Utilisez des guillemets doubles pour les recherches exactes (p. ex., `application:\"test\"` recherchera tous les log events propres à l’application nommée `test`, tandis que `application:test` recherchera les log events des applications dont le nom contient &quot;test&quot;.
 </Card>
 
 <div id="learn-more">
   ## En savoir plus
 </div>
 
-* [Codes de type d’événement de journal](/docs/fr-CA/deploy-monitor/logs/log-event-type-codes)
-* [Syntaxe des requêtes de recherche dans les log](/docs/fr-CA/deploy-monitor/logs/log-search-query-syntax)
+* [Codes de type de journal](/docs/fr-CA/deploy-monitor/logs/log-event-type-codes)
+* [Syntaxe des requêtes de recherche dans les journaux](/docs/fr-CA/deploy-monitor/logs/log-search-query-syntax)
 * [Conservation des données de journalisation](/docs/fr-CA/deploy-monitor/logs/log-data-retention)

@@ -3,38 +3,38 @@ description: Découvrez comment configurer Customer Managed Keys avec la Managem
 title: Configurer Customer Managed Keys avec la Management API
 ---
 
-Auth0 protège les secrets et les données de votre tenant à l’aide d’une Auth0 Environment Root Key, au sommet de la key hierarchy du chiffrement par enveloppe.  L’Auth0 Environment Root Key et la Customer Provided Root Key sont stockées dans le Hardware Security Module (HSM) du fournisseur de services infonuagiques Auth0 correspondant,  AWS ou Azure.
+Auth0 sécurise les secrets et les données de votre tenant à l’aide d’une Auth0 Environment Root Key, au sommet de la key hierarchy du chiffrement par enveloppe. L’Auth0 Environment Root Key et la Customer Provided Root Key sont stockées dans le Hardware Security Module (HSM) du fournisseur de services infonuagiques Auth0 correspondant, AWS ou Azure.
 
 <div id="bring-your-own-key">
   ## Bring Your Own Key
 </div>
 
-Avec Bring Your Own Key, les utilisateurs ayant le [Key Management Editor role](/docs/fr-CA/get-started/manage-dashboard-access/add-dashboard-users) peuvent utiliser l’[Auth0 Management API](https://auth0.com/docs/api/management/v2) pour remplacer l’Auth0 Environment Root Key par défaut par leur propre Customer Provided Root Key. Les clients peuvent téléverser de façon sécuritaire leur propre Root Key, qui contient leur propre matériel cryptographique, afin de :
+Avec Bring Your Own Key, les utilisateurs ayant le [rôle Key Management Editor](/docs/fr-CA/get-started/manage-dashboard-access/add-dashboard-users) peuvent utiliser l’[Auth0 Management API](https://auth0.com/docs/api/management/v2) pour remplacer l’Auth0 Environment Root Key par défaut par leur propre Customer Provided Root Key. Les clients peuvent téléverser de façon sécuritaire leur propre Root Key, qui contient leur propre matériel cryptographique, afin de :
 
-* Répondre à des exigences particulières en matière de génération de clés et de provenance pour l’Environment Root Key
-* Répondre à des exigences précises d’installation ou de durée de vie des clés pour l’Environment Root Key
+* Répondre à des exigences particulières concernant la génération des clés et leur provenance pour l’Environment Root Key
+* Répondre à des exigences précises concernant l’installation ou la durée de vie des clés pour l’Environment Root Key
 * Conserver une copie de la Customer Provided Root Key dans leurs locaux.
 
 <Warning>
-  En important votre propre Customer Provided Root Key avec Bring Your Own Key, vous retirez implicitement à Auth0 l’autorisation de gérer le cycle de vie de la Customer Provided Root Key, à l’exception de sa suppression.
+  En important votre propre Customer Provided Root Key avec Bring Your Own Key, vous retirez implicitement à Auth0 l’autorisation de gérer le cycle de vie de la Customer Provided Root Key, sauf pour sa suppression.
 </Warning>
 
-Vous pouvez créer et gérer votre Customer Provided Root Key à l’aide de la <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, en suivant les étapes ci-dessous :
+Vous pouvez créer et gérer votre Customer Provided Root Key à l’aide de la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, en suivant les étapes ci-dessous :
 
-1. Appelez le point de terminaison [Create the new encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption) pour lancer le processus Bring Your Own Key et obtenir le `kid` (identifiant de clé) de la Customer Provided Root Key préactivée, sans matériel cryptographique.
+1. Appelez le point de terminaison [Créer la nouvelle clé de chiffrement](https://auth0.com/docs/api/management/v2/keys/post-encryption) pour lancer le processus Bring Your Own Key et obtenir le `kid` (identifiant de clé) de la Customer Provided Root Key préactivée, sans matériel cryptographique.
 
    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
      Ce point de terminaison renvoie la valeur `kid`, qui correspond à l’identifiant unique de la clé.
    </Callout>
-2. Appelez le point de terminaison [Create the public wrapping key](https://auth0.com/docs/api/management/v2/keys/post-encryption-wrapping-key) pour créer et renvoyer une clé d’enveloppement publique.
-3. Dans votre environnement, générez votre propre matériel de clé cryptographique et encapsulez-le (chiffrez-le) à l’aide de la clé d’enveloppement publique afin de créer une clé de chiffrement enveloppée (la Customer Provided Root Key).
-4. Appelez le point de terminaison [Import the encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption-key) pour importer votre Customer Provided Root Key dans Auth0.
+2. Appelez le point de terminaison [Créer la clé d’enveloppement publique](https://auth0.com/docs/api/management/v2/keys/post-encryption-wrapping-key) pour créer et renvoyer une clé d’enveloppement publique.
+3. Dans votre environnement, générez votre propre matériel de clé cryptographique et enveloppez-le (chiffrez-le) avec la clé d’enveloppement publique afin de créer une clé de chiffrement enveloppée (la Customer Provided Root Key).
+4. Appelez le point de terminaison [Importer la clé de chiffrement](https://auth0.com/docs/api/management/v2/keys/post-encryption-key) pour importer votre Customer Provided Root Key dans Auth0.
 
 <div id="cryptographic-material-requirements">
   ## Exigences relatives au matériel cryptographique
 </div>
 
-Utilisez votre système de gestion des clés pour envelopper votre matériel cryptographique à l’aide de la clé d’enveloppement publique et créer la clé de chiffrement enveloppée. Utilisez les paramètres suivants pour l’algorithme [CKM&#95;RSA&#95;AES&#95;KEY&#95;WRAP](https://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/cos01/pkcs11-curr-v2.40-cos01.html#_Toc408226894), selon votre fournisseur de services infonuagiques Auth0 (AWS ou Azure) :
+Utilisez votre système de gestion des clés pour envelopper votre propre matériel cryptographique avec la clé d’enveloppement publique et créer la clé de chiffrement enveloppée. Utilisez les paramètres suivants pour l’algorithme [CKM&#95;RSA&#95;AES&#95;KEY&#95;WRAP](https://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/cos01/pkcs11-curr-v2.40-cos01.html#_Toc408226894), selon votre fournisseur de services infonuagiques Auth0 (AWS ou Azure) :
 
 <div id="auth0-on-aws-cloud">
   ### Auth0 sur le cloud AWS
@@ -43,16 +43,16 @@ Utilisez votre système de gestion des clés pour envelopper votre matériel cry
 * Longueur de la clé d’enveloppement publique : 3072 bits
 * Algorithme : CKG&#95;MGF1&#95;SHA256
 * Longueur de la clé AES temporaire pour CKM&#95;AES&#95;KEY&#95;WRAP&#95;PAD : 256 bits
-* Type de la Customer Provided Root Key : clé symétrique AES de 256 bits
+* Type de Customer Provided Root Key fournie par le client : clé symétrique AES de 256 bits
 
 <div id="auth0-on-azure-cloud">
-  ### Auth0 dans le cloud Azure
+  ### Auth0 sur le cloud Azure
 </div>
 
 * Longueur de la clé d’enveloppement publique : 2048 bits
 * Algorithme : CKG&#95;MGF1&#95;SHA-1
 * Longueur de la clé AES temporaire pour CKM&#95;AES&#95;KEY&#95;WRAP&#95;PAD : 256 bits
-* Type de Customer Provided Root Key : clé privée RSA de 2 048 bits
+* Type de Customer Provided Root Key : clé privée RSA de 2048 bits
 * Encodage de la clé privée : PKCS #8 - ASN.1 DER
 
 <div id="permissions">
@@ -61,23 +61,23 @@ Utilisez votre système de gestion des clés pour envelopper votre matériel cry
 
 Utilisez les permissions suivantes pour accorder l’accès aux points de terminaison des clés de chiffrement.
 
-| Permissions              | Descriptions                                                                                                                                                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `read:encryption_keys`   | Les utilisateurs peuvent rechercher et récupérer des clés dans le tenant Auth0. Cela comprend la lecture à partir des points de terminaison `/api/v2/keys/encryption` et `/api/v2/keys/encryption/{kid}`.                       |
-| `create:encryption_keys` | Les utilisateurs peuvent créer leur propre Customer Provided Root Key et leur propre clé d’enveloppement publique au moyen des points de terminaison `/api/v2/keys/encryption` et `/api/v2/keys/encryption/{kid}/wrapping-key`. |
-| `delete:encryption_keys` | Les utilisateurs peuvent supprimer leur propre Customer Provided Root Key au moyen du point de terminaison `/api/v2/keys/encryption/{kid}`.                                                                                     |
-| `update:encryption_keys` | Les utilisateurs peuvent importer leur propre Customer Provided Root Key au moyen du point de terminaison `/api/v2/keys/encryption/{kid}`.                                                                                      |
+| Permissions              | Descriptions                                                                                                                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read:encryption_keys`   | Les utilisateurs peuvent rechercher et récupérer des clés dans le tenant Auth0. Cela comprend la lecture des points de terminaison `/api/v2/keys/encryption`, `/api/v2/keys/encryption/{kid}`.             |
+| `create:encryption_keys` | Les utilisateurs peuvent créer leur propre Customer Provided Root Key et Public wrapping key à l’aide des points de terminaison `/api/v2/keys/encryption` et `/api/v2/keys/encryption/{kid}/wrapping-key`. |
+| `delete:encryption_keys` | Les utilisateurs peuvent supprimer leur propre Customer Provided Root Key à l’aide du point de terminaison `/api/v2/keys/encryption/{kid}`.                                                                |
+| `update:encryption_keys` | Les utilisateurs peuvent importer leur propre Customer Provided Root Key à l’aide du point de terminaison `/api/v2/keys/encryption/{kid}`.                                                                 |
 
 <div id="endpoints">
   ## Points de terminaison
 </div>
 
 * Utilisez le point de terminaison [Get all encryption keys](https://auth0.com/docs/api/management/v2/keys/get-encryption-keys) pour obtenir des renseignements sur l’Environment Root Key actuelle ou la Customer Provided Root Key actuelle, ainsi que sur la Tenant Master Key.
-* Utilisez le point de terminaison [Get the encryption key by its key id](https://auth0.com/docs/api/management/v2/keys/get-encryption-key) pour obtenir des renseignements sur la clé spécifiée.
-* Utilisez le point de terminaison [Create the new encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption) pour créer un espace réservé préactivé pour une Customer Provided Root Key.
-* Utilisez le point de terminaison [Create the public wrapping key](https://auth0.com/docs/api/management/v2/keys/post-encryption-wrapping-key) pour obtenir une clé d’enveloppement publique afin d’envelopper votre matériel cryptographique.
-* Utilisez le point de terminaison [Import the encryption key](https://auth0.com/docs/api/management/v2/keys/post-encryption-key) pour importer le matériel d’une nouvelle Customer Provided Root Key.
-* Utilisez le point de terminaison [Delete the encryption key by its key id](https://auth0.com/docs/api/management/v2/keys/delete-encryption-key) pour supprimer une Customer Provided Root Key existante et cesser d’utiliser Bring Your Own Keys. L’Auth0 Environment Root Key sert à rechiffrer la hiérarchie de clés. Cette opération n’a aucune incidence négative sur les données existantes ni sur les flux d’authentification.
+* Utilisez le point de terminaison [Get the encryption key by its key id](https://auth0.com/docs/api/management/v2/keys/get-encryption-key) pour obtenir des renseignements sur la clé indiquée.
+* Utilisez le point de terminaison [Créer la nouvelle clé de chiffrement](https://auth0.com/docs/api/management/v2/keys/post-encryption) pour créer un espace réservé préactivé pour une Customer Provided Root Key.
+* Utilisez le point de terminaison [Créer la clé d’enveloppement publique](https://auth0.com/docs/api/management/v2/keys/post-encryption-wrapping-key) pour obtenir une clé d’enveloppement publique afin d’envelopper votre matériel cryptographique.
+* Utilisez le point de terminaison [Importer la clé de chiffrement](https://auth0.com/docs/api/management/v2/keys/post-encryption-key) pour importer le matériel d’une nouvelle Customer Provided Root Key.
+* Utilisez le point de terminaison [Delete the encryption key by its key id](https://auth0.com/docs/api/management/v2/keys/delete-encryption-key) pour supprimer une Customer Provided Root Key existante et cesser d’utiliser Bring Your Own Keys. L’Auth0 Environment Root Key sert à rechiffrer la hiérarchie des clés. Cette opération n’a pas d’incidence négative sur les données existantes ni sur les flux d’authentification.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
   Si la fonctionnalité Customer Managed Keys n’est pas activée dans votre tenant, l’appel du ou des points de terminaison de l’API renverra l’erreur suivante : `This feature is not enabled for this tenant`.

@@ -1,19 +1,19 @@
 ---
-description: Describe cómo vincular cuentas de usuario en una aplicación web tradicional mediante código del lado del servidor a partir de un caso de ejemplo.
+description: Describe cómo vincular cuentas de usuario con una aplicación web tradicional usando código del lado del servidor en un escenario de ejemplo.
 title: 'Vinculación de cuentas de usuario: implementación del lado del servidor'
 ---
 
-Auth0 permite vincular cuentas de usuario de distintos <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+providers">proveedores de identidad</Tooltip>. Puedes usar código del lado del servidor para vincular cuentas en una aplicación web tradicional, involucrando al usuario y pidiéndole permiso antes de continuar. Tu código autenticará a los usuarios y buscará e identificará usuarios por sus direcciones de correo electrónico. Luego, tu aplicación le pedirá al usuario que vincule sus cuentas autenticándose con las credenciales de la cuenta de destino y, posteriormente, vinculará las cuentas.
+Auth0 admite la vinculación de cuentas de usuario de varios <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+providers">proveedores de identidad</Tooltip>. Puedes usar código del lado del servidor para vincular cuentas en una aplicación web tradicional, involucrando al usuario y solicitándole su permiso antes de continuar. Tu código autenticará a los usuarios, los buscará y los identificará mediante sus direcciones de correo electrónico. Después, tu aplicación mostrará al usuario un prompt para vincular sus cuentas autenticándose con las credenciales de la cuenta de destino y, posteriormente, vinculará las cuentas.
 
 Puedes encontrar el código fuente completo de esta aplicación de ejemplo [en GitHub](https://github.com/auth0-samples/auth0-link-accounts-sample/tree/master/RegularWebApp).
 
-1. Haz que el usuario inicie sesión en tu aplicación.<br />
+1. Haga que el usuario inicie sesión en su aplicación.<br />
 
-   El usuario se autentica en su aplicación mediante [Universal Login](/docs/es/authenticate/login/auth0-universal-login). Para obtener más información, consulte el [Quickstart para aplicación web tradicional](/docs/es/quickstart/webapp), donde se solicita un token para la audiencia de Auth0 Management API (audience=`https://{yourDomain}/api/v2/`).
+   El usuario se autentica en tu aplicación mediante [Universal Login](/docs/es/authenticate/login/auth0-universal-login). Para obtener más información, consulta el [Quickstart de aplicación web tradicional](/docs/es/quickstart/webapp), en el que se solicita un token para la audience de Auth0 Management API (audience=`https://{yourDomain}/api/v2/`).
 
-2. Busca usuarios con la misma dirección de correo electrónico.<br />
+2. Busque usuarios que tengan la misma dirección de correo electrónico.<br />
 
-   Puedes obtener el perfil del usuario y la lista de usuarios con la misma dirección de correo electrónico verificada.
+   Puedes obtener el perfil del usuario y la lista de usuarios que tienen el mismo correo electrónico verificado.
 
    ```javascript lines expandable
    router.get("/", async (req, res) => {
@@ -23,7 +23,7 @@ Puedes encontrar el código fuente completo de esta aplicación de ejemplo [en G
        let getUsersWithSameVerifiedEmail = [];
        const getUserProfile = auth0Client.getUser(sub);
        if (email_verified)
-         // la vinculación de cuentas solo se ofrece con correo electrónico verificado
+         // la vinculación de cuentas solo se ofrece con email verificado
          getUsersWithSameVerifiedEmail = auth0Client.getUsersWithSameVerifiedEmail(
            req.openid.user
          );
@@ -46,7 +46,7 @@ Puedes encontrar el código fuente completo de esta aplicación de ejemplo [en G
    });
    ```
 
-   Para obtener una lista de todos los registros de usuarios con la misma dirección de correo electrónico, su aplicación llama al [endpoint Get Users By Email de Auth0 Management API](https://auth0.com/docs/api/v2#!/users-by-email/get_users_by_email) con un [token de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) con el `scope` `read:users`.
+   Para obtener una lista de todos los registros de usuario que tienen la misma dirección de correo electrónico, su aplicación llama al [endpoint Get Users By Email](https://auth0.com/docs/api/v2#!/users-by-email/get_users_by_email) de la Auth0 Management API mediante un [token de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) con el scope `read:users`.
 
    ```javascript lines
    const request = require('request');
@@ -59,22 +59,22 @@ Puedes encontrar el código fuente completo de esta aplicación de ejemplo [en G
    }
    ```
 
-3. Pide al usuario que vincule cuentas.
+3. Pide al usuario que vincule sus cuentas.
 
    1. Si Auth0 devuelve uno o más registros con direcciones de correo electrónico que coinciden, el usuario verá la lista junto con el siguiente mensaje para que vincule las cuentas.
    2. Si el usuario quiere vincular una cuenta determinada, puede hacer clic en **Vincular** junto a la cuenta correspondiente.
 
-      <Frame>![Aplicación de ejemplo con página de vinculación de cuentas del lado del servidor](/docs/images/cdy7uua7fh8z/7unQjUtxTZUc4tRFOxhaP3/050fb853d2b3be37795ce88b8a60ffed/account-linking-webapp-small__1_.png)</Frame>
+      <Frame>![Ejemplo de aplicación con la página de vinculación de cuentas del lado del servidor](/docs/images/cdy7uua7fh8z/7unQjUtxTZUc4tRFOxhaP3/050fb853d2b3be37795ce88b8a60ffed/account-linking-webapp-small__1_.png)</Frame>
 
-4. Cuando el usuario haga clic en **Vincular**, tu aplicación le pedirá que se autentique con la cuenta de destino y luego realizará la vinculación de cuentas.
+4. Cuando el usuario haga clic en **Vincular**, la aplicación le pedirá que se autentique con la cuenta de destino y, a continuación, realizará la vinculación de cuentas.
 
    <Warning>
-     Para conservar y fusionar los `user_metadata` de la cuenta secundaria, debes recuperarlos y fusionarlos con los metadatos de la cuenta principal antes de llamar al endpoint de la API. Una vez vinculadas las cuentas, se descartan los metadatos de la cuenta secundaria.
+     Para conservar y fusionar el `user_metadata` de la cuenta secundaria, debes recuperarlo e incorporarlo a los metadatos de la cuenta principal antes de llamar al endpoint de la API. Una vez vinculadas las cuentas, los metadatos de la cuenta secundaria se descartan.
 
      Cuando inicias la vinculación de cuentas, puedes seleccionar qué identidad se usará como cuenta principal y cuál como secundaria. Esta elección dependerá del conjunto de atributos que quieras conservar en el perfil principal.
    </Warning>
 
-   El siguiente fragmento de código muestra cómo verificar y combinar metadatos:
+   El siguiente fragmento de código muestra cómo verificar y combinar metadata:
 
    ```javascript lines expandable
    async function accountLink(req, res, next) {
@@ -112,19 +112,19 @@ Puedes encontrar el código fuente completo de esta aplicación de ejemplo [en G
    }
    ```
 
-5. Tu aplicación llama al [endpoint Link a User Account de la Auth0 Management API](https://auth0.com/docs/api/v2#!/Users/post_identities) usando un [token de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) con el scope `update:users`.
+5. Tu aplicación llama al [endpoint Link a User Account](https://auth0.com/docs/api/v2#!/Users/post_identities) de la Auth0 Management API mediante un [token de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) con el `scope` `update:users`.
 
 <div id="metadata-merge-example">
-  ## Ejemplo de fusión de metadata
+  ## Ejemplo de combinación de metadata
 </div>
 
-El siguiente ejemplo muestra explícitamente cómo la `user_metadata` y la `app_metadata` de la cuenta secundaria se fusionan en la cuenta principal mediante el [SDK de Auth0 para API V2 de Node.js](https://github.com/auth0/node-auth0).
+El siguiente ejemplo muestra explícitamente cómo `user_metadata` y `app_metadata` de la cuenta secundaria se combinan en la cuenta principal mediante el [SDK de Auth0 para Node.js de la API V2](https://github.com/auth0/node-auth0).
 
 ```javascript lines expandable
 /*
  * Combina recursivamente user_metadata y app_metadata del usuario secundario en el usuario primario.
  * Los datos del usuario primario tienen precedencia.
- * Los campos de tipo arreglo se unen.
+ * Los campos de tipo arreglo se concatenan.
  */
 async function mergeMetadata(primaryUserId, secondaryUserId) {
   // cargar ambos usuarios con sus metadatos.

@@ -1,27 +1,27 @@
 ---
-title: Créer une interface Delegated Admin avec My Organization API
-description: Décrit comment utiliser Universal Components pour créer des interfaces d’administration déléguée avec la My Organization API d’Auth0.
+title: Créer une interface Delegated Admin avec API My Organization
+description: Explique comment utiliser Universal Components pour créer des interfaces d’administration déléguée avec la API My Organization d’Auth0.
 sidebarTitle: Créer une interface Delegated Admin
 ---
 
-Universal Components vous permet de créer un tableau de bord d’administration en libre-service dans votre propre application. Cela permet à vos clients B2B, désignés comme administrateurs de votre [Auth0 Organization](/docs/fr-CA/manage-users/organizations), de gérer eux-mêmes leur image de marque, leurs fournisseurs d’identité et leurs domaines vérifiés, sans avoir à accéder à Auth0 Dashboard ni à faire appel à une équipe de soutien pour des tâches administratives de base.
+Universal Components vous permet de créer un tableau de bord d’administration en libre-service dans votre propre application. Vos clients B2B à qui vous avez délégué un rôle d’administrateur dans votre [Auth0 Organization](/docs/fr-CA/manage-users/organizations) peuvent ainsi gérer eux-mêmes leur image de marque, leurs fournisseurs d’identité et leurs domaines vérifiés, sans avoir à accéder à l’Auth0 Dashboard ni à faire appel à une équipe de soutien pour des tâches administratives de base.
 
 <div id="how-it-works">
   ## Fonctionnement
 </div>
 
-Universal Components s’appuie sur l’[My Organization API](/docs/fr-CA/api/myorganization), qui fonctionne avec des jetons propres à l’utilisateur, pour créer un [tableau de bord administratif SSO en libre-service](/docs/fr-CA/authenticate/enterprise-connections/self-service-enterprise-configuration). Lorsqu’un administrateur ouvre une session dans le tableau de bord intégré à votre application, le SDK Auth0 récupère un jeton d’accès contenant des scopes propres à l’Organization pour les privilèges d’administration. Les composants utilisent ce jeton pour appeler l’API au nom de l’utilisateur connecté, ce qui garantit que les administrateurs délégués ne peuvent modifier que l’Auth0 Organization à laquelle ils appartiennent.
+Universal Components s’appuie sur l’[API My Organization](/docs/fr-CA/api/myorganization), qui fonctionne avec des jetons associés à l’utilisateur, pour créer un [tableau de bord administratif SSO en libre-service](/docs/fr-CA/authenticate/enterprise-connections/self-service-enterprise-configuration). Lorsqu’un administrateur se connecte à votre tableau de bord intégré à votre application, le SDK Auth0 récupère un jeton d’accès contenant des scopes propres à l’Organization pour les privilèges d’administration. Les composants utilisent ce jeton pour appeler l’API en tant qu’utilisateur connecté, ce qui garantit que les administrateurs délégués ne peuvent modifier que l’Auth0 Organization à laquelle ils appartiennent.
 
 <div id="available-components">
   ### Composants disponibles
 </div>
 
-Chaque composant est associé à des points de terminaison précis dans l’[My Organization API](/docs/fr-CA/api/myorganization) pour effectuer des tâches administratives.
+Chaque composant est associé à des points de terminaison précis de l’[API My Organization](/docs/fr-CA/api/myorganization) pour effectuer des tâches administratives.
 
 | **Composant**                                                                                                                                                   | **Point de terminaison d’API**        |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------ |
 | **OrganizationDetailsEdit** — Modifier le nom de l’organisation, le nom d’affichage, les couleurs de l’image de marque et le logo.                              | `/my-org/details`                     |
-| **SsoProviderTable** — Répertorier, activer, désactiver, supprimer et dissocier les fournisseurs d’identité SSO.                                                | `/my-org/identity-providers`          |
+| **SsoProviderTable** — Lister, activer, désactiver, supprimer et dissocier des fournisseurs d’identité SSO.                                                     | `/my-org/identity-providers`          |
 | **SsoProviderCreate** — Assistant en plusieurs étapes pour créer des fournisseurs SSO (Okta, ADFS, SAML, OIDC, Google Workspace, Azure AD, Ping Federate).      | `/my-org/identity-providers`          |
 | **SsoProviderEdit** — Configurer les paramètres d’authentification, activer le provisionnement et gérer les jetons SCIM ainsi que les associations de domaines. | `/my-org/identity-providers/{idp_id}` |
 | **DomainTable** — Créer, vérifier, supprimer et associer des domaines à des fournisseurs d’identité.                                                            | `/my-org/domains`                     |
@@ -35,133 +35,21 @@ Avant d’utiliser les composants My Organization, vous devez configurer votre t
 <Tabs>
   <Tab title="React">
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      **Configuration d’Auth0 Dashboard** - Suivez toutes les étapes ci-dessous avant d’utiliser les composants My
+      **Configuration d’Auth0 Dashboard** - Effectuez toutes les étapes ci-dessous avant d’utiliser les composants My
       Organization.
     </Callout>
 
     ## **Créer une application**
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Cet exemple utilise une application monopage (SPA). Pour les frameworks React à rendu côté serveur, consultez l’onglet Next.js.
+      Cet exemple utilise une application monopage (SPA). Pour les frameworks React avec rendu côté serveur, consultez l’onglet Next.js.
     </Callout>
 
-    1. Accédez à [**Auth0 Dashboard &gt; Applications &gt; Applications**](https://manage.auth0.com/#/applications). Sélectionnez **Create Application**.
+    1. Dans [**Auth0 Dashboard &gt; Applications &gt; Applications**](https://manage.auth0.com/#/applications), sélectionnez **Create Application**.
 
-    2. Choisissez **Applications Web monopage**.
+    2. Choisissez **Single Page Web Applications**.
 
     3. Dans l’onglet **Settings**, ajoutez `http://localhost:5173` dans les champs suivants :
-       <br />A. Allowed Callback URLs
-       <br />B. Allowed Logout URLs
-
-    4. Dans **Expérience de connexion**, sélectionnez :
-       <br />A. Utilisateurs d’entreprise.
-       <br />B. (Facultatif) Invitation à indiquer l’organisation.
-
-    ## **Activer l&#39;API My Organization**
-
-    1. Accédez à [**Dashboard &gt; Applications &gt; APIs**](https://manage.auth0.com/#/applications).
-    2. Sélectionnez **[My Organization API](/docs/fr-CA/api/myorganization)** et vérifiez qu&#39;elle est activée pour votre tenant.
-
-    ## **Configurer l&#39;accès à l&#39;application**
-
-    1. Accédez à l’onglet **Accès à l’application**.
-    2. Sélectionnez **Modifier** pour l’application que vous souhaitez utiliser.
-    3. Configurez les paramètres suivants :
-       <br />A. [Profil de connexion](/docs/fr-CA/authenticate/enterprise-connections/connection-profile#connection-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs de connexion.
-       <br />B. [Profil des attributs utilisateur](/docs/fr-CA/authenticate/enterprise-connections/user-attribute-profile#user-attribute-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs utilisateur.
-       <br />C. Pris en charge [Fournisseurs d’identité](/docs/fr-CA/authenticate/identity-providers) : Activez les fournisseurs que vos clients peuvent utiliser.
-       <br />D. Comportement de suppression de connexion : Choisissez **Autoriser** ou **Autoriser si vide**.
-       <br />    • **Autoriser** : Les utilisateurs peuvent supprimer des connexions, ce qui supprime tous les utilisateurs de cette connexion.
-       <br />    • **Autoriser si vide** : Les utilisateurs peuvent uniquement supprimer des connexions sans utilisateurs.
-       <br />E. Autorisation d’accès des utilisateurs : Choisissez **Non autorisé**, **Autorisé** ou **Tous**.
-       <br />    • **Non autorisé** : Aucune permission n’est autorisée.
-       <br />    • **Autorisé** : Sélectionnez des permissions précises.
-       <br />    • **Tous** : Inclut toutes les permissions actuelles et futures.
-       <br />F. Autorisation d’accès des informations d’identification du client : Choisissez **Non autorisé**, **Autorisé** ou **Tous**.
-    4. Sélectionnez **Enregistrer**.
-
-    ## **Setup Database &amp; User**
-
-    1. Accédez à [**Auth0 Dashboard &gt; Authentication &gt; Database**](https://manage.auth0.com/#/connections/database) pour créer une connexion de base de données.
-    2. Sélectionnez l’onglet **Applications** de la connexion, puis activez votre nouvelle application SPA.
-    3. Créez un utilisateur de test dans cette connexion de base de données pour effectuer les premiers tests.
-
-    ## **Configuration du rôle**
-
-    1. Créez un rôle (p. ex., &quot;Admin de l’organisation&quot;).
-    2. Ajoutez au rôle les portées requises de l’API My Organization API.
-
-    <Accordion title="Autorisations requises">
-      ```
-          read:my_org:details
-          update:my_org:details
-          create:my_org:identity_providers
-          read:my_org:identity_providers
-          update:my_org:identity_providers
-          delete:my_org:identity_providers
-          update:my_org:identity_providers_detach
-          create:my_org:identity_providers_domains
-          delete:my_org:identity_providers_domains
-          read:my_org:domains
-          delete:my_org:domains
-          create:my_org:domains
-          update:my_org:domains
-          read:my_org:identity_providers_scim_tokens
-          create:my_org:identity_providers_scim_tokens
-          delete:my_org:identity_providers_scim_tokens
-          create:my_org:identity_providers_provisioning
-          read:my_org:identity_providers_provisioning
-          delete:my_org:identity_providers_provisioning
-          read:my_org:configuration
-      ```
-    </Accordion>
-
-    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Le token de l’utilisateur ne comprendra que les permissions présentes à la fois dans le rôle qui lui est attribué et dans les paramètres User Access Authorization configurés à l’étape précédente.
-    </Callout>
-
-    ## **Créer une organisation**
-
-    1. Allez à [**Organizations &gt; Create Organization**](https://manage.auth0.com/#/organizations).
-    2. Configurez l’organisation Auth0 :
-       <br />A. Dans **Members** : ajoutez votre utilisateur test et attribuez-lui le rôle &quot;Organization Admin&quot;.
-       <br />B. Dans **Connections** : activez votre connexion de base de données.
-
-    ## **Configurer les variables d&#39;environnement**
-
-    1. Créez un fichier `.env` à la racine de votre projet React :
-
-    ```bash
-    VITE_AUTH0_DOMAIN=your-domain.auth0.com
-      VITE_AUTH0_CLIENT_ID=your-spa-client-id
-    ```
-
-    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Il vous incombe de veiller à ce que votre utilisation de My Organization API et des Embeddable UI Components soit conforme à vos politiques de sécurité et aux
-      lois applicables, y compris aux permissions accordées à vos utilisateurs finaux.
-    </Callout>
-
-    <Check>
-      L’utilisateur doit être authentifié et faire partie de l’Auth0 Organization. Les composants chargent automatiquement les données de l’Organization à partir du contexte de l’utilisateur actuel. Pour en savoir plus, consultez [Auth0 Universal Components](/docs/fr-CA/get-started/universal-components/universal-components-overview) pour l’installation et la configuration de `Auth0ComponentProvider`
-    </Check>
-  </Tab>
-
-  <Tab title="Next.js">
-    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      **Configuration d’Auth0 Dashboard** - Effectuez toutes les étapes ci-dessous avant d’utiliser les composants My Organization.
-    </Callout>
-
-    ## **Créer une application**
-
-    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Cet exemple utilise une Regular Web Application pour Next.js. Vous pouvez aussi configurer une Single Page Application en suivant des étapes similaires.
-    </Callout>
-
-    1. Accédez à [**Auth0 Dashboard &gt; Applications &gt; Applications**](https://manage.auth0.com/#/applications). Sélectionnez **Create Application**.
-
-    2. Choisissez **Regular Web Application**.
-
-    3. Dans l’onglet **Settings**, ajoutez `http://localhost:5173` aux champs suivants :
        <br />A. Allowed Callback URLs
        <br />B. Allowed Logout URLs
 
@@ -176,29 +64,29 @@ Avant d’utiliser les composants My Organization, vous devez configurer votre t
 
     ## **Configurer l&#39;accès à l&#39;application**
 
-    1. Accédez à l’onglet **Application Access**.
-    2. Sélectionnez **Edit** pour l’Application que vous souhaitez utiliser.
+    1. Accédez à l’onglet **Accès à l’application**.
+    2. Pour l’Application que vous souhaitez utiliser, sélectionnez **Edit**.
     3. Configurez les paramètres suivants :
-       <br />A. [Profil de connexion](/docs/fr-CA/authenticate/enterprise-connections/connection-profile#connection-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs de connexion.
-       <br />B. [Profil d’attributs utilisateur](/docs/fr-CA/authenticate/enterprise-connections/user-attribute-profile#user-attribute-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs utilisateur.
-       <br />C. [Fournisseurs d’identité pris en charge](/docs/fr-CA/authenticate/identity-providers) : Activez les fournisseurs que vos clients peuvent utiliser.
+       <br />A. [Connection Profile](/docs/fr-CA/authenticate/enterprise-connections/connection-profile#connection-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs de connexion.
+       <br />B. [User Attribute Profile](/docs/fr-CA/authenticate/enterprise-connections/user-attribute-profile#user-attribute-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs utilisateur.
+       <br />C. [Identity Providers](/docs/fr-CA/authenticate/identity-providers) pris en charge : Activez les fournisseurs que vos clients peuvent utiliser.
        <br />D. Comportement de suppression de la connexion : Choisissez **Allow** ou **Allow if Empty**.
-       <br />    • **Allow** : Les utilisateurs peuvent supprimer des connexions, ce qui supprime tous les utilisateurs de la connexion.
-       <br />    • **Allow if Empty** : Les utilisateurs peuvent supprimer uniquement les connexions qui ne contiennent aucun utilisateur.
-       <br />E. Autorisation d’accès utilisateur : Choisissez **Unauthorized**, **Authorized** ou **All**.
+       <br />    • **Allow** : Les utilisateurs peuvent supprimer des connexions, ce qui supprime tous les utilisateurs de cette connexion.
+       <br />    • **Allow if Empty** : Les utilisateurs peuvent supprimer uniquement les connexions qui ne comptent aucun utilisateur.
+       <br />E. Autorisation d’accès des utilisateurs : Choisissez **Unauthorized**, **Authorized** ou **All**.
        <br />    • **Unauthorized** : Aucune permission n’est autorisée.
        <br />    • **Authorized** : Sélectionnez des permissions précises.
-       <br />    • **All** : Inclut toutes les permissions existantes et futures.
+       <br />    • **All** : Inclut toutes les permissions actuelles et futures.
        <br />F. Autorisation d’accès des informations d’identification du client : Choisissez **Unauthorized**, **Authorized** ou **All**.
     4. Sélectionnez **Enregistrer**.
 
-    ## **Setup Database &amp; User**
+    ## **Setup Database &amp; utilisateur**
 
-    1. Accédez à [**Auth0 Dashboard &gt; Authentication &gt; Database**](https://manage.auth0.com/#/connections/database) pour créer une connexion de base de données.
+    1. Accédez à [**Auth0 Dashboard &gt; Authentication &gt; Database**](https://manage.auth0.com/#/connections/database) pour créer une connexion à une base de données.
     2. Sélectionnez l’onglet **Applications** de la connexion, puis activez votre nouvelle application SPA.
-    3. Créez un utilisateur de test dans cette base de données pour effectuer les premiers tests.
+    3. Créez un utilisateur de test dans cette base de données pour les essais initiaux.
 
-    ## **Configuration du rôle**
+    ## **Setup du rôle**
 
     1. Créez un rôle (p. ex., &quot;Administrateur de l’organisation&quot;).
     2. Ajoutez au rôle les scopes requis de l’API My Organization.
@@ -229,14 +117,14 @@ Avant d’utiliser les composants My Organization, vous devez configurer votre t
     </Accordion>
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Le jeton de l’utilisateur n’inclura que les autorisations présentes à la fois dans le rôle qui lui a été attribué et dans les paramètres de User Access Authorization configurés à l’étape précédente.
+      Le jeton de l’utilisateur n’inclura que les autorisations présentes à la fois dans le rôle qui lui est attribué et dans les paramètres d’autorisation d’accès des utilisateurs configurés à l’étape précédente.
     </Callout>
 
     ## **Créer une organisation**
 
     1. Accédez à [**Organizations &gt; Create Organization**](https://manage.auth0.com/#/organizations).
-    2. Configurez l’Auth0 Organization :
-       <br />A. Dans **Members** : ajoutez votre utilisateur test et attribuez-lui le rôle &quot;Organization Admin&quot;.
+    2. Configurer l’organisation Auth0 :
+       <br />A. Dans **Members** : ajoutez votre utilisateur de test et attribuez-lui le rôle &quot;Administrateur de l’organisation&quot;.
        <br />B. Dans **Connections** : activez votre connexion de base de données.
 
     ## **Configurer les variables d&#39;environnement**
@@ -244,82 +132,77 @@ Avant d’utiliser les composants My Organization, vous devez configurer votre t
     1. Créez un fichier `.env` à la racine de votre projet React :
 
     ```bash
-    NEXT_PUBLIC_AUTH0_DOMAIN=your-domain.auth0.com
-    NEXT_PUBLIC_AUTH0_CLIENT_ID=your-client-id
-    AUTH0_SECRET=your-secret
-    AUTH0_ISSUER_BASE_URL=https://your-domain.auth0.com
+    VITE_AUTH0_DOMAIN=your-domain.auth0.com
+      VITE_AUTH0_CLIENT_ID=your-spa-client-id
     ```
 
-    Pour Next.js avec le SDK @auth0/nextjs-auth0, consultez la [documentation du SDK Auth0 Next.js](https://auth0.com/docs/quickstart/webapp/nextjs) pour obtenir les instructions de configuration complètes.
-
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Il vous incombe de veiller à ce que votre utilisation de la My Organization API et des Embeddable UI Components soit conforme à vos politiques de sécurité et aux
-      lois applicables, y compris aux permissions accordées à vos utilisateurs finaux.
+      Vous êtes responsable de veiller à ce que votre utilisation de la My Organization API et des Embeddable UI Components soit conforme à vos politiques de sécurité ainsi qu’aux lois applicables, y compris en ce qui concerne les autorisations accordées à vos utilisateurs finaux.
     </Callout>
 
     <Check>
-      L’utilisateur doit être authentifié et membre de l’Auth0 Organization. Les composants chargent automatiquement les données de l’Organization à partir du contexte de l’utilisateur actuel. Pour en savoir plus, consultez [Auth0 Universal Components](/docs/fr-CA/get-started/universal-components/universal-components-overview) pour l’installation et la configuration d’`Auth0ComponentProvider`
+      L’utilisateur doit être authentifié et être membre de l’Auth0 Organization. Les composants chargent automatiquement les données de l’Organization à partir du contexte de l’utilisateur courant. Pour en savoir plus, consultez [Auth0 Universal Components](/docs/fr-CA/get-started/universal-components/universal-components-overview) pour l’installation et la configuration de `Auth0ComponentProvider`
     </Check>
   </Tab>
 
-  <Tab title="shadcn">
+  <Tab title="Next.js">
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      **Configuration d’Auth0 Dashboard** - Suivez toutes les étapes ci-dessous avant d’utiliser les composants My Organization.
+      **Configuration d’Auth0 Dashboard** - Effectuez toutes les étapes ci-dessous avant d’utiliser les composants My Organization.
     </Callout>
 
     ## **Créer une application**
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Cet exemple utilise une Single Page Application, mais vous pouvez également configurer une Regular Web Application (RWA) en suivant des étapes semblables.
+      Cet exemple utilise une application Web traditionnelle pour Next.js. Vous pouvez aussi configurer une application monopage en suivant des étapes semblables.
     </Callout>
 
-    1. Allez à [**Auth0 Dashboard &gt; Applications &gt; Applications**](https://manage.auth0.com/#/applications). Sélectionnez **Create Application**.
+    1. Accédez à [**Auth0 Dashboard &gt; Applications &gt; Applications**](https://manage.auth0.com/#/applications). Sélectionnez **Create Application**.
 
-    2. Choisissez **Single Page Web Applications**.
+    2. Choisissez **Regular Web Application**.
 
-    3. Dans l’onglet **Settings**, ajoutez `http://localhost:5173` dans les champs suivants :
-       <br />A. Allowed Callback URLs
-       <br />B. Allowed Logout URLs
+    3. Dans l’onglet **Paramètres**, ajoutez `http://localhost:5173` dans les champs suivants :
+       <br />A. URL de retour autorisées
+       <br />B. URL de déconnexion autorisées
 
-    4. Sous **l’expérience de connexion**, sélectionnez :
+    4. Sous **Expérience de connexion**, sélectionnez :
        <br />A. Utilisateurs professionnels.
-       <br />B. (Facultatif) Invitation pour l’organisation.
+       <br />B. (Facultatif) Saisie de l’organisation.
 
-    ## **Activer le My Organization API**
+    ## **Activer l&#39;API My Organization**
 
     1. Accédez à [**Dashboard &gt; Applications &gt; APIs**](https://manage.auth0.com/#/applications).
-    2. Sélectionnez **[My Organization API](/docs/fr-CA/api/myorganization)** et assurez-vous qu’elle est activée pour votre tenant.
+    2. Sélectionnez **[My Organization API](/docs/fr-CA/api/myorganization)** et assurez-vous qu’elle est activée dans votre tenant.
 
     ## **Configurer l&#39;accès à l&#39;application**
 
     1. Accédez à l’onglet **Accès à l’Application**.
     2. Sélectionnez **Modifier** pour l’Application que vous souhaitez utiliser.
     3. Configurez les paramètres suivants :
-       <br />A. [Profil de connexion](/docs/fr-CA/authenticate/enterprise-connections/connection-profile#connection-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs de connexion.
-       <br />B. [Profil d’attributs utilisateur](/docs/fr-CA/authenticate/enterprise-connections/user-attribute-profile#user-attribute-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs utilisateur.
-       <br />C. [Fournisseurs d’identité pris en charge](/docs/fr-CA/authenticate/identity-providers) : Activez les fournisseurs que vos clients peuvent utiliser.
-       <br />D. Comportement de suppression de la connexion : Choisissez **Allow** ou **Allow if Empty**.
-       <br />    • **Allow** : Les utilisateurs peuvent supprimer des connections, ce qui supprime tous les utilisateurs de cette connection.
-       <br />    • **Allow if Empty** : Les utilisateurs peuvent supprimer uniquement les connections sans utilisateurs.
+       <br />A. [Connection Profile](/docs/fr-CA/authenticate/enterprise-connections/connection-profile#connection-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs de connexion.
+       <br />B. [User Attribute Profile](/docs/fr-CA/authenticate/enterprise-connections/user-attribute-profile#user-attribute-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs utilisateur.
+       <br />C. [Identity Providers](/docs/fr-CA/authenticate/identity-providers) pris en charge : Activez les fournisseurs que vos clients peuvent utiliser.
+       <br />D. Comportement de suppression des connexions : Choisissez **Allow** ou **Allow if Empty**.
+       <br />    • **Allow** : Les utilisateurs peuvent supprimer des connexions, ce qui supprime tous les utilisateurs de ces connexions.
+       <br />    • **Allow if Empty** : Les utilisateurs peuvent seulement supprimer des connexions qui ne contiennent aucun utilisateur.
        <br />E. Autorisation d’accès des utilisateurs : Choisissez **Unauthorized**, **Authorized** ou **All**.
        <br />    • **Unauthorized** : Aucune permission n’est accordée.
        <br />    • **Authorized** : Sélectionnez des permissions précises.
-       <br />    • **All** : Inclut toutes les permissions existantes et futures.
-       <br />F. Autorisation d’accès des identifiants du client : Choisissez **Unauthorized**, **Authorized** ou **All**.
+       <br />    • **All** : Inclut toutes les permissions actuelles et futures.
+       <br />F. Autorisation d’accès pour les informations d’identification du client : Choisissez **Unauthorized**, **Authorized** ou **All**.
     4. Sélectionnez **Enregistrer**.
 
     ## **Setup Database &amp; User**
 
-    1. Accédez à [**Auth0 Dashboard &gt; Authentication &gt; Database**](https://manage.auth0.com/#/connections/database) pour créer une connexion de base de données.
+    1. Accédez à [**Auth0 Dashboard &gt; Authentication &gt; Database**](https://manage.auth0.com/#/connections/database) pour créer une connexion à une base de données.
     2. Sélectionnez l’onglet **Applications** de la connexion, puis activez votre nouvelle application SPA.
-    3. Créez un utilisateur de test dans cette connexion de base de données pour effectuer les premiers tests.
+    3. Créez un utilisateur de test dans cette base de données pour les tests initiaux.
 
-    ## **Configuration du rôle**
+    ## **Setup Role**
 
     1. Créez un rôle (p. ex., &quot;Admin de l’organisation&quot;).
     2. Ajoutez au rôle les scopes requis de My Organization API.
 
-    <Accordion title="Autorisations requises">
+    <Accordion title="Scopes requis">
       ```
           read:my_org:details
           update:my_org:details
@@ -345,20 +228,136 @@ Avant d’utiliser les composants My Organization, vous devez configurer votre t
     </Accordion>
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Le jeton de l’utilisateur n’inclura que les autorisations qui figurent à la fois dans le rôle qui lui est attribué et dans les paramètres d’autorisation d’accès utilisateur configurés à l’étape précédente.
+      Le token de l’utilisateur n’inclura que les autorisations présentes à la fois dans le rôle qui lui a été attribué et dans les paramètres User Access Authorization configurés à l’étape précédente.
+    </Callout>
+
+    ## **Créer une organisation**
+
+    1. Accédez à [**Organizations &gt; Créer une organisation**](https://manage.auth0.com/#/organizations).
+    2. Configurer l’Auth0 Organization :
+       <br />A. Dans **Members** : ajoutez votre utilisateur de test et assignez-lui le rôle « Administrateur de l’organisation ».
+       <br />B. Dans **Connections** : activez votre connexion de base de données.
+
+    ## **Configurer les variables d&#39;environnement**
+
+    1. Créez un fichier `.env` à la racine de votre projet React :
+
+    ```bash
+    NEXT_PUBLIC_AUTH0_DOMAIN=your-domain.auth0.com
+    NEXT_PUBLIC_AUTH0_CLIENT_ID=your-client-id
+    AUTH0_SECRET=your-secret
+    AUTH0_ISSUER_BASE_URL=https://your-domain.auth0.com
+    ```
+
+    Pour Next.js avec le SDK @auth0/nextjs-auth0, consultez la [documentation du SDK Auth0 Next.js](https://auth0.com/docs/quickstart/webapp/nextjs) pour obtenir les instructions de configuration complètes.
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      Il vous incombe de veiller à ce que votre utilisation de la My Organization API et des Embeddable UI Components soit conforme à vos politiques de sécurité et aux
+      lois applicables, y compris toute permission accordée à vos utilisateurs finaux.
+    </Callout>
+
+    <Check>
+      L’utilisateur doit être authentifié et être membre de l’Auth0 Organization. Les composants chargent automatiquement les données de l’Organization à partir du contexte de l’utilisateur actuel. Pour en savoir plus, consultez [Auth0 Universal Components](/docs/fr-CA/get-started/universal-components/universal-components-overview) pour l’installation et la configuration de `Auth0ComponentProvider`
+    </Check>
+  </Tab>
+
+  <Tab title="shadcn">
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      **Configuration d’Auth0 Dashboard** - Suivez toutes les étapes ci-dessous avant d’utiliser les composants de My Organization.
+    </Callout>
+
+    ## **Créer une application**
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      Cet exemple utilise une Single Page Application, mais vous pouvez aussi configurer une Regular Web Application (RWA) en suivant des étapes similaires.
+    </Callout>
+
+    1. Accédez à [**Auth0 Dashboard &gt; Applications &gt; Applications**](https://manage.auth0.com/#/applications), puis sélectionnez **Create Application**.
+
+    2. Choisissez **Single Page Web Applications**.
+
+    3. Dans l’onglet **Paramètres**, ajoutez `http://localhost:5173` dans les champs suivants :
+       <br />A. Allowed Callback URLs
+       <br />B. Allowed Logout URLs
+
+    4. Sous **Expérience de connexion**, sélectionnez :
+       <br />A. Utilisateurs d’entreprise.
+       <br />B. (Facultatif) Demander l’organisation.
+
+    ## **Activer l&#39;API My Organization**
+
+    1. Accédez à [**Dashboard &gt; Applications &gt; APIs**](https://manage.auth0.com/#/applications).
+    2. Sélectionnez **[My Organization API](/docs/fr-CA/api/myorganization)** et vérifiez qu’elle est activée pour votre tenant.
+
+    ## **Configurer l&#39;accès à l&#39;application**
+
+    1. Accédez à l’onglet **Accès à l’application**.
+    2. Sélectionnez **Modifier** pour l’application que vous souhaitez utiliser.
+    3. Configurez les paramètres suivants :
+       <br />A. [Profil de connexion](/docs/fr-CA/authenticate/enterprise-connections/connection-profile#connection-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs de connexion.
+       <br />B. [Profil d’attributs utilisateur](/docs/fr-CA/authenticate/enterprise-connections/user-attribute-profile#user-attribute-profile) : Sélectionnez ou créez un profil avec des mappages d’attributs utilisateur.
+       <br />C. [Fournisseurs d’identité pris en charge](/docs/fr-CA/authenticate/identity-providers) : Activez les fournisseurs que vos clients peuvent utiliser.
+       <br />D. Comportement de suppression de la connexion : Choisissez **Allow** ou **Allow if Empty**.
+       <br />    • **Allow** : Les utilisateurs peuvent supprimer des connexions, ce qui supprime tous les utilisateurs de cette connexion.
+       <br />    • **Allow if Empty** : Les utilisateurs peuvent supprimer uniquement les connexions sans utilisateurs.
+       <br />E. Autorisation d’accès des utilisateurs : Choisissez **Unauthorized**, **Authorized** ou **All**.
+       <br />    • **Unauthorized** : Aucune permission n’est autorisée.
+       <br />    • **Authorized** : Sélectionnez des permissions précises.
+       <br />    • **All** : Inclut toutes les permissions existantes et futures.
+       <br />F. Autorisation d’accès des identifiants du client : Choisissez **Unauthorized**, **Authorized** ou **All**.
+    4. Sélectionnez **Enregistrer**.
+
+    ## **Setup Database &amp; User**
+
+    1. Accédez à [**Auth0 Dashboard &gt; Authentification &gt; Base de données**](https://manage.auth0.com/#/connections/database) pour créer une connexion à une base de données.
+    2. Dans l’onglet **Applications** de la connexion, activez votre nouvelle application SPA.
+    3. Créez un utilisateur de test dans cette base de données pour les tests initiaux.
+
+    ## **Setup Role**
+
+    1. Créez un rôle (p. ex., &quot;Administrateur de l’organisation&quot;).
+    2. Ajoutez au rôle les scopes requis de My Organization API.
+
+    <Accordion title="Scopes requis">
+      ```
+          read:my_org:details
+          update:my_org:details
+          create:my_org:identity_providers
+          read:my_org:identity_providers
+          update:my_org:identity_providers
+          delete:my_org:identity_providers
+          update:my_org:identity_providers_detach
+          create:my_org:identity_providers_domains
+          delete:my_org:identity_providers_domains
+          read:my_org:domains
+          delete:my_org:domains
+          create:my_org:domains
+          update:my_org:domains
+          read:my_org:identity_providers_scim_tokens
+          create:my_org:identity_providers_scim_tokens
+          delete:my_org:identity_providers_scim_tokens
+          create:my_org:identity_providers_provisioning
+          read:my_org:identity_providers_provisioning
+          delete:my_org:identity_providers_provisioning
+          read:my_org:configuration
+      ```
+    </Accordion>
+
+    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
+      Le token de l’utilisateur n’inclura que les permissions présentes à la fois dans le rôle qui lui est attribué et dans les paramètres de User Access Authorization configurés à l’étape précédente.
     </Callout>
 
     ## **Créer une organisation**
 
     1. Accédez à [**Organizations &gt; Create Organization**](https://manage.auth0.com/#/organizations).
-    2. Configurez l’organisation Auth0 :
-       <br />A. Dans **Members** : ajoutez votre utilisateur de test et attribuez-lui le rôle « Organization Admin ».
+    2. Configurer l’organisation Auth0 :
+       <br />A. Dans **Members** : ajoutez votre utilisateur de test et attribuez-lui le rôle &quot;Organization Admin&quot;.
        <br />B. Dans **Connections** : activez votre connexion de base de données.
 
     ## **Configurer les variables d&#39;environnement**
 
     <Warning>
-      La configuration des variables d’environnement varie selon le framework et la configuration utilisés. Consultez le répertoire `examples/` du dépôt pour des exemples d’implémentation précis.
+      La configuration des variables d’environnement varie selon le framework et la configuration utilisée. Consultez le répertoire `examples/` du dépôt pour voir des exemples précis de mise en œuvre.
     </Warning>
 
     Créez un fichier `.env` à la racine de votre projet React :
@@ -369,11 +368,12 @@ Avant d’utiliser les composants My Organization, vous devez configurer votre t
     ```
 
     <Warning>
-      Vous êtes responsable de vous assurer que votre utilisation de la My Organization API et des Embeddable UI Components est conforme à vos politiques de sécurité et aux lois applicables, y compris en ce qui concerne les autorisations accordées à vos utilisateurs finaux.
+      Il vous incombe de veiller à ce que votre utilisation de la My Organization API et des Embeddable UI Components soit conforme à vos politiques de sécurité et aux lois applicables, y compris aux
+      permissions accordées à vos utilisateurs finaux.
     </Warning>
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      L’utilisateur doit être authentifié et être membre de l’Auth0 Organization. Les Components chargent automatiquement les données de l’Organization à partir du contexte de l’utilisateur courant. Pour en savoir plus, consultez [Auth0 Universal Components](/docs/fr-CA/get-started/universal-components/universal-components-overview) pour l’installation et la configuration de `Auth0ComponentProvider`
+      L’utilisateur doit être authentifié et être membre de l’Auth0 Organization. Les composants chargent automatiquement les données de l’Organization à partir du contexte de l’utilisateur actuel. Pour en savoir plus, consultez [Auth0 Universal Components](/docs/fr-CA/get-started/universal-components/universal-components-overview) pour l’installation et la configuration de `Auth0ComponentProvider`
     </Callout>
   </Tab>
 </Tabs>

@@ -1,5 +1,5 @@
 ---
-description: Aprende a vincular cuentas de usuario de varios proveedores de identidad para que tus usuarios puedan autenticarse con cualquiera de ellas y tu aplicación los reconozca.
+description: Comprenda cómo vincular cuentas de usuario de varios proveedores de identidad para que sus usuarios puedan autenticarse con cualquiera de sus cuentas y su aplicación los reconozca.
 title: Vincular cuentas de usuario
 ---
 
@@ -7,32 +7,32 @@ import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
 <Card title="La disponibilidad varía según el plan de Auth0">
-  Tanto tu implementación específica de inicio de sesión como tu plan de Auth0 o tu acuerdo personalizado determinan si esta función está disponible. Para obtener más información, consulta [Precios](https://auth0.com/pricing).
+  Tanto tu implementación específica de inicio de sesión como tu plan de Auth0 o tu acuerdo personalizado influyen en si esta funcionalidad está disponible. Para obtener más información, consulta [Precios](https://auth0.com/pricing).
 </Card>
 
 Puedes vincular cuentas de usuario mediante diversos métodos:
 
-* Action con una aplicación externa para vincular cuentas
+* Action con aplicación externa para vincular cuentas
 * Auth0 <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>
 * biblioteca auth0.js
 
 <div id="action-with-external-linking-application">
-  ## Action con una aplicación externa de vinculación
+  ## Action con aplicación externa de vinculación
 </div>
 
 Puede usar una Action junto con una aplicación externa de vinculación para vincular cuentas de usuario con la Management API.
 
 <Warning>
-  **Auth0 no cambia automáticamente al** **usuario** **principal correcto** después de la vinculación de cuentas, por lo que este cambio debe hacerse en el código de Actions cuando la vinculación de cuentas se complete correctamente.
+  **Auth0 no cambia automáticamente al** **usuario** **principal correcto** después de la vinculación de cuentas, por lo que este cambio debe realizarse en el código de Actions cuando la vinculación de cuentas se complete correctamente.
 
-  **Toda vinculación manual de cuentas debe pedir al usuario que introduzca sus credenciales**. Su tenant debe solicitar authentication para ambas cuentas antes de que se produzca la vinculación, para evitar que actores maliciosos accedan a cuentas de usuario legítimas.
+  **Toda vinculación manual de cuentas debe pedir al usuario que introduzca sus credenciales**. Su tenant debe solicitar autenticación para ambas cuentas antes de que se produzca la vinculación, para evitar que actores maliciosos accedan a cuentas de usuario legítimas.
 </Warning>
 
-Los siguientes pasos ilustran una implementación de ejemplo:
+Los siguientes pasos ilustran un ejemplo de implementación:
 
-1. La Action identifica las posibles cuentas de usuario para vincular (si existen).
+1. La Action identifica las posibles cuentas de usuario que se pueden vincular (si existen).
 
-2. La Action redirige al usuario a una aplicación externa de vinculación con un payload de token que contiene posibles identidades de usuario:
+2. La Action redirige al usuario a una aplicación externa de vinculación con un token payload que contiene las identidades de usuario candidatas:
 
    ```json lines
    {
@@ -57,9 +57,9 @@ Los siguientes pasos ilustran una implementación de ejemplo:
    }
    ```
 
-3. La aplicación externa de vinculación pide al usuario que se autentique con las credenciales de la cuenta que desea vincular.
+3. La aplicación externa de vinculación solicita al usuario que se autentique con las credenciales de la cuenta que desea vincular.
 
-4. La aplicación externa de vinculación redirige al usuario de vuelta a la Action con un payload de token que contiene las identidades de usuario principal y secundaria:
+4. La aplicación externa de vinculación redirige al usuario de vuelta a la Action con un token payload que contiene las identidades principal y secundaria del usuario:
 
    ```json lines
    {
@@ -103,7 +103,7 @@ const TTL_LEEWAY_FACTOR = 0.2;
 const PROPERTIES_TO_COMPLETE = ['given_name', 'family_name', 'name'];
 
 /**
- * Obtener token de acceso de la Management API con caché
+ * Obtener el token de acceso de la Management API con caché
  */
 const getManagementAccessToken = async (event, api) => {
   const cacheKey = `mgmt-api-token-${event.secrets.MANAGEMENT_API_CLIENT_ID}`;
@@ -204,7 +204,7 @@ const linkAccounts = async (event, primaryIdentity, secondaryIdentity) => {
 };
 
 /**
- * Completar propiedades de perfil faltantes a partir de identidades vinculadas
+ * Completar las propiedades de perfil faltantes a partir de las identidades vinculadas
  */
 const completeProperties = (event, api) => {
   for (const property of PROPERTIES_TO_COMPLETE) {
@@ -223,7 +223,7 @@ const completeProperties = (event, api) => {
  * onExecutePostLogin - Detectar cuentas duplicadas y redirigir al servicio de vinculación
  */
 exports.onExecutePostLogin = async (event, api) => {
-  // Validar configuración
+  // Validar la configuración
   if (
     !event.secrets.MANAGEMENT_API_DOMAIN ||
     !event.secrets.MANAGEMENT_API_CLIENT_ID ||
@@ -231,7 +231,7 @@ exports.onExecutePostLogin = async (event, api) => {
     !event.secrets.SESSION_TOKEN_SHARED_SECRET ||
     !event.secrets.ACCOUNT_LINKING_SERVICE_URL
   ) {
-    console.log('Falta configuración requerida - omitiendo vinculación de cuentas');
+    console.log('Missing required configuration - skipping account linking');
     return;
   }
 
@@ -289,7 +289,7 @@ exports.onExecutePostLogin = async (event, api) => {
     });
 
   } catch (err) {
-    console.error('Error de vinculación de cuentas:', err.message);
+    console.error('Account linking error:', err.message);
     // No bloquear el inicio de sesión en caso de error
   }
 };
@@ -299,7 +299,7 @@ exports.onExecutePostLogin = async (event, api) => {
  */
 exports.onContinuePostLogin = async (event, api) => {
   try {
-    // Validar token de respuesta
+    // Validar el token de respuesta
     const { primary_identity: primaryIdentity, secondary_identity: secondaryIdentity } = api.redirect.validateToken({
       secret: event.secrets.SESSION_TOKEN_SHARED_SECRET,
       tokenParameterName: 'session_token'
@@ -329,7 +329,7 @@ exports.onContinuePostLogin = async (event, api) => {
       api.access.deny('Account linking failed');
     }
   } catch (err) {
-    console.error('Error en onContinuePostLogin:', err.message);
+    console.error('onContinuePostLogin error:', err.message);
     api.access.deny('Account linking error: ' + err.message);
   }
 };
@@ -339,22 +339,22 @@ exports.onContinuePostLogin = async (event, api) => {
   ## Management API
 </div>
 
-Puedes usar el endpoint [Vincular una cuenta de usuario](https://auth0.com/docs/api/v2#!/Users/post_identities) de la Management API de dos maneras:
+Puedes usar el endpoint [Vincular una cuenta de usuario](https://auth0.com/docs/api/v2#!/Users/post_identities) de la Management API de dos formas:
 
-* Vinculación de cuentas del lado del cliente iniciada por el usuario mediante <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, que se usa para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> con el scope `update:current_user_identities`.
-* Vinculación de cuentas del lado del servidor mediante tokens de acceso con el scope `update:users`.
+* vinculación de cuentas del lado del cliente iniciada por el usuario mediante <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> con el scope `update:current_user_identities`.
+* vinculación de cuentas del lado del servidor mediante tokens de acceso con el scope `update:users`.
 
 <div id="user-initiated-client-side-account-linking">
   ### Vinculación de cuentas del lado del cliente iniciada por el usuario
 </div>
 
-Para la vinculación de cuentas del lado del cliente iniciada por el usuario, necesitas un token de acceso que contenga los siguientes elementos en la carga útil:
+Para la vinculación de cuentas del lado del cliente iniciada por el usuario, necesitas un token de acceso que contenga los siguientes elementos en el payload:
 
-* scope `update:current_user_identites`
+* `update:current_user_identites` scope
 * `user_id` de la cuenta principal como parte de la URL
-* <Tooltip tip="token de ID: Credencial pensada para el propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de identidad</Tooltip> de la cuenta secundaria, firmado con RS256 e incluido con un claim `aud` que identifique al cliente y coincida con el valor del claim `azp` del token de acceso solicitante.
+* <Tooltip tip="Token de identidad: credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de identidad</Tooltip> de la cuenta secundaria, firmado con RS256 e incluyendo una claim `aud` que identifique al cliente y coincida con el valor de la claim `azp` del token de acceso con el que se realiza la solicitud.
 
-Un token de acceso que contiene el scope `update:current_user_identities` solo puede usarse para actualizar la información del usuario que tiene la sesión iniciada en ese momento. Por lo tanto, este método es adecuado para escenarios en los que el usuario inicia el proceso de vinculación.
+Un token de acceso que contiene el `update:current_user_identities` scope solo puede usarse para actualizar la información del usuario que ha iniciado sesión. Por lo tanto, este método es adecuado para situaciones en las que el usuario inicia el proceso de vinculación.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -509,14 +509,14 @@ Un token de acceso que contiene el scope `update:current_user_identities` solo p
   ### Vinculación de cuentas del lado del servidor
 </div>
 
-Para la vinculación de cuentas del lado del servidor, necesitas un token de acceso que incluya los siguientes elementos en el payload:
+Para la vinculación de cuentas del lado del servidor, necesitas un token de acceso que contenga los siguientes elementos en el payload:
 
-* scope `update:users`
+* `update:users` scope
 * `user_id` de la cuenta principal como parte de la URL
 * `user_id` de la cuenta secundaria
-* token de identidad de la cuenta secundaria, firmado con RS256, que incluya un claim `aud` que identifique al cliente y coincida con el valor del claim `azp` del token de acceso de la solicitud.
+* token de identidad de la cuenta secundaria firmado con RS256 que incluya un `aud` claim que identifique al cliente y coincida con el valor del `azp` claim del token de acceso solicitante.
 
-Los tokens de acceso que contienen el scope `update:users` pueden usarse para actualizar la información de cualquier usuario. Por lo tanto, este método está pensado para usarse únicamente en código del lado del servidor.
+Los tokens de acceso que contienen el `update:users` scope pueden usarse para actualizar la información de cualquier usuario. Por lo tanto, este método está pensado para usarse únicamente en código del lado del servidor.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -667,12 +667,12 @@ Los tokens de acceso que contienen el scope `update:users` pueden usarse para ac
   ```
 </AuthCodeGroup>
 
-El `user_id` y el `provider` de la cuenta de usuario secundaria pueden deducirse a partir de su identificador único. Por ejemplo, para el identificador `google-oauth2|108091299999329986433`:
+El `user_id` y el `provider` de la cuenta secundaria del usuario pueden inferirse a partir de su identificador único. Por ejemplo, para el identificador `google-oauth2|108091299999329986433`:
 
 * `provider` es `google-oauth2`
 * `user_id` es `108091299999329986433`
 
-Como alternativa, puedes enviar el token de identidad de la cuenta secundaria en lugar de `provider` y `user_id`:
+Como alternativa, puedes enviar el token de ID de la cuenta secundaria en lugar de `provider` y `user_id`:
 
 <AuthCodeGroup>
   ```bash cURL
@@ -827,7 +827,7 @@ Como alternativa, puedes enviar el token de identidad de la cuenta secundaria en
   ## Biblioteca Auth0.js
 </div>
 
-Puedes usar la biblioteca Auth0.js para realizar la vinculación de cuentas del lado del cliente. Consulta [Referencia de Auth0.js &gt; Administración de usuarios](/docs/es/libraries/auth0js#user-management) para obtener más información.
+Puedes usar la biblioteca Auth0.js para realizar la vinculación de cuentas del lado del cliente. Consulta [Referencia de Auth0.js &gt; Gestión de usuarios](/docs/es/libraries/auth0js#user-management) para obtener más información.
 
 <div id="learn-more">
   ## Más información

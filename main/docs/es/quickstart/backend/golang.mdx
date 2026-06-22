@@ -1,7 +1,7 @@
 ---
 title: Protege tu API de Go
 sidebarTitle: API de Go
-description: Esta guía muestra cómo proteger los endpoints de la API de Go mediante tokens de acceso JWT con el SDK go-jwt-middleware v3.
+description: Esta guía muestra cómo proteger los endpoints de una API de Go usando tokens de acceso JWT con el SDK go-jwt-middleware v3.
 mode: wide
 ---
 
@@ -10,37 +10,37 @@ import {HowToSchema} from "/snippets/HowToSchema.jsx";
 
 <HowToSchema />
 
-export const envSnippet = `# La URL del dominio de tu tenant de Auth0.
-# Si usas un Custom Domain, establece este valor en su lugar.
+export const envSnippet = `# La URL del Dominio del tenant de Auth0.
+# Si usas un dominio personalizado, configura aquí ese valor.
 AUTH0_DOMAIN='{yourDomain}'
 
-# El identificador de tu Auth0 API (del paso 2)
+# El identificador de tu API de Auth0 (del paso 2)
 # Ejemplo: https://my-go-api.example.com
 AUTH0_AUDIENCE='{yourApiIdentifier}'`;
 
 <Accordion title="Usa IA para integrar Auth0" icon="microchip-ai" iconType="solid" defaultOpen>
-  Si usas un asistente de programación con IA como Claude Code, Cursor o GitHub Copilot, puedes añadir automáticamente la autenticación de Auth0 API en cuestión de minutos con [Agent Skills](https://agentskills.io/home).
+  Si usas un asistente de programación con IA como Claude Code, Cursor o GitHub Copilot, puedes añadir autenticación con la API de Auth0 automáticamente en minutos usando [Agent Skills](https://agentskills.io/home).
 
-  **Instala:**
+  **Instalar:**
 
   ```bash
   npx skills add auth0/agent-skills --skill auth0-quickstart --skill go-jwt-middleware
   ```
 
-  **Después, pídele a tu asistente de IA:**
+  **Luego pídele a tu asistente de IA:**
 
   ```text
   Add Auth0 JWT authentication to my Go API
   ```
 
-  Tu asistente de IA creará automáticamente tu Auth0 API, obtendrá las credenciales, instalará `go-jwt-middleware`, configurará el validador y protegerá los endpoints de tu API con validación JWT. [Documentación completa de Agent Skills →](/docs/es/quickstart/agent-skills)
+  Tu asistente de IA creará automáticamente tu API de Auth0, obtendrá las credenciales, instalará `go-jwt-middleware`, configurará el validador y protegerá los endpoints de tu API con validación JWT. [Documentación completa de Agent Skills →](/docs/es/quickstart/agent-skills)
 </Accordion>
 
 <Note>
-  **Requisitos previos:** Antes de empezar, asegúrate de tener instalado lo siguiente:
+  **Requisitos previos:** Antes de comenzar, asegúrate de tener instalado lo siguiente:
 
   * **[Go](https://go.dev/doc/install)** 1.24 o posterior (necesario para la compatibilidad con genéricos en go-jwt-middleware v3)
-  * **[Git](https://git-scm.com/downloads)** para el control de versiones
+  * **[Git](https://git-scm.com/downloads)** para control de versiones
 
   Verifica la instalación: `go version`
 </Note>
@@ -57,7 +57,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
 
 <Steps>
   <Step title="Crear un nuevo proyecto" stepNumber={1}>
-    Crea un directorio nuevo para tu API en Go e inicializa un módulo.
+    Crea un directorio nuevo para tu API de Go e inicializa un módulo.
 
     ```shellscript
     mkdir myapi && cd myapi
@@ -72,14 +72,14 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
     go mod download
     ```
 
-    Crear la estructura del proyecto:
+    Crea la estructura del proyecto:
 
     ```shellscript
     mkdir -p cmd/server internal/auth internal/config internal/handlers
     touch .env cmd/server/main.go internal/config/auth.go internal/auth/claims.go internal/auth/validator.go internal/auth/middleware.go internal/handlers/api.go
     ```
 
-    <Accordion title="Ver el archivo go.mod esperado">
+    <Accordion title="Ver el go.mod esperado">
       ```go go.mod
       module github.com/yourorg/myapi
 
@@ -94,9 +94,9 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
   </Step>
 
   <Step title="Configura tu API de Auth0" stepNumber={2}>
-    A continuación, debes crear una nueva API en tu tenant de Auth0 y añadir las variables de entorno a tu proyecto.
+    A continuación, debes crear una nueva API en tu tenant de Auth0 y agregar las variables de entorno a tu proyecto.
 
-    Tienes dos opciones para configurar tu API de Auth0: usar un comando de la CLI o hacerlo manualmente desde el Dashboard:
+    Tienes dos opciones para configurar tu API de Auth0: usar un comando de CLI o hacerlo manualmente desde el Dashboard:
 
     <Tabs>
       <Tab title="CLI">
@@ -107,7 +107,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
           # Instala Auth0 CLI (si aún no está instalado)
           brew tap auth0/auth0-cli && brew install auth0
 
-          # Crea la API de Auth0
+          # Crea una API de Auth0
           auth0 apis create \
             --name "My Go API" \
             --identifier https://my-go-api.example.com
@@ -118,7 +118,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
           scoop bucket add auth0 https://github.com/auth0/scoop-auth0-cli.git
           scoop install auth0
 
-          # Crea la API de Auth0
+          # Crea una API de Auth0
           auth0 apis create `
             --name "My Go API" `
             --identifier https://my-go-api.example.com
@@ -132,7 +132,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
         <Note>
           Este comando hará lo siguiente:
 
-          1. Comprobará si ya estás autenticado (y te pedirá iniciar sesión si hace falta)
+          1. Verificará si ya estás autenticado (y te pedirá iniciar sesión si hace falta)
           2. Creará una API de Auth0 con el identificador especificado
           3. Mostrará los detalles de la API, incluidos el dominio y el identificador
         </Note>
@@ -144,10 +144,10 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
         3. Introduce un nombre para tu API (por ejemplo, &quot;My Go API&quot;)
         4. Define el **Identifier** (por ejemplo, `https://my-go-api.example.com`)
            * Este es el audience de tu API y debe tener un formato de URL válido
-           * No tiene que ser una URL real; solo es un identificador
+           * No tiene que ser una URL real; es solo un identificador
         5. Deja **Signing Algorithm** como **RS256**
         6. Haz clic en **Create**
-        7. Copia el valor de **Identifier** de la pestaña **Settings**
+        7. Copia el valor de **Identifier** desde la pestaña **Settings**
 
         Crea tu archivo `.env` con los siguientes valores:
 
@@ -157,20 +157,20 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
         ```
 
         <Warning>
-          Sustituye `YOUR_AUTH0_DOMAIN` por el dominio de tu tenant de Auth0 (por ejemplo, `dev-abc123.us.auth0.com`) y `YOUR_API_IDENTIFIER` por el identificador de tu API en el Dashboard (por ejemplo, `https://my-go-api.example.com`).
+          Reemplaza `YOUR_AUTH0_DOMAIN` por el dominio de tu tenant de Auth0 (por ejemplo, `dev-abc123.us.auth0.com`) y `YOUR_API_IDENTIFIER` por el identificador de tu API del Dashboard (por ejemplo, `https://my-go-api.example.com`).
         </Warning>
       </Tab>
     </Tabs>
 
     <Tip>
-      **Seguridad**: Nunca subas archivos `.env` al control de versiones. Añade `.env` a tu archivo `.gitignore`.
+      **Security**: Nunca subas archivos `.env` al control de versiones. Agrega `.env` a tu archivo `.gitignore`.
     </Tip>
   </Step>
 
   <Step title="Definir permisos de la API" stepNumber={3}>
-    Los permisos (scopes) te permiten definir cómo se puede acceder a los recursos. Por ejemplo, otorga acceso de `read` a los gerentes y acceso de `write` a los administradores.
+    Los permisos (scopes) te permiten definir cómo se puede acceder a los recursos. Por ejemplo, otorga acceso `read` a los gerentes y acceso `write` a los administradores.
 
-    1. En la configuración de tu API, haz clic en la pestaña **Permisos**
+    1. En la configuración de tu API, haz clic en la pestaña **Permissions**
     2. Crea el siguiente permiso:
 
     | Permiso         | Descripción             |
@@ -178,7 +178,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
     | `read:messages` | Leer mensajes de la API |
 
     <Info>
-      Este tutorial usa el scope `read:messages` para proteger el endpoint. Puedes definir permisos adicionales según las necesidades de tu aplicación.
+      Este tutorial usa el scope `read:messages` para proteger el endpoint restringido por scope. Puedes definir permisos adicionales según las necesidades de tu aplicación.
     </Info>
   </Step>
 
@@ -218,13 +218,13 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
 
     **Qué hace esto:**
 
-    * Carga el dominio de Auth0 y el audience desde variables de entorno
-    * Valida que la configuración requerida esté presente al arrancar
-    * Devuelve una estructura de configuración con tipado seguro para usarla en toda la aplicación
+    * Carga el dominio de Auth0 y el audience desde las variables de entorno
+    * Valida que la configuración necesaria esté presente al iniciarse
+    * Devuelve una estructura `config` con tipos seguros para usarla en toda la aplicación
   </Step>
 
-  <Step title="Crear custom claims y un validador de JWT" stepNumber={5}>
-    Las claims personalizadas te permiten extraer y validar datos específicos de la aplicación de los JWT. El validador es el componente central que verifica los tokens frente a Auth0.
+  <Step title="Crear claims personalizadas y un validador de JWT" stepNumber={5}>
+    Los claims personalizados te permiten extraer y validar datos específicos de la aplicación a partir de JWT. El validador es el componente principal que verifica tokens con Auth0.
 
     <Tabs>
       <Tab title="claims.go">
@@ -237,12 +237,12 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
             "strings"
         )
 
-        // CustomClaims contiene datos personalizados que queremos extraer del JWT.
+        // CustomClaims contiene datos personalizados que queremos analizar del JWT.
         type CustomClaims struct {
             Scope string `json:"scope"`
         }
 
-        // Validate garantiza que las claims personalizadas tengan el formato correcto.
+        // Validate garantiza que los claims personalizados tengan el formato correcto.
         func (c *CustomClaims) Validate(ctx context.Context) error {
             if c.Scope == "" {
                 return nil
@@ -259,7 +259,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
             return nil
         }
 
-        // HasScope comprueba si nuestras claims tienen un scope específico.
+        // HasScope comprueba si nuestros claims incluyen un scope específico.
         func (c *CustomClaims) HasScope(expectedScope string) bool {
             if c.Scope == "" {
                 return false
@@ -290,7 +290,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
         )
 
         func NewValidator(domain, audience string) (*validator.Validator, error) {
-            // Construye la URL del issuer (debe incluir la barra diagonal final)
+            // Construye la issuer URL (debe incluir la barra final)
             issuerURL, err := url.Parse("https://" + domain + "/")
             if err != nil {
                 return nil, fmt.Errorf("failed to parse issuer URL: %w", err)
@@ -328,14 +328,14 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
 
     **Puntos clave:**
 
-    * El método `Validate` middleware llama automáticamente al método `Validate` después de procesar el JWT
-    * `HasScope` procesa scopes separados por espacios para el control de acceso basado en permisos
-    * El validador usa almacenamiento en caché de JWKS (TTL de 5 min) y permite una desviación del reloj de 30 s
-    * El algoritmo RS256 se configura explícitamente para evitar [ataques de confusión de algoritmos](https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/)
+    * El método `Validate` lo llama automáticamente el middleware después de analizar el JWT
+    * `HasScope` analiza scopes separados por espacios para el control de acceso basado en permisos
+    * El validador usa caché de JWKS (TTL de 5 min) y permite un desfase de reloj de 30 s
+    * El algoritmo RS256 se configura explícitamente para evitar [ataques de confusión de algoritmo](https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/)
   </Step>
 
   <Step title="Crear middleware y controladores HTTP" stepNumber={6}>
-    El middleware encapsula el validador de solicitudes HTTP. Los controladores muestran tres niveles de protección: público, privado y con permisos.
+    El middleware envuelve el validador para las solicitudes HTTP. Los controladores muestran tres niveles de protección: público, privado y restringido por permiso.
 
     <Tabs>
       <Tab title="middleware.go">
@@ -381,7 +381,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
         // PublicHandler - no requiere autenticación
         func PublicHandler(w http.ResponseWriter, r *http.Request) {
             response := map[string]string{
-                "message": "Hello from a public endpoint! You don't need to be authenticated to see this.",
+                "message": "¡Hola desde un endpoint público! No necesitas autenticarte para ver esto.",
             }
             w.Header().Set("Content-Type", "application/json")
             json.NewEncoder(w).Encode(response)
@@ -390,7 +390,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
         // PrivateHandler - requiere un JWT válido
         func PrivateHandler(w http.ResponseWriter, r *http.Request) {
             response := map[string]string{
-                "message": "Hello from a private endpoint! You need to be authenticated to see this.",
+                "message": "¡Hola desde un endpoint privado! Necesitas autenticarte para ver esto.",
             }
             w.Header().Set("Content-Type", "application/json")
             json.NewEncoder(w).Encode(response)
@@ -415,7 +415,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
             }
 
             response := map[string]string{
-                "message": "Hello from a private endpoint! You need to be authenticated and have a scope of read:messages to see this.",
+                "message": "¡Hola desde un endpoint privado! Necesitas autenticarte y tener el scope read:messages para ver esto.",
             }
             w.Header().Set("Content-Type", "application/json")
             json.NewEncoder(w).Encode(response)
@@ -428,11 +428,11 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
 
     * **Público** (`/api/public`) — No requiere autenticación
     * **Privado** (`/api/private`) — Requiere un JWT válido
-    * **Con permisos** (`/api/private-scoped`) — Requiere un JWT válido + el permiso `read:messages`
+    * **Restringido por permiso** (`/api/private-scoped`) — Requiere un JWT válido + el permiso `read:messages`
   </Step>
 
-  <Step title="Crea el servidor principal" stepNumber={7}>
-    Integra todo en el punto de entrada principal con tiempos de espera preparados para producción y un cierre ordenado:
+  <Step title="Crear el servidor principal" stepNumber={7}>
+    Integra todo en el punto de entrada principal, con tiempos de espera aptos para producción y un apagado controlado:
 
     ```go cmd/server/main.go expandable lines
     package main
@@ -457,31 +457,31 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
             log.Println("No .env file found, using environment variables")
         }
 
-        // Cargar configuración de Auth0
+        // Cargar la configuración de Auth0
         cfg, err := config.LoadAuthConfig()
         if err != nil {
             log.Fatalf("Failed to load config: %v", err)
         }
 
-        // Crear validador JWT
+        // Crear el validador de JWT
         jwtValidator, err := auth.NewValidator(cfg.Domain, cfg.Audience)
         if err != nil {
             log.Fatalf("Failed to create validator: %v", err)
         }
 
-        // Crear middleware HTTP
+        // Crear el middleware HTTP
         middleware, err := auth.NewMiddleware(jwtValidator)
         if err != nil {
             log.Fatalf("Failed to create middleware: %v", err)
         }
 
-        // Configurar rutas
+        // Configurar las rutas
         mux := http.NewServeMux()
         mux.HandleFunc("/api/public", handlers.PublicHandler)
         mux.Handle("/api/private", middleware.CheckJWT(http.HandlerFunc(handlers.PrivateHandler)))
         mux.Handle("/api/private-scoped", middleware.CheckJWT(http.HandlerFunc(handlers.ScopedHandler)))
 
-        // Configurar el servidor con tiempos de espera para producción
+        // Configurar el servidor con timeouts para producción
         srv := &http.Server{
             Addr:         ":8080",
             Handler:      mux,
@@ -498,7 +498,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
             }
         }()
 
-        // Apagado graceful
+        // Apagado controlado
         quit := make(chan os.Signal, 1)
         signal.Notify(quit, os.Interrupt)
         <-quit
@@ -523,13 +523,13 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
       │       └── main.go              # Punto de entrada de la aplicación
       ├── internal/
       │   ├── auth/
-      │   │   ├── claims.go            # Claims de JWT personalizados
+      │   │   ├── claims.go            # Claims de JWT personalizadas
       │   │   ├── middleware.go         # Middleware de JWT
       │   │   └── validator.go         # Validador de JWT
       │   ├── config/
       │   │   └── auth.go              # Cargador de configuración
       │   └── handlers/
-      │       └── api.go               # Controladores HTTP (públicos, privados, con scope)
+      │       └── api.go               # Controladores HTTP (públicos, privados, con alcance limitado)
       ├── .env                         # Variables de entorno (no versionadas)
       ├── .gitignore
       ├── go.mod
@@ -547,7 +547,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
 
     Deberías ver: `Server starting on :8080`
 
-    Prueba el endpoint público (no requiere autenticación):
+    Prueba el endpoint público (no se requiere autenticación):
 
     ```bash
     curl http://localhost:8080/api/public
@@ -567,7 +567,7 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
     curl http://localhost:8080/api/private
     ```
 
-    Deberías ver un error 401 de acceso no autorizado:
+    Deberías ver el error 401 Unauthorized:
 
     ```json
     {
@@ -575,14 +575,14 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
     }
     ```
 
-    Para probar con un token válido, ve a tu API en el [Auth0 Dashboard](https://manage.auth0.com/#/apis), haz clic en la pestaña **Test** y copia el token de acceso. Luego, ejecuta:
+    Para probar con un token válido, dirígete a tu API en el [Auth0 Dashboard](https://manage.auth0.com/#/apis), haz clic en la pestaña **Test** y copia el token de acceso. Luego, ejecuta:
 
     ```bash
     curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
          http://localhost:8080/api/private
     ```
 
-    Prueba el endpoint restringido (requiere el permiso `read:messages`):
+    Prueba el endpoint restringido por scope (requiere el permiso `read:messages`):
 
     ```bash
     curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -592,20 +592,20 @@ Crearás una API de Go con tres endpoints que muestran distintos niveles de prot
 </Steps>
 
 <Check>
-  **Punto de control**
+  **Punto de verificación**
 
   Ahora deberías tener una API de Go protegida. Tu API:
 
-  1. Acepta solicitudes en endpoints públicos sin autenticación
+  1. Acepta solicitudes a endpoints públicos sin autenticación
   2. Rechaza solicitudes a endpoints protegidos sin un token válido
-  3. Valida los tokens JWT con tu dominio de Auth0 y tu audiencia
-  4. Aplica un control de acceso basado en permisos mediante scopes
+  3. Valida tokens JWT con tu dominio de Auth0 y tu audiencia
+  4. Aplica control de acceso basado en permisos mediante scopes
 </Check>
 
 ***
 
 <div id="calling-your-api">
-  ## Cómo llamar a tu API
+  ## Llamar a tu API
 </div>
 
 Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de acceso en el encabezado `Authorization` como token Bearer.
@@ -678,10 +678,10 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
 <Accordion title="Obtener un token de acceso">
   <Tabs>
     <Tab title="Aplicaciones de página única o móviles">
-      Si llamas a la API desde una aplicación de página única o una aplicación móvil/nativa, cuando se complete el flujo de autorización, obtendrás un token de acceso. La forma de obtener el token y de hacer la llamada a la API dependerá del tipo de aplicación que estés desarrollando y del framework que estés usando.
+      Si llamas a la API desde una aplicación de página única o una aplicación móvil/nativa, al completarse el flujo de autorización obtendrás un token de acceso. La forma de obtener el token y de llamar a la API dependerá del tipo de aplicación que estés desarrollando y del framework que estés utilizando.
 
       <CardGroup cols={2}>
-        <Card title="Single-Page Applications" icon="browser" href="/docs/es/quickstart/spa">
+        <Card title="Aplicaciones de página única" icon="browser" href="/docs/es/quickstart/spa">
           Quickstarts de React, Vue y Angular con ejemplos
         </Card>
 
@@ -692,15 +692,15 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
     </Tab>
 
     <Tab title="Máquina a máquina (M2M)">
-      Si llamas a la API desde una herramienta de línea de comandos o desde otro servicio en el que no hay un usuario introduciendo sus credenciales, debes usar el [flujo OAuth de credenciales de cliente](https://auth0.com/docs/api/authentication#client-credentials).
+      Si llamas a la API desde una herramienta de línea de comandos u otro servicio sin que un usuario introduzca sus credenciales, debes usar el [flujo de credenciales de cliente de OAuth](https://auth0.com/docs/api/authentication#client-credentials).
 
       <Steps>
-        <Step title="Registrar aplicación M2M">
+        <Step title="Registrar una aplicación M2M">
           Registra una [aplicación de máquina a máquina](https://manage.auth0.com/#/applications) en tu Auth0 Dashboard.
         </Step>
 
         <Step title="Obtener credenciales">
-          Copia tu **ID de cliente** y tu **secreto de cliente** desde [Application Settings](https://auth0.com/docs/get-started/dashboard/application-settings).
+          Copia tu **ID de cliente** y **secreto de cliente** desde [Application Settings](https://auth0.com/docs/get-started/dashboard/application-settings).
         </Step>
 
         <Step title="Solicitar un token de acceso">
@@ -719,7 +719,7 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
       </Steps>
 
       <Warning>
-        **Reutilización de tokens**: A los clientes de Auth0 se les factura según la cantidad de tokens de acceso de máquina a máquina emitidos. Una vez que tu aplicación obtenga un token de acceso, debe seguir usándolo hasta que caduque para minimizar la cantidad de tokens solicitados.
+        **Reutilización de tokens**: A los clientes de Auth0 se les factura en función de la cantidad de tokens de acceso de máquina a máquina emitidos. Una vez que tu aplicación obtenga un token de acceso, debería seguir usándolo hasta que expire para minimizar la cantidad de tokens solicitados.
       </Warning>
     </Tab>
   </Tabs>
@@ -731,8 +731,8 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
   ## Uso avanzado
 </div>
 
-<Accordion title="Seguridad de DPoP (Proof-of-Possession)">
-  **DPoP (Demonstrating Proof-of-Possession)**, según la RFC 9449, proporciona mayor seguridad al evitar el robo de tokens mediante la vinculación criptográfica a una clave.
+<Accordion title="Seguridad DPoP (Proof-of-Possession)">
+  **DPoP (Demonstrating Proof-of-Possession)**, según la RFC 9449, proporciona mayor seguridad al evitar el robo de tokens mediante la vinculación criptográfica de claves.
 
   ```go internal/auth/middleware.go
   func NewMiddleware(jwtValidator *validator.Validator) *jwtmiddleware.JWTMiddleware {
@@ -746,12 +746,12 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
 
   **Modos de DPoP:**
 
-  * `DPoPAllowed` (predeterminado) — Acepta tanto tokens Bearer como DPoP
+  * `DPoPAllowed` (predeterminado) — Acepta tokens Bearer y DPoP
   * `DPoPRequired` — Solo acepta tokens DPoP; rechaza Bearer
   * `DPoPDisabled` — Solo acepta tokens Bearer; rechaza DPoP
 
   <Note>
-    Se recomienda DPoP para API financieras, API del sector salud y aplicaciones empresariales de alta seguridad. Obtén más información en la [documentación de DPoP](https://github.com/auth0/go-jwt-middleware#dpop-support).
+    Se recomienda DPoP para las API financieras, las API de atención médica y las aplicaciones empresariales de alta seguridad. Obtén más información en la [documentación de DPoP](https://github.com/auth0/go-jwt-middleware#dpop-support).
   </Note>
 </Accordion>
 
@@ -765,7 +765,7 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
   ```go cmd/server/main.go
   import "github.com/rs/cors"
 
-  // Envuelve el mux con middleware de CORS
+  // Wrap the mux with CORS middleware
   handler := cors.New(cors.Options{
       AllowedOrigins:   []string{"http://localhost:3000"},
       AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
@@ -783,7 +783,7 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
 </Accordion>
 
 <Accordion title="Registro estructurado con slog">
-  Habilita un registro detallado para depurar la validación de tokens:
+  Habilita el registro detallado para depurar la validación de tokens:
 
   ```go internal/auth/middleware.go
   middleware := jwtmiddleware.New(
@@ -810,22 +810,22 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
 
 <AccordionGroup>
   <Accordion title="Problemas comunes y soluciones">
-    ### &quot;Failed to validate JWT&quot; o 401 No autorizado
+    ### &quot;Failed to validate JWT&quot; o 401 Unauthorized
 
-    **Problema:** La API no puede encontrar o validar el token de acceso.
+    **Problema:** La API no puede encontrar ni validar el token de acceso.
 
     **Soluciones:**
 
     1. Asegúrate de que el encabezado `Authorization` esté presente: `Authorization: Bearer YOUR_TOKEN`
-    2. Comprueba que &quot;Bearer&quot; aparezca antes del token
+    2. Comprueba que &quot;Bearer&quot; esté incluido antes del token
     3. Verifica que el token no haya expirado
     4. Asegúrate de que estás usando un **token de acceso**, no un token de identidad
 
     ### &quot;aud claim mismatch&quot;
 
-    **Problema:** La audiencia del token no coincide con tu API.
+    **Problema:** La audiencia del token no coincide con la de tu API.
 
-    **Solución:** Verifica que `AUTH0_AUDIENCE` coincida exactamente con el identificador de tu API en el Auth0 Dashboard. La audiencia NO debe tener una barra diagonal al final:
+    **Solución:** Verifica que `AUTH0_AUDIENCE` coincida exactamente con el identificador de tu API en el Auth0 Dashboard. La audiencia NO debe tener una barra diagonal final:
 
     ```bash
     # Correcto
@@ -835,7 +835,7 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
     AUTH0_AUDIENCE=https://my-go-api.example.com/
     ```
 
-    La aplicación cliente también debe solicitar un token con el parámetro de audiencia correcto.
+    La aplicación cliente también debe solicitar un token con el parámetro audience correcto.
 
     ### &quot;unexpected signing method&quot;
 
@@ -845,11 +845,11 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
 
     1. Auth0 usa RS256 de forma predeterminada (asimétrico)
     2. Asegúrate de que tu validador especifique `validator.RS256`
-    3. Nunca uses `validator.HS256` para tokens de Auth0, salvo que se haya configurado específicamente
+    3. Nunca uses `validator.HS256` para tokens de Auth0, a menos que esté configurado específicamente
 
-    ### Endpoint JWKS inaccesible
+    ### endpoint JWKS inaccesible
 
-    **Problema:** El proveedor de caché JWKS no puede alcanzar el endpoint de clave pública de Auth0.
+    **Problema:** El proveedor de almacenamiento en caché de JWKS no puede alcanzar el endpoint de clave pública de Auth0.
 
     **Soluciones:**
 
@@ -871,11 +871,11 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
     import "github.com/auth0/go-jwt-middleware/validator"
     ```
 
-    ### Errores de desfase del reloj / token expirado
+    ### Desfase del reloj / errores de expiración del token
 
-    **Problema:** El reloj del servidor está desincronizado, lo que hace que los tokens válidos parezcan expirados.
+    **Problema:** El reloj del servidor no está sincronizado, lo que hace que tokens válidos parezcan expirados.
 
-    **Solución:** El validador ya incluye una tolerancia de 30 s para el desfase del reloj. Si necesitas más, ajústala así:
+    **Solución:** El validador ya incluye una tolerancia de 30 s para el desfase del reloj. Si necesitas más, ajústala:
 
     ```go
     validator.WithAllowedClockSkew(60*time.Second)
@@ -885,7 +885,7 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
 
     **Problema:** `Failed to retrieve claims` al usar genéricos.
 
-    **Solución:** Asegúrate de estar usando el parámetro de tipo correcto:
+    **Solución:** Asegúrate de que estás usando el parámetro de tipo correcto:
 
     ```go
     claims, err := jwtmiddleware.GetClaims[*validator.ValidatedClaims](r.Context())
@@ -901,8 +901,8 @@ Puedes llamar a tu API protegida desde cualquier aplicación pasando un token de
 
 Ahora que tienes una API protegida, puedes explorar:
 
-* **[Control de acceso basado en roles](https://auth0.com/docs/manage-users/access-control/rbac)** — Implementa permisos granulares
-* **[Prácticas recomendadas para tokens de acceso](https://auth0.com/docs/secure/tokens/access-tokens)** — Aprende sobre la seguridad de los tokens
+* **[Control de acceso basado en roles](https://auth0.com/docs/manage-users/access-control/rbac)** — Implementa permisos específicos
+* **[Prácticas recomendadas para los tokens de acceso](https://auth0.com/docs/secure/tokens/access-tokens)** — Aprende sobre la seguridad de los tokens
 * **[Monitorea tu API](https://auth0.com/docs/deploy-monitor/logs)** — Configura el registro y el monitoreo
 * **[Verificaciones de preparación para producción](https://auth0.com/docs/deploy-monitor/pre-deployment-checks/production-checks-best-practices)** — Revisión de seguridad previa al lanzamiento
 
@@ -912,6 +912,6 @@ Ahora que tienes una API protegida, puedes explorar:
   ## Recursos
 </div>
 
-* **[go-jwt-middleware GitHub](https://github.com/auth0/go-jwt-middleware)** — Código fuente, ejemplos y compatibilidad con DPoP
+* **[go-jwt-middleware GitHub](https://github.com/auth0/go-jwt-middleware)** — Código fuente, ejemplos y soporte para DPoP
 * **[Go API Sample](https://github.com/auth0-samples/auth0-golang-api-samples)** — Ejemplo completo y funcional
-* **[Auth0 Community](https://community.auth0.com/)** — Obtén ayuda de la comunidad
+* **[Auth0 Community](https://community.auth0.com/)** — Recibe ayuda de la comunidad

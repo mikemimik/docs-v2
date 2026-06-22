@@ -1,34 +1,34 @@
 ---
-description: Aprende a migrar el código existente de Auth0 Hooks a Auth0 Actions.
+description: Aprende a migrar tu código existente de Auth0 Hooks a Auth0 Actions.
 title: Migrar de Hooks a Actions
 ---
 
-Al convertir los Hooks existentes en Actions, debes asociar la nueva Action al trigger correspondiente al tipo de Hook. Si sigues los pasos que se indican a continuación y usas las correspondencias que se identifican en ellos, la funcionalidad debería ser idéntica.
+Al convertir Hooks existentes en Actions, debes asociar la nueva Action con el trigger correspondiente al tipo de Hook. Si sigues los pasos que se indican a continuación y utilizas los mapeos que identificamos en ellos, la funcionalidad debería ser idéntica.
 
 <div id="plan-your-migration">
   ## Planifica tu migración
 </div>
 
-Las Actions implementadas se ejecutan después de los Hooks activos, por lo que puedes convertir los Hooks uno por uno en el Dashboard o todos a la vez mediante la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
+Las Actions desplegadas se ejecutan después de los Hooks activos, así que puedes convertir los Hooks uno por uno en el Dashboard o todos a la vez mediante la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
 
-Tendrás que convertir el código y luego activar la Action y desactivar el Hook. Activar la Action y desactivar el Hook puede hacerse rápidamente, uno a continuación del otro, pero, según el orden, podría haber un breve período en el que se estén ejecutando ambos o ninguno.
+Tendrás que convertir el código y luego activar la Action y desactivar el Hook. Activar la Action y desactivar el Hook puede hacerse rápidamente de forma consecutiva, pero, según el orden, podría haber un breve período en el que se estén ejecutando ambos o ninguno.
 
-Por eso, te recomendamos migrar tu flujo paso a paso: convierte partes del código de tus Hooks en código de Action, pruébalas en un entorno de staging y luego pásalas a producción una por una. Como los Hooks activos se ejecutan antes que las Actions implementadas, puedes mantener parte de la lógica en Hooks mientras desarrollas y pruebas otra lógica en Actions.
+Por eso, te recomendamos migrar tu pipeline paso a paso: convierte partes del código de tus Hooks en código de Action, haz pruebas en un entorno de preproducción y luego pon en producción una parte cada vez. Como los Hooks activos se ejecutan antes que las Actions desplegadas, puedes mantener parte de la lógica en Hooks mientras desarrollas y pruebas otra lógica en Actions.
 
 <Card title="Consejos para planificar tu migración">
-  * Usa banderas para evitar duplicar operaciones costosas o de ejecución única.
+  * Usa indicadores para evitar duplicar operaciones costosas o que solo deben ejecutarse una vez.
   * Asegúrate de aplicar los cambios en un momento en que el impacto y el tráfico sean mínimos.
   * Considera usar [Auth0 Deploy CLI](/docs/es/deploy-monitor/deploy-cli-tool) para crear scripts, probar e implementar rápidamente la migración de una sola vez o de forma iterativa.
 </Card>
 
 <div id="understand-limitations">
-  ## Comprender las limitaciones
+  ## Comprende las limitaciones
 </div>
 
-Aunque Actions puede hacer casi todo lo que puede hacer Hooks, debes tener en cuenta algunas limitaciones antes de comenzar la migración. (Recuerda: puedes tener Hooks y Actions ejecutándose al mismo tiempo mientras migras).
+Aunque Actions puede encargarse de casi todo lo que Hooks puede hacer, debes tener en cuenta algunas limitaciones antes de comenzar la migración. (Recuerda: durante la migración, puedes tener Hooks y Actions ejecutándose al mismo tiempo.)
 
-* Actions no puede conservar datos, como <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> o respuestas de API, entre ejecuciones.
-* Actions no cuenta con [un token de acceso para la Management API](/docs/es/customize/rules/use-management-api) ni con [acceso al objeto global `auth0`](/docs/es/customize/actions/action-coding-guidelines#global-object), como ocurre con Hooks.
+* Actions no puede conservar datos, como <Tooltip tip="Token de acceso: Credencial de Authorization, en forma de cadena opaca o JWT, que se usa para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> o respuestas de la API, entre ejecuciones.
+* Actions no proporciona [un token de acceso para la Management API](/docs/es/customize/rules/use-management-api) ni [acceso al objeto global `auth0`](/docs/es/customize/actions/action-coding-guidelines#global-object), como sí ocurre en Hooks.
 
 Para ver la lista completa de limitaciones, consulta [Actions Limitations](/docs/es/customize/actions/limitations).
 
@@ -36,56 +36,56 @@ Para ver la lista completa de limitaciones, consulta [Actions Limitations](/docs
   ## Convertir código
 </div>
 
-Para convertir un Hook en una Action, debes reemplazar el código específico de Hooks por código de Actions. En esta sección se describen las tareas que deberás realizar para convertir un Hook funcional en su Action equivalente.
+Para convertir un Hook en una Action, debe sustituir el código específico de Hooks por código de Actions. En esta sección se describen las tareas que deberá realizar para convertir un Hook funcional en su Action equivalente.
 
 <Card title="Consejos para convertir código">
-  * Por lo general, busca en el objeto `event` de Actions las propiedades de solo lectura de los objetos que se pasan a la función de Hooks.
-  * Usa el Actions Code Editor en el Auth0 Dashboard para escribir tu código; te ayudará resaltando errores y ofreciendo sugerencias de autocompletado.
-  * Antes de pasar a producción, [prueba exhaustivamente tus nuevas Actions](/docs/es/customize/actions/test-actions) en un [entorno de staging o de prueba](/docs/es/get-started/auth0-overview/create-tenants/set-up-multiple-environments).
+  * En general, busque las propiedades de solo lectura de los objetos que se pasan a la función de Hooks en el objeto `event` de Actions.
+  * Use el Actions Code Editor en el Auth0 Dashboard para escribir su código; le ayudará resaltando errores y ofreciendo sugerencias de autocompletado.
+  * Antes de pasar a producción, [pruebe exhaustivamente sus nuevas Actions](/docs/es/customize/actions/test-actions) en un [entorno de preproducción o de pruebas](/docs/es/get-started/auth0-overview/create-tenants/set-up-multiple-environments).
 </Card>
 
 <div id="copy-hook-code-to-a-new-action">
-  ### Copia el código del Hook en una nueva Action
+  ### Copie el código del Hook en una Action nueva
 </div>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Te recomendamos copiar el código de tu Hook en una nueva Action y usar el Actions Code Editor en el Auth0 Dashboard; te ayudará a identificar los problemas pendientes en tu código.
+  Le recomendamos copiar el código de su Hook en una Action nueva y usar el Actions Code Editor en el Auth0 Dashboard; esto le ayudará a identificar los problemas pendientes en su código.
 </Callout>
 
-1. Inicia sesión en tu tenant de producción y copia el código del Hook que quieres convertir.
-2. Cambia a un tenant que no sea de producción y ve a [Auth0 Dashboard &gt; Actions &gt; Library](https://manage.auth0.com/#/select-tenant?path=/actions/library).
-3. Selecciona **Build Custom** y, a continuación:
+1. Inicie sesión en su tenant de producción y copie el código del Hook que desea convertir.
+2. Cambie a un tenant no productivo y vaya a [Auth0 Dashboard &gt; Actions &gt; Library](https://manage.auth0.com/#/select-tenant?path=/actions/library).
+3. Seleccione **Build Custom** y, a continuación:
 
-   * Introduce un **Name** para tu Action que coincida con el nombre del Hook que estás convirtiendo.
+   * Introduzca un **Name** para su Action que coincida con el nombre del Hook que está convirtiendo.
 
-   * Busca **Trigger** y selecciona el trigger adecuado**:**
+   * Busque **Trigger** y seleccione el trigger adecuado**:**
 
      | Tipo de Hook                           | Trigger de Actions     |
      | -------------------------------------- | ---------------------- |
      | Intercambio de credenciales de cliente | M2M/Client-Credentials |
-     | Pre-User-Registration                  | Pre User Registration  |
-     | Post-User-Registration                 | Post User Registration |
-     | Post-Change-Password                   | Post Change Password   |
-     | Enviar mensaje telefónico              | Enviar mensaje telefónico     |
+     | Registro previo de usuario             | Pre User Registration  |
+     | Registro posterior de usuario          | Post User Registration |
+     | Posterior al cambio de contraseña      | Post Change Password   |
+     | Enviar mensaje telefónico              | Send Phone Message     |
 
-   * Busca **Runtime** y selecciona **Node 18.**
+   * Busque **Runtime** y seleccione **Node 18.**
 
-   * Selecciona **Create**.
-4. En el bloque de código del Actions Code Editor, pega debajo de la función exportada el código del Hook que quieres convertir.
-5. Haz los cambios que se detallan en el resto de este artículo a medida que mueves el código a la función.
-   También deberías leer sobre el objeto `event` asociado al nuevo trigger de Actions; verás enlaces a la documentación correspondiente cuando llegues más adelante en esta guía a la sección [Cambiar cómo se accede a los datos](#change-how-data-is-accessed).
+   * Seleccione **Create**.
+4. En el bloque de código del Actions Code Editor, pegue debajo de la función exportada el código del Hook que desea convertir.
+5. Realice los cambios detallados en el resto de este artículo a medida que traslada el código a la función.
+   También debería leer sobre el objeto `event` asociado al nuevo trigger de Actions; verá enlaces a la documentación correspondiente cuando llegue más adelante, en esta guía, a la sección [Cambie la forma de acceder a los datos](#change-how-data-is-accessed).
 
 <div id="change-the-function-declaration">
-  ### Cambia la declaración de la función
+  ### Cambiar la declaración de la función
 </div>
 
-Las funciones de Hooks se exportan mediante una exportación por defecto, mientras que las funciones de Actions usan exportaciones con nombre. Según el tipo de Hook que estés convirtiendo, cambiará la exportación con nombre. Las correspondencias son:
+Las funciones de Hooks se exportan mediante una exportación por defecto, mientras que las funciones de Actions usan exportaciones con nombre. Según el tipo de Hook que esté convirtiendo, la exportación con nombre cambiará. Los mapeos incluyen:
 
-| Type of Hook                           | Named Export                    |
+| Tipo de Hook                           | Exportación con nombre          |
 | -------------------------------------- | ------------------------------- |
 | Intercambio de credenciales de cliente | `onExecuteCredentialsExchange`  |
-| Registro previo del usuario            | `onExecutePreUserRegistration`  |
-| Registro posterior del usuario         | `onExecutePostUserRegistration` |
+| Pre-User Registration                  | `onExecutePreUserRegistration`  |
+| Post-User Registration                 | `onExecutePostUserRegistration` |
 | Posterior al cambio de contraseña      | `onExecutePostChangePassword`   |
 | Enviar mensaje telefónico              | `onExecuteSendPhoneMessage`     |
 
@@ -115,30 +115,30 @@ exports.onExecuteSendPhoneMessage = async (event) => {}
 ```
 
 <div id="convert-dependencies">
-  ### Convertir dependencias
+  ### Convertir las dependencias
 </div>
 
-Hooks y Actions gestionan las dependencias de forma similar. En ambos casos, las dependencias se agregan por separado a través de la interfaz de usuario o de la Management API y se incluyen en el código. Además, en ambos casos, puedes usar `require` con cualquier paquete disponible en el registro de `npm`.
+Hooks y Actions gestionan las dependencias de forma similar. En ambos casos, las dependencias se agregan por separado mediante la UI o la Management API y se incluyen en el código. Además, en ambos casos, puedes usar cualquier paquete disponible en el `npm` registry.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Si tus módulos de `npm` no están en la versión más reciente, ¡este es un excelente momento para actualizarlos!
+  Si tus módulos de `npm` no están en la versión más reciente, ¡este es un buen momento para actualizarlos!
 </Callout>
 
-1. Busca sentencias `require` dentro del código de tu Hook.
-2. Elimina los números de versión, pero toma nota de ellos.
+1. Busca instrucciones `require` dentro del código de tu Hook.
+2. Elimina los números de versión, pero anótalos.
 3. Agrega la dependencia siguiendo los pasos de la sección &quot;Add a Dependency&quot; de [Write Your First Action](/docs/es/customize/actions/write-your-first-action) (si la dependencia no es un [módulo principal de NodeJS](https://github.com/nodejs/node/tree/master/lib); si la dependencia es un módulo principal de NodeJS, no necesitas incluirla).
-4. Mueve las sentencias `require` que encontraste fuera de la declaración `function`.
+4. Mueve las instrucciones `require` que encontraste fuera de la declaración de `function`.
 
 <div id="convert-secrets">
   ### Convertir secrets
 </div>
 
-Hooks y Actions manejan los secrets de forma similar. En ambos casos, los Secrets se agregan por Hook/Action mediante la UI o la Management API y se incluyen en el código.
+Hooks y Actions gestionan los secrets de forma similar. En ambos casos, los Secrets se agregan por Hook/Action a través de la UI o de Management API y se incluyen en el código.
 
 Para convertir secrets de Hooks a Actions:
 
 1. Guarda los valores necesarios para la Action específica en la que estás trabajando.
-2. Agrega un Secret por cada valor al que necesites acceder desde dentro de la Action. Para obtener más información, consulta la sección **Add a Secret** en [Write Your First Action](/docs/es/customize/actions/write-your-first-action).
+2. Agrega un Secret para cada valor al que necesites acceder desde la Action. Para saber cómo hacerlo, consulta la sección **Add a Secret** en [Write Your First Action](/docs/es/customize/actions/write-your-first-action).
 3. Convierte tu código:
 
 **Antes**
@@ -161,21 +161,21 @@ async (event, api) => {
 };
 ```
 
-Al igual que con Hooks, Auth0 cifra en reposo todos los valores de los secretos.
+Al igual que con Hooks, Auth0 cifra todos los valores secretos en reposo.
 
 <div id="change-how-data-is-accessed">
-  ### Cambie la forma de acceder a los datos
+  ### Cambiar cómo se accede a los datos
 </div>
 
-Con Hooks, los datos del usuario, del cliente, de la solicitud y otros datos contextuales se almacenan en varios argumentos que se pasan a la función Hook. En Actions, estos datos se han reorganizado y trasladado al objeto `event`. Muchas de las propiedades se trasladaron tal cual, pero algunas se han combinado para que sean más claras.
+Con Hooks, la información del usuario, el cliente, la solicitud y otros datos de contexto se almacena en varios argumentos que se pasan a la función del Hook. En Actions, estos datos se han reorganizado y trasladado al objeto `event`. Muchas de las propiedades se trasladaron sin cambios, pero algunas se han combinado para aportar mayor claridad.
 
-Según el tipo de Hook que estés convirtiendo, el objeto `event` cambiará:
+Según el tipo de Hook que esté convirtiendo, el objeto `event` cambiará:
 
-* [Intercambio de credenciales de cliente - Objeto de evento de Actions](/docs/es/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-event-object)
-* [Posterior al cambio de contraseña - Objeto de evento de Actions](/docs/es/customize/actions/explore-triggers/password-reset-triggers/post-change-password-trigger/post-change-password-event-object)
-* [Después del registro de usuario - Objeto de evento de Actions](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/post-user-registration-trigger/post-user-registration-event-object)
-* [Antes del registro de usuario - Objeto de evento de Actions](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-event-object)
-* [Enviar mensaje telefónico - Objeto de evento de Actions](/docs/es/customize/actions/explore-triggers/mfa-notifications-trigger/send-phone-message-event-object)
+* [Intercambio de credenciales de cliente - Objeto `event` de Actions](/docs/es/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-event-object)
+* [Posterior al cambio de contraseña - Objeto `event` de Actions](/docs/es/customize/actions/explore-triggers/password-reset-triggers/post-change-password-trigger/post-change-password-event-object)
+* [Post-User Registration - Objeto `event` de Actions](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/post-user-registration-trigger/post-user-registration-event-object)
+* [Registro previo de usuario - Objeto `event` de Actions](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-event-object)
+* [Enviar mensaje telefónico - Objeto `event` de Actions](/docs/es/customize/actions/explore-triggers/mfa-notifications-trigger/send-phone-message-event-object)
 
 **Antes**
 
@@ -200,25 +200,25 @@ async (event, api) => {
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  A diferencia del objeto `context` de Hooks, los datos almacenados o modificados en las propiedades del objeto `event` no se conservan en las Actions posteriores. Si tu Hook establece datos en estas propiedades para activar la funcionalidad principal, tendrás que usar la interfaz `api`, disponible en los Flows de Actions [Máquina a máquina](/docs/es/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object) y [Registro previo de usuario](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-api-object), para conservar los datos entre Actions.
+  A diferencia del objeto `context` de Hooks, los datos almacenados o modificados en las propiedades del objeto `event` no persisten en Actions posteriores. Si tu Hook asigna datos a estas propiedades para activar funcionalidades principales, tendrás que usar la interfaz `api` disponible en los Flows de Actions de [máquina a máquina](/docs/es/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object) y [Registro previo de usuario](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-api-object) para conservar los datos entre Actions.
 </Callout>
 
 <div id="convert-callbacks">
   ### Convertir callbacks
 </div>
 
-Cuando un Hook termina de procesarse, debe llamar a la función `callback()` para completar su ejecución. En cambio, Actions no usa un mecanismo de callback; por lo tanto, deberá eliminar todas las instancias de `callback()` de la función de Actions.
+Cuando un Hook termina de procesarse, debe llamar a la función `callback()` para completar su ejecución. En cambio, Actions no usa un mecanismo de callback; por lo tanto, deberá eliminar todas las instancias de `callback()` de su función de Actions.
 
-Si antes usaba la función `callback()` en un Hook de Intercambio de credenciales de cliente o Registro previo de usuario para rechazar la solicitud o actualizar a un usuario, podrá seguir haciéndolo en Actions mediante una nueva interfaz `api`.
+Si antes usaba la función `callback()` en un Hook de Intercambio de credenciales de cliente o de Registro previo de usuario para hacer fallar la solicitud o actualizar un usuario, podrá seguir haciéndolo en Actions mediante una nueva interfaz `api`.
 
 <div id="client-credentials-exchange">
   #### Intercambio de credenciales de cliente
 </div>
 
-Si agregabas claims adicionales al token de acceso en un Hook de Intercambio de Credenciales de Cliente:
+Si añadías claims adicionales al token de acceso en un Hook de Intercambio de credenciales de cliente:
 
 ```javascript lines
-// Hook de intercambio de credenciales de cliente
+// Intercambio de credenciales de cliente Hook
 module.exports = function(client, scope, audience, context, cb) {
   var access_token = {};
   access_token.scope = scope;
@@ -228,10 +228,10 @@ module.exports = function(client, scope, audience, context, cb) {
 };
 ```
 
-Ahora puedes usar el [objeto de API para el intercambio de credenciales de cliente de Actions](/docs/es/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object):
+Ahora puedes usar el [objeto de API de Intercambio de credenciales de cliente de Actions](/docs/es/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object):
 
 ```javascript lines
-// Action de intercambio de credenciales de cliente
+// Action de Intercambio de credenciales de cliente
 exports.onExecuteCredentialsExchange = async (event, api) => {
   api.accessToken.setCustomClaim("https://example.com/claim", 'bar');  
 };
@@ -241,10 +241,10 @@ exports.onExecuteCredentialsExchange = async (event, api) => {
   #### Registro previo de usuario
 </div>
 
-Si estabas agregando `claims` adicionales al token de acceso en un Hook de registro previo de usuario:
+Si agregabas claims adicionales al token de acceso en un Hook de Registro previo de usuario:
 
 ```javascript lines
-// Hook de Pre User Registration
+// Hook de registro previo de usuario
 module.exports = function (user, context, cb) {
 	if (user.app_metadata.condition === "success") {
       var response = {};
@@ -262,13 +262,13 @@ module.exports = function (user, context, cb) {
 };
 ```
 
-Ahora puede usar el [objeto de API de prerregistro de usuario](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-api-object):
+Ahora ya puede usar el [objeto de API de Registro previo de usuario](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger/pre-user-registration-api-object):
 
 ```javascript lines
-// Action de Pre User Registration
+// Action de Registro previo de usuario
 exports.onExecutePreUserRegistration = async (event, api) => {
 	if (event.user.app_metadata.condition === "success") {
-		// Este Action se ejecutó correctamente, continuar con el siguiente Action.
+		// Este Action se completó correctamente, continuar con el siguiente Action.
 		api.user.setUserMetadata("favorite_color", "purple");
 		return;
 	}
@@ -286,4 +286,4 @@ exports.onExecutePreUserRegistration = async (event, api) => {
   ## Completa la migración
 </div>
 
-Una vez que hayas escrito y probado el nuevo código en Actions, debes activar la Action y desactivar el Hook. Estas dos tareas pueden realizarse rápidamente una tras otra, pero, según el orden, podría haber un breve período en el que estén ejecutándose ambos o ninguno de los dos. Como los Hooks activos se ejecutan antes que las Actions implementadas, puedes mantener parte de la lógica en Rules mientras desarrollas y pruebas otra lógica en Actions.
+Una vez que hayas escrito y probado el nuevo código de Actions, debes activar la Action y desactivar el Hook. Estas dos tareas pueden realizarse rápidamente una tras otra, pero, según el orden, podría haber un breve período de tiempo en el que estén en ejecución ambas o ninguna de las dos. Como los Hooks activos se ejecutan antes que las Actions desplegadas, puedes mantener parte de la lógica en Rules mientras desarrollas y pruebas otra lógica en Actions.

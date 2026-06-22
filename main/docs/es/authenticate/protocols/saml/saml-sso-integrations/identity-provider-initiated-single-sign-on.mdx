@@ -1,59 +1,59 @@
 ---
-description: Describe cómo configurar el inicio de sesión único (SSO) iniciado desde el proveedor de identidad SAML.
-title: Configurar el inicio de sesión único iniciado desde el proveedor de identidad SAML
+description: Describe cómo configurar el inicio de sesión único (SSO) iniciado por el proveedor de identidad SAML.
+title: Configurar el inicio de sesión único iniciado por el proveedor de identidad SAML
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
-Muchas instrucciones para configurar una federación de <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip> comienzan con el <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin contraseña." cta="Ver glosario" href="/docs/es/glossary?term=Single+Sign-on">inicio de sesión único</Tooltip> (SSO) iniciado por el proveedor de servicios. El proveedor de servicios redirige al usuario al <Tooltip tip="Single Sign-On (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, lo inicia automáticamente en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=identity+provider">proveedor de identidad</Tooltip> (IdP) para fines de autenticación. Este proceso se usa habitualmente en escenarios dirigidos al consumidor.
+Muchas instrucciones para configurar una federación de <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip> comienzan con <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=Single+Sign-on">inicio de sesión único</Tooltip> (SSO) iniciado por el proveedor de servicios. El proveedor de servicios redirige al usuario al <Tooltip tip="Single Sign-On (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=identity+provider">proveedor de identidad</Tooltip> (IdP) con fines de autenticación. Este proceso se usa habitualmente en escenarios de cara al consumidor.
 
-Sin embargo, en escenarios empresariales, a veces es más habitual que el SSO lo inicie el IdP en lugar del proveedor de servicios. Por ejemplo, una empresa puede configurar un portal para asegurarse de que los usuarios accedan a la aplicación correcta después de iniciar sesión en el portal.
+Sin embargo, en escenarios empresariales, también es habitual que sea el IdP quien inicie el SSO en lugar del proveedor de servicios. Por ejemplo, una empresa podría configurar un portal para garantizar que los usuarios accedan a la aplicación correcta después de iniciar sesión en el portal.
 
 <div id="risks-and-considerations">
   ## Riesgos y consideraciones
 </div>
 
-Los flujos iniciados por el IdP conllevan un riesgo de seguridad y, por lo tanto, no se recomiendan. Se recomienda usar flujos SP-Initiated siempre que sea posible.
+Los flujos IdP-Initiated suponen un riesgo de seguridad y, por lo tanto, no se recomiendan. Se recomienda usar flujos SP-Initiated siempre que sea posible.
 
-Asegúrese de comprender los riesgos antes de habilitar SSO iniciado por el IdP. En este escenario, Auth0 recibe la respuesta no solicitada del IdP y la aplicación recibe la respuesta no solicitada de Auth0. Ninguna de las dos entidades puede verificar que el usuario haya iniciado el flujo. Por ello, habilitar este flujo abre la posibilidad de un ataque de [Login CSRF](https://support.detectify.com/support/solutions/articles/48001048951-login-csrf), en el que un atacante puede hacer que un usuario legítimo inicie sesión en la aplicación sin saberlo con la identidad del atacante.
+Asegúrese de comprender los riesgos antes de habilitar IdP-Initiated SSO. En este escenario, Auth0 recibe la respuesta no solicitada del IdP y la aplicación recibe la respuesta no solicitada de Auth0. Ninguna de las dos entidades puede verificar que el usuario haya iniciado el flujo. Por ello, habilitar este flujo abre la posibilidad de un [ataque de Login CSRF](https://support.detectify.com/support/solutions/articles/48001048951-login-csrf), en el que un atacante puede engañar a un usuario legítimo para que, sin saberlo, inicie sesión en la aplicación con la identidad del atacante.
 
 <div id="openid-connect-idp-initiated-flow">
-  ### Flujo de OpenID Connect iniciado por el IdP
+  ### Flujo iniciado por IdP de OpenID Connect
 </div>
 
-<Tooltip tip="OpenID: estándar abierto de autenticación que permite a las aplicaciones verificar la identidad de los usuarios sin recopilar ni almacenar información de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) no admite el concepto de un flujo iniciado por el IdP. Por lo tanto, aunque Auth0 ofrece la posibilidad de convertir un flujo SAML iniciado por el IdP (desde una conexión SAML) en una respuesta OIDC para una aplicación, cualquier aplicación que implemente correctamente el protocolo OIDC/OAuth2 rechazará una respuesta no solicitada.
+<Tooltip tip="OpenID: Estándar abierto de autenticación que permite a las aplicaciones verificar la identidad de los usuarios sin recopilar ni almacenar información de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) no admite el concepto de un flujo IdP-Initiated. Por eso, aunque Auth0 ofrece la posibilidad de transformar un flujo SAML IdP-Initiated (desde una conexión SAML) en una respuesta OIDC para una aplicación, cualquier aplicación que implemente correctamente el protocolo OIDC/OAuth2 rechazará una respuesta no solicitada.
 
-Al usar aplicaciones OIDC, la mejor opción es que tu aplicación cree un endpoint de login. El único propósito de este endpoint es iniciar la redirección de vuelta al IdP (tu tenant de Auth0).
+Si usa aplicaciones OIDC, la mejor opción es que su aplicación cree un endpoint de inicio de sesión. El único propósito de este endpoint es iniciar la redirección de regreso al IdP (su tenant de Auth0).
 
-Si usas varios IdP, asegúrate de que el endpoint de login sea específico para el proveedor de identidad o de que pueda aceptar un parámetro para identificar qué IdP inicia el flujo.
+Si usa varios IdP, asegúrese de que el endpoint de inicio de sesión sea específico para el proveedor de identidad o pueda aceptar un parámetro para identificar qué IdP inicia el flujo.
 
-Como alternativa, los usuarios pueden iniciar el flujo de login desde la aplicación.
+Como alternativa, puede hacer que los usuarios inicien el flujo de login desde la aplicación.
 
 <div id="post-back-url">
   ### URL de retorno
 </div>
 
-Al usar SSO iniciado por el IdP, asegúrate de incluir el parámetro de conexión en la URL de retorno:
+Cuando uses IdP-Initiated SSO, asegúrate de incluir el parámetro de conexión en la URL de retorno:
 
 export const codeExample1 = `https://{yourDomain}/login/callback?connection={yourConnectionName}`;
 
 <AuthCodeBlock children={codeExample1} language="http" />
 
-Si usa la funcionalidad [Organizations](/docs/es/manage-users/organizations), también puede incluir opcionalmente un parámetro de organización que contenga el ID de la organización deseada:
+Si utiliza la funcionalidad [Organizations](/docs/es/manage-users/organizations), opcionalmente puede incluir un parámetro organization que contenga el ID de la organización deseada:
 
 export const codeExample2 = `https://{yourDomain}/login/callback?connection={yourConnectionName}&organization={yourCustomersOrganizationId}`;
 
 <AuthCodeBlock children={codeExample2} language="http" />
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Para que los usuarios puedan iniciar sesión correctamente con este método, la conexión debe estar habilitada para la organización. Además, debes configurar la [membresía automática](/docs/es/manage-users/organizations/configure-organizations/grant-just-in-time-membership) para la conexión habilitada o asegurarte de que los usuarios sean miembros de la organización.
+  Para que los usuarios puedan iniciar sesión correctamente con este método, la conexión debe estar habilitada para la organización. Además, debe configurar la [membresía automática](/docs/es/manage-users/organizations/configure-organizations/grant-just-in-time-membership) en la conexión habilitada o asegurarse de que los usuarios pertenezcan a la organización.
 </Callout>
 
 <div id="lockauth0js">
   ### Lock/Auth0.js
 </div>
 
-Si tu aplicación es una aplicación de página única que usa Lock o Auth0.js para procesar los resultados de la autenticación, debes indicar explícitamente que quieres permitir flujos iniciados por el IdP y, por lo tanto, exponer la aplicación a posibles ataques de Login CSRF.
+Si tu aplicación es una aplicación de página única que usa Lock o Auth0.js para procesar los resultados de la autenticación, debes indicar explícitamente que quieres permitir los flujos IdP-Initiated y, por lo tanto, exponer la aplicación a posibles ataques de Login CSRF.
 
 Si usas Auth0.js, debes actualizar `webAuth.parseHash` de la biblioteca y establecer el indicador `__enableIdPInitiatedLogin` en `true`.
 
@@ -70,45 +70,45 @@ Si usas Lock, puedes incluir el indicador mediante el parámetro options que se 
 
 `const lock = new Auth0Lock(clientID, domain, options)`
 
-Este es el indicador en sí:
+Este es el indicador:
 
 `var options = { _enableIdPInitiatedLogin: true };`
 
-Ten en cuenta que el indicador `enableIdPInitiatedLogin` lleva un guion bajo delante cuando se usa con Lock y dos guiones bajos cuando se usa con la biblioteca auth0.js.
+Ten en cuenta que el indicador `enableIdPInitiatedLogin` va precedido de un guion bajo cuando se usa con Lock y de dos guiones bajos cuando se usa con la biblioteca auth0.js.
 
 <div id="set-up-idp-initiated-sso">
-  ## Configurar SSO iniciado por el IdP
+  ## Configura el SSO iniciado por IdP
 </div>
 
-1. Ve a [Dashboard &gt; Authentication &gt; Enterprise](https://manage.auth0.com/#/connections/enterprise) y elige **SAMLP Identity Provider**.
-2. En **Settings** puedes ver la configuración de SSO iniciado por el IdP.
+1. Ve a [Dashboard &gt; Authentication &gt; empresarial](https://manage.auth0.com/#/connections/enterprise) y elige **SAMLP Identity Provider**.
+2. En **Settings** puedes ver la configuración del SSO iniciado por IdP.
 
-   <Frame>![Pantalla de configuración de Protocols IdP-initiated SSO](/docs/images/cdy7uua7fh8z/1HORCAp4fZQg0BOoIopvoS/0009d4b5f405c2436af5729d52a3867d/2025-01-28_13-47-26.png)</Frame>
+   <Frame>![Pantalla de configuración de Protocols para SSO iniciado por IdP](/docs/images/cdy7uua7fh8z/1HORCAp4fZQg0BOoIopvoS/0009d4b5f405c2436af5729d52a3867d/2025-01-28_13-47-26.png)</Frame>
 
-* **IdP-initiated SSO Behavior**: Esta opción te permite habilitar inicios de sesión iniciados por el IdP para la conexión SAML. Selecciona **Accept Requests** y completa todos los campos obligatorios.
-* **aplicación predeterminada:** Cuando el inicio de sesión iniciado por el IdP se completa correctamente, esta es la aplicación a la que se redirige a los usuarios. Esta configuración muestra las aplicaciones disponibles habilitadas para esta conexión. Selecciona en la lista desplegable la aplicación con la que quieres que los usuarios inicien sesión mediante el IdP. Solo se puede seleccionar una aplicación para un inicio de sesión iniciado por el IdP por cada conexión SAML.
-* **Response Protocol:** Este es el protocolo que se usa para conectar tu **aplicación predeterminada** seleccionada. Lo más habitual es que las aplicaciones estén configuradas con el protocolo OpenID Connect (consulta más arriba). Sin embargo, si has configurado el addon **SAML2 Web App** para tu aplicación y quieres enrutar la aserción SAML, tendrás que seleccionar SAML. Una vez que se haya enviado una SAML assertion válida a la URL de postback, Auth0 envía una respuesta de inicio de sesión a la primera URL de devolución de llamada permitida de la aplicación predeterminada configurada mediante el protocolo de respuesta elegido, que puede modificarse usando el campo de query string para especificar un `redirect_uri` si usas OIDC.
-  * Si la URL de devolución de llamada configurada para la aplicación incluye un marcador de posición de múltiples dominios personalizados (MCD), el sistema lo rellena dinámicamente con el valor de metadata correspondiente al dominio personalizado de la URL de postback que recibió la solicitud inicial del IdP. Para obtener más información, consulta [Multiple Custom Domains](/docs/es/customize/custom-domains/multiple-custom-domains).
-* **Query String:** Las opciones de query string ayudan a personalizar el comportamiento cuando se usa el protocolo OpenID Connect. Puedes establecer varias opciones, de forma similar a cuando defines parámetros con una [query string](https://en.wikipedia.org/wiki/Query_string). Puedes establecer:
+* **Comportamiento del SSO iniciado por IdP**: Esta opción te permite habilitar el inicio de sesión iniciado por IdP para la conexión SAML. Selecciona **Accept Requests** y completa todos los campos obligatorios.
+* **Aplicación predeterminada:** Cuando el inicio de sesión iniciado por IdP se completa correctamente, esta es la aplicación a la que se redirige a los usuarios. Esta configuración muestra las aplicaciones disponibles habilitadas para esta conexión. Selecciona en la lista desplegable la aplicación con la que quieres que los usuarios inicien sesión mediante IdP. Solo se puede seleccionar una aplicación para un inicio de sesión iniciado por IdP por cada conexión SAML.
+* **Protocolo de respuesta:** Este es el protocolo que se utiliza para conectar la **Aplicación predeterminada** seleccionada. Lo más habitual es que las aplicaciones estén configuradas con el protocolo OpenID Connect (consulta arriba). Sin embargo, si has configurado el addon SAML2 Web App para tu aplicación y quieres enrutar la aserción SAML, tendrás que seleccionar SAML. Una vez que se haya enviado una aserción SAML válida a la URL de retorno, Auth0 envía una respuesta de inicio de sesión a la primera URL de devolución de llamada permitida de la aplicación predeterminada configurada mediante el protocolo de respuesta elegido, que puede modificarse con el campo de cadena de consulta para especificar un `redirect_uri` si usas OIDC.
+  * Si la URL de devolución de llamada configurada para la aplicación incluye un marcador de posición de múltiples dominios personalizados (MCD), el sistema lo rellena dinámicamente con el valor de metadata que corresponde al dominio personalizado de la URL de retorno que recibió la solicitud inicial del IdP. Para obtener más información, consulta [Multiple Custom Domains](/docs/es/customize/custom-domains/multiple-custom-domains).
+* **Cadena de consulta:** Las opciones de la cadena de consulta ayudan a personalizar el comportamiento cuando se usa el protocolo OpenID Connect. Puedes establecer varias opciones, de forma similar a configurar parámetros con una [query string](https://en.wikipedia.org/wiki/Query_string). Puedes configurar:
 
-| Setting         | Description                                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `redirect_uri`  | Cuando se completa el inicio de sesión iniciado por el IdP, la solicitud se redirige a la primera URL incluida en **Allowed Callback URLs** de la aplicación. Sin embargo, si estableces un `redirect_uri`, el IdP redirigirá a esa URL. Esto aporta flexibilidad en casos como cuando tienes un esquema de subdominios con un wildcard y solo quieres redirigir a un subdominio específico. |
-| `scope`         | Define los scopes del token de ID que se envía. Puedes establecer varios scopes.                                                                                                                                                                                                                                                                                                             |
-| `response_type` | Establece el token para el flujo de concesión implícita para SPA. Puedes establecer `code` para el flujo de concesión Authorization Code en aplicaciones web tradicionales.                                                                                                                                                                                                                  |
+| Configuración   | Descripción                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `redirect_uri`  | Cuando se haya completado el inicio de sesión iniciado por IdP, la solicitud se redirigirá a la primera URL incluida en **Allowed Callback URLs** de la aplicación. Sin embargo, si configuras un `redirect_uri`, el IdP redirigirá a esa URL. Esto aporta flexibilidad en casos como cuando tienes un esquema de subdominios con un wildcard y solo quieres redirigir a un subdominio específico. |
+| `scope`         | Define scopes para el token de identidad enviado. Puedes establecer varios scopes.                                                                                                                                                                                                                                                                                                                 |
+| `response_type` | Configura el token para el flujo de concesión implícita para las SPA. Puedes configurar code para el flujo de concesión Authorization Code para aplicaciones web tradicionales.                                                                                                                                                                                                                    |
 
 <Warning>
-  En un flujo iniciado por el IdP, los servidores de Auth0 eliminan los scopes de un token si la URL de devolución de llamada es un dominio no verificado. Auth0 define únicamente `localhost` y [127.0.0.1](http://127.0.0.1/) como dominios no verificados. Si usas cualquiera de los dos como URL de devolución de llamada, los tokens del endpoint `/userinfo` devolverán una respuesta vacía. Para obtener una respuesta de token con los scopes solicitados, usa un dominio verificado.
+  En un flujo iniciado por IdP, los servidores de Auth0 eliminan los scopes de un token si la URL de devolución de llamada es un dominio no verificado. Auth0 define únicamente `localhost` y [127.0.0.1](http://127.0.0.1/) como dominios no verificados. Si usas cualquiera de los dos como URL de devolución de llamada, los tokens del endpoint `/userinfo` devolverán una respuesta vacía. Para obtener una respuesta de token con los scopes solicitados, usa un dominio verificado.
 </Warning>
 
-Ejemplo de Query String:
+Ejemplo de cadena de consulta:
 `redirect_uri=https://jwt.io&scope=openid email&response_type=token`
 
 <div id="application-drop-down-list-limited-to-100">
   ## Lista desplegable de aplicaciones limitada a 100
 </div>
 
-Si quieres seleccionar una aplicación como la **Aplicación predeterminada** en el SSO iniciado por el IdP y esa aplicación no está entre las primeras 100 que aparecen en la lista desplegable de tu tenant, debes usar la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> para seleccionarla. Debes ejecutar un patch:
+Si quieres seleccionar una aplicación como la **Aplicación predeterminada** en el SSO iniciado por el IdP, y la aplicación no está entre las primeras 100 aplicaciones de la lista desplegable de tu tenant, debes usar la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> para seleccionar esa aplicación. Debes ejecutar un patch:
 
 ```json lines
 {
@@ -128,4 +128,4 @@ Si quieres seleccionar una aplicación como la **Aplicación predeterminada** en
   ## Más información
 </div>
 
-* [Trabajar con certificados y claves como cadenas de texto](/docs/es/authenticate/protocols/saml/saml-sso-integrations/work-with-certificates-and-keys-as-strings)
+* [Usar certificados y claves como cadenas](/docs/es/authenticate/protocols/saml/saml-sso-integrations/work-with-certificates-and-keys-as-strings)

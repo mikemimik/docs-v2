@@ -1,17 +1,17 @@
 ---
-title: Configurar y usar los Online Refresh Tokens
-description: Cómo configurar y usar los Online Refresh Tokens.
+title: Configura y usa Online Refresh Tokens
+description: Cómo configurar y usar Online Refresh Tokens.
 ---
 
 import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
 
-<ReleaseStageNotice feature="Online Refresh Tokens" stage="beta" contact="su gerente técnico de cuenta" />
+<ReleaseStageNotice feature="Online Refresh Tokens" stage="beta" contact="tu gestor técnico de cuentas" />
 
 <div id="configure-orts">
   ## Configurar ORTs
 </div>
 
-Los Online Refresh Tokens (ORTs) deben habilitarse en la [API (Servidor de recursos)](/docs/es/get-started/apis/api-settings) desde el Auth0 Dashboard o la Management API.
+Online Refresh Tokens (ORTs) deben habilitarse a nivel de [API (servidor de recursos)](/docs/es/get-started/apis/api-settings) mediante el Auth0 Dashboard o la Management API.
 
 <div id="configure-using-the-dashboard">
   ### Configurar con el Dashboard
@@ -21,19 +21,19 @@ Los Online Refresh Tokens (ORTs) deben habilitarse en la [API (Servidor de recur
 
 2. Selecciona la API que quieres configurar.
 
-3. En la pestaña **Settings**, activa el interruptor **Allow Online Access**.
+3. En la pestaña **Settings**, activa el conmutador **Allow Online Access**.
 
    <Frame>![Dashboard Applications APIs Settings Allow Online Access](/docs/images/refresh-tokens/allow-online-access.png)</Frame>
 
 4. Selecciona **Save**.
 
-Para revisar y configurar los valores del tiempo de espera por inactividad y de la duración absoluta de las sesiones, consulta la configuración de [Tenant Session Expiration](https://manage.auth0.com/#/tenant/advanced). Para obtener más información, consulta [Configurar la duración de la sesión](/docs/es/manage-users/sessions/configure-session-lifetime).
+Para revisar y configurar los valores de tiempo de espera por inactividad y duración máxima absoluta de las sesiones, consulta la configuración de [Expiración de la sesión del tenant](https://manage.auth0.com/#/tenant/advanced). Para obtener más información, lee [Configurar la duración de la sesión](/docs/es/manage-users/sessions/configure-session-lifetime).
 
 <div id="configure-using-the-management-api">
   ### Configurar con la Management API
 </div>
 
-Para habilitar los ORT, realiza una llamada `PATCH` al endpoint [Update Resource Server](/docs/es/api/management/v2/resource-servers/patch-resource-servers-by-id):
+Para habilitar los ORTs, realiza una llamada `PATCH` al endpoint [Actualizar servidor de recursos](/docs/es/api/management/v2/resource-servers/patch-resource-servers-by-id):
 
 ```bash
 curl --request PATCH \
@@ -43,7 +43,7 @@ curl --request PATCH \
   --data '{"allow_online_access": true}'
 ```
 
-Para verificar la configuración, haz una solicitud `GET` al servidor de recursos:
+Para verificar la configuración, realiza una solicitud `GET` al servidor de recursos:
 
 ```bash
 curl --request GET \
@@ -67,7 +67,7 @@ La respuesta incluye la propiedad `allow_online_access`:
   ## Obtén un ORT
 </div>
 
-Para obtener un ORT, incluye el `scope` [online&#95;access](/docs/es/get-started/apis/scopes) en tu solicitud de autorización mediante el [flujo de código de autorización](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow) o el [flujo de código de autorización con PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
+Para obtener un ORT, incluye el `online_access` [scope](/docs/es/get-started/apis/scopes) en tu solicitud de autorización mediante el [flujo de código de autorización](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow) o el [flujo de código de autorización con PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
 
 ```bash
 https://<YOUR_DOMAIN>/authorize \
@@ -79,7 +79,7 @@ https://<YOUR_DOMAIN>/authorize \
     state=<OPAQUE_VALUE>
 ```
 
-Después de que el usuario se autentique, intercambia el código de autorización por tokens:
+Una vez que el usuario se haya autenticado, intercambia el código de autorización por tokens:
 
 ```bash
 curl --request POST \
@@ -105,14 +105,14 @@ La respuesta del token incluye el ORT:
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Los ORT llevan el prefijo `ORT` para distinguirlos de los refresh tokens. Sin embargo, debes tratar el token como un valor opaco y no basarte en su estructura interna.
+  Los ORTs tienen el prefijo `ORT` para distinguirse de los tokens de actualización. Sin embargo, debes tratar el token como opaco y no depender de su estructura interna.
 </Callout>
 
 <div id="use-an-ort">
   ## Usa un ORT
 </div>
 
-Intercambia el ORT por un nuevo [token de acceso](/docs/es/secure/tokens/access-tokens) cuando el token de acceso actual expire o esté a punto de expirar:
+Canjea el ORT por un nuevo [token de acceso](/docs/es/secure/tokens/access-tokens) cuando el token de acceso actual haya caducado o esté a punto de caducar:
 
 ```bash
 curl --request POST \
@@ -124,7 +124,7 @@ curl --request POST \
 ```
 
 La respuesta contiene un nuevo token de acceso.
-Si tu solicitud incluye el scope `openid`, la respuesta incluye un nuevo [token de ID](/docs/es/secure/tokens/id-tokens):
+Si tu solicitud incluye el scope `openid`, la respuesta incluye un nuevo [token de identidad](/docs/es/secure/tokens/id-tokens):
 
 ```json
 {
@@ -136,7 +136,7 @@ Si tu solicitud incluye el scope `openid`, la respuesta incluye un nuevo [token 
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Auth0 no emite un nuevo `refresh_token` y, como los ORT no se rotan, sigues usando el mismo ORT en los intercambios posteriores.
+  Auth0 no emite un nuevo `refresh_token` y, como los ORTs no se rotan, continúas usando el mismo ORT en intercambios posteriores.
 </Callout>
 
 <div id="session-extension-behavior">
@@ -145,15 +145,15 @@ Si tu solicitud incluye el scope `openid`, la respuesta incluye un nuevo [token 
 
 Cada intercambio de tokens exitoso:
 
-* **Restablece el tiempo de inactividad de la sesión:** El tiempo de inactividad vuelve a su duración completa.
-* **No prolonga la duración absoluta:** La expiración absoluta de la sesión no cambia.
+* **Restablece el tiempo de espera por inactividad de la sesión:** El tiempo de espera por inactividad se restablece a su duración completa.
+* **No extiende la duración máxima absoluta:** El vencimiento absoluto de la sesión no cambia.
 * **Mantiene el SSO:** Otras aplicaciones pueden obtener tokens mediante SSO siempre que la sesión siga activa.
 
 <div id="revoke-an-ort">
   ## Revocar un ORT
 </div>
 
-Al revocar un ORT, se cierra toda la sesión de Auth0, no solo el token. Esto invalida todos los ORT vinculados a esa sesión y finaliza el SSO del usuario.
+Cuando revocas un ORT, se cierra toda la sesión de Auth0, no solo el token. Esto invalida todos los ORTs vinculados a esa sesión y finaliza el SSO del usuario.
 
 ```bash
 curl --request POST \
@@ -167,22 +167,22 @@ curl --request POST \
   ## Usa ORTs con Actions
 </div>
 
-Puedes usar ORTs con las [Actions](/docs/es/customize/actions/actions-overview) de Auth0 y el [trigger de post-login](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger).
+Puedes usar ORTs con Auth0 [Actions](/docs/es/customize/actions/actions-overview) y el [trigger de Post Login](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger).
 
 Con Actions puedes:
 
 * Usar el objeto `event.refresh_token` para determinar si el token es un ORT.
-* Acceder a datos específicos de la sesión mediante el objeto `event.session` para tomar decisiones en función del estado actual de la sesión
+* Acceder a datos específicos de la sesión mediante el objeto `event.session` para tomar decisiones basadas en el estado actual de la sesión
 
 ```javascript
 exports.onExecutePostLogin = async (event, api) => {
-  // Verificar si el token es un Online Refresh Token
+  // Verificar si el token es un token de actualización en línea
   
   if (event.refresh_token?.access == 'online') {
     // El token es un ORT, puedes referenciar event.session y api.session
     console.log('Exchanging Online Refresh Token bound to Session ID: ', event.session?.id);
     // Obtener los metadatos de la sesión y agregarlos en los tokens
-    // Se asume que los metadatos de la sesión fueron almacenados previamente
+    // Suponiendo que los metadatos de la sesión fueron almacenados previamente
     const importantInformation = event.session?.metadata?.importantInformation;
     api.accessToken.setCustomClaim('info', importantInformation);
     api.idToken.setCustomClaim('info', importantInformation);
@@ -191,7 +191,7 @@ exports.onExecutePostLogin = async (event, api) => {
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Auth0 revoca toda la sesión del usuario, en lugar de solo el token, cuando se usa el método `api.refreshToken.revoke()` con un ORT.
+  Auth0 revoca toda la sesión del usuario, no solo el token, cuando se usa el método `api.refreshToken.revoke()` con un ORT.
 </Callout>
 
 <div id="learn-more">
@@ -199,9 +199,9 @@ exports.onExecutePostLogin = async (event, api) => {
 </div>
 
 * [Online Refresh Tokens](/docs/es/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens)
-* [Rotación de Refresh Tokens](/docs/es/secure/tokens/refresh-tokens/refresh-token-rotation)
-* [Obtener Refresh Tokens](/docs/es/secure/tokens/refresh-tokens/get-refresh-tokens)
-* [Usar Refresh Tokens](/docs/es/secure/tokens/refresh-tokens/use-refresh-tokens)
+* [Rotación del Refresh Token](/docs/es/secure/tokens/refresh-tokens/refresh-token-rotation)
+* [Obtener tokens de actualización](/docs/es/secure/tokens/refresh-tokens/get-refresh-tokens)
+* [Usar tokens de actualización](/docs/es/secure/tokens/refresh-tokens/use-refresh-tokens)
 * [Ciclo de vida de la sesión](/docs/es/manage-users/sessions/session-lifecycle)
 * [Configurar la autenticación silenciosa](/docs/es/authenticate/login/configure-silent-authentication)
-* [Prácticas recomendadas para los tokens](/docs/es/secure/tokens/token-best-practices)
+* [Prácticas recomendadas sobre tokens](/docs/es/secure/tokens/token-best-practices)

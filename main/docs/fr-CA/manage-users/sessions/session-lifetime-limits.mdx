@@ -1,52 +1,52 @@
 ---
-description: Décrit la durée maximale pendant laquelle le système peut maintenir une session avant qu’elle ne prenne fin.
-title: Limites de durée de session
+description: Décrit les limites qu’un système autorise pour la durée d’une session avant sa fin.
+title: Limites de durée de vie de la session
 ---
 
-Les limites de durée de session déterminent combien de temps le système conserve une session de connexion. Dans Auth0, deux paramètres peuvent être configurés pour la durée de session :
+Les limites de durée de vie de la session déterminent combien de temps le système conserve une session de connexion. Dans Auth0, deux paramètres peuvent être configurés pour la durée de vie de la session :
 
-* **Idle Session Lifetime** : Période au terme de laquelle la session d’un utilisateur expire si son <Tooltip tip="Cookie de session : entité qui, lorsqu’elle est présente, permet de considérer l’utilisateur comme authentifié." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=session+cookie">cookie de session</Tooltip> n’a pas interagi avec le <Tooltip tip="Authorization Server : composant serveur OAuth 2.0 / OpenID Connect qui émet des réponses d’autorisation et aide à définir les ressources et autorisations auxquelles un utilisateur ou un client peut accéder." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">Authorization Server</Tooltip>. Ce paramètre sera remplacé par les limites du système s’il dépasse 3 jours pour les forfaits en libre-service ou 100 jours pour les forfaits Enterprise.
-* **Maximum Session Lifetime** : Période au terme de laquelle un utilisateur devra se reconnecter, peu importe son activité. Ce paramètre sera remplacé par les limites du système s’il dépasse 30 jours pour les forfaits en libre-service ou 365 jours pour les forfaits Enterprise.
+* **Idle Session Lifetime** : période après laquelle la session d’un utilisateur expire si son <Tooltip tip="Cookie de session : entité qui, lorsqu’elle est présente, permet de considérer l’utilisateur comme authentifié." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=session+cookie">cookie de session</Tooltip> n’a pas interagi avec le <Tooltip tip="Cookie de session : entité qui, lorsqu’elle est présente, permet de considérer l’utilisateur comme authentifié." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Authorization+Server">Authorization Server</Tooltip>. Ce paramètre est remplacé par les limites du système s’il dépasse 3 jours pour les forfaits self-service ou 100 jours pour les forfait Enterprise.
+* **Maximum Session Lifetime** : période après laquelle un utilisateur devra se connecter de nouveau, quelle que soit son activité. Ce paramètre est remplacé par les limites du système s’il dépasse 30 jours pour les forfaits self-service ou 365 jours pour les forfait Enterprise.
 
-Ces paramètres sont configurés au niveau du tenant; vous pouvez les définir à l’aide du [Auth0 Dashboard](/docs/fr-CA/manage-users/sessions/configure-session-lifetime-settings) ou de l’<Tooltip tip="Management API : API d’administration permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>.
+Ces paramètres sont configurés au niveau du tenant; vous pouvez les configurer à l’aide de l’[Auth0 Dashboard](/docs/fr-CA/manage-users/sessions/configure-session-lifetime-settings) ou de la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>.
 
 Lorsqu’un utilisateur effectue une nouvelle connexion standard, cela réinitialise la session de connexion. Voici un exemple :
 
 1. Vous définissez la limite **Idle Session Lifetime** à 3 jours et la limite **Require log in after** à 30 jours.
 2. Un utilisateur se connecte et les valeurs que vous avez saisies sont appliquées à sa session.
 
-   1. Si l’utilisateur est actif pendant la période de trois jours de **Idle Session Lifetime**, la durée de sa session est prolongée de trois jours supplémentaires. Tant que l’utilisateur demeure actif au cours des trois jours suivants, la durée de sa session sera de nouveau prolongée de trois jours, jusqu’à ce que la limite **Maximum Session Lifetime** soit atteinte. À ce moment-là, l’utilisateur devra se reconnecter.
+   1. Si l’utilisateur est actif pendant la période de trois jours de **Idle Session Lifetime**, la durée de vie de la session est prolongée de trois jours supplémentaires. Tant que l’utilisateur est actif au cours des trois jours suivants, la durée de vie de sa session sera prolongée de trois jours de plus, jusqu’à ce que la limite **Maximum Session Lifetime** soit atteinte. À ce moment-là, l’utilisateur devra se connecter de nouveau.
    2. Si l’utilisateur est inactif pendant trois jours, il sera automatiquement déconnecté.
-3. Pendant que l’utilisateur est connecté, vous prolongez les limites de durée de session existantes. Les nouveaux paramètres ne prendront effet qu’une fois la session en cours terminée et lorsque l’utilisateur se reconnectera.
-4. Pendant que l’utilisateur est connecté, vous réduisez les limites de durée existantes. Les nouveaux paramètres prendront effet immédiatement lors de la prochaine activité de l’utilisateur. Cela vous permet de raccourcir la durée des sessions à des fins de sécurité.
+3. Pendant que l’utilisateur est connecté, vous prolongez les limites actuelles de durée de vie de la session. Les nouveaux paramètres ne prendront effet qu’une fois la session en cours terminée et après que l’utilisateur se sera connecté de nouveau.
+4. Pendant que l’utilisateur est connecté, vous réduisez les limites actuelles de durée de vie. Les nouveaux paramètres prendront effet immédiatement à la prochaine activité de l’utilisateur. Cela vous permet de raccourcir la durée de vie des sessions pour des raisons de sécurité.
 
 <div id="application-specific-logout-urls">
-  ### URL de déconnexion propres à une application
+  ### URL de logout propres à l’application
 </div>
 
-Il y a deux points importants à considérer lorsque vous utilisez des URL de déconnexion propres à une application :
+Il y a deux éléments importants à prendre en compte lorsque vous utilisez des URL de logout propres à l’application :
 
-* Vous **devez** envoyer `client_id` comme paramètre de requête lors de l’appel au endpoint `/oidc/logout`, et l’URL `id_token_hint` doit figurer dans la liste des URL de déconnexion autorisées de l’application.
-* Cela mettra fin à la session Auth0 pour l’ensemble du locataire, c.-à-d. pour toutes les applications définies, et pas seulement celle qui correspond au `client_id` fourni. Le fait de transmettre le `client_id` indique au endpoint /`logout` où chercher la liste autorisée des URL de déconnexion.
+* Vous **devez** envoyer `client_id` comme paramètre de requête lorsque vous appelez le point de terminaison `/oidc/logout`, et l’URL `id_token_hint` doit figurer dans la liste des URL de logout autorisées de l’application.
+* Cela met fin à la session Auth0 pour l’ensemble du tenant, c.-à-d. pour toutes les applications définies, et pas seulement celle qui correspond au `client_id` fourni. Le fait de transmettre le `client_id` indique au point de terminaison /`logout` où chercher la liste autorisée des URL de logout.
 
-Une fois l’utilisateur déconnecté, Auth0 redirigera uniquement vers une URL définie dans cette liste.
+Une fois le logout de l’utilisateur effectué, Auth0 ne redirigera que vers une URL définie dans cette liste.
 
-Si vous redirigez l’utilisateur vers l’application après la déconnexion et que l’application redirige vers un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> qui a encore une session authentifiée pour cet utilisateur, l’utilisateur sera reconnecté silencieusement à votre application et il peut sembler que la déconnexion n’a pas fonctionné. Dans ces cas, nous vous recommandons d’avoir dans votre application une page de destination de déconnexion distincte afin d’indiquer à l’utilisateur qu’il s’est déconnecté avec succès — et, si vous le souhaitez, vous pouvez aussi l’avertir qu’il est peut-être encore connecté à son fournisseur d’identité.
+Si vous redirigez l’utilisateur vers l’application après le logout et que l’application redirige vers un <Tooltip tip="Identity Provider (IdP) : Service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> qui a encore une session authentifiée pour cet utilisateur, l’utilisateur sera reconnecté silencieusement à votre application et il pourrait sembler que le logout n’a pas fonctionné. Dans ces cas, nous vous recommandons d’avoir une page de destination de logout spécifique dans votre application afin d’indiquer à l’utilisateur qu’il s’est déconnecté avec succès — et, au besoin, vous pouvez aussi l’avertir qu’il est peut-être encore connecté à son fournisseur d’identité.
 
-Dans le cas où un utilisateur n’a effectué aucune action entraînant la mise à jour de la session Auth0, nous vous recommandons d’avertir l’utilisateur qu’il doit choisir explicitement de poursuivre sa session. L’objectif de cette approche est de permettre à la session de devenir inactive si l’utilisateur n’est plus présent, tout en offrant sinon un moyen de déclencher le rafraîchissement silencieux du jeton afin qu’il puisse poursuivre sa session sans avoir à fournir de nouveau ses informations d’identification.
+Dans le cas où un utilisateur n’a effectué aucune action entraînant la mise à jour de la session Auth0, nous vous recommandons de l’avertir qu’il doit choisir explicitement de poursuivre sa session. Cette approche permet à la session de devenir inactive si l’utilisateur n’est plus présent, tout en offrant autrement un moyen de déclencher l’actualisation silencieuse du jeton afin qu’il puisse poursuivre sa session sans avoir à fournir de nouveau ses informations d’identification.
 
-* **Minuterie d’inactivité** : Ajoutez une minuterie glissante à l’enveloppe SDK React qui correspond à la durée d’inactivité maximale de la session Auth0. Chaque fois qu’un jeton est renvoyé à l’application, réinitialisez la minuterie.
-* **Fenêtre modale d’expiration** : Lorsque la minuterie arrive à 60 secondes de l’expiration, une fenêtre modale d’expiration devrait s’afficher pour demander à l’utilisateur de se déconnecter ou de poursuivre sa session.
+* **Minuteur d’inactivité** : Ajoutez un minuteur glissant à l’enveloppe du SDK React qui correspond à la durée d’inactivité maximale de la session Auth0. Chaque fois qu’un jeton est renvoyé à l’application, réinitialisez le minuteur.
+* **Fenêtre modale d’expiration** : Lorsque le minuteur atteint 60 secondes avant l’expiration, une fenêtre modale d’expiration doit s’afficher pour demander à l’utilisateur d’effectuer un logout ou de poursuivre sa session.
 
   * **Poursuivre la session** : Si l’utilisateur choisit de poursuivre sa session, utilisez la méthode `getTokenSilently()` pour demander un nouveau jeton sans rediriger l’utilisateur hors de la page avec laquelle il interagit actuellement.
-  * **Déconnexion** : Si l’utilisateur choisit de se déconnecter, la méthode `logout()` doit être appelée pour garantir qu’il soit également mis fin à la session Auth0.
-  * **Délai d’inactivité** : Si le délai d’inactivité est atteint, aucune action immédiate n’est nécessaire. Pour tenir compte du fait que l’utilisateur peut encore être actif dans un autre onglet, le comportement **ne doit pas** consister à déconnecter l’utilisateur.
-  * D’autres options comprennent la mise à jour de la fenêtre modale avec un bouton de connexion, l’utilisation de l’événement window.onfocus pour déclencher `getTokenSilently()`, ou la redirection de l’utilisateur vers une page de destination.
+  * **Logout** : Si l’utilisateur choisit d’effectuer un logout, la méthode `logout()` doit être appelée pour s’assurer que la session Auth0 est également terminée.
+  * **Délai d’inactivité** : Si le délai d’inactivité est atteint, aucune action immédiate n’est nécessaire. Pour tenir compte du fait que l’utilisateur peut encore être actif dans un autre onglet, le comportement **ne devrait pas** consister à déconnecter l’utilisateur.
+  * D’autres options incluent la mise à jour de la fenêtre modale avec un bouton de login, l’utilisation de l’événement window.onfocus pour déclencher `getTokenSilently()`, ou la redirection de l’utilisateur vers une page de destination.
 
 <div id="learn-more">
   ## En savoir plus
 </div>
 
-* [Configurer les paramètres de durée de session](/docs/fr-CA/manage-users/sessions/configure-session-lifetime-settings)
+* [Configurer les paramètres de durée de vie de la session](/docs/fr-CA/manage-users/sessions/configure-session-lifetime-settings)
 * [Mettre à jour la durée de vie du jeton d’accès](/docs/fr-CA/secure/tokens/access-tokens/update-access-token-lifetime)
-* [Mettre à jour la durée de vie de l’ID Token](/docs/fr-CA/secure/tokens/id-tokens/update-id-token-lifetime)
+* [Mettre à jour la durée de vie du jeton d’identification](/docs/fr-CA/secure/tokens/id-tokens/update-id-token-lifetime)

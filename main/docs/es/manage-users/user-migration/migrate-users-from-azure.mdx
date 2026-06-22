@@ -1,16 +1,16 @@
 ---
-description: Cómo migrar usuarios de Azure a Auth0
+description: Cómo migrar usuarios desde Azure a Auth0
 title: Migrar usuarios desde Azure
 ---
 
-Auth0 admite la importación de usuarios desde Azure mediante el [flujo ROPC de Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth-ropc) en los [scripts de inicio de sesión de Custom DB](/docs/es/authenticate/database-connections/custom-db/templates/login) de Auth0.
+Auth0 admite la importación de usuarios desde Azure mediante el [flujo de Azure AD ROPC](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth-ropc) en los [scripts de inicio de sesión de Custom DB](/docs/es/authenticate/database-connections/custom-db/templates/login) de Auth0.
 
-1. [Crea un registro de aplicación como cliente público](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app) en los tenants o directorios correspondientes de tu aplicación como **cliente público** y, a continuación, almacena de forma segura los ID de cliente y los secretos de cliente proporcionados para las llamadas a la API.
-2. Cuando se te pregunte quién puede usar esta aplicación o acceder a esta API, elige **Cuentas en cualquier directorio organizativo**.
-3. En la sección Microsoft Graph, concede los permisos `Directory.Read.All` y `User.Read`.
-4. Si tu aplicación es B2C, [configura un flujo de credenciales de contraseña del propietario del recurso en Azure Active Directory B2C](https://learn.microsoft.com/en-us/azure/active-directory-b2c/add-ropc-policy?tabs=app-reg-ga\&pivots=b2c-user-flow).
+1. [Cree un registro de aplicación de cliente público](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app) en los tenants o directorios correspondientes de su aplicación como **cliente público** y, a continuación, almacene de forma segura los IDs de cliente y los secretos de cliente proporcionados para las llamadas a la API.
+2. Cuando se le pregunte quién puede usar esta aplicación o acceder a esta API, elija **Cuentas en cualquier directorio organizativo**.
+3. En la sección Microsoft Graph, conceda permisos a `Directory.Read.All` y `User.Read`.
+4. Si su aplicación es B2C, [configure un flujo de credenciales de contraseña del propietario del recurso en Azure Active Directory B2C](https://learn.microsoft.com/en-us/azure/active-directory-b2c/add-ropc-policy?tabs=app-reg-ga\&pivots=b2c-user-flow).
 
-Ahora ya puedes usar el flujo ROPC. Los siguientes fragmentos muestran ejemplos de llamadas.
+Ahora puede usar el flujo de ROPC. Los siguientes fragmentos muestran ejemplos de llamadas.
 
 <div id="azure-ad-login-script-template">
   ##### Plantilla del script de inicio de sesión de Azure AD:
@@ -38,14 +38,14 @@ const options = {
 
 axios(options).then(
 	response => {
-  // en un entorno de producción, lo ideal sería validar completamente este JWT antes de leer los claims
+  // en un entorno de producción, lo ideal sería validar este JWT completamente antes de leer los claims
   const claims = jwtDecode(response.data.id_token);
 
   if (response.statusCode === 401) return callback();
 
   callback(null, {
-  // este es un ejemplo sencillo de propiedades que se pueden asignar de vuelta al perfil de usuario de auth0
-  // puedes elegir exactamente qué se asigna según los datos que obtengas del token de azure
+  // este es un ejemplo sencillo de propiedades que pueden mapearse al perfil de usuario de auth0
+  // puedes elegir exactamente qué se mapea según los datos que obtengas del token de azure
   user_id: claims.sub,
   nickname: claims.name,
   email: claims.preferred_username
@@ -82,13 +82,13 @@ const options = {
 
 axios(options).then(
 	response => {
-  // en un entorno de producción, lo ideal sería validar completamente este JWT antes de leer los claims
+  // en un entorno de producción, lo ideal sería validar este JWT completamente antes de leer los claims
   const claims = jwtDecode(response.data.access_token);
   if (response.statusCode === 401) return callback();
 
   callback(null, {
-  // este es un ejemplo sencillo de propiedades que se pueden asignar al perfil de usuario de auth0
-  // puedes elegir exactamente qué se asigna según los datos que obtengas del token de azure
+  // este es un ejemplo sencillo de propiedades que pueden mapearse al perfil de usuario de auth0
+  // puedes elegir exactamente qué se mapea según los datos que obtengas del token de azure
   user_id: claims.sub,
   nickname: claims.given_name,
   email: claims.emails[0]

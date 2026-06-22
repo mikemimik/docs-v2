@@ -1,69 +1,69 @@
 ---
-description: "Paso 1 del tutorial de Amazon API Gateway"
-title: "Tutorial de AWS API Gateway: paso 1"
+description: Paso 1 del tutorial de Amazon API Gateway
+title: Paso 1 del tutorial de AWS API Gateway
 ---
 
 <Warning>
-  Esta funcionalidad usa delegation. De forma predeterminada, delegation está deshabilitada para los tenants que, al 8 de junio de 2017, no tuvieran ningún add-on en uso. Los tenants heredados que actualmente usan un add-on que requiere delegation pueden seguir usando esta funcionalidad. Si en algún momento la funcionalidad de delegation se modifica o se retira del servicio, se notificará con antelación a los clientes que la usan actualmente y se les dará tiempo suficiente para migrar. Además, ten en cuenta que delegation no admite el uso de dominios personalizados, por lo que cualquier funcionalidad que dependa de ella podría no funcionar por completo junto con un dominio personalizado.
+  Esta funcionalidad usa Delegation. De forma predeterminada, Delegation está deshabilitada para los tenants que no tenían ningún add-on en uso al 8 de junio de 2017. Los tenants Legacy que actualmente usan un add-on que requiere Delegation pueden seguir usando esta funcionalidad. Si la funcionalidad de Delegation cambia o se retira del servicio en algún momento, se notificará con antelación a los clientes que la usan actualmente y se les dará tiempo suficiente para migrar. Además, ten en cuenta que Delegation no admite el uso de dominios personalizados, por lo que cualquier funcionalidad que dependa de ella podría no funcionar por completo junto con un dominio personalizado.
 </Warning>
 
 <div id="step-1-set-up-the-amazon-api-gateway">
-  ## Paso 1 - Configurar Amazon API Gateway
+  ## Paso 1: Configurar Amazon API Gateway
 </div>
 
-Después de completar este paso, tendrás:
+Después de completar este paso, habrá:
 
-* Configurado Amazon API Gateway con funciones de AWS Lambda para ejecutar la lógica de tu servicio, que almacena y recupera mascotas de una tabla de Amazon DynamoDB;
-* Creado dos métodos de servicio REST sin autenticación para obtener y actualizar una lista de mascotas.
+* Configurado Amazon API Gateway con funciones de AWS Lambda para ejecutar la lógica de su servicio, que almacena y recupera mascotas de una tabla de Amazon DynamoDB;
+* Creado dos métodos de servicio REST no autenticados para obtener y actualizar una lista de mascotas.
 
-Antes de comenzar, asegúrate de tener instalado [Node.js](https://nodejs.org/).
+Antes de comenzar, asegúrese de tener instalado [Node.js](https://nodejs.org/).
 
 <div id="step-1-create-the-amazon-dynamodb-table">
   ### Paso 1. Crear la tabla de Amazon DynamoDB
 </div>
 
-En la [consola de Amazon DynamoDB](https://console.aws.amazon.com/dynamodb), haz clic en **Crear tabla**.
+En la [consola de Amazon DynamoDB](https://console.aws.amazon.com/dynamodb), haz clic en **Create Table**.
 
 <Frame>![Consola de DynamoDB - Crear tabla](/docs/images/cdy7uua7fh8z/2ZPhi7Ddx4TznSXEEhUSDK/52a06412f7c5e6d0ef0d13c6ffe17611/dynamodb-create-table.png)</Frame>
 
-Configura los valores asociados a la tabla:
+Configura los siguientes valores de la tabla:
 
 * **Nombre de la tabla**: Pets
 * **Clave primaria**: username
 * **Tipo de clave primaria**: String
-* **Usar la configuración predeterminada**: desmarcado
+* **Usar la configuración predeterminada**: sin marcar
 * **Unidades de capacidad de lectura**: 3
 * **Unidades de capacidad de escritura**: 3
 
-<Frame>![Consola de DynamoDB - Configurar tabla recién creada](/docs/images/cdy7uua7fh8z/6MYJV97Xa3DxajG8DYj2dx/e428ab2ce137176d7771c61a9c528f7c/configure-newly-created-table.png)</Frame>
+<Frame>![Consola de DynamoDB - Configurar la tabla recién creada](/docs/images/cdy7uua7fh8z/6MYJV97Xa3DxajG8DYj2dx/e428ab2ce137176d7771c61a9c528f7c/configure-newly-created-table.png)</Frame>
 
-Haz clic en **Crear** para crear la tabla con la configuración que proporcionaste.
+Haz clic en **Create** para crear la tabla con la configuración indicada.
 
-Mientras se crea la tabla, toma nota del nombre de recurso de Amazon (ARN) en la sección de detalles de la tabla. Necesitarás el ARN de la tabla en el siguiente paso.
+Mientras se crea la tabla, toma nota del nombre de recurso de Amazon (ARN) en la sección Detalles de la tabla. Necesitarás el ARN de la tabla en el siguiente paso.
 
-<Frame>![Consola de DynamoDB - Detalles de la tabla - Amazon Resource Name](/docs/images/cdy7uua7fh8z/4ZFemddtUD8tRi0NUvzXJ2/38abd951974cad385ef7417f48adf359/table-arn.png)</Frame>
+<Frame>![Consola de DynamoDB - Detalles de la tabla - Nombre de recurso de Amazon](/docs/images/cdy7uua7fh8z/4ZFemddtUD8tRi0NUvzXJ2/38abd951974cad385ef7417f48adf359/table-arn.png)</Frame>
 
 <div id="step-2-create-the-policy-that-grants-aws-lambda-functions-access-to-the-dynamodb-pets-table">
   ### Paso 2. Cree la política que otorga a las funciones de AWS Lambda acceso a la tabla Pets de DynamoDB
 </div>
 
-Vaya a la [consola de AWS IAM](https://console.aws.amazon.com/iam).
+Vaya a la [Consola de AWS IAM](https://console.aws.amazon.com/iam).
 
 Haga clic en **Roles** en el menú de la izquierda y, a continuación, en el botón **Create New Role**.
 
-<Frame>![Consola de IAM - Roles - Crear nuevos roles](/docs/images/cdy7uua7fh8z/4mgCTXLpycHLA8RbYoEFim/5d9eb81be979355aa9cd10d476ead515/roles.png)</Frame>
+<Frame>![Consola de IAM - Roles - Create New Roles](/docs/images/cdy7uua7fh8z/4mgCTXLpycHLA8RbYoEFim/5d9eb81be979355aa9cd10d476ead515/roles.png)</Frame>
 
-Asigne al rol el nombre `APIGatewayLambdaExecRole` y haga clic en **Next Step**.
+Asigne al rol el nombre `APIGatewayLambdaExecRole` y haga clic en **Siguiente paso**.
 
-Seleccione el tipo de rol. En AWS Service Roles, seleccione AWS Lambda.
+Seleccione el Role Type. En AWS Service Roles, seleccione AWS Lambda.
 
-<Frame>![Consola de IAM - Seleccionar el tipo de rol - Roles de servicio - AWS Lambda](/docs/images/cdy7uua7fh8z/326kKGbahlvIwVFTi61Gfw/026d1fc0c8c6e3a489ec4fb840f551da/select-role-type.png)</Frame>
+<Frame>![Consola de IAM - Seleccione el Role Type - Service Roles - AWS Lambda](/docs/images/cdy7uua7fh8z/326kKGbahlvIwVFTi61Gfw/026d1fc0c8c6e3a489ec4fb840f551da/select-role-type.png)</Frame>
 
-En la pantalla Attach Policy, omita este paso haciendo clic en **Next Step**. Llegado a este punto, revise la información que proporcionó. Si todo es correcto, haga clic en **Create Role**. Cuando termine, debería ver el rol en la lista de la página principal de IAM.
+En la pantalla Attach Policy, omita este paso haciendo clic en **Siguiente paso**. En este punto, revise la información que proporcionó. Si todo parece correcto, haga clic en **Create Role**. Cuando termine, debería ver el rol en la lista de la página principal de IAM.
 
-Seleccione el rol que acaba de crear, **APIGatewayLambdaExecRole**. Haga clic en la flecha desplegable de Inline Policies y luego en el enlace **Click Here**.
+Seleccione el rol que acaba de crear, **APIGatewayLambdaExecRole**. Haga clic en la flecha desplegable de Inline Policies y, a continuación, en el enlace **Click Here**.
 
-Seleccione Custom Policy y, a continuación, haga clic en **Select**. Asigne a la política el nombre `LogAndDynamoDBAccess` y agregue el siguiente código como documento de la política (asegúrese primero de actualizar el nombre de recurso de Amazon (ARN) de su tabla de DynamoDB). Haga clic en **Apply Policy**.
+Seleccione Custom Policy y, a continuación, haga clic en **Select**. Asigne a la policy el nombre `LogAndDynamoDBAccess` y agregue el siguiente código como documento de la policy (asegúrese de actualizar primero el nombre de recurso de Amazon (ARN) de su tabla de DynamoDB). Haga clic en **Apply Policy**.
 
 ```json lines
 {
@@ -94,26 +94,26 @@ Seleccione Custom Policy y, a continuación, haga clic en **Select**. Asigne a l
   ### Paso 2. Crear las funciones de AWS Lambda
 </div>
 
-En los tres pasos siguientes se crean las funciones de AWS Lambda para consultar y actualizar la información de las mascotas en la tabla de DynamoDB.
+En los tres pasos siguientes se crean las funciones de AWS Lambda para recuperar y actualizar la información de las mascotas en la tabla de DynamoDB.
 
 <div id="create-the-lambda-function-for-getpetinfo">
-  #### Crear la función Lambda para GetPetInfo
+  #### Crear la función de AWS Lambda para GetPetInfo
 </div>
 
-En la [consola de AWS Lambda](https://console.aws.amazon.com/lambda), selecciona **Create a Lambda Function** (si aún no has creado una función de AWS Lambda, haz clic en **Get Started Now**).
+En la [consola de AWS Lambda](https://console.aws.amazon.com/lambda), selecciona **Crear una función de AWS Lambda** (si no has creado una función de AWS Lambda antes, haz clic en **Comenzar ahora**).
 
-En la pantalla Select blueprint, haz clic en **Blank Function**.
+En la pantalla Select blueprint, haz clic en **Función en blanco**.
 
-A continuación, se te pedirá que configures los triggers. Haz clic en **Next** para continuar. No es necesario hacerlo en este momento.
+A continuación, se te pedirá que configures los triggers. Haz clic en **Siguiente** para continuar. No es necesario hacerlo en este momento.
 
 Por último, se te pedirá que configures la función.
 
-Completa los campos correspondientes con la siguiente información:
+Rellena los campos correspondientes con la siguiente información:
 
-* **Name**: `GetPetInfo`
+* **Nombre**: `GetPetInfo`
 * **Runtime**: Node.js 6.10
 
-Pega el siguiente código en el área **Lambda function code** para leer la información de la mascota desde la tabla de DynamoDB.
+Pega el siguiente código en el área de **código de la función de AWS Lambda** para leer la información de la mascota desde la tabla de DynamoDB.
 
 ```javascript lines
 var AWS = require('aws-sdk');
@@ -138,17 +138,17 @@ exports.handler = function(event, context) {
 };
 ```
 
-En Role, selecciona **Choose an existing role**. A continuación, elige **APIGatewayLambdaExecRole** como Existing Role. Deja todas las demás opciones con sus valores predeterminados.
+En **Role**, selecciona **Choose an existing role**. A continuación, elige **APIGatewayLambdaExecRole** como **Existing Role**. Deja el resto de la configuración con sus valores predeterminados.
 
 Haz clic en **Next** para revisar la información que proporcionaste. Si todo se ve correcto, haz clic en **Create function**.
 
-Haz clic en **Test** y deja el evento de prueba de entrada con su valor predeterminado (que usa la plantilla Hello World). Cuando finalice la prueba, deberías ver una salida vacía (`{}`) en la sección Execution Result. La tabla está vacía.
+Haz clic en **Test** y deja el evento de prueba de entrada con su valor predeterminado (que usa la plantilla Hello World). Cuando la prueba se complete, deberías ver una salida vacía (`{}`) en la sección **Execution Result**. La tabla está vacía.
 
 <div id="create-the-lambda-function-for-updatepetinfo">
   #### Crea la función Lambda para UpdatePetInfo
 </div>
 
-Repite las instrucciones utilizadas para crear la función `GetPetInfo`, pero usa lo siguiente como código de la función:
+Repite las instrucciones que usaste para crear la función `GetPetInfo`, pero usa lo siguiente como código de la función:
 
 ```javascript lines
 var AWS = require('aws-sdk');
@@ -172,7 +172,7 @@ exports.handler = function(event, context) {
 };
 ```
 
-Pruebe la función haciendo clic en el menú desplegable de Actions y seleccionando **Configure sample event**. Introduzca lo siguiente como datos de ejemplo y haga clic en **Enviar**:
+Pruebe la función haciendo clic en el menú desplegable de Actions y eligiendo **Configurar evento de ejemplo**. Introduzca lo siguiente como datos de ejemplo y haga clic en **Enviar**:
 
 ```json lines
 {
@@ -184,15 +184,15 @@ Pruebe la función haciendo clic en el menú desplegable de Actions y selecciona
 }
 ```
 
-Deberías ver un resultado de respuesta vacío (`{}`).
+Deberías ver un resultado vacío (`{}`).
 
-Vuelve a tu función Lambda `GetPetInfo` y haz clic en **Test** otra vez. Ahora deberías ver una sola mascota.
+Vuelve a tu función Lambda `GetPetInfo` y haz clic en **Probar** otra vez. Ahora deberías ver una sola mascota.
 
 <div id="create-the-third-lambda-function">
-  #### Crea la tercera función Lambda
+  #### Crear la tercera función Lambda
 </div>
 
-Vas a crear una función Lambda adicional. Aunque esta función no hará nada, es necesaria para el método OPTIONS de CORS, como se describe más adelante.
+Crearás una función Lambda más. Aunque esta función no hará nada, es necesaria para el método OPTIONS de CORS, como se describe en una sección posterior.
 
 Siguiendo los pasos descritos anteriormente, crea una función Lambda llamada `NoOp`. El código de la función será el siguiente:
 
@@ -202,57 +202,57 @@ exports.handler = function(event, context) {
 }
 ```
 
-En lugar de crear esta tercera función Lambda, puedes optar por [crear un método OPTIONS](#method-options) en Amazon API Gateway.
+En lugar de crear esta tercera función Lambda, puedes optar por [crear un método OPTIONS](#method-options) en API Gateway.
 
 <div id="step-3-create-the-amazon-api-gateway-api">
   ### Paso 3. Crear la API de Amazon API Gateway
 </div>
 
-Creará una API con dos métodos: uno para `GET` información sobre mascotas y otro para `POST` información sobre mascotas.
+Crearás una API con dos métodos: uno `GET` para consultar información de mascotas y otro `POST` para enviar información de mascotas.
 
 <div id="method-get-pet-information">
   #### Método: GET Pet Information
 </div>
 
-Vaya a la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway) y haga clic en **Create API**. Si es la primera vez que crea una API, en su lugar verá una pantalla que le pedirá que haga clic en **Get Started**.
+Ve a la [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway) y haz clic en **Create API**. Si es la primera vez que creas una API, en su lugar verás una pantalla que te pedirá **Get Started**.
 
-Si es la primera vez que crea una API, se le pedirá que cree una API de ejemplo. Haga clic en **OK** para cerrar la notificación emergente y elija el botón de opción **New API** en lugar del botón **Example API**.
+Si es la primera vez que creas una API, se te pedirá que crees una API de ejemplo. Haz clic en **OK** para cerrar la notificación emergente y elige el botón de opción **New API** en lugar de **Example API**.
 
-Asigne a la API el nombre `SecurePets` y haga clic en **Create API**.
+Asigna a la API el nombre `SecurePets` y haz clic en **Create API**.
 
-Vaya a la pestaña Resources de la API `SecurePets` y haga clic en la acción **Create Resource**.
+Ve a la pestaña Resources de la API `SecurePets` y haz clic en la acción **Create Resource**.
 
-Asigne al recurso el nombre `Pets` y vuelva a hacer clic en **Create Resource**.
+Asigna al recurso el nombre `Pets` y vuelve a hacer clic en **Create Resource**.
 
-En el panel izquierdo, seleccione `/pets` y luego haga clic en el botón **CreateMethod**.
+En el panel izquierdo, selecciona `/pets` y luego haz clic en el botón **CreateMethod**.
 
-En el menú desplegable, seleccione GET y haga clic en el botón con la marca de verificación. Indique los siguientes valores de configuración para el método `GET`:
+En el menú desplegable, selecciona GET y haz clic en el botón con la marca de verificación. Indica los siguientes valores de configuración para el método `GET`:
 
-* **Tipo de integración**: función Lambda;
-* **Región de Lambda**: la región en la que se encuentra;
-* **función Lambda**: GetPetInfo.
+* **Integration type**: Lambda Function;
+* **Lambda Region**: la Region en la que te encuentras;
+* **Lambda Function**: GetPetInfo.
+
+Haz clic en **Save** y luego en **OK** cuando se te pida en la ventana emergente conceder permisos a la función Lambda.
+
+En la ventana Method Execution que aparece a continuación, haz clic en **Test**.
+
+Deberías ver la única mascota devuelta en el cuerpo de la respuesta.
+
+<div id="method-post-pet-information">
+  #### Método: POST de información sobre mascotas
+</div>
+
+La creación de la API que se usa para `POST` información sobre mascotas es similar a la creación de la que se usa para `GET` información sobre mascotas.
+
+En el panel izquierdo, seleccione `/pets` y haga clic en **CreateMethod**.
+
+En el menú desplegable, seleccione POST y haga clic en el botón con la marca de verificación.
+
+Seleccione función Lambda en Integration Type, seleccione la región en la que se encuentra y seleccione UpdatePetInfo para la función Lambda.
 
 Haga clic en **Save** y luego en **OK** cuando se le solicite en la ventana emergente conceder permisos a la función Lambda.
 
-En la ventana Method Execution que aparece a continuación, haga clic en **Test**.
-
-Debería ver la única mascota en el cuerpo de la respuesta.
-
-<div id="method-post-pet-information">
-  #### Método: POST de información de mascotas
-</div>
-
-La creación de la API que se usa para `POST` información de mascotas es similar a la de la API que se usa para `GET` información de mascotas.
-
-En el panel izquierdo, selecciona `/pets` y haz clic en **CreateMethod**.
-
-En el menú desplegable, selecciona POST y haz clic en el botón con la marca de verificación.
-
-Selecciona función Lambda como Tipo de integración, selecciona la región en la que te encuentras y elige UpdatePetInfo como la función Lambda.
-
-Haz clic en **Guardar** y luego en **OK** cuando aparezca la ventana emergente para conceder permisos a la función Lambda.
-
-Haz clic en **Test** y pega lo siguiente en el cuerpo de la solicitud:
+Haga clic en **Test** y pegue lo siguiente en el cuerpo de la solicitud:
 
 ```json lines
 {"pets": [
@@ -262,9 +262,9 @@ Haz clic en **Test** y pega lo siguiente en el cuerpo de la solicitud:
 }
 ```
 
-Deberías ver un resultado de retorno vacío (`{}`).
+Deberías ver un resultado vacío (`{}`).
 
-Vuelve al método GET y haz clic en **Test** de nuevo para comprobar que el cuerpo de la respuesta indica que hay dos mascotas en la tabla:
+Vuelve al método GET y haz clic en **Probar** de nuevo para comprobar que el cuerpo de la respuesta indica que hay dos mascotas en la tabla:
 
 ```json lines
 [
@@ -278,17 +278,14 @@ Vuelve al método GET y haz clic en **Test** de nuevo para comprobar que el cuer
     "price": 124.99,
     "type": "cat"
   }
-]
-```
+]```
 
-<div id="method-options">
-  #### Método: OPTIONS
-</div>
+#### Método: OPTIONS
 
-En lugar de crear una función lambda que no haga nada, puedes crear un método `OPTIONS` en API Gateway.
+En lugar de crear una función Lambda que no haga nada, puedes crear un método `OPTIONS` en API Gateway.
 
-En el panel izquierdo, selecciona `/pets` y haz clic en **CreateMethod**. En el menú desplegable, selecciona OPTIONS y haz clic en el botón con la marca de verificación. Selecciona Mock en Integration Type. Haz clic en **Save**.
+En el panel izquierdo, selecciona `/pets` y haz clic en **CreateMethod**. En el menú desplegable, selecciona OPTIONS y haz clic en el botón de marca de verificación. En Integration Type, selecciona Mock. Haz clic en **Save**.
 
 Deja Response Body en blanco y haz clic en **Test**. Deberías recibir un Response Body que indique `no data`.
 
-En este punto, las funciones de AWS Lambda y los métodos de Amazon API Gateway están definidos sin seguridad.
+En este punto, las funciones de AWS Lambda y los métodos de Amazon API Gateway están definidos sin ninguna configuración de seguridad.

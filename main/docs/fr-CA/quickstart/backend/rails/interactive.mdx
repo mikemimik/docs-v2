@@ -1,17 +1,17 @@
 ---
 mode: wide
-description: Ce tutoriel effectue la validation du jeton d’accès à l’aide de la gem JWT dans une classe Auth0Client personnalisée.
+description: Ce tutoriel explique comment effectuer la validation d’un jeton d’accès à l’aide de la gem JWT dans une classe Auth0Client personnalisée.
 sidebarTitle: API Ruby on Rails
-title: Ajoutez l’autorisation à votre API Ruby on Rails
+title: Ajouter l’autorisation à votre API Ruby on Rails
 ---
 
 import { Recipe, Content, Section, SideMenu, SideMenuSectionItem, SignUpForm } from "/snippets/recipe.jsx";
 import { LoggedInForm } from "/snippets/Login.jsx";
-import ApplicationController from "/snippets/quickstart/backend/rails/application_controller.rb.mdx";
-import Auth0Client from "/snippets/quickstart/backend/rails/auth0_client.rb.mdx";
-import Secured from "/snippets/quickstart/backend/rails/secured.rb.mdx";
-import PublicController from "/snippets/quickstart/backend/rails/public_controller.rb.mdx";
-import PrivateController from "/snippets/quickstart/backend/rails/private_controller.rb.mdx";
+import ApplicationController from "/snippets/fr-CA/quickstart/backend/rails/application_controller.rb.mdx";
+import Auth0Client from "/snippets/fr-CA/quickstart/backend/rails/auth0_client.rb.mdx";
+import Secured from "/snippets/fr-CA/quickstart/backend/rails/secured.rb.mdx";
+import PublicController from "/snippets/fr-CA/quickstart/backend/rails/public_controller.rb.mdx";
+import PrivateController from "/snippets/fr-CA/quickstart/backend/rails/private_controller.rb.mdx";
 
 import {QuickstartButtons} from "/snippets/QuickstartButtons.jsx";
 
@@ -20,18 +20,18 @@ import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 <QuickstartButtons githubLink="https://github.com/auth0-samples/auth0-rubyonrails-api-samples/tree/master/01-Authentication-RS256" />
 
 export const sections = [
-  { id: "define-permissions", title: "Définir les autorisations" },
+  { id: "define-permissions", title: "Définir les permissions" },
   { id: "install-dependencies", title: "Installer les dépendances" },
   { id: "create-an-auth0client-class", title: "Créer une classe Auth0Client" },
   { id: "define-a-secured-concern", title: "Définir un concern Secured" },
   { id: "include-the-secure-concern-in-your-applicationcontroller", title: "Inclure le concern Secure dans votre ApplicationController" },
-  { id: "create-the-public-endpoint", title: "Créer le point de terminaison public" },
-  { id: "create-the-private-endpoints", title: "Créer les points de terminaison privés" }
+  { id: "create-the-public-endpoint", title: "Créer l’endpoint public" },
+  { id: "create-the-private-endpoints", title: "Créer les endpoints privés" }
 ]
 
 <Recipe>
   <Content>
-    Ce tutoriel effectue la validation du jeton d&#39;accès à l&#39;aide du Gem [jwt](https://github.com/jwt/ruby-jwt) dans une classe `Auth0Client` personnalisée. Un Concern appelé
+    Ce tutoriel effectue la validation du jeton d&#39;accès à l&#39;aide du gem [jwt](https://github.com/jwt/ruby-jwt) dans une classe `Auth0Client` personnalisée. Un Concern appelé
     `Secured` est utilisé pour autoriser les endpoints qui nécessitent une authentification via un jeton d&#39;accès entrant.
 
     Si vous n&#39;avez pas encore créé d&#39;API dans votre tableau de bord Auth0, utilisez le sélecteur interactif pour créer une nouvelle API Auth0
@@ -42,15 +42,15 @@ export const sections = [
     Chaque API Auth0 utilise l&#39;identifiant d&#39;API, dont votre application a besoin pour valider le jeton d&#39;accès.
 
     <Info>
-      **Vous découvrez Auth0 ?** Découvrez [comment fonctionne Auth0](https://auth0.com/docs/overview)
-      et apprenez [comment mettre en œuvre l’authentification
-      et l’autorisation des API](https://auth0.com/docs/api-auth) à l’aide d’OAuth 2.0.
+      **Vous découvrez Auth0 ?** Apprenez [comment fonctionne Auth0](https://auth0.com/docs/overview)
+      et découvrez [comment mettre en œuvre l’authentification
+      et l’autorisation des API](https://auth0.com/docs/api-auth) à l’aide du framework OAuth 2.0.
     </Info>
 
     <Section id={sections[0].id} title={sections[0].title} stepNumber="1">
-      Les permissions vous permettent de définir comment il est possible d’accéder aux ressources au nom de l’utilisateur à l’aide d’un jeton d’accès donné. Par
-      exemple, vous pourriez choisir d’accorder un accès en lecture à la ressource `messages` si les utilisateurs ont le niveau d’accès Manager,
-      et un accès en écriture à cette ressource s’ils ont le niveau d’accès administrateur.
+      Les permissions vous permettent de définir comment les ressources peuvent être accessibles au nom de l’utilisateur au moyen d’un access token donné. Par
+      exemple, vous pourriez choisir d’accorder un accès en lecture à la ressource `messages` si les utilisateurs ont le niveau
+      d’accès Manager, et un accès en écriture à cette ressource s’ils ont le niveau d’accès administrateur.
 
       Vous pouvez définir les permissions autorisées dans la vue **Permissions** de la section [APIs](https://manage.auth0.com/#/apis) de l’Auth0 Dashboard.
 
@@ -59,12 +59,12 @@ export const sections = [
       </Frame>
 
       <Info>
-        Cet exemple utilise le scope `read:messages`.
+        Cet exemple utilise la scope `read:messages`.
       </Info>
     </Section>
 
     <Section id={sections[1].id} title={sections[1].title} stepNumber="2">
-      Installez la &#42;&#42;gem jwt &#42;&#42;.
+      Installez la gem &#42;&#42;jwt &#42;&#42;.
 
       ```bash lines
       gem 'jwt'
@@ -73,12 +73,12 @@ export const sections = [
     </Section>
 
     <Section id={sections[2].id} title={sections[2].title} stepNumber="3">
-      Créez une classe appelée `Auth0Client`. Cette classe décode et vérifie le jeton d’accès entrant extrait
-      de l’en-tête `Authorization` de la requête.
+      Créez une classe appelée `Auth0Client`. Cette classe décode et vérifie le jeton d&#39;accès reçu, extrait
+      de l&#39;en-tête `Authorization` de la requête.
 
-      La classe `Auth0Client` récupère la clé publique de votre tenant Auth0, puis l’utilise pour vérifier la
-      signature du jeton d’accès. La structure `Token` définit une méthode `validate_permissions` pour
-      rechercher un `scope` précis dans un jeton d’accès en fournissant un tableau des scopes requis et en vérifiant s’ils
+      La classe `Auth0Client` récupère la clé publique de votre tenant Auth0, puis l&#39;utilise pour vérifier la
+      signature du jeton d&#39;accès. La structure `Token` définit une méthode `validate_permissions` pour
+      rechercher un `scope` précis dans un jeton d&#39;accès en fournissant un tableau de scopes requis et en vérifiant s&#39;ils
       sont présents dans la charge utile du jeton.
     </Section>
 
@@ -86,21 +86,21 @@ export const sections = [
       Créez un Concern appelé `Secured` qui recherche le jeton d’accès dans l’en-tête `Authorization`
       d’une requête entrante.
 
-      Si le token est présent, `Auth0Client.validate_token` utilisera la gem `jwt` pour vérifier
-      la signature du token et valider ses claims.
+      Si le jeton est présent, `Auth0Client.validate_token` utilisera la gemme `jwt` pour vérifier
+      la signature du jeton et valider ses claims.
 
       En plus de vérifier que le jeton d’accès est valide, le Concern comprend aussi un mécanisme pour confirmer que le
-      token a le **scope** suffisant pour accéder aux ressources demandées. Dans cet exemple, nous définissons une
+      jeton a le **scope** suffisant pour accéder aux ressources demandées. Dans cet exemple, nous définissons une
       méthode `validate_permissions` qui reçoit un bloc et vérifie les permissions en appelant la
       méthode `Token.validate_permissions` de la classe `Auth0Client`.
 
-      Pour la route `/private-scoped`, les scopes définis seront mis en intersection avec les scopes provenant du
+      Pour la route `/private-scoped`, les scopes définis seront croisés avec les scopes transmis dans le
       payload, afin de déterminer s’il contient un ou plusieurs éléments de l’autre tableau.
     </Section>
 
     <Section id={sections[4].id} title={sections[4].title} stepNumber="5">
-      En ajoutant le concern `Secure` à votre contrôleur d’application, il vous suffira d’utiliser un
-      filtre `before_action` dans le contrôleur qui requiert une autorisation.
+      En ajoutant le Concern `Secure` au contrôleur de votre application, vous n&#39;aurez qu’à utiliser un
+      filtre `before_action` dans le contrôleur qui exige une autorisation.
     </Section>
 
     <Section id={sections[5].id} title={sections[5].title} stepNumber="6">
@@ -116,21 +116,22 @@ export const sections = [
       `/api/private` est disponible pour les requêtes authentifiées contenant un access token sans
       scopes supplémentaires.
 
-      `/api/private-scoped` est disponible pour les requêtes authentifiées contenant un jeton d&#39;accès avec la portée
-      `read:messages` accordée
+      `/api/private-scoped` est disponible pour les requêtes authentifiées contenant un jeton d&#39;accès avec la portée `read:messages` accordée
 
-      Les endpoints protégés doivent appeler la méthode `authorize` du concern `Secured`. Pour ce faire, utilisez `before_action :authorize`, ce qui garantit que la méthode `Secured.authorize` est appelée avant chaque action du `PrivateController`.
+      Les points de terminaison protégés doivent appeler la méthode `authorize` du concern `Secured`.
+      Pour ce faire, utilisez `before_action :authorize`, ce qui garantit que la méthode `Secured.authorize` est
+      appelée avant chaque action du `PrivateController`.
 
       ### Effectuer un appel vers votre API
 
-      Pour effectuer des appels à votre API, vous avez besoin d&#39;un jeton d&#39;accès. Vous pouvez obtenir un jeton d&#39;accès à des fins de test depuis la vue **Test** dans vos [paramètres
+      Pour effectuer des appels à votre API, vous avez besoin d&#39;un jeton d&#39;accès. Vous pouvez obtenir un jeton d&#39;accès à des fins de test dans la vue **Test** de vos [paramètres
       d&#39;API](https://manage.auth0.com/#/apis).
 
       <Frame>
         <img src="/docs/images/cdy7uua7fh8z/6jeVBuypOGX5qMRXeJn5ow/5e79037f6c852d2043789d622bdb9562/Quickstart_Example_App_-_English.png" />
       </Frame>
 
-      Fournissez le jeton d&#39;accès dans l&#39;en-tête `Authorization` de vos requêtes.
+      Fournissez le jeton d&#39;accès dans un en-tête `Authorization` avec vos requêtes.
 
       <AuthCodeGroup>
         ```bash cURL lines
@@ -297,23 +298,23 @@ export const sections = [
       <Note>
         ##### Vérification
 
-        Maintenant que vous avez configuré votre application, lancez-la pour vérifier que :
+        Maintenant que vous avez configuré votre application, exécutez-la pour vérifier que :
 
-        * `GET /api/public`est accessible sans authentification.
-        * `GET /api/private`est accessible avec authentification.
-        * `GET /api/private-scoped`est accessible avec authentification lorsqu’un jeton d’accès
-          contenant la portée `read:messages` est fourni.
+        * `GET /api/public` est disponible pour les requêtes sans authentification.
+        * `GET /api/private` est disponible pour les requêtes authentifiées.
+        * `GET /api/private-scoped` est disponible pour les requêtes authentifiées contenant un jeton
+          d’accès avec la portée `read:messages`.
       </Note>
     </Section>
 
     ## Prochaines étapes
 
-    Excellent travail ! Si vous êtes arrivé jusqu&#39;ici, vous devriez maintenant avoir la connexion, la déconnexion et les informations du profil utilisateur qui fonctionnent dans votre application.
+    Excellent travail ! Si vous avez suivi toutes les étapes jusqu&#39;ici, vous devriez maintenant avoir le login, le logout et les renseignements du profil utilisateur fonctionnels dans votre application.
 
     Ceci conclut notre tutoriel de démarrage rapide, mais il reste encore beaucoup à explorer. Pour en savoir plus sur ce que vous pouvez faire avec Auth0, consultez :
 
-    * [Auth0 Dashboard](https://manage.auth0.com/dashboard/us/dev-gja8kxz4ndtex3rq) - Découvrez comment configurer et gérer votre tenant Auth0 et vos applications
-    * [omniauth-auth0 SDK](https://github.com/auth0/omniauth-auth0) - Explorez plus en détail le SDK utilisé dans ce tutoriel
+    * [Auth0 Dashboard](https://manage.auth0.com/dashboard/us/dev-gja8kxz4ndtex3rq) - Apprenez à configurer et à gérer votre tenant Auth0 et vos applications
+    * [omniauth-auth0 SDK](https://github.com/auth0/omniauth-auth0) - Découvrez plus en détail le SDK utilisé dans ce tutoriel
     * [Auth0 Marketplace](https://marketplace.auth0.com/) - Découvrez les intégrations que vous pouvez activer pour étendre les fonctionnalités d’Auth0
   </Content>
 

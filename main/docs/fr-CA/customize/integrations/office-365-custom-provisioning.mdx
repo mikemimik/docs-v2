@@ -5,11 +5,11 @@ title: Provisionnement personnalisé pour Office 365
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
-La configuration Office 365 par défaut comprend Active Directory et les services DirSync/Azure AD Sync, qui synchronisent et provisionnent les utilisateurs AD présents dans votre Azure AD pour le <Tooltip tip="Authentification unique (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SSO">SSO</Tooltip>. Dans cette configuration, Auth0 est le <Tooltip tip="Authentification unique (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> et nous fournissons l’authentification unique (SSO) à ces utilisateurs.
+La configuration par défaut d’Office 365 comprend Active Directory et les services DirSync/Azure AD Sync, qui synchronisent et provisionnent les utilisateurs AD présents dans votre Azure AD pour le <Tooltip tip="Authentification unique (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SSO">SSO</Tooltip>. Dans cette configuration, Auth0 est le <Tooltip tip="Authentification unique (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> et fournit le SSO à ces utilisateurs.
 
-Mais que faire si vous souhaitez permettre à des sous-traitants, à des partenaires ou même à des clients d’accéder à votre environnement Office 365 (p. ex., SharePoint) ? Dans ce cas, l’approche par défaut n’est pas idéale, car ces utilisateurs devraient être créés dans votre environnement AD. Vous devez plutôt provisionner de façon personnalisée des utilisateurs Azure AD à l’aide des [Règles Auth0](/docs/fr-CA/customize/rules).
+Mais que faire si vous souhaitez permettre à des sous-traitants, à des partenaires ou même à des clients d’accéder à votre environnement Office 365 (par exemple, SharePoint) ? Dans ce cas, l’approche par défaut n’est pas optimale, car ces utilisateurs devraient être créés dans votre environnement AD. Vous devez plutôt effectuer un provisionnement personnalisé des utilisateurs Azure AD à l’aide des [Règles Auth0](/docs/fr-CA/customize/rules).
 
-Le provisionnement personnalisé vous permet de créer des utilisateurs dans Azure AD (et donc, dans les faits, dans Office 365) au moment même où ils se connectent à partir de toute connexion disponible dans Auth0. (Dans ce cas, votre règle prend en charge la tâche de DirSync pour tout type de connexion avec lequel DirSync ne fonctionnerait pas.) Cette configuration vous permet d’offrir diverses options de connexion (notamment Facebook, LinkedIn et Google Workspace) pour votre environnement Office 365.
+Le provisionnement personnalisé vous permet de créer des utilisateurs dans Azure AD (et donc, en pratique, dans Office 365) au moment même où ils se connectent à partir de n’importe quelle connexion disponible dans Auth0. (Dans ce cas, votre règle prend en charge la tâche de DirSync pour tout type de connexion avec lequel DirSync ne fonctionnerait pas.) Cette configuration vous permet d’offrir diverses options de connexion (notamment Facebook, LinkedIn et Google Workspace) pour votre environnement Office 365.
 
 <div id="prerequisites">
   ## Prérequis
@@ -17,30 +17,30 @@ Le provisionnement personnalisé vous permet de créer des utilisateurs dans Azu
 
 Avant de pouvoir configurer le provisionnement personnalisé, vous devez :
 
-* [Configurer Office 365](https://marketplace.auth0.com/integrations/office-365-sso) : enregistrer un <Tooltip tip="Domaine personnalisé : domaine tiers portant un nom distinctif ou personnalisé." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=custom+domain">domaine personnalisé</Tooltip> et configurer Office 365 comme une application tierce dans Auth0.
+* [Configurer Office 365](https://marketplace.auth0.com/integrations/office-365-sso): enregistrer un <Tooltip tip="Domaine personnalisé : domaine tiers portant un nom spécialisé ou personnalisé." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=custom+domain">domaine personnalisé</Tooltip> et configurer Office 365 en tant qu’application tierce dans Auth0.
 
 <div id="configure-azure-ad">
   ## Configurer Azure AD
 </div>
 
-Le provisionnement personnalisé utilise l’API Azure AD Graph pour provisionner de nouveaux utilisateurs dans Azure AD. Pour accéder à l’API Azure AD Graph, vous devez créer une application dans l’annuaire Azure AD associé à l’abonnement Office 365 :
+Le provisionnement personnalisé utilise l’API Azure AD Graph pour provisionner de nouveaux utilisateurs dans Azure AD. Pour accéder à l’API Azure AD Graph, vous devez créer une application dans l’annuaire Azure AD associé à l’abonnement Office 365 :
 
-1. Connectez-vous au [portail Azure](https://portal.azure.com).
+1. Se connecter à [Azure Portal](https://portal.azure.com).
 2. Choisissez [Azure Active Directory dans le menu de navigation de gauche](https://portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/Overview).
-3. Sélectionnez **App registrations** dans le nouveau menu.
-4. Cliquez sur **New application registration**.
-5. Remplissez le formulaire :
+3. Sélectionnez **Inscriptions d’applications** dans le nouveau menu.
+4. Cliquez sur **Nouvelle inscription d’application**.
+5. Remplissez le formulaire :
 
-   1. Entrez un nom pour l’application (par exemple `Auth0 Provisioning`)
-   2. Sélectionnez **Web app / API** comme **Application type**.
-   3. Saisissez une URL de connexion. Vous pouvez entrer n’importe quelle URL valide ; elle ne sera pas réellement utilisée.
-6. L’application nouvellement créée apparaîtra dans la liste **App registrations**. Sélectionnez-la.
-7. Dans le panneau **Settings** (Microsoft appelle ces sections des « blades »), choisissez **Keys**.
-8. Saisissez une **Description** (comme `Auth0 Provision`) et choisissez une **Duration** pour la nouvelle clé. Si vous choisissez d’émettre une clé non permanente, notez sa date d’expiration et créez un rappel pour la remplacer avant qu’elle n’expire.
-9. Cliquez pour enregistrer la clé, puis copiez la **App Key**. Cette clé ne sera affichée qu’une seule fois et elle est nécessaire pour la règle Auth0.
-10. Choisissez **Required permissions**, puis cliquez sur **Add** dans le nouveau panneau.
-11. Sélectionnez l’API **Microsoft Graph**, puis cochez `Read and write directory data` sous **Application Permissions**.
-12. De retour dans **Required permissions**, cliquez sur le bouton **Grant Permissions**, puis sur **Yes** pour accorder les permissions demandées.
+   1. Saisissez un nom pour l’application (par exemple `Auth0 Provisioning`)
+   2. Sélectionnez **Application web / API** comme **Type d’application**.
+   3. Entrez une URL de connexion. Vous pouvez saisir n’importe quelle URL valide; elle ne sera pas réellement utilisée.
+6. L’application nouvellement créée apparaîtra dans la liste **Inscriptions d’applications**. Sélectionnez-la.
+7. Dans le volet **Paramètres** (Microsoft appelle ces sections des « volets »), choisissez **Clés**.
+8. Saisissez une **Description** (par exemple `Auth0 Provision`), puis choisissez une **Durée** pour la nouvelle clé. Si vous choisissez d’émettre une clé non permanente, notez la date d’expiration et créez un rappel pour la remplacer avant son expiration.
+9. Cliquez pour enregistrer la clé, puis copiez la **Clé d’application**. Cette clé ne s’affichera qu’une seule fois, et elle est nécessaire pour la règle Auth0.
+10. Choisissez **Autorisations requises**, puis cliquez sur **Ajouter** dans le nouveau volet.
+11. Sélectionnez l’API **Microsoft Graph**, puis cochez `Read and write directory data` sous **Autorisations d’application**.
+12. De retour dans **Autorisations requises**, cliquez sur le bouton **Accorder les autorisations**, puis cliquez sur **Oui** pour accorder les autorisations demandées.
 
 <div id="create-the-azure-ad-provisioning-rule">
   ## Créer la règle de provisionnement Azure AD
@@ -48,18 +48,18 @@ Le provisionnement personnalisé utilise l’API Azure AD Graph pour provisionne
 
 La règle suivante illustre le processus de provisionnement :
 
-1. Si l’utilisateur provient de la connexion AD, ignorez le processus de provisionnement (car il sera pris en charge par DirSync).
+1. Si l’utilisateur provient de la connexion AD, ignorez l’étape de provisionnement (car elle sera gérée par DirSync).
 2. Si l’utilisateur a déjà été provisionné dans Azure AD, poursuivez simplement la transaction de connexion.
 3. Utilisez l’ID client et la clé Azure AD pour obtenir un jeton d’accès pour la Graph API.
 4. Créez un utilisateur dans Azure AD.
 5. Attribuez une licence à l’utilisateur.
 6. Poursuivez la transaction de connexion.
 
-Le nom d’utilisateur est généré par la fonction `createAzureADUser`, qui, par défaut, crée un nom d’utilisateur au format `auth0-c3fb6eec-3afd-4d52-8e0a-d9f357dd19ab@fabrikamcorp.be`. Vous pouvez le modifier à votre guise; assurez-vous simplement que cette valeur est unique pour tous vos utilisateurs.
+Le nom d’utilisateur est généré par la fonction `createAzureADUser`, qui génère par défaut un nom d’utilisateur au format `auth0-c3fb6eec-3afd-4d52-8e0a-d9f357dd19ab@fabrikamcorp.be`. Vous pouvez le modifier comme bon vous semble; assurez-vous simplement que cette valeur est unique pour tous vos utilisateurs.
 
-Assurez-vous de définir les bonnes valeurs pour `AUTH0_OFFICE365_CLIENT_ID`, `AAD_CUSTOM_DOMAIN`, `AAD_DOMAIN`, `AAD_APPLICATION_ID` et `AAD_APPLICATION_API_KEY` dans votre objet de configuration afin que ces valeurs soient accessibles dans le code de votre règle. Pour en savoir plus, consultez [Store Configuration for Rules](/docs/fr-CA/customize/rules/configuration).
+Assurez-vous de définir les bonnes valeurs pour `AUTH0_OFFICE365_CLIENT_ID`, `AAD_CUSTOM_DOMAIN`, `AAD_DOMAIN`, `AAD_APPLICATION_ID` et `AAD_APPLICATION_API_KEY` dans votre objet de configuration afin de les rendre accessibles dans le code de votre règle. Pour en savoir plus, consultez [Store Configuration for Rules](/docs/fr-CA/customize/rules/configuration).
 
-Dans le code, vous verrez aussi que la règle attend environ 15 secondes après le provisionnement de l’utilisateur. C’est parce qu’il faut quelques secondes avant que l’utilisateur provisionné soit disponible dans Office 365.
+Dans le code, vous verrez également que la règle attendra environ 15 secondes après le provisionnement de l’utilisateur. Cela s’explique par le fait qu’il faut quelques secondes avant que l’utilisateur provisionné soit disponible dans Office 365.
 
 ```javascript lines expandable
 function (user, context, callback) {
@@ -231,8 +231,8 @@ function (user, context, callback) {
 
   // Après avoir provisionné l'utilisateur et lui avoir attribué une licence, nous enregistrons
   // (dans Auth) que cet utilisateur Google Workspace a déjà été provisionné. Nous
-  // enregistrons également le nom d'utilisateur principal et l'immutableId de l'utilisateur pour
-  // le rediriger correctement lors des connexions futures.
+  // enregistrons également le nom d'utilisateur principal et l'immutableId de l'utilisateur
+  // afin de le rediriger correctement lors des connexions futures.
   function saveUserMetadata() {
     user.app_metadata = user.app_metadata || {};
 
@@ -253,7 +253,7 @@ function (user, context, callback) {
     });
   }
 
-  // Ajoute le nom d'utilisateur principal et l'immutableId à l'objet utilisateur et termine
+  // Ajoute le nom d'utilisateur principal et l'immutableId à l'objet user et termine
   // la règle.
   function connectWithUser() {
     user.upn = user.app_metadata.office365UPN;
@@ -264,36 +264,36 @@ function (user, context, callback) {
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Ce code illustre le processus de provisionnement d’un nouvel utilisateur, mais vous pouvez aussi l’adapter pour synchroniser les métadonnées des utilisateurs existants.
+  Ce code illustre le processus de provisionnement d’un nouvel utilisateur, mais vous pouvez aussi l’adapter pour synchroniser les métadonnées d’utilisateurs existants.
 </Callout>
 
 <div id="user-experience">
   ## Expérience utilisateur
 </div>
 
-La façon la plus simple pour vos utilisateurs externes de s’authentifier consiste à utiliser une connexion initiée par le fournisseur d’identité.
+Le moyen le plus simple pour vos utilisateurs externes de s’authentifier est d’utiliser une connexion initiée par le fournisseur d’identité.
 
-Vous devez rediriger vos utilisateurs vers l’URL suivante (p. ex., en utilisant un &quot;lien intelligent&quot; comme `https://office.travel0.com`) :
+Vous devez rediriger vos utilisateurs vers l’URL suivante (par exemple, en utilisant un &quot;smart link&quot; comme `https://office.travel0.com`) :
 
 export const codeExample = `https://{yourDomain}/login?client=AUTH0_OFFICE365_CLIENT_ID&protocol=wsfed&state=&redirect_uri=&`;
 
 <AuthCodeBlock children={codeExample} language="http" />
 
-Cela leur affichera la page de connexion Auth0, après quoi ils seront redirigés vers Office 365. Il sera important d’expliquer aux utilisateurs externes qu’il s’agit de la seule façon pour eux de s’authentifier, puisque la page de connexion Office 365 ne prend pas en charge Home Realm Discover pour ces utilisateurs. Cela signifie aussi que, lorsqu’ils essaieront d’ouvrir un lien, ils devront d’abord passer par le smart link avant de pouvoir accéder au lien qu’ils tentaient d’ouvrir.
+Cela leur affichera la page de connexion Auth0, après quoi ils seront redirigés vers Office 365. Il sera important d’expliquer aux utilisateurs externes qu’il s’agit de la seule façon pour eux de s’authentifier, puisque la page de connexion d’Office 365 ne prend pas en charge Home Realm Discover pour ces utilisateurs externes. Cela signifie aussi que, lorsqu’ils essaieront d’ouvrir un lien, ils devront d’abord passer par le smart link avant de pouvoir accéder au lien qu’ils ont tenté d’ouvrir.
 
 Dans cet exemple, Travel0 a activé quelques connexions sociales et une connexion de base de données pour son application tierce Office 365 dans Auth0.
 
 <div id="deep-linking">
-  ## Liaison profonde
+  ## Liens profonds
 </div>
 
-Certaines mises en œuvre peuvent nécessiter une liaison profonde (par exemple vers SharePoint Online). Dans ce cas, il faut créer un lien intelligent qui commence sur la page de connexion d’Office 365 :
+Certaines mises en œuvre peuvent nécessiter des liens profonds (par exemple, vers SharePoint Online). Dans ce cas, il faut créer un smart link qui commence sur la page de connexion d’Office 365 :
 
 ```http wrap lines
 https://login.microsoftonline.com/login.srf?wa=wsignin1.0&whr={yourCustomDomain}&wreply={deepLink}
 ```
 
-Le premier paramètre, `{yourCustomDomain}`, doit être le domaine que vous avez configuré dans Azure AD pour l’<Tooltip tip="Service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement à d’autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on+%28SSO%29">authentification unique (SSO)</Tooltip> (par exemple, `travel0.com`). En l’indiquant comme valeur de `whr`, Azure AD saura qu’il doit rediriger l’utilisateur vers Auth0 au lieu d’afficher la page de connexion.
+Le premier paramètre, `{yourCustomDomain}`, doit être le domaine que vous avez configuré dans Azure AD pour le <Tooltip tip="Service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement aux autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on+%28SSO%29">Single Sign-on (SSO)</Tooltip> (p. ex., `travel0.com`). En le spécifiant comme `whr`, Azure AD saura qu’il doit rediriger vers Auth0 au lieu d’afficher la page de connexion.
 
 Le paramètre `DEEP_LINK` doit être une URL encodée dans Office 365 (par exemple, une page de SharePoint Online ou d’Exchange).
 

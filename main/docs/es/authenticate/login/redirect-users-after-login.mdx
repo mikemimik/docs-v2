@@ -1,44 +1,44 @@
 ---
-description: Describe cómo redirigir a los usuarios a URL que no se han añadido a la AllowList.
-title: Redirigir a los usuarios
+description: Describe cómo redirigir a los usuarios a URL que no se han añadido a la lista de permitidos.
+title: Redirigir usuarios
 ---
 
-Puedes redirigir a los usuarios a páginas específicas (URL) dentro de tu aplicación después de validar sus <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Tokens">ID Tokens</Tooltip> (autenticación). Para ver un ejemplo de cómo funciona, prueba la [guía de inicio rápido de inicio de sesión para React](/docs/es/quickstart/spa/react).
+Puede redirigir a los usuarios a páginas específicas (URL) de su aplicación después de validar sus <Tooltip tip="token de ID: Credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Tokens">tokens de ID</Tooltip> (autenticación). Para ver un ejemplo de cómo funciona, pruebe la [React: Login Quickstart](/docs/es/quickstart/spa/react).
 
 <div id="redirect-users-to-callback-urls-on-the-allowlist">
-  ## Redirigir a los usuarios a las URL de devolución de llamada de la AllowList
+  ## Redirigir a los usuarios a URLs de devolución de llamada en la lista de permitidos
 </div>
 
-Debido a que las URL de devolución de llamada pueden ser manipuladas por terceros no autorizados, Auth0 solo reconoce como válidas las URL incluidas en la AllowList configurada en el campo **Allowed Callback URLs** de la [configuración de una aplicación](https://manage.auth0.com/#/applications/\{yourClientId}/settings). Para redirigir a los usuarios a las URL de devolución de llamada de la AllowList, es necesario que su aplicación sepa cómo hacer que el usuario continúe su recorrido.
+Debido a que las URLs de devolución de llamada pueden ser manipuladas por partes no autorizadas, Auth0 solo reconoce como válidas las URL incluidas en la lista de permitidos establecida en el campo **Allowed Callback URLs** de los [Settings de una aplicación](https://manage.auth0.com/#/applications/\{yourClientId}/settings). Para devolver a los usuarios a URLs de devolución de llamada de la lista de permitidos, es necesario que tu aplicación sepa cómo hacer que el usuario continúe su recorrido.
 
 Hay dos métodos para hacerlo:
 
 * Usar cookies y sesiones del navegador
-* Usar parámetros `state`
+* Usar parámetros de estado
 
-Durante la autenticación de un usuario, el parámetro de solicitud `redirect_uri` se usa como URL de devolución de llamada. Aquí es donde su aplicación recibe y procesa la respuesta de Auth0, y suele ser la URL a la que se redirige a los usuarios una vez completada la autenticación. Para obtener más información sobre cómo funciona `redirect_uri`, consulte [OAuth 2.0 Authorization Framework](/docs/es/authenticate/protocols/oauth).
+Durante la autenticación de un usuario, el parámetro de request `redirect_uri` se usa como URL de devolución de llamada. Aquí es donde tu aplicación recibe y procesa la respuesta de Auth0, y a menudo es la URL a la que se redirige a los usuarios una vez completada la autenticación. Para obtener más información sobre cómo funciona `redirect_uri`, consulta [Marco de autorización OAuth 2.0](/docs/es/authenticate/protocols/oauth).
 
 <Tabs>
   <Tab title="Cookie o sesión del navegador">
-    Puede usar una cookie o la sesión del navegador para almacenar una URL de retorno. Esta es una solución sencilla de implementar; sin embargo, puede causar problemas cuando una cookie no persiste. En esta situación se inician dos sesiones de usuario independientes. Cada una cumple un propósito distinto y requiere cierta atención para lograr la experiencia de usuario deseada.
+    Puedes usar una cookie o la sesión del navegador para almacenar un valor de URL de retorno. Esta es una solución sencilla de implementar; sin embargo, puede causar problemas en los casos en que una cookie no persista. En esta situación, se inician dos sesiones de usuario independientes. Cada una cumple un propósito distinto y requiere cierta consideración para lograr la experiencia de usuario deseada.
 
-    * **Sesión de SSO proporcionada por Auth0**: Auth0 proporciona una sesión para habilitar [Single Sign On (SSO)](/docs/es/authenticate/single-sign-on) y permitir que su usuario mantenga una sesión de autenticación sin que se le pidan credenciales más de una vez. Auth0 mantiene esta sesión y la gestiona como una cookie vinculada al dominio de su tenant (o `CNAME`). Hay dos [configuraciones del tenant](/docs/es/manage-users/sessions/configure-session-lifetime-settings) que determinan la duración de la sesión de Auth0:
+    * **Sesión SSO proporcionada por Auth0**: Auth0 proporciona una sesión para habilitar [Single Sign On (SSO)](/docs/es/authenticate/single-sign-on) y permitir que tu usuario mantenga una sesión de autenticación sin que se le soliciten credenciales más de una vez. Esta sesión la mantiene Auth0 y se representa como una cookie vinculada al dominio de tu tenant (o `CNAME`). Hay dos [configuraciones del tenant](/docs/es/manage-users/sessions/configure-session-lifetime-settings) que determinan la duración de la sesión de Auth0:
 
-      * `idle_session_lifetime` es el tiempo que la sesión permanecerá activa sin interacción.
-      * `session_lifetime` es la duración máxima durante la que se permite que la sesión permanezca activa.
+      * `idle_session_lifetime` es cuánto tiempo permanecerá activa la sesión sin interacción.
+      * `session_lifetime` es la duración máxima durante la cual se permite que la sesión permanezca activa.
 
-      Estas configuraciones se aplican a todas las aplicaciones de su tenant y deben ajustarse al modelo de seguridad que mejor se adapte a su caso de uso.
-    * **Sesión de la aplicación**: Su aplicación también debe mantener una sesión propia. A lo largo de la sesión del usuario, su aplicación puede necesitar solicitar tokens adicionales o renovar los que hayan expirado. Debe almacenar estos tokens en su aplicación y hacer referencia a ellos mediante un identificador devuelto al navegador a través de una cookie segura.
+      Estas configuraciones se aplican a todas las aplicaciones dentro de tu tenant y deben ajustarse al modelo de seguridad que corresponda a tu caso de uso.
+    * **Application Session**: Tu aplicación también debe mantener un concepto de sesión. A lo largo de la sesión del usuario, tu aplicación puede necesitar solicitar tokens adicionales o renovar los que hayan expirado. Debes almacenar estos tokens en tu aplicación y referenciarlos mediante un identificador devuelto al navegador usando una cookie segura.
 
-    Una vez que su usuario se haya autenticado con Auth0, corresponde a su aplicación determinar cuánto tiempo mantiene esta sesión.
+    Una vez que tu usuario se haya autenticado con Auth0, depende de tu aplicación determinar cuánto tiempo persiste esta sesión.
   </Tab>
 
   <Tab title="Parámetros de estado">
-    Como método alternativo, puede crear un enlace profundo mediante el parámetro `state`, que su devolución de llamada interpretaría para determinar una ruta de redirección. Esta solución requiere un poco más de trabajo para implementarse, pero garantiza que la aplicación tenga la información que necesita una vez completada la redirección. Para obtener más información, lea [Prevent Attacks and Redirect Users with OAuth0 2.0 State Parameters](/docs/es/secure/attack-protection/state-parameters).
+    Como método alternativo, puedes crear un enlace profundo usando el parámetro `state`, que tu devolución de llamada interpretaría para determinar una ruta de redirección. Esta solución requiere un poco más de trabajo para implementarse, pero garantiza que la aplicación tenga la información que necesita una vez completada la redirección. Para obtener más información, lee [Prevenir ataques y redirigir usuarios con parámetros de estado de OAuth0 2.0](/docs/es/secure/attack-protection/state-parameters).
 
-    Con este método, se envía un valor aleatorio al iniciar una solicitud de autenticación y se valida el valor recibido al procesar la respuesta (esto implica almacenar algo del lado de la aplicación cliente, en la sesión o en otro medio, que permita realizar la validación). Si recibe una respuesta con un valor de estado que no coincide, es probable que haya sido objetivo de un ataque, ya que puede tratarse de una respuesta a una solicitud no iniciada o de alguien que intenta falsificar la respuesta real.
+    Con este método, envías un valor aleatorio al iniciar una solicitud de autenticación y validas el valor recibido al procesar la respuesta (esto implica que almacenes algo del lado de la aplicación cliente, en la sesión o en otro medio, que te permita realizar la validación). Si recibes una respuesta con un `state` que no coincide, es probable que hayas sido objetivo de un ataque, porque se trata de una respuesta a una request no solicitada o de alguien que intenta falsificar la respuesta real.
 
-    El tipo de aplicación determina cuál es el mejor lugar para guardar los datos que permiten a su aplicación validar la respuesta. Por ejemplo, si una aplicación web progresiva usa un framework de SPA, podría almacenarlos en el almacenamiento local, mientras que un framework de aplicación web tradicional los almacenaría en una sesión del lado del servidor.
+    Tu tipo de aplicación determina el mejor lugar para guardar los datos que permiten que tu aplicación valide la respuesta. Por ejemplo, si una aplicación web progresiva utiliza un framework de SPA, podría almacenar esto en el almacenamiento local, mientras que un framework de aplicación web tradicional lo almacenaría en una sesión del lado del servidor.
   </Tab>
 </Tabs>
 
@@ -46,16 +46,16 @@ Durante la autenticación de un usuario, el parámetro de solicitud `redirect_ur
   ## Redirigir a los usuarios a otras URL
 </div>
 
-A veces, la URL de devolución de llamada no es necesariamente a donde quieres redirigir a los usuarios después de la autenticación. Por ejemplo, si un usuario intenta acceder a una página protegida de tu aplicación y esa acción desencadena la solicitud de autenticación, puedes almacenar esa URL para redirigirlo a la página que quería visitar una vez finalizada la autenticación. Almacena la URL deseada mediante los siguientes métodos:
+A veces, la URL de devolución de llamada no es necesariamente adonde quieres redirigir a los usuarios después de la autenticación. Por ejemplo, si un usuario intenta acceder a una página protegida de tu aplicación y esa acción desencadena la solicitud de autenticación, puedes almacenar esa URL para redirigir al usuario a la página a la que quería ir cuando finalice la autenticación. Almacena la URL deseada mediante los siguientes métodos:
 
 * [Redirigir a los usuarios con parámetros de estado](/docs/es/secure/attack-protection/state-parameters)
-* [Redirigir a los usuarios desde las rules](/docs/es/customize/rules/redirect-users)
+* [Redirigir a los usuarios desde reglas](/docs/es/customize/rules/redirect-users)
 
-Elige la opción que mejor se adapte al tipo de aplicación y al tipo de [flujo](/docs/es/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use) que estés utilizando. Crea la lógica necesaria en tu aplicación para recuperar la URL almacenada y redirigir a los usuarios a donde quieras que vayan. Los [SDK de Auth0](/docs/es/libraries) también incluyen compatibilidad con URL de redirección.
+Elige la opción que mejor funcione para tu tipo de aplicación y el tipo de [flujo](/docs/es/get-started/authentication-and-authorization-flow/which-oauth-2-0-flow-should-i-use) que estés usando. Crea en tu aplicación la lógica necesaria para recuperar la URL almacenada y redirigir a los usuarios adonde quieras que vayan. Los [Auth0 SDKs](/docs/es/libraries) también admiten URL de redirección.
 
 <div id="learn-more">
   ## Más información
 </div>
 
-* [Redirigir a los usuarios con un cierre de sesión alternativo](/docs/es/authenticate/login/logout/redirect-users-after-logout)
-* [Comprender cómo funciona el perfilado progresivo](/docs/es/manage-users/user-accounts/user-profiles/progressive-profiling)
+* [Redirigir a los usuarios con el cierre de sesión alternativo](/docs/es/authenticate/login/logout/redirect-users-after-logout)
+* [Entender cómo funciona el perfilado progresivo](/docs/es/manage-users/user-accounts/user-profiles/progressive-profiling)

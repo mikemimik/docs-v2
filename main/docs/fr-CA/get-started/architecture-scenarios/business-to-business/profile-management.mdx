@@ -1,137 +1,137 @@
 ---
-description: Considérations de planification relatives à la gestion du profil utilisateur pour votre mise en œuvre de B2B IAM.
+description: Considérations de planification pour la gestion du profil dans votre mise en œuvre B2B IAM.
 title: Gestion du profil (B2B)
 validatedOn: 2026-02-03
 ---
 
-À un moment donné, vous pourriez devoir modifier les renseignements stockés dans le profil d’un utilisateur. Le profil d’un utilisateur (aussi appelé son compte) est stocké dans Auth0, et il peut être nécessaire d’en modifier le contenu pour plusieurs raisons :
+Il se peut qu’à un moment donné, vous deviez modifier les renseignements stockés dans le profil d’un utilisateur. Le profil d’un utilisateur (aussi appelé son compte) est stocké dans Auth0, et les renseignements qu’il contient peuvent devoir être modifiés pour différentes raisons :
 
 * Mises à jour de renseignements en libre-service
 * Mises à jour obligatoires concernant les conditions générales de vos organisations
 * Modifications liées à la conformité réglementaire
 
 <Warning>
-  Vous ne pouvez pas accéder directement à un profil utilisateur dans plusieurs tenants Auth0. Si vous déployez plusieurs tenants Auth0 en production, c’est un point dont vous devez tenir compte.
+  Vous ne pouvez pas accéder directement à un profil utilisateur à travers plusieurs tenants Auth0. Si vous déployez plusieurs tenants Auth0 en production, c’est un point important à garder à l’esprit.
 </Warning>
 
-Un [fournisseur d’identité](/docs/fr-CA/authenticate/identity-providers) renseigne le profil d’un utilisateur à l’aide des données fournies pendant le processus de connexion; c’est ce qu’on appelle le [Normalized User Profile](/docs/fr-CA/manage-users/user-accounts/user-profiles/normalized-user-profiles).
+Un [fournisseur d’identité](/docs/fr-CA/authenticate/identity-providers) alimente le profil d’un utilisateur à l’aide des données fournies pendant le processus de connexion; c’est ce qu’on appelle le [profil utilisateur normalisé](/docs/fr-CA/manage-users/user-accounts/user-profiles/normalized-user-profiles).
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Le Normalized User Profile est mis à jour à partir du fournisseur d’identité pendant la connexion, et vous pouvez modifier l’ensemble limité de renseignements qu’il contient au moyen de l’Auth0 Management API. Vous pouvez aussi utiliser l’extensibilité d’Auth0, comme [Actions](/docs/fr-CA/customize/actions), pour remplacer certains renseignements du Normalized User Profile. Consultez [User Profile Data Modification](/docs/fr-CA/manage-users/user-accounts/user-profiles#user-profile-data-modification) pour en savoir plus.
+  Le profil utilisateur normalisé est mis à jour à partir du fournisseur d’identité pendant la connexion, et vous pouvez modifier l’ensemble limité de renseignements qu’il contient au moyen de l’Auth0 Management API. Vous pouvez aussi utiliser l’extensibilité d’Auth0, comme [Actions](/docs/fr-CA/customize/actions), comme solution de rechange pour remplacer certains renseignements du profil utilisateur normalisé. Consultez [Modification des données du profil utilisateur](/docs/fr-CA/manage-users/user-accounts/user-profiles#user-profile-data-modification) pour en savoir plus.
 </Callout>
 
 Par défaut, un profil utilisateur est créé pour chaque identité utilisateur, et plusieurs éléments sont à prendre en compte :
 
-* Que devez-vous faire si vous avez besoin de stocker des renseignements pour personnaliser l’expérience d’un utilisateur ?
-* Que faire si vous devez stocker des renseignements utilisateur qui ne proviennent pas d’un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère des identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> ?
-* Pourquoi auriez-vous besoin de stocker des renseignements liés à un utilisateur que celui-ci ne peut pas modifier ?
-* Que faites-vous si vous devez stocker des renseignements liés à un utilisateur que celui-ci ne peut pas modifier ?
+* Que devriez-vous faire si vous devez stocker des renseignements pour personnaliser l’expérience d’un utilisateur ?
+* Que faire si vous devez stocker des renseignements sur l’utilisateur qui ne proviennent pas d’un <Tooltip tip="Identity Provider (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> ?
+* Pourquoi auriez-vous besoin de stocker des renseignements liés à l’utilisateur qu’il ne peut pas modifier ?
+* Que faites-vous si vous devez stocker des renseignements liés à l’utilisateur qu’il ne peut pas modifier ?
 * Que se passe-t-il si un utilisateur oublie son mot de passe ?
 * Que devrait faire un utilisateur s’il veut changer son mot de passe ?
 * Comment permettre à un administrateur d’une organisation tierce de gérer ses utilisateurs ?
 
-Auth0 permet de stocker des métadonnées dans le profil d’un utilisateur, ce qui permet de saisir des renseignements supplémentaires, comme une préférence de langue ou d’accessibilité, afin d’améliorer l’expérience utilisateur. Les métadonnées peuvent servir à stocker à la fois des renseignements qu’un utilisateur peut modifier et d’autres qu’il ne peut pas modifier; ces derniers vous permettent, par exemple, d’associer un profil utilisateur à des enregistrements dans vos systèmes existants sans modifier la mise en œuvre existante.
+Auth0 permet de stocker des métadonnées dans le profil d’un utilisateur, ce qui permet de saisir des renseignements supplémentaires, comme des préférences linguistiques ou d’accessibilité, afin d’améliorer l’expérience utilisateur. Les métadonnées peuvent servir à stocker à la fois des renseignements qu’un utilisateur peut modifier et d’autres qu’il ne peut pas modifier; cela vous permet, par exemple, d’associer un profil utilisateur à des enregistrements dans vos systèmes existants sans modifier la mise en œuvre existante.
 
-Pour les utilisateurs qui oublient leur mot de passe ou qui sont autorisés à le modifier au moyen d’un mécanisme libre-service existant (ou d’un mécanisme libre-service que vous prévoyez mettre en place), vous pouvez tirer parti de la fonctionnalité de [réinitialisation du mot de passe](#password-reset) fournie par Auth0. Celle-ci peut être intégrée à votre mise en œuvre existante et est déjà incluse dans tous les widgets d’interface utilisateur Auth0 prêts à l’emploi, y compris [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login).
+Pour les utilisateurs qui oublient leur mot de passe ou qui sont autorisés à le changer au moyen d’un mécanisme existant en libre-service (ou d’un mécanisme en libre-service que vous avez prévu), vous pouvez tirer parti de la fonctionnalité de [réinitialisation du mot de passe](#password-reset) fournie par Auth0. Elle peut être intégrée à votre mise en œuvre existante et est déjà incluse dans tous les UI widgets Auth0 prêts à l’emploi, y compris [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login).
 
-Vous voudrez aussi vous assurer que vous travaillez en tout temps avec un [compte utilisateur vérifié](#account-verification). Auth0 fournit également des mécanismes prêts à l’emploi à cette fin. Vous devriez aussi tenir compte de la [conformité réglementaire](/docs/fr-CA/secure/data-privacy-and-compliance), comme le [RGPD](https://gdpr-info.eu/), qui comporte des exigences très précises en matière de protection de la vie privée des citoyens de l’UE et de prévention des atteintes à la protection des données.
+Vous voudrez aussi vous assurer que vous travaillez en tout temps avec un [compte d’utilisateur vérifié](#account-verification). Auth0 fournit aussi des mécanismes prêts à l’emploi pour cela. Vous devriez également tenir compte de la [conformité réglementaire](/docs/fr-CA/secure/data-privacy-and-compliance), comme le [GDPR](https://gdpr-info.eu/), qui comporte des exigences très précises en matière de protection de la vie privée des citoyens de l’UE et de prévention des atteintes à la protection des données.
 
-Bien qu’Auth0 ne fournisse pas actuellement de portail centralisé de gestion des profils prêt à l’emploi, aux fins de la gestion du profil en libre-service, vous pouvez utiliser l’Auth0 <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> pour créer le vôtre ou utiliser une interface déjà existante. Consultez notre [guide de la communauté Auth0](https://community.auth0.com/t/how-to-allow-the-end-user-to-update-their-own-profile-information/6228), qui décrit le endpoint de la Management API. Tous les appels à la Management API nécessitent l’utilisation d’un [jeton d’accès](/docs/fr-CA/secure/tokens/access-tokens).
+Bien qu’Auth0 ne fournisse pas actuellement de portail centralisé de gestion du profil prêt à l’emploi, pour la gestion libre-service des profils, vous pouvez utiliser l’Auth0 <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> pour créer le vôtre ou utiliser une interface existante. Consultez le [guide de la communauté Auth0](https://community.auth0.com/t/how-to-allow-the-end-user-to-update-their-own-profile-information/6228), qui décrit le point de terminaison de la Management API. Tous les appels à la Management API nécessiteront l’utilisation d’un [jeton d’accès](/docs/fr-CA/secure/tokens/access-tokens).
 
 <Warning>
-  La gestion du profil en libre-service peut soulever des enjeux de sécurité ainsi que de protection des données. Par exemple, vous pourriez vouloir permettre à un utilisateur de modifier son adresse courriel; toutefois, le faire sans suivre les recommandations de sécurité fondées sur les meilleures pratiques pourrait faire en sorte qu’il perde l’accès à son compte, divulgue des renseignements personnels identifiables (PII) ou, pire encore, crée une faille de sécurité potentielle.
+  La gestion libre-service des profils peut soulever des enjeux de sécurité ainsi que de protection des données. Par exemple, vous pourriez vouloir permettre à un utilisateur de changer son adresse courriel; toutefois, le faire sans suivre les pratiques exemplaires en matière de sécurité pourrait faire en sorte qu’il perde l’accès à son compte, divulgue des renseignements personnels identifiables (PII) ou, pire encore, ouvre la porte à une faille de sécurité potentielle.
 </Warning>
 
-Sinon, vous pouvez utiliser le <Tooltip tip="Auth0 Dashboard : le produit principal d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> pour [gérer certains aspects du profil d’un utilisateur](/docs/fr-CA/manage-users/user-accounts/manage-users-using-the-dashboard). La gestion du profil d’un utilisateur dans l’Auth0 Dashboard relève davantage de l’administration et **ne doit pas** servir à la gestion libre-service du profil dans un environnement de production. Cependant, l’interface fournie par le Dashboard peut être extrêmement utile pendant le développement, car elle permet de modifier rapidement et simplement les renseignements de profil d’un utilisateur.
+Vous pouvez aussi utiliser le <Tooltip tip="Auth0 Dashboard : produit principal d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> pour [gérer certains aspects du profil d’un utilisateur](/docs/fr-CA/manage-users/user-accounts/manage-users-using-the-dashboard). La gestion du profil d’un utilisateur dans l’Auth0 Dashboard est avant tout une tâche administrative et **ne devrait pas** être utilisée pour la gestion de profil en libre-service dans un environnement de production. Cependant, l’interface fournie par le Dashboard peut être extrêmement utile pendant le développement, car elle permet de modifier rapidement et simplement les renseignements du profil d’un utilisateur.
 
-Si vous devez offrir à vos clients un moyen pour qu’un administrateur gère leurs propres utilisateurs lorsque ces identifiants sont stockés dans votre système, vous pouvez soit créer votre propre solution, soit utiliser une extension Auth0. Consultez [Portail d’administration](#admin-portal) pour en savoir plus.
+Si vous devez offrir à vos clients un moyen permettant à un administrateur de gérer leurs propres utilisateurs lorsque ces identifiants sont stockés dans votre système, vous pouvez soit créer votre propre solution, soit utiliser une extension Auth0. Consultez [Admin Portal](#admin-portal) pour en savoir plus.
 
 <div id="metadata">
   ## Métadonnées
 </div>
 
-En plus des informations du Normalized User Profile, les [métadonnées](/docs/fr-CA/manage-users/user-accounts/metadata) peuvent être stockées dans un profil utilisateur Auth0. Les métadonnées permettent de stocker des informations qui ne proviennent pas d’un fournisseur d’identité, ou encore des informations qui remplacent celles fournies par un fournisseur d’identité.
+En plus des renseignements du profil utilisateur normalisé, les [métadonnées](/docs/fr-CA/manage-users/user-accounts/metadata) peuvent être stockées dans un profil utilisateur Auth0. Les métadonnées permettent de stocker des renseignements qui ne proviennent pas d’un fournisseur d’identité, ou encore des renseignements qui remplacent ceux fournis par un fournisseur d’identité.
 
 <Info>
   ### Bonne pratique
 
-  L’utilisation des métadonnées doit suivre les [pratiques exemplaires de stockage des données utilisateur](/docs/fr-CA/secure/security-guidance/data-security/user-data-storage#metadata) d’Auth0. Le stockage des métadonnées n’est pas conçu pour servir de magasin de données à usage général, et vous devriez quand même utiliser votre propre solution de stockage externe lorsque possible. La taille et la complexité des métadonnées doivent également être réduites au minimum, et l’Auth0 Management API s’accompagne de directives strictes en ce qui concerne la mise à jour et/ou la suppression des métadonnées associées à un utilisateur.
+  L’utilisation des métadonnées doit suivre les [bonnes pratiques de stockage des données utilisateur](/docs/fr-CA/secure/security-guidance/data-security/user-data-storage#metadata) d’Auth0. Le stockage des métadonnées n’est pas conçu pour servir de magasin de données à usage général; vous devriez donc utiliser votre propre solution de stockage externe lorsque c’est possible. La taille et la complexité des métadonnées doivent aussi être réduites au minimum, et l’Auth0 Management API s’accompagne de directives strictes en ce qui concerne la mise à jour ou la suppression des métadonnées associées à un utilisateur.
 </Info>
 
-Vous pouvez manipuler les métadonnées au moyen de l’Auth0 Management API et de l’API d’authentification Auth0. Comme pour la gestion du Normalized User Profile, les appels à l’Auth0 Management API pour manipuler les métadonnées exigent l’utilisation d’un [jeton d’accès](https://auth0.com/docs/api/management/v2/tokens).
+Vous pouvez manipuler les métadonnées au moyen de l’Auth0 Management API et de l’Auth0 Authentication API. Comme pour la gestion du profil utilisateur normalisé, les appels à l’Auth0 Management API pour manipuler les métadonnées nécessitent l’utilisation d’un [jeton d’accès](https://auth0.com/docs/api/management/v2/tokens).
 
 <Warning>
-  Les appels à l’Auth0 Management API sont assujettis à la [politique de limitation du débit d’Auth0](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy). Vous devez en tenir compte et, pour vous aider, Auth0 recommande généralement d’utiliser le [SDK Auth0](/docs/fr-CA/libraries) approprié à votre environnement de développement plutôt que d’appeler directement nos API.
+  Les appels à l’Auth0 Management API sont assujettis à la [politique de limitation du nombre de requêtes d’Auth0](/docs/fr-CA/troubleshoot/customer-support/operational-policies/rate-limit-policy). Vous devez en tenir compte et, pour vous aider, Auth0 recommande généralement d’utiliser le [SDK Auth0](/docs/fr-CA/libraries) approprié à votre environnement de développement plutôt que d’appeler directement nos API.
 </Warning>
 
 <div id="user-metadata">
   ### Métadonnées utilisateur
 </div>
 
-Les métadonnées utilisateur (aussi appelées `user_metadata`) sont des renseignements qui peuvent être stockés dans le profil d’un utilisateur et que celui-ci peut consulter et mettre à jour dans le cadre de la gestion libre-service de son profil. Ce type de métadonnées peut comprendre, par exemple, la civilité d’un utilisateur ou sa langue de préférence, qui pourrait servir à [personnaliser les courriels](/docs/fr-CA/customize/email/email-templates) envoyés par Auth0.
+Les métadonnées utilisateur (aussi appelées `user_metadata`) sont des informations qui peuvent être stockées dans un profil utilisateur, et qu’un utilisateur peut lire et mettre à jour dans le cadre de la gestion libre-service de son profil. Ces métadonnées peuvent inclure, par exemple, la civilité d’un utilisateur ou sa langue de préférence, qui pourrait servir à [personnaliser les courriels](/docs/fr-CA/customize/email/email-templates) envoyés par Auth0.
 
 <Info>
-  ### Pratique exemplaire
+  ### Bonne pratique
 
-  Stockez dans les métadonnées toute information que vous souhaitez utiliser pour personnaliser les courriels Auth0, de préférence dans `user_metadata` si l’utilisateur est autorisé à la modifier, par exemple l’information servant à déterminer la langue d’un courriel.
+  Stockez dans les métadonnées toute information que vous souhaitez utiliser pour personnaliser les courriels d’Auth0, de préférence dans `user_metadata` si l’utilisateur est autorisé à la modifier, comme l’information servant à déterminer la langue d’un courriel.
 </Info>
 
 <div id="app-metadata">
   ### Métadonnées d’application
 </div>
 
-Les métadonnées d’application (aussi appelées `app_metadata`) sont, en revanche, des renseignements qui peuvent être stockés dans le profil d’un utilisateur, mais qui **ne peuvent être lus ou mis à jour qu’avec l’autorisation appropriée**; `app_metadata` n’est pas directement accessible à l’utilisateur. Ce type de métadonnées peut être, par exemple, un indicateur précisant si la plus récente version en vigueur des modalités a été acceptée par l’utilisateur, ainsi qu’une date indiquant à quel moment il les a acceptées.
+Les métadonnées d’application (aussi appelées `app_metadata`) sont, d’autre part, des données qui peuvent être stockées dans le profil d’un utilisateur, mais qui **ne peuvent être consultées ou mises à jour qu’avec les autorisations appropriées** ; `app_metadata` n’est pas directement accessible à l’utilisateur. Ce type de métadonnées peut comprendre, par exemple, un indicateur signalant que la plus récente version en vigueur des modalités et conditions a été acceptée par l’utilisateur, ainsi qu’une date précisant quand l’utilisateur les a acceptées.
 
 <div id="password-reset">
   ## Réinitialisation du mot de passe
 </div>
 
-Pour les utilisateurs qui oublient leur mot de passe ou qui sont autorisés à le modifier au moyen d’un mécanisme libre-service existant, Auth0 offre la fonctionnalité [réinitialisation du mot de passe](/docs/fr-CA/authenticate/database-connections/password-change). Vous pouvez l’intégrer à votre mise en œuvre existante, et elle est déjà incluse dans les widgets d’interface Auth0 prêts à l’emploi offerts dans [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login).
+Pour les utilisateurs qui oublient leur mot de passe ou qui sont autorisés à le modifier au moyen d’un mécanisme de libre-service existant, Auth0 offre la fonctionnalité [réinitialisation du mot de passe](/docs/fr-CA/authenticate/database-connections/password-change). Vous pouvez l’intégrer à votre mise en œuvre existante; elle est également déjà intégrée aux widgets UI Auth0 prêts à l’emploi inclus dans [Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login).
 
 <Warning>
-  Le changement et la réinitialisation du mot de passe ne sont pris en charge que pour les types de [Database Connection](/docs/fr-CA/authenticate/database-connections/password-change) d’Auth0.
+  Le changement et la réinitialisation de mot de passe ne sont pris en charge que pour les types de [connexion à la base de données](/docs/fr-CA/authenticate/database-connections/password-change) Auth0.
 </Warning>
 
-Auth0 <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, afin de vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> offre une expérience intégrée de réinitialisation du mot de passe grâce aux fonctionnalités de l’Auth0 Authentication API. Vous pouvez aussi utiliser l’[Auth0 Authentication API](/docs/fr-CA/authenticate/database-connections/password-change#use-the-authentication-api) au moyen de l’un des Auth0 SDKs adaptés à votre environnement de développement. Les modèles de courriel utilisés dans le flux de travail de réinitialisation du mot de passe peuvent aussi être entièrement personnalisés, que vous utilisiez les widgets d’interface prêts à l’emploi d’Auth0 ou une version personnalisée de Universal Login.
+Auth0 <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, pour vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> offre une expérience intégrée de réinitialisation du mot de passe grâce aux fonctionnalités de l’Auth0 Authentication API. Vous pouvez aussi utiliser l’[Auth0 Authentication API](/docs/fr-CA/authenticate/database-connections/password-change#use-the-authentication-api) par l’intermédiaire de l’un des Auth0 SDKs adaptés à votre environnement de développement. Les email templates utilisés dans le workflow de réinitialisation du mot de passe peuvent aussi être entièrement personnalisés, que vous utilisiez les widgets UI Auth0 prêts à l’emploi ou un Universal Login personnalisé.
 
-Vous pouvez aussi utiliser l’Auth0 Management API pour [changer directement le mot de passe](/docs/fr-CA/authenticate/database-connections/password-change#directly-set-the-new-password) d’une identité utilisateur définie au moyen d’un type Database Connection. Vous pouvez utiliser l’Auth0 Management API dans le cadre de toute mise en œuvre de gestion de profil en libre-service, ainsi que dans le cadre de toute [personnalisation de la page Change Password](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/branding).
+Vous pouvez également utiliser l’Auth0 Management API pour [modifier directement le mot de passe](/docs/fr-CA/authenticate/database-connections/password-change#directly-set-the-new-password) d’une identité utilisateur définie à l’aide d’un type de connexion à la base de données. Vous pouvez utiliser l’Auth0 Management API dans le cadre de toute mise en œuvre de profile management en libre-service, ainsi que dans le cadre de toute [personnalisation de la page Change Password](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/branding).
 
 <div id="account-verification">
   ## Vérification du compte
 </div>
 
-Vous devrez également toujours travailler avec un compte d’utilisateur vérifié et utiliser les mécanismes fournis par Auth0. Vous devriez aussi tenir compte des exigences de conformité réglementaire, comme le [RGPD](https://gdpr-info.eu/), qui prévoit des exigences très précises pour protéger la vie privée des citoyens de l’UE et prévenir les atteintes à la protection des données.
+Vous devrez également toujours utiliser un compte d’utilisateur vérifié et tirer parti des mécanismes fournis par Auth0. Vous devriez aussi tenir compte des exigences de conformité réglementaire, comme le [GDPR](https://gdpr-info.eu/), qui impose des exigences très précises pour protéger la vie privée des citoyens de l’UE et prévenir les atteintes à la protection des données.
 
-Auth0 offre une fonctionnalité prête à l’emploi pour envoyer un [courriel de vérification](/docs/fr-CA/customize/email/manage-email-flow) à l’adresse courriel d’un utilisateur afin de vérifier son compte. Par défaut, Auth0 envoie automatiquement des courriels de vérification pour toute identité de [Database Connection](/docs/fr-CA/authenticate/database-connections/password-change) créée dans le cadre de l’[inscription en libre-service](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/provisioning#self-sign-up). Toutefois, Auth0 fournit aussi un [point de terminaison de la Management API](https://auth0.com/docs/api/v2#!/Tickets/post_email_verification) que vous pouvez utiliser pour envoyer des courriels de vérification lorsque la validation de l’adresse courriel n’est pas effectuée par un fournisseur social au moment de l’inscription de l’utilisateur.
+Auth0 offre une fonctionnalité prête à l’emploi pour envoyer un [courriel de vérification](/docs/fr-CA/customize/email/manage-email-flow) à l’adresse courriel d’un utilisateur afin de vérifier son compte. Par défaut, Auth0 envoie automatiquement des courriels de vérification pour toute identité de [connexion de base de données](/docs/fr-CA/authenticate/database-connections/password-change) créée dans le cadre de l’[auto-inscription](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/provisioning#self-sign-up). Cependant, Auth0 fournit aussi un [point de terminaison de la Management API](https://auth0.com/docs/api/v2#!/Tickets/post_email_verification) que vous pouvez utiliser pour envoyer des courriels de vérification lorsque l’adresse courriel n’est pas validée par un fournisseur social au moment de l’inscription de l’utilisateur.
 
 <div id="blocking-users">
   ## Blocage des utilisateurs
 </div>
 
-Le [blocage de l’accès des utilisateurs](/docs/fr-CA/manage-users/user-accounts/block-and-unblock-users) dans Auth0 permet d’empêcher les utilisateurs de se connecter aux applications dans certaines conditions. Par défaut, l’Auth0 Dashboard fournit un mécanisme prêt à l’emploi qui permet aux administrateurs de bloquer et de débloquer l’accès des utilisateurs à toutes les applications, et vous pouvez aussi mettre en œuvre cette fonctionnalité à l’aide de l’[Auth0 Management API](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id). Vous pouvez également utiliser l’extensibilité d’Auth0 pour [désactiver l’accès des utilisateurs à certaines applications](/docs/fr-CA/manage-users/user-accounts/manage-user-access-to-applications), ainsi que pour offrir un [contrôle d’accès](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/authorization) plus précis.
+Le [blocage de l’accès des utilisateurs](/docs/fr-CA/manage-users/user-accounts/block-and-unblock-users) dans Auth0 permet d’empêcher des utilisateurs de se connecter aux applications dans certaines conditions. Par défaut, l’Auth0 Dashboard offre un mécanisme prêt à l’emploi qui permet aux administrateurs de bloquer et de débloquer l’accès des utilisateurs à toutes les applications, et vous pouvez aussi mettre en œuvre cette fonctionnalité à l’aide de l’[Auth0 Management API](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id). Vous pouvez également utiliser l’extensibilité d’Auth0 pour [désactiver l’accès des utilisateurs à certaines applications](/docs/fr-CA/manage-users/user-accounts/manage-user-access-to-applications) et offrir un [contrôle d’accès](/docs/fr-CA/get-started/architecture-scenarios/business-to-business/authorization) plus précis.
 
-De plus, l’Auth0 Management API vous permet de [débloquer](https://auth0.com/docs/api/management/v2#!/User_Blocks/delete_user_blocks_by_id) les utilisateurs bloqués en raison d’un trop grand nombre de tentatives avec des identifiants incorrects.
+De plus, l’Auth0 Management API vous permet de [débloquer](https://auth0.com/docs/api/management/v2#!/User_Blocks/delete_user_blocks_by_id) les utilisateurs désactivés en raison d’un trop grand nombre de tentatives avec des informations d’authentification incorrectes.
 
 <div id="admin-portal">
   ## Portail d’administration
 </div>
 
-Un portail d’administration est une application dans laquelle vous pouvez créer de nouveaux utilisateurs, modifier le profil d’un utilisateur, consulter l’activité d’un utilisateur, etc. Cette application devrait être accessible uniquement aux administrateurs. Bien qu’Auth0 fournisse son dashboard de gestion, il n’est pas recommandé d’y donner accès à un grand nombre de personnes, car il existe de nombreuses façons d’endommager involontairement votre tenant Auth0. Auth0 propose plutôt deux autres options :
+Un portail d’administration est une application dans laquelle vous pouvez créer de nouveaux utilisateurs, modifier le profil d’un utilisateur, consulter l’activité d’un utilisateur, etc. Cette application devrait être accessible uniquement aux administrateurs. Bien qu’Auth0 offre son dashboard de gestion, il n’est pas recommandé d’en donner l’accès à un grand nombre de personnes, puisqu’il existe de nombreuses façons de compromettre involontairement votre tenant Auth0. Auth0 offre plutôt deux autres options :
 
-* [**Auth0 Management API**](https://auth0.com/docs/api/management/v2) : Avec la Management API, vous pouvez facilement créer une application qui permet aux administrateurs de gérer les utilisateurs. Vous pouvez soit l’intégrer à une application existante déjà utilisée par vos administrateurs, soit en créer une nouvelle avec une interface utilisateur qui s’harmonise avec vos applications actuelles.
-* [**Auth0 Delegated Administration Extension**](/docs/fr-CA/customize/extensions/delegated-administration-extension) : Cette extension puissante et flexible vous permet de personnaliser l’expérience d’administration des utilisateurs. Vous pouvez l’adapter afin de permettre aux administrateurs de vos clients de se connecter et de voir et gérer uniquement les utilisateurs de leur organisation.
+* [**Auth0 Management API**](https://auth0.com/docs/api/management/v2) : Avec la Management API, vous pouvez facilement créer une application qui permet aux administrateurs de gérer les utilisateurs. Vous pouvez l’intégrer à une application existante déjà utilisée par vos administrateurs, ou en créer une nouvelle avec une UI qui s’harmonise avec vos applications actuelles.
+* [**Auth0 Delegated Administration Extension**](/docs/fr-CA/customize/extensions/delegated-administration-extension) : Cette extension puissante et flexible vous permet de personnaliser l’expérience d’administration des utilisateurs. Vous pouvez la configurer de façon à permettre aux administrateurs de vos clients de se connecter et de ne voir ni gérer que les utilisateurs de leur organisation.
 
 <Info>
   ### Bonne pratique
 
-  Si vous mettez en place votre propre façon pour un administrateur de gérer les utilisateurs, vous devriez seulement permettre aux administrateurs d’envoyer aux utilisateurs un lien de changement de mot de passe par courriel, plutôt que de leur permettre de définir directement les mots de passe. Si vous devez absolument aller à l’encontre de cette recommandation et permettre à vos administrateurs de définir le mot de passe de quelqu’un, vous devriez obliger l’utilisateur à changer son mot de passe lors de sa prochaine connexion afin qu’il soit le seul à le connaître (et non un administrateur également).
+  Si vous mettez en place votre propre solution pour permettre à un administrateur de gérer les utilisateurs, vous devriez uniquement lui permettre d’envoyer aux utilisateurs un lien de changement de mot de passe par courriel, plutôt que de lui permettre de définir directement les mots de passe. Si vous devez malgré tout aller à l’encontre de cette recommandation et permettre à vos administrateurs de définir le mot de passe d’un utilisateur, vous devriez obliger celui-ci à le changer lors de sa prochaine connexion afin qu’il soit le seul à le connaître (et non un administrateur également).
 </Info>
 
 <div id="project-planning-guide">
   ## Guide de planification de projet
 </div>
 
-Nous offrons un guide de planification en format PDF que vous pouvez télécharger et consulter pour en savoir plus sur les stratégies que nous recommandons.
+Nous fournissons des conseils de planification au format PDF que vous pouvez télécharger et consulter pour en savoir plus sur les stratégies que nous recommandons.
 
 [Guide de planification de projet B2B IAM](https://assets.ctfassets.net/cdy7uua7fh8z/63F0WOPJdVzsPMxV1Xvp8x/7a329487c5e890d8e820f6a48983b46a/B2B_Project_Planning.pdf)
 
@@ -139,6 +139,6 @@ Nous offrons un guide de planification en format PDF que vous pouvez télécharg
   ## Multiple Organization Architecture (Multitenancy)
 </div>
 
-De nombreuses plateformes B2B mettent en place une certaine forme d’isolation et/ou de branding pour l’organization de leurs clients, ce qui peut complexifier tout système de gestion des identités et des accès (IAM). Si c’est votre cas, nous vous recommandons de prendre le temps de consulter nos lignes directrices ainsi que nos conseils sur les pratiques exemplaires pour ce type d’environnement.
+De nombreuses plateformes B2B offrent une certaine forme d’isolation et/ou d’image de marque pour l’organization de leurs clients, ce qui peut complexifier tout système de gestion des identités et des accès (IAM). Si c’est votre cas, nous vous recommandons de prendre le temps de consulter nos recommandations et nos pratiques exemplaires pour ce type d’environnement.
 
 [Multiple Organization Architecture](/docs/fr-CA/get-started/architecture-scenarios/multiple-organization-architecture)

@@ -1,64 +1,64 @@
 ---
-description: Consultez les bonnes pratiques pour utiliser Événements dans Auth0
-title: Bonnes pratiques relatives aux événements
+description: Consultez les meilleures pratiques pour utiliser Events dans Auth0
+title: Events Best Practices
 ---
 
-Pour obtenir les meilleurs résultats lors du développement de flux d’événements, Auth0 recommande de suivre les bonnes pratiques ci-dessous. Ces recommandations peuvent contribuer à réduire les obstacles, à accroître l’efficacité et à offrir une expérience de diffusion d’événements de premier ordre.
+Pour obtenir les meilleurs résultats lors du développement de flux d’événements, Auth0 recommande de suivre les meilleures pratiques ci-dessous. Ces recommandations peuvent aider à réduire les frictions, à accroître l’efficacité et à offrir une expérience événementielle de premier ordre.
 
 <div id="use-asynchronous-queues-to-process-events">
   ### Utilisez des files d’attente asynchrones pour traiter les événements
 </div>
 
-À la réception d’un événement, répondez avec un code HTTP 2XX OK (p. ex., 200 OK, 202 Accepted, 204 No Content) pour indiquer que l’événement a bien été livré. Sans cette réponse, Auth0 considère la livraison de l’événement comme un échec et effectuera une nouvelle tentative conformément au comportement décrit dans [Comportement du système lors des échecs de livraison d’événements](#system-behavior-during-failed-event-deliveries).
+À la réception d’un événement, répondez par un code HTTP 2XX OK (p. ex., 200OK, 202 Accepted, 204 No Content) pour indiquer que l’événement a bien été livré. Sans cette réponse, Auth0 considère que la livraison de l’événement a échoué et effectuera une nouvelle tentative conformément au comportement décrit dans [Comportement du système lors d’un échec de livraison d’événements](#system-behavior-during-failed-event-deliveries).
 
-Pour éviter les problèmes d’évolutivité, configurez votre gestionnaire de façon à traiter les événements entrants au moyen d’une file d’attente asynchrone. Si vous traitez les événements de façon synchrone, toute forte hausse des livraisons de webhook (par exemple, au début du mois, lorsque tous les abonnements se renouvellent) peut surcharger les hôtes de vos points de terminaison. Les files d’attente asynchrones vous permettent de traiter les événements simultanés à un rythme que votre système peut prendre en charge.
+Pour éviter les problèmes de mise à l’échelle, configurez votre handler de façon à traiter les événements entrants au moyen d’une file d’attente asynchrone. Si vous traitez les événements de façon synchrone, tout pic important de livraisons de webhook (par exemple, au début du mois, lorsque tous les abonnements sont renouvelés) peut surcharger les hôtes qui exposent vos endpoints. Les files d’attente asynchrones vous permettent de traiter les événements simultanés à un rythme que votre système peut prendre en charge.
 
 <div id="ignore-duplicate-events">
   ### Ignorer les événements en double
 </div>
 
-Les points de terminaison de webhook peuvent parfois recevoir le même événement plus d’une fois. Vous pouvez éviter de traiter des événements en double en consignant les ID des événements que vous avez déjà traités.
+Les endpoints de webhook peuvent parfois recevoir le même événement plus d’une fois. Pour éviter de traiter des doublons, consignez les ID d’événement que vous avez déjà traités.
 
 <div id="handle-out-of-sequence-events">
   ### Gérer les événements reçus dans le désordre
 </div>
 
-Auth0 ne garantit pas que les événements sont livrés dans le même ordre que celui dans lequel ils sont générés. Par exemple, lorsqu’un utilisateur est créé puis immédiatement mis à jour pour y associer un autre utilisateur, vous pourriez recevoir :
+Auth0 ne garantit pas que les événements sont livrés dans le même ordre que celui dans lequel ils sont générés. Par exemple, lorsqu’un utilisateur est créé puis mis à jour immédiatement de façon à ce qu’un autre utilisateur y soit lié, vous pourriez recevoir :
 
 * `user.updated (for User 1)`
 * `user.created (for User 1)`
 * `user.deleted (for User 2)`
 * `user.updated (for User 2)`
 
-Pour éviter d’écraser vos données avec de l’information périmée, comparez l’horodatage des données de webhook reçues à celui des données de votre système. Chaque `data.object` du payload comprend un champ `created_at` et un champ `updated_at`.
+Pour éviter d’écraser vos données avec des renseignements périmés, comparez l’horodatage des données de webhook entrantes à celui des données de votre système. Chaque `data.object` dans le payload comprend un champ `created_at` et un champ `updated_at`.
 
 <div id="listen-for-specific-event-types">
-  ### Écouter des types d’événements précis
+  ### Recevoir des types d’événements précis
 </div>
 
-Configurez vos points de terminaison de webhook pour qu’ils reçoivent uniquement les types d’événements requis par votre intégration. L’écoute d’événements supplémentaires (ou de tous les événements) impose une charge inutile à votre serveur et n’est pas recommandée.
+Configurez vos endpoints de webhook pour qu’ils ne reçoivent que les types d’événements nécessaires à votre intégration. Le fait d’écouter des événements supplémentaires (ou tous les événements) exerce une charge inutile sur votre serveur et n’est pas recommandé.
 
-Vous pouvez modifier les événements que reçoit un point de terminaison de webhook en [mettant à jour les flux d’événements](/docs/fr-CA/customize/events/create-an-event-stream).
+Vous pouvez modifier les événements qu’un endpoint de webhook reçoit en [mettant à jour les flux d’événements](/docs/fr-CA/customize/events/create-an-event-stream).
 
 <div id="system-behavior-during-failed-event-deliveries">
-  ### Comportement du système lors des échecs de livraison d’événements
+  ### Comportement du système en cas d’échec de livraison d’événements
 </div>
 
-À l’heure actuelle, Auth0 n’autorise que quatre tentatives au total, y compris la tentative initiale et trois nouvelles tentatives avec temporisation exponentielle (1 s, 2 s, 4 s). Si vous recevez un code 4XX, l’événement échoue immédiatement, sans nouvelle tentative, puisqu’il est peu probable qu’une nouvelle tentative modifie la réponse.
+À l’heure actuelle, Auth0 n’autorise que quatre tentatives au total, soit la tentative initiale et trois nouvelles tentatives avec temporisation exponentielle (1s, 2s, 4s). Si vous recevez un code 4XX, l’événement échoue immédiatement, sans nouvelle tentative, puisqu’il est peu probable qu’une nouvelle tentative modifie la réponse.
 
-Si votre point de terminaison ne répond toujours pas correctement après ce délai, l’événement est marqué comme ayant échoué, et Auth0 ne tentera plus de l’envoyer. Pour en savoir plus sur les événements en échec, consultez [Event Stream Testing, Observability, and Failure Recovery](/docs/fr-CA/customize/events/event-testing-observability-and-failure-recovery).
+Si votre endpoint ne répond toujours pas correctement après ce délai, l’événement est marqué comme ayant échoué, et Auth0 ne tentera plus de l’envoyer. Pour en savoir plus sur les événements en échec, consultez [Test des flux d’événements, observabilité et reprise après incident](/docs/fr-CA/customize/events/event-testing-observability-and-failure-recovery).
 
 <div id="disable-failing-event-streams">
-  ### Désactiver les flux d’événements défaillants
+  ### Désactiver les flux d’événements en échec
 </div>
 
 Les flux d’événements sont automatiquement désactivés dans les cas suivants :
 
-* Auth0 reçoit 500 échecs consécutifs (c.-à-d. tout ce qui n’est pas un `2XX`).
-* Le flux d’événements atteint un total de 5000 livraisons échouées.
-* Auth0 reçoit trois échecs consécutifs de livraison (c.-à-d. tout ce qui n’est pas un `2XX`).
+* Auth0 reçoit 500 échecs d’affilée (c.-à-d. tout ce qui n’est pas un `2XX`).
+* Le flux d’événements atteint un total de 5 000 échecs de livraison.
+* Auth0 reçoit trois échecs consécutifs de tentative de livraison (c.-à-d. tout ce qui n’est pas un `2XX`).
 
-  * Si vous souhaitez autoriser un plus grand nombre d’échecs de livraison, soumettez une demande de soutien en indiquant le nombre d’échecs permis souhaité, et Auth0 examinera votre demande.
+  * Si vous souhaitez autoriser un plus grand nombre d’échecs de tentative de livraison, soumettez une demande au soutien en précisant le nombre d’échecs que vous souhaitez autoriser, et Auth0 examinera votre demande.
 
 <div id="learn-more">
   ## En savoir plus

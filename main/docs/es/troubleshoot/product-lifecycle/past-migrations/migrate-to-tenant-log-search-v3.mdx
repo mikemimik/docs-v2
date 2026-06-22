@@ -3,42 +3,42 @@ description: Describe cómo migrar de Auth0 Logs Search v2 a v3.
 title: Migrar a Tenant Log Search v3
 ---
 
-Para ofrecer a nuestros clientes la solución más confiable y escalable, Auth0 ha marcado Tenant Logs Search Engine v2 como obsoleto en favor de v3.
+Para ofrecer a nuestros clientes la solución más fiable y escalable, Auth0 ha marcado como obsoleto Tenant Logs Search Engine v2 en favor de v3.
 
-Auth0 está migrando de forma proactiva a los clientes no afectados por este cambio, mientras que se está notificando a aquellos que podrían verse afectados para que se pasen a v3 durante el período de gracia indicado.
+Auth0 migra de forma proactiva a los clientes que no se ven afectados por este cambio, mientras que se notifica a aquellos que podrían verse afectados para que opten por v3 durante el período de gracia indicado.
 
 <div id="features-affected">
   ## Funcionalidades afectadas
 </div>
 
-Se verá afectado si cumple todos los criterios siguientes:
+Se ve afectado si cumple todos los criterios siguientes:
 
-* Tenants creados el 21 de mayo de 2019 o antes
-* Tenants alojados en la Public Cloud de Auth0 en las regiones AU o EU
+* Tenants creados el 21 de mayo de 2019 o antes.
+* Tenants alojados en la Public Cloud de Auth0 en las regiones AU o EU.
 * Usa el endpoint GET /api/v2/logs o el endpoint GET `/api/v2/users/{user_id}/logs` con el parámetro `include_totals=true` o el parámetro `q`.
 * Pagina a través de más de 1000 resultados.
-* Usa la extensión Delegated Admin. Las versiones anteriores de la extensión seguirán funcionando después de que su tenant se migre a registro Search Engine v3; sin embargo, es posible que observe que los totales de paginación son incorrectos al ver los registros. Actualizar a la versión 3.7 de la extensión soluciona este problema.
+* Usa la extensión Delegated Admin. Las versiones anteriores de la extensión seguirán funcionando después de que su tenant se migre a Logs Search Engine v3; sin embargo, es posible que note que los totales de paginación son incorrectos al ver los logs. Actualizar a la versión 3.7 de la extensión soluciona este problema.
 
 Los siguientes tenants no se ven afectados:
 
-* Tenants en la nube en la región de US. La región de US ya se ha migrado por completo y ya usa Search Engine v3.
-* Tenants de Private Cloud (La migración para clientes de Private Cloud comenzará más adelante).
-* Tenants en la nube en las regiones EU y AU que:
+* Tenants en la nube de la región de EE. UU. La región de EE. UU. ya se ha migrado por completo y ya utiliza Search Engine v3.
+* Tenants de Private Cloud (la migración para los clientes de Private Cloud comenzará más adelante).
+* Tenants en la nube de las regiones EU y AU que:
 
-  * No usan en absoluto los endpoints `GET /api/v2/logs` o `GET /api/v2/users/{user_id}/logs` de Management API.
-  * Consumen los registros únicamente desde la sección Registros del Dashboard.
-  * Usan el endpoint `GET /api/v2/logs` con el método by checkpoint (usando el parámetro `from`).
-  * Consumen registros mediante cualquiera de las extensiones Auth0 registro to External Service del Dashboard (que usan el método by checkpoint).
+  * No usan en absoluto los endpoints `GET /api/v2/logs` o `GET /api/v2/users/{user_id}/logs` de la Management API.
+  * Consumen los logs únicamente desde la sección Logs del Dashboard.
+  * Usan el `GET /api/v2/logs endpoint` con el método by checkpoint (usando el parámetro `from`).
+  * Consumen logs mediante cualquiera de las extensiones Auth0 Logs to External Service del Dashboard (que usan el método by checkpoint).
 
 <div id="verify-query-migration">
-  ## Verificar la migración de consultas
+  ## Verifica la migración de consultas
 </div>
 
-Auth0 genera solo un registro del mismo tipo y descripción cada 60 minutos. Por muchas llamadas que hagas a los endpoints afectados usando funcionalidades obsoletas, seguirás viendo un solo registro por cada funcionalidad obsoleta cada hora.
+Auth0 genera solo un registro del mismo tipo y descripción cada 60 minutos. Por muchas llamadas que hagas a los endpoints afectados con funcionalidades obsoletas, seguirás viendo un solo registro por cada funcionalidad obsoleta cada hora.
 
-Si haces cambios en tus consultas, tendrás que esperar 60 minutos antes de poder determinar con certeza que la ausencia de nuevos registros `depnote` significa que el comportamiento obsoleto se ha eliminado de tu código.
+Si implementas cambios en tus consultas, tendrás que dejar pasar 60 minutos antes de poder determinar con certeza que la ausencia de nuevos registros `depnote` significa que el comportamiento obsoleto se ha eliminado de tu código.
 
-Puedes buscar en los registros del tenant lo siguiente para identificar consultas que generarían errores después de migrar a v3:
+Puedes buscar en los registros de tu tenant lo siguiente para encontrar consultas que producirían errores después de migrar a v3:
 
 `type:depnote AND description:*logs*`
 
@@ -50,7 +50,7 @@ También puedes revisar los campos `details.request.path` y `client_name` para v
   ## Cambios
 </div>
 
-Los cambios incompatibles son menores, pero deberías revisar tus consultas para confirmar que los resultados obtenidos sean los esperados.
+Los cambios incompatibles son menores, pero debes revisar tus consultas para asegurarte de que los resultados sean los esperados.
 
 Los cambios incompatibles están relacionados con:
 
@@ -58,25 +58,25 @@ Los cambios incompatibles están relacionados con:
   ### Paginación
 </div>
 
-* Cuando tu tenant se migre a logs v3, cambiará el valor del campo `total` que se devuelve en el resultado de resumen al llamar a `GET /api/v2/logs` o `GET /api/v2/users/{user_id}/logs`. Cuando buscas registros con el motor de búsqueda v2, el campo `totals` de los resultados indica la cantidad de registros que coinciden con la consulta proporcionada. Sin embargo, en v3, el campo `totals` indica cuántos registros se devuelven en la página (de forma similar a lo que devuelve el campo `length`). Para evitar posibles interrupciones, si tu aplicación depende del campo `total` para la paginación, debes actualizar tu lógica para gestionar este cambio correctamente.
-* Ya existe un límite de 100 registros por solicitud. Cuando tu tenant se migre a logs v3, solo podrás paginar hasta un máximo de 1.000 resultados de búsqueda, por lo que las llamadas que superen los 1.000 resultados devolverán un error. Para evitar posibles interrupciones, debes revisar tus consultas para evitar este límite o gestionar los errores según corresponda.
+* Cuando tu tenant se migre a logs v3, cambiará el valor del campo `total` que se devuelve en el resultado de resumen al llamar a `GET /api/v2/logs` o `GET /api/v2/users/{user_id}/logs`. Cuando buscas registros con el motor de búsqueda v2, el campo `totals` de los resultados indica la cantidad de registros que coinciden con la consulta proporcionada. Sin embargo, en v3, el campo `totals` indica cuántos registros se devuelven en la página (de forma similar a lo que devuelve el campo `length`). Para evitar posibles interrupciones, si tu aplicación depende del campo `total` para la paginación, debes actualizar tu lógica para manejar este cambio adecuadamente.
+* Existe un límite actual de 100 registros por solicitud. Cuando tu tenant se migre a logs v3, solo podrás paginar hasta un máximo de 1.000 resultados de búsqueda, por lo que las solicitudes de más de 1.000 resultados devolverán un error. Para evitar posibles interrupciones, debes revisar tus consultas para no alcanzar este límite o manejar los errores según corresponda.
 
 <div id="q-parameter-validation">
-  ### validación del parámetro q
+  ### Validación del parámetro q
 </div>
 
-* La sintaxis de las consultas al usar el parámetro `q` en `GET /api/v2/logs` presenta cambios menores que deben tenerse en cuenta. Cuando tu tenant se migre a logs v3, esta validación se aplicará, por lo que esta consulta devolverá un error. Para evitar cualquier posible interrupción, debes revisar tus consultas para asegurarte de que cumplan con la sintaxis de consulta admitida.
-* El parámetro `q` incluye un campo no válido. Cuando tu tenant se migre a logs v3, esta validación se aplicará, por lo que esta llamada devolverá un error. Para evitar cualquier posible interrupción, debes revisar tus consultas para asegurarte de que solo incluyan campos en los que se pueda buscar.
+* La sintaxis de la consulta al usar el parámetro `q` en `GET /api/v2/logs` tiene cambios menores que debes tener en cuenta. Cuando tu tenant se migre a logs v3, esta validación se aplicará y esta consulta devolverá un error. Para evitar posibles interrupciones, debes revisar tus consultas para asegurarte de que cumplan con la sintaxis de consulta admitida.
+* El parámetro `q` incluye un campo no válido. Cuando tu tenant se migre a logs v3, esta validación se aplicará y esta llamada devolverá un error. Para evitar posibles interrupciones, debes revisar tus consultas para asegurarte de que solo incluyan campos consultables.
 
 <div id="enable-tenant-log-search-v3">
   ## Habilitar Tenant Log Search v3
 </div>
 
-Después de revisar tus consultas, puedes activar Tenant Logs Search Engine v3 desde el Dashboard.
+Después de revisar tus consultas, puedes habilitar Tenant Logs Search Engine v3 desde el Dashboard.
 
 1. Ve a [Configuración del tenant &gt; Advanced](https://manage.auth0.com/#/tenant/advanced).
 2. Desplázate hacia abajo hasta **Migración**.
-3. Desactiva el interruptor **Legacy Logs Search V2**. Al hacerlo, se desactiva el motor de búsqueda de registros v2 obsoleto y se fuerza el uso del motor de búsqueda v3. Si no ves el interruptor **Legacy Logs Search V2**, ya fuiste migrado a v3. No es necesario realizar ninguna otra acción.
+3. Desactiva el interruptor **Legacy Logs Search V2**. Al desactivar este interruptor, se deshabilita el motor de búsqueda de logs v2 obsoleto y se fuerza el uso del motor de búsqueda v3. Si no ves el interruptor **Legacy Logs Search V2**, ya te migraron a v3. No es necesario hacer nada más.
 
 Si necesitas ayuda con la migración, contáctanos a través del [Support Center](https://support.auth0.com/).
 

@@ -1,6 +1,6 @@
 ---
-description: Describe cómo configurar la rotación del token de actualización.
-title: Configurar la rotación del token de actualización
+description: Describe cómo configurar la rotación del Refresh Token.
+title: Configurar la rotación del Refresh Token
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
@@ -13,13 +13,13 @@ export const codeExample = `const auth0 = await createAuth0Client({
 });
 `;
 
-Configure la <Tooltip tip="token de actualización: token utilizado para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token">rotación del token de actualización</Tooltip> para cada aplicación desde el Dashboard o el [Auth0 SPA SDK](/docs/es/libraries/auth0-single-page-app-sdk). Cuando la <Tooltip tip="token de actualización: token utilizado para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token+rotation">rotación del token de actualización</Tooltip> está habilitada, la transición para el usuario es transparente. La aplicación usa el token de actualización no rotativo anterior que aún no ha expirado y lo intercambia por un token de actualización rotativo.
+Configura la <Tooltip tip="Token de actualización: token que se utiliza para obtener un nuevo token de acceso sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token">rotación del Refresh Token</Tooltip> para cada aplicación en el Dashboard o con el [Auth0 SPA SDK](/docs/es/libraries/auth0-single-page-app-sdk). Cuando la <Tooltip tip="Token de actualización: token que se utiliza para obtener un nuevo token de acceso sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token+rotation">rotación del Refresh Token</Tooltip> está habilitada, la transición para el usuario no presenta interrupciones. La aplicación usa el token de actualización no rotativo anterior, aún vigente, y lo canjea por un token de actualización rotativo.
 
-Los escenarios de migración admiten la revocación automática de tokens al pasar de un token de actualización no rotativo a uno rotativo y viceversa.
+Los escenarios de migración permiten la revocación automática de tokens al migrar de un token de actualización no rotativo a uno rotativo y viceversa.
 
-* **Cuando la rotación del token de actualización está habilitada**:
+* **Cuando la rotación del Refresh Token está habilitada**:
   Al intercambiar un token de actualización no rotativo, se emite un nuevo token de actualización rotativo y se eliminan todos los tokens no rotativos emitidos para el mismo `client_id`, <Tooltip tip="Servidor de recursos: servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip>, usuario y tenant.
-* **Cuando la rotación del token de actualización está deshabilitada**:
+* **Cuando la rotación del Refresh Token está deshabilitada**:
   Al intercambiar un token de actualización rotativo, se emite un token de actualización no rotativo y se revoca la familia de tokens de actualización rotativos emitida para el mismo `client_id`, servidor de recursos, usuario y tenant.
 
 <div id="configure-in-the-dashboard">
@@ -27,29 +27,29 @@ Los escenarios de migración admiten la revocación automática de tokens al pas
 </div>
 
 1. Ve a [Dashboard &gt; Applications](https://manage.auth0.com/#/applications).
-2. Selecciona la aplicación que quieras configurar.
+2. Selecciona la aplicación que quieres configurar.
 3. Ve a la pestaña **Settings**.
-4. En **Refresh Token Rotation**, habilita **Allow Refresh Token Rotation**.
+4. En **rotación del token de actualización**, habilita **Allow Refresh Token Rotation**.
 
-   <Frame>![Dashboard Applications Applications Settings Tab Refresh Token Rotation](/docs/images/cdy7uua7fh8z/Rk6i8MUVWZG34P7K6aurb/9457a6ea7ca5942522778c7ed7925023/Screenshot_2024-11-05_at_18.14.22.png)</Frame>
-5. Introduce el valor de **Rotation Overlap Period** (en segundos) para el token de actualización, a fin de contemplar el margen de tiempo entre la solicitud y la respuesta antes de activar la detección automática de reutilización.
-   Este período de superposición ayuda a evitar problemas de concurrencia al intercambiar varias veces el token de actualización rotativo dentro de un intervalo determinado. Durante este margen, las funciones de detección de vulneraciones no se aplican y se emite un nuevo token de actualización rotativo. Solo se puede reutilizar el token anterior; si se intercambia el penúltimo, se activará la detección de vulneraciones.
+   <Frame>![Dashboard Applications Applications pestaña Settings rotación del token de actualización](/docs/images/cdy7uua7fh8z/Rk6i8MUVWZG34P7K6aurb/9457a6ea7ca5942522778c7ed7925023/Screenshot_2024-11-05_at_18.14.22.png)</Frame>
+5. Introduce el **Rotation Overlap Period** (en segundos) del token de actualización para contemplar el margen de tiempo entre la solicitud y la respuesta antes de activar la detección automática de reutilización.
+   Este período de superposición ayuda a evitar problemas de concurrencia al intercambiar el token de actualización rotativo varias veces dentro de un período determinado. Durante esta ventana de margen, no se aplican las funcionalidades de detección de brechas y se emite un nuevo token de actualización rotativo. Solo se puede reutilizar el token anterior; si se intercambia el penúltimo, se activará la detección de brechas.
 6. Selecciona **Save Changes**.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  La rotación del token de actualización solo es compatible con aplicaciones conformes con OIDC que tengan habilitado el tipo de concesión token de actualización.
+  La rotación del token de actualización solo es compatible con aplicaciones conformes con OIDC que tengan habilitado el tipo de concesión de token de actualización.
 </Callout>
 
 <div id="configure-with-the-auth0-spa-sdk">
-  ## Configura con el Auth0 SPA SDK
+  ## Configurar con Auth0 SPA SDK
 </div>
 
-Puedes usar el Auth0 SPA SDK para habilitar la rotación del token de actualización. Debes habilitar el acceso sin conexión y solicitar el scope `offline_access` en el SDK del cliente.
+Puedes usar Auth0 SPA SDK para habilitar la rotación del token de actualización. Debes habilitar el acceso sin conexión y solicitar el `scope` `offline_access` en el SDK del cliente.
 
 1. Instala la versión más reciente del SDK `auth0-spa-js`:
    `npm install @auth0/auth0-spa-js`
 
-2. Habilita esta función en el SDK estableciendo `useRefreshTokens: true` para empezar a enviar el scope `offline_access`.
+2. Habilita la funcionalidad en el SDK estableciendo `useRefreshTokens: true` para comenzar a enviar el `scope` `offline_access`.
 
    {/* codeblockOld.header.login.logInButton codeblockOld.header.login.configureSnippet */}
 
@@ -73,7 +73,7 @@ Puedes usar el Auth0 SPA SDK para habilitar la rotación del token de actualizac
    | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
    | `rotation_type`   | Cadena de texto: &quot;rotating&quot; o &quot;non-rotating&quot;                                                                                                                                                                                                                                                                        |
    | `expiration_type` | Cadena de texto: &quot;expiring&quot; o &quot;non-expiring&quot;                                                                                                                                                                                                                                                                        |
-   | `token_lifetime`  | El período de vencimiento predeterminado del token de actualización, cuando la **rotación del token de actualización** está habilitada, es de 30 días (2.592.000 segundos). Puedes configurar hasta 1 año (31.557.600 segundos). **La duración no se extiende cuando se rotan los tokens.**                                                      |
+   | `token_lifetime`  | El período predeterminado de expiración del token de actualización, cuando la **rotación del token de actualización** está habilitada, es de 30 días (2.592.000 segundos). Puedes configurar hasta 1 año (31.557.600 segundos). **La duración no se extiende cuando se rotan los tokens.**                                                       |
    | `leeway`          | Permite usar el mismo token de actualización dentro de un período determinado para contemplar posibles problemas de concurrencia de red que, de otro modo, invalidarían el token si el cliente intentara volver a usar el mismo token de actualización. De forma predeterminada, `leeway` está deshabilitado. Se configura en segundos. |
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
@@ -84,7 +84,7 @@ Puedes usar el Auth0 SPA SDK para habilitar la rotación del token de actualizac
   ## Detección automática de reutilización
 </div>
 
-Si se utiliza un token previamente invalidado, se revocará de inmediato, junto con la autorización, todo el conjunto de tokens de actualización emitidos desde que se emitió ese token invalidado, lo que obligará al usuario a volver a autenticarse.
+Si se utiliza un token invalidado previamente, se revocará de inmediato todo el conjunto de tokens de actualización emitidos desde la emisión de ese token invalidado, junto con la concesión, lo que obligará al usuario a volver a autenticarse.
 
 <div id="learn-more">
   ## Más información
@@ -92,4 +92,4 @@ Si se utiliza un token previamente invalidado, se revocará de inmediato, junto 
 
 * [Rotación del token de actualización](/docs/es/secure/tokens/refresh-tokens/refresh-token-rotation)
 * [Usar la rotación del token de actualización](/docs/es/secure/tokens/refresh-tokens/use-refresh-token-rotation)
-* [Desactivar la rotación del token de actualización](/docs/es/secure/tokens/refresh-tokens/disable-refresh-token-rotation)
+* [Deshabilitar la rotación del token de actualización](/docs/es/secure/tokens/refresh-tokens/disable-refresh-token-rotation)

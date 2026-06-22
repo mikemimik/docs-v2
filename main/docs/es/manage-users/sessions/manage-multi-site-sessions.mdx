@@ -7,7 +7,7 @@ title: Gestionar sesiones en varios sitios con el SDK de Auth0
   ## Sesiones de corta duración
 </div>
 
-Este flujo de trabajo muestra cómo debe implementarse el SDK auth0-spa-js para admitir la administración de sesiones en varios sitios. En este escenario, se asume que el tiempo de espera por inactividad del <Tooltip tip="inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, lo inicia automáticamente en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=SSO">SSO</Tooltip> del tenant está configurado en 300 segundos y que la expiración del <Tooltip tip="token de ID: credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">token de ID</Tooltip> de cada aplicación SPA está configurada en 150 segundos. Esto se considera una sesión &quot;de corta duración&quot;.
+Este flujo de trabajo muestra cómo debe implementarse el SDK auth0-spa-js para admitir la gestión de sesiones en varios sitios. En este escenario, se asume que el tiempo de espera por inactividad de <Tooltip tip="Inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=SSO">SSO</Tooltip> del tenant está configurado en 300 segundos y que la expiración del <Tooltip tip="token de ID: credencial destinada al propio cliente, en lugar de acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">token de ID</Tooltip> de cada aplicación SPA está configurada en 150 segundos. Esto se considera una sesión de &quot;corta duración&quot;.
 
 <div id="sdk-features">
   ### Funcionalidades del SDK
@@ -17,29 +17,29 @@ Este flujo de trabajo muestra cómo debe implementarse el SDK auth0-spa-js para 
   #### Flujo de PKCE
 </div>
 
-En todos los métodos para obtener un token de ID o <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip>, el SDK se encarga de todos los detalles del flujo Proof Key for Code Exchange. No hace falta ningún esfuerzo ni configuración adicional para que funcione.
+Para todos los métodos para obtener un token de ID o <Tooltip tip="token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip>, el SDK se encarga de toda la complejidad del flujo Proof Key for Code Exchange. No hace falta ningún esfuerzo ni configuración adicional para que funcione.
 
 <div id="deep-linking">
-  #### Enlaces profundos
+  #### Enlace profundo
 </div>
 
-Para mejorar la experiencia del usuario, el SDK incluye un parámetro `appState` para el método `loginWithRedirect()`. Los detalles del estado actual de la aplicación se incluyen como parte de la solicitud al servidor de Auth y se devuelven tras una autenticación correcta. Esto permite que el usuario continúe su recorrido sin interrupciones.
+Para mejorar la experiencia del usuario, el SDK incluye un parámetro `appState` para el método `loginWithRedirect()`. Los detalles del estado actual de la aplicación se envían como parte de la solicitud al servidor de Auth y se devuelven cuando la autenticación se completa correctamente. Esto permite que el usuario continúe su recorrido sin interrupciones.
 
-En el Quickstart, el componente `PrivateRoute` establece un parámetro state de `targetUrl`, y la función `onRedirectCallback` de `index.js` extrae este valor para redirigir al usuario cuando se completa la autenticación.
+En el Quickstart, el componente `PrivateRoute` establece un parámetro state con el valor `targetUrl`, y la función `onRedirectCallback` de `index.js` extrae este valor para redirigir al usuario cuando se completa la autenticación.
 
 <div id="token-storage">
   #### Almacenamiento de tokens
 </div>
 
-Para almacenar los tokens devueltos de la forma más segura posible, todos se guardan en una caché local. Los tokens de ID y de acceso se almacenan por pares, y los valores de <Tooltip tip="Audiencia: identificador único de la audiencia de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audiencia</Tooltip> y scope se utilizan para recuperar los tokens cuando sea necesario.
+Para almacenar los tokens devueltos de la forma más segura posible, todos se guardan en una caché local. Los tokens de ID y de acceso se almacenan por pares, y se usan los valores de <Tooltip tip="Audiencia: identificador único de la audiencia de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audiencia</Tooltip> y de scope para recuperarlos cuando sea necesario.
 
-Además, los tokens de la caché se eliminan en cuanto vence el token de ID o el token de acceso, de modo que, si un token está en la caché, puede asumirse que sigue siendo válido.
+Además, los tokens en caché se eliminan cuando vence el token de ID o el token de acceso, de modo que, si un token está en la caché, puede asumirse que sigue siendo válido.
 
 <div id="call-apis">
   #### Llamar a las API
 </div>
 
-El método `getTokenSilently()` se utiliza para recurrir primero a la caché de tokens y, si no hay ninguno, abrirá un iframe invisible para recuperar un token nuevo. Con este fin, todas las solicitudes a las API pueden usar este método para crear el encabezado del token Bearer sin necesidad de lógica adicional para gestionar tokens caducados.
+El método `getTokenSilently()` se usa para aprovechar primero la caché de tokens y, si no hay ninguno, abre un iframe invisible para obtener uno nuevo. Para ello, todas las solicitudes a las API pueden usar este método para construir el encabezado del bearer token sin necesidad de lógica adicional para gestionar los tokens expirados.
 
 En el Quickstart, la vista `ExternalService` hace una solicitud a la API de Express usando esta funcionalidad.
 
@@ -49,27 +49,27 @@ En el Quickstart, la vista `ExternalService` hace una solicitud a la API de Expr
 
 Si un usuario no ha realizado ninguna acción que haga que se actualice la sesión de Auth0, Auth0 recomienda mostrarle una advertencia para que elija continuar explícitamente su sesión.
 
-Este enfoque pretende permitir que la sesión quede inactiva si el usuario ya no está presente, pero, en caso contrario, ofrece una forma de activar la actualización silenciosa del token para que pueda continuar su sesión sin que se le vuelvan a solicitar credenciales.
+Este enfoque pretende permitir que la sesión quede inactiva si el usuario ya no está presente y, en caso contrario, ofrecer una forma de activar la actualización silenciosa del token para que pueda continuar su sesión sin que se le vuelvan a solicitar credenciales.
 
-Para obtener más información sobre los temporizadores de inactividad y los modales de tiempo de espera, lea [URLs de cierre de sesión específicas de la aplicación](/docs/es/manage-users/sessions/configure-session-lifetime-settings).
+Para obtener más información sobre los temporizadores de inactividad y los modales de timeout, lea [URL de cierre de sesión específicas de la aplicación](/docs/es/manage-users/sessions/configure-session-lifetime-settings).
 
 <div id="example-workflow">
-  ### Flujo de trabajo de ejemplo
+  ### Ejemplo de flujo de trabajo
 </div>
 
 1. Autenticación inicial
 2. Mantenimiento de la sesión de Auth0
-3. SSO sin interrupciones
-4. Se solicita al usuario que extienda la sesión
+3. Seamless SSO
+4. Solicitar al usuario que prolongue la sesión
 5. El usuario cierra sesión explícitamente en la aplicación
-6. El usuario vuelve a la aplicación inicial tras cerrar sesión
+6. El usuario vuelve a la aplicación inicial después de cerrar sesión
 
 <div id="initial-authentication">
   #### Autenticación inicial
 </div>
 
 1. Se abre una nueva pestaña
-2. Se solicita iniciar sesión
+2. Se solicita el inicio de sesión
 3. El usuario introduce sus credenciales
 4. Se establece la cookie de SSO (con vencimiento)
 5. Se realiza el intercambio de tokens
@@ -83,33 +83,33 @@ Para obtener más información sobre los temporizadores de inactividad y los mod
 1. El usuario solicita datos de un recurso protegido
 2. Se llama a `getTokenSilently()`
 3. Se recupera el recurso
-4. El usuario actualiza los datos del recurso protegido
+4. El usuario actualiza datos del recurso protegido
 5. Se llama a `getTokenSilently()`
 
    1. Se abre un iframe
    2. Se realiza un intercambio de tokens
 6. Se actualiza el recurso
 
-<Frame>![Diagrama de mantenimiento de la sesión de Auth0](/docs/images/cdy7uua7fh8z/7CI29ouvhuJ4TFC1G2C5n8/4d2bd0c9372a6cc16e75fc76f438a0bd/maintain-auth0-session.png)</Frame>
+<Frame>![Diagrama de mantenimiento de la sesión](/docs/images/cdy7uua7fh8z/7CI29ouvhuJ4TFC1G2C5n8/4d2bd0c9372a6cc16e75fc76f438a0bd/maintain-auth0-session.png)</Frame>
 
 <div id="seamless-sso">
-  #### SSO sin fricciones
+  #### Seamless SSO
 </div>
 
-1. El usuario accede a una ruta privada
+1. El usuario navega a una ruta privada
 2. Comprueba con `isAuthenticated()`
-3. Si devuelve `false`, `loginWithRedirect()`
+3. Si no, `loginWithRedirect()`
 
-<Frame>![Diagrama del flujo de SSO sin fricciones para sesiones](/docs/images/cdy7uua7fh8z/38heJlnN0letWMVhpTtXad/4d4127150fb818522ea29eea28ccc00e/seamless-sso.png)</Frame>
+<Frame>![Diagrama del flujo de Seamless SSO para las sesiones](/docs/images/cdy7uua7fh8z/38heJlnN0letWMVhpTtXad/4d4127150fb818522ea29eea28ccc00e/seamless-sso.png)</Frame>
 
 <div id="prompt-user-to-extend-session">
   #### Pedir al usuario que extienda la sesión
 </div>
 
-1. A los 240 segundos, mostrar al usuario un modal para mantener la sesión activa durante 60 segundos
+1. A los 240 segundos, pedir al usuario que mantenga la sesión activa con un modal que dure 60 segundos
 2. Si elige mantener la sesión, `getTokenSilently()`
 
-<Frame>![Diagrama de solicitud a un usuario para mantener una sesión](/docs/images/cdy7uua7fh8z/6kH2G3oclCfSudwd0hJEUM/70651da37771c9945c5a34dcad409d9f/prompt-user-extend-session.png)</Frame>
+<Frame>![Diagrama de cómo pedir a un usuario que mantenga una sesión](/docs/images/cdy7uua7fh8z/6kH2G3oclCfSudwd0hJEUM/70651da37771c9945c5a34dcad409d9f/prompt-user-extend-session.png)</Frame>
 
 <div id="user-explicitly-logs-out-of-application">
   #### El usuario cierra sesión explícitamente en la aplicación
@@ -123,24 +123,24 @@ Para obtener más información sobre los temporizadores de inactividad y los mod
    3. Se borra la cookie de SSO y se eliminan los datos de la sesión
    4. Se redirige al usuario a la página de cierre de sesión
 
-<Frame>![Diagrama de un usuario que cierra sesión](/docs/images/cdy7uua7fh8z/4b55FKM2vZBoskXTPY4nxs/1a9e69437677f2cfac9a3d8e6bff7ffe/user-explicitly-logs-out-of-app.png)</Frame>
+<Frame>![Diagrama de un usuario cerrando sesión](/docs/images/cdy7uua7fh8z/4b55FKM2vZBoskXTPY4nxs/1a9e69437677f2cfac9a3d8e6bff7ffe/user-explicitly-logs-out-of-app.png)</Frame>
 
 <div id="user-returns-to-initial-application-after-logging-out">
-  #### El usuario vuelve a la aplicación inicial después de cerrar sesión
+  #### El usuario vuelve a la aplicación inicial tras cerrar sesión
 </div>
 
 1. El usuario solicita datos de un recurso protegido
 2. Se llama a `getTokenSilently()`
 3. Comportamiento según la aplicación
 
-<Frame>![Diagrama del usuario al volver a la aplicación después de cerrar sesión](/docs/images/cdy7uua7fh8z/3geXGwsXkIgFkwopoGoLMx/01685b6b8e8473c6ce6f26e59b402cf3/user-returns-to-initial-app.png)</Frame>
+<Frame>![Diagrama del usuario que vuelve a la aplicación después de cerrar sesión](/docs/images/cdy7uua7fh8z/3geXGwsXkIgFkwopoGoLMx/01685b6b8e8473c6ce6f26e59b402cf3/user-returns-to-initial-app.png)</Frame>
 
 <div id="long-lived-sessions">
   ## Sesiones de larga duración
 </div>
 
-Auth0 admite sesiones de larga duración para planes empresariales. Con las sesiones de larga duración, puede configurar límites de sesión de hasta 100 días de inactividad (`idle timeout`) y hasta un año de duración total (`absolute timeout`). Si maneja plazos trimestrales, mensuales o de otro tipo, esto le permite reducir la fricción para los usuarios finales y dar acceso a contenido y funcionalidades de bajo riesgo. Además, las empresas de medios pueden aprovechar las sesiones de larga duración para mejorar la experiencia de usuario mediante un acceso fluido al contenido. También puede elegir entre sesiones de larga duración y validación de contraseña según sus requisitos de experiencia de usuario y seguridad.
+Auth0 admite sesiones de larga duración para planes empresariales. Con las sesiones de larga duración, puede configurar límites de sesión de hasta 100 días de inactividad (`idle timeout`) y hasta un año de duración total (`absolute timeout`). Si maneja plazos trimestrales, mensuales o de otro tipo, esto le permite reducir la fricción para los usuarios finales y proporcionar acceso a contenido y funcionalidades de bajo riesgo. Además, las empresas de medios pueden aprovechar las sesiones de larga duración para mejorar la experiencia del usuario mediante un acceso continuo al contenido. También puede optar entre sesiones de larga duración y validación de contraseñas en función de sus requisitos de experiencia del usuario y seguridad.
 
 Los detalles del flujo de trabajo cambiarían en el caso de una sesión de larga duración, en la que la sesión de la aplicación probablemente sería más corta que la sesión de [inicio de sesión único (SSO)](/docs/es/authenticate/single-sign-on).
 
-Para obtener más información, lea [Configurar límites de duración de la sesión](/docs/es/manage-users/sessions/configure-session-lifetime-settings) y [Actualizar la duración del token de acceso](/docs/es/secure/tokens/access-tokens/update-access-token-lifetime).
+Para obtener más información, lea [Configurar los límites de duración de la sesión](/docs/es/manage-users/sessions/configure-session-lifetime-settings) y [Actualizar la duración del token de acceso](/docs/es/secure/tokens/access-tokens/update-access-token-lifetime).

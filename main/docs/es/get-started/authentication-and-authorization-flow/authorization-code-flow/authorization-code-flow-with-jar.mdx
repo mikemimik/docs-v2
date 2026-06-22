@@ -1,14 +1,14 @@
 ---
-description: Aprende a usar solicitud de autorización protegida con JWT (JAR) con el flujo de código de autorización.
-title: Flujo de código de autorización con solicitud de autorización protegida con JWT (JAR)
+description: Aprende a usar las solicitudes de autorización protegidas con JWT (JAR) con el flujo de código de autorización.
+title: Flujo de código de autorización con solicitudes de autorización protegidas con JWT (JAR)
 validatedOn: 2026-03-03
 ---
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Para usar las características de Highly Regulated Identity, debes tener un plan empresarial con el add-on de Highly Regulated Identity. Consulta [Auth0 Pricing](https://auth0.com/pricing/) para obtener más información.
+  Para usar las funcionalidades de Identidad altamente regulada, debes contar con un Enterprise Plan con el add-on Identidad altamente regulada. Consulta [Auth0 Pricing](https://auth0.com/pricing/) para obtener más información.
 </Callout>
 
-[JWT-Secured Authorization Request (JAR)](https://datatracker.ietf.org/doc/html/rfc9101) es una extensión del protocolo OAuth 2.0 que protege la integridad y autenticidad de los parámetros de la solicitud de autorización. Al encapsular los parámetros en un [JSON Web Token (JWT)](/docs/es/secure/tokens/json-web-tokens) firmado, evitas que intermediarios alteren o vean datos confidenciales de la solicitud.
+[Solicitud de autorización protegida con JWT (JAR)](https://datatracker.ietf.org/doc/html/rfc9101) es una extensión del protocolo OAuth 2.0 que protege la integridad y la autenticidad de los parámetros de la solicitud de autorización. Al incluir los parámetros en un [JSON Web Token (JWT)](/docs/es/secure/tokens/json-web-tokens) firmado, evitas que intermediarios alteren o vean datos sensibles de la solicitud.
 
 <div id="prerequisites">
   ## Requisitos previos
@@ -17,34 +17,34 @@ validatedOn: 2026-03-03
 Antes de usar JAR, debes:
 
 1. [Generar un par de claves RSA](/docs/es/secure/application-credentials/generate-rsa-key-pair)
-2. Registrar la clave pública subiéndola al Auth0 Dashboard, como se describe en [Configure solicitud de autorización protegida con JWT](/docs/es/get-started/applications/configure-jar)
+2. Registrar la clave pública cargándola en el Auth0 Dashboard, como se describe en [Configurar solicitudes de autorización protegidas con JWT](/docs/es/get-started/applications/configure-jar)
 
 <div id="how-it-works">
   ## Cómo funciona
 </div>
 
-En lugar de pasar parámetros como `scope` o `redirect_uri` como texto sin formato en una URL, la aplicación cliente los incluye en un [JSON Web Token (JWT)](/docs/es/secure/tokens/json-web-tokens) firmado como objeto de solicitud:
+En lugar de pasar parámetros como `scope` o `redirect_uri` en texto sin formato dentro de una URL, la aplicación cliente los incluye en un [JSON Web Token (JWT)](/docs/es/secure/tokens/json-web-tokens) firmado como objeto de solicitud:
 
 * Firma: La aplicación cliente firma el JWT con su clave privada.
 * Verificación: El servidor de autorización de Auth0 recibe el JWT y verifica la firma con la clave pública que registraste.
-* Procesamiento: Si es válido, el servidor de autorización de Auth0 extrae los parámetros. Si un parámetro está presente tanto en el JAR como en la cadena de consulta, el valor del JAR prevalece.
+* Procesamiento: Si es válido, el servidor de autorización de Auth0 extrae los parámetros. Si un parámetro existe tanto en el JAR como en la cadena de consulta, el valor incluido en el JAR tiene prioridad.
 
 <div id="generate-the-jar-request">
-  ## Genera la solicitud JAR
+  ## Genera la solicitud de autorización protegida con JWT
 </div>
 
-Usa la [biblioteca JWT de Auth0](https://jwt.io/libraries) para generar un <Tooltip tip="JSON Web Token (JWT): formato estándar de token de ID (y, a menudo, de token de acceso) que se usa para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> en el lenguaje que prefieras.
+Usa la [biblioteca JWT de Auth0](https://jwt.io/libraries) para generar un <Tooltip tip="JSON Web Token (JWT): formato estándar de token de ID (y, a menudo, de token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> en el lenguaje que prefieras.
 
 <div id="header">
   ### Encabezado
 </div>
 
-El encabezado del JWT indica a Auth0 qué clave y qué algoritmo debe usar para verificarlo. Debe tener los siguientes parámetros:
+El encabezado del JWT indica a Auth0 qué clave y algoritmo debe usar para verificarlo. Debe incluir los siguientes parámetros:
 
 * `alg`: El algoritmo usado para firmar el JWT. Debe ser RS256, RS384 o PS256.
 * `typ`: El tipo de JWT. Debe ser `jwt` o `oauth-authz-req+jwt`.
 
-El encabezado también puede contener un campo `kid` que identifica la clave usada para firmar el JWT. Si hay un `kid`, Auth0 buscará una clave pública registrada durante la [configuración de JAR](/docs/es/get-started/applications/configure-jar) que tenga un ID de la clave que coincida y usará esa clave para verificar la firma del JWT.
+El encabezado también puede incluir un campo `kid` que identifica la clave usada para firmar el JWT. Si hay un `kid`, Auth0 buscará una clave pública registrada durante la [configuración de la solicitud de autorización protegida con JWT](/docs/es/get-started/applications/configure-jar) cuyo ID de la clave coincida y usará esa clave para verificar la firma del JWT.
 
 <div id="payload">
   ### Payload
@@ -55,7 +55,7 @@ El payload contiene los parámetros de autorización. Debe contener los siguient
 * `iss`: Debe contener el `client_id` de tu aplicación
 * `aud`: Debe ser el dominio de tu tenant, con el protocolo y una barra diagonal al final. Por ejemplo, `https://{YOUR_DOMAIN}.auth0.com/`
 
-El JWT también debe contener los parámetros obligatorios para la llamada a `/authorize`. Por ejemplo:
+El JWT también debe contener todos los parámetros obligatorios para la llamada a `/authorize`. Por ejemplo:
 
 * `client_id`: También debe contener el `client_id` de tu aplicación
 * `response_type`: Indica a Auth0 qué <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> flujo quieres ejecutar. Usa `code` para el flujo de concesión Authorization Code.
@@ -70,10 +70,10 @@ Además, el JWT puede contener los siguientes claims opcionales:
 * `jti`: Debe ser una cadena de no más de 64 bytes.
 
 <div id="code-sample-generate-and-sign-jar">
-  ## Ejemplo de código: generar y firmar JAR
+  ## Ejemplo de código: generar y firmar una solicitud de autorización protegida con JWT
 </div>
 
-El siguiente ejemplo de Node.js usa la [biblioteca jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken?activeTab=readme) para generar y firmar un JAR:
+El siguiente ejemplo de Node.js usa la [biblioteca jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken?activeTab=readme) para generar y firmar una solicitud de autorización protegida con JWT:
 
 ```javascript lines expandable
 const jwt = require('jsonwebtoken');
@@ -112,20 +112,20 @@ console.log(requestObject);
 
 Puedes enviar el JAR al servidor de autorización de Auth0 de las siguientes maneras:
 
-1. [Solicitud JAR estándar](#standard-jar-request): Pasa el JWT firmado como una cadena con codificación URL en el parámetro de la solicitud.
-2. [Pushed Authorization Request](#pushed-authorization-request): Para mayor seguridad y evitar las limitaciones de longitud de la URL, usa PAR.
+1. [Solicitud JAR estándar](#standard-jar-request): Pasa el JWT firmado como una cadena con codificación URL en el parámetro de solicitud.
+2. [solicitud de autorización push](#pushed-authorization-request): Para mayor seguridad y evitar las limitaciones de longitud de las URL, usa PAR.
 
 <div id="standard-jar-request">
   ### Solicitud JAR estándar
 </div>
 
-Para llamar al endpoint `/authorize` mediante una solicitud JAR estándar:
+Para llamar al endpoint `/authorize` con una solicitud JAR estándar:
 
-1. Abra una nueva ventana del navegador.
-2. Pase su <Tooltip tip="ID de cliente: valor de identificación asignado a su recurso registrado por Auth0." cta="Ver glosario" href="/docs/es/glossary?term=Client+ID">ID de cliente</Tooltip> como el parámetro `client_id` y el JWT firmado y codificado para URL como el parámetro `request`.
+1. Abre una nueva ventana del navegador.
+2. Pasa tu <Tooltip tip="ID de cliente: valor de identificación asignado a tu recurso registrado por Auth0." cta="Ver glosario" href="/docs/es/glossary?term=Client+ID">ID de cliente</Tooltip> en el parámetro `client_id` y el JWT firmado y codificado en URL en el parámetro `request`.
 
 ```bash lines
-# macOS
+# MacOS
 open "https://{YOUR_DOMAIN}.auth0.com/authorize?client_id={YOUR_CLIENT_ID}&request={URL_ENCODED_JWT}"
 
 # Windows
@@ -133,15 +133,15 @@ explorer "https://{YOUR_DOMAIN}.auth0.com/authorize?client_id={YOUR_CLIENT_ID}&r
 ```
 
 <div id="pushed-authorization-request">
-  ### Pushed Authorization Request
+  ### solicitud de autorización push
 </div>
 
-Para llamar al endpoint `/authorize` con una Pushed Authorization Request:
+Para llamar al endpoint `/authorize` con una solicitud de autorización enviada mediante push:
 
-1. Envía el JAR al endpoint `/oauth/par` mediante una solicitud `POST` por back-channel.
-2. Auth0 devolverá un `request_uri`, que luego puedes usar para llamar al endpoint `/authorize`, como en un [flujo PAR normal](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par).
+1. Envía la solicitud de autorización protegida con JWT al endpoint `/oauth/par` mediante una request `POST` por back-channel.
+2. Auth0 devolverá un `request_uri` que luego podrás usar para llamar al endpoint `/authorize`, como en un [flujo PAR normal](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par).
 
-La siguiente solicitud cURL usa PAR y JAR en conjunto:
+La siguiente request de cURL usa PAR y JAR juntos:
 
 ```bash lines
 curl --location 'https://{YOUR_DOMAIN}.auth0.com/oauth/par' \

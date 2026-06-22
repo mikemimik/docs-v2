@@ -1,5 +1,5 @@
 ---
-description: Aprende a realizar Bulk User Imports con la Management API.
+description: Aprende a realizar importaciones masivas de usuarios con la Management API.
 title: Bulk User Imports
 ---
 
@@ -7,10 +7,10 @@ import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Puedes importar datos de usuarios de forma masiva a Auth0 mediante el endpoint [Create Import Users Job](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports). Las importaciones masivas son útiles para migrar usuarios desde una base de datos o un servicio existente a Auth0.
+Puede importar datos de usuario de forma masiva a Auth0 mediante el endpoint [Create Import Users Job](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports). Las importaciones masivas son útiles para migrar usuarios desde una base de datos o un servicio existente a Auth0.
 
 <Warning>
-  Si intentas usar más de un método de migración (por ejemplo, migración automática y luego importación masiva de usuarios), es posible que se produzca un error `DUPLICATED_USER`. Este error indica que el usuario existe en el repositorio de usuarios interno de Auth0, pero no en tu tenant. Para corregir este error, elimina el usuario con el endpoint [Delete a Connection User](https://auth0.com/docs/api/management/v2#!/Connections/delete_users_by_email) de Auth0 Management API y luego vuelve a intentar la importación.
+  Si intenta usar más de un método de migración (por ejemplo, migración automática y luego importación masiva de usuarios), puede encontrarse con un error `DUPLICATED_USER`. Este error indica que el usuario existe en el repositorio interno de usuarios de Auth0, pero no en su tenant. Para corregir este error, elimine el usuario con el endpoint [Delete a Connection User](https://auth0.com/docs/api/management/v2#!/Connections/delete_users_by_email) de Auth0 Management API y luego vuelva a intentar la importación.
 </Warning>
 
 <div id="prerequisites">
@@ -19,34 +19,34 @@ Puedes importar datos de usuarios de forma masiva a Auth0 mediante el endpoint [
 
 Antes de iniciar la tarea de importación de usuarios:
 
-* Configura una conexión de base de datos para importar los usuarios y habilítala para al menos una aplicación.
-* Si vas a importar contraseñas, asegúrate de que tengan hash con uno de los algoritmos compatibles. Los usuarios cuyas contraseñas tengan hash con algoritmos no compatibles tendrán que restablecer su contraseña cuando inicien sesión por primera vez después de la importación masiva.
-* Si vas a importar inscripciones de <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación del usuario que utiliza un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip>, asegúrate de que sean de un tipo compatible: `email`, `phone` o `totp`.
-* [Obtén un token de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) para las solicitudes al endpoint de la tarea.
+* Configura una conexión de base de datos en la que importarás a los usuarios y habilítala para al menos una aplicación.
+* Si vas a importar contraseñas, asegúrate de que tengan un hash generado con uno de los algoritmos compatibles. Los usuarios cuyas contraseñas usen algoritmos no compatibles tendrán que restablecer su contraseña cuando inicien sesión por primera vez después de la importación masiva.
+* Si vas a importar registros de <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuario que utiliza un factor adicional además de nombre de usuario y contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip>, asegúrate de que sean de un tipo compatible: `email`, `phone` o `totp`.
+* [Obtén un token de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) para realizar solicitudes al endpoint de la tarea.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Si estás usando un archivo de exportación de un tenant de Auth0, debes convertir el archivo exportado de `ndjson` a [JSON](/docs/es/manage-users/user-migration/bulk-user-exports#json-compatible-format). Para conservar los mismos IDs de usuario, debes eliminar el prefijo `auth0|` de todos los IDs de usuario importados.
+  Si usas un archivo de exportación de un tenant de Auth0, debes convertir el archivo exportado de `ndjson` a [JSON](/docs/es/manage-users/user-migration/bulk-user-exports#json-compatible-format). Para conservar los mismos IDs de usuario, debes eliminar el prefijo `auth0|` de todos los IDs de usuario importados.
 
-  El proceso de importación añade automáticamente el prefijo `auth0|` a los IDs de usuario importados. Si no eliminas el prefijo `auth0|` antes de importar, los IDs de usuario se devolverán como `auth0|auth0|...`
+  El proceso de importación agrega automáticamente el prefijo `auth0|` a los IDs de usuario importados. Si no eliminas el prefijo `auth0|` antes de importar, los IDs de usuario quedarán como `auth0|auth0|...`
 </Callout>
 
 <div id="create-users-json-file">
   ## Crear archivo JSON de usuarios
 </div>
 
-Crea un archivo JSON con los datos de usuario que quieras importar a Auth0. La forma de exportar los datos de usuario a un archivo JSON variará según tu base de datos de usuarios actual. El <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> endpoint espera recibir el archivo JSON por secciones. Por eso, en lugar de usar `fs.readFileSync`, requiere `fs.createReadStream`. El endpoint espera un flujo de lectura canalizado, no el archivo JSON completo.
+Cree un archivo JSON con los datos de usuario que quiera importar a Auth0. La forma de exportar los datos de usuario a un archivo JSON variará según la base de datos de usuarios que ya tenga. El endpoint de <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> espera partes del archivo JSON. Por eso, en lugar de usar `fs.readFileSync`, requiere `fs.createReadStream`. El endpoint espera un flujo de lectura canalizado, en lugar del archivo JSON completo.
 
-Para obtener más información sobre el schema del archivo JSON y ver ejemplos, consulta [Esquema y ejemplos para la importación masiva de usuarios de base de datos](/docs/es/manage-users/user-migration/bulk-user-import-database-schema-and-examples).
+Para obtener más información sobre el esquema del archivo JSON y ver ejemplos, lea [Esquema y ejemplos para la importación masiva de usuarios de base de datos](/docs/es/manage-users/user-migration/bulk-user-import-database-schema-and-examples).
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  El límite de tamaño de archivo para un bulk import es de 500 KB. Tendrás que iniciar varias importaciones si tus datos superan ese tamaño.
+  El límite de tamaño de archivo para una importación masiva es de 500 KB. Tendrá que iniciar varias importaciones si sus datos superan este tamaño.
 </Callout>
 
 <div id="request-bulk-user-import">
   ## Solicitar importación masiva de usuarios
 </div>
 
-Para iniciar una tarea de importación masiva de usuarios, realiza una solicitud `POST` al endpoint [Create Import Users Job](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports). Asegúrate de reemplazar los valores de marcador de posición `MGMT_API_ACCESS_TOKEN`, `USERS_IMPORT_FILE.json`, `CONNECTION_ID` y `EXTERNAL_ID` por tu <Tooltip tip="Access Token: Credencial de Authorization, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">Access Token</Tooltip> de Management API, el archivo JSON de usuarios, el [ID de la conexión](/docs/es/authenticate/identity-providers/locate-the-connection-id) de base de datos y el ID externo, respectivamente.
+Para iniciar una tarea de importación masiva de usuarios, realiza una solicitud `POST` al endpoint [Create Import Users Job](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports). Asegúrate de reemplazar los valores de marcador de posición `MGMT_API_ACCESS_TOKEN`, `USERS_IMPORT_FILE.json`, `CONNECTION_ID` y `EXTERNAL_ID` por tu <Tooltip tip="token de acceso: credencial de Authorization, en forma de cadena opaca o JWT, que se utiliza para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> de Management API, el archivo JSON de usuarios, el [ID de conexión](/docs/es/authenticate/identity-providers/locate-the-connection-id) de la base de datos y el ID externo, respectivamente.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -296,13 +296,13 @@ Para iniciar una tarea de importación masiva de usuarios, realiza una solicitud
   ```
 </AuthCodeGroup>
 
-| Parámetro               | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`                 | Archivo en formato JSON que contiene los usuarios que se van a importar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `connection_id`         | ID de la conexión en la que se insertarán los usuarios. Puede recuperar el ID mediante el endpoint [GET /api/v2/connections](https://auth0.com/docs/api/management/v2#!/Connections/get_connections).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `upsert`                | Valor booleano; `false` de forma predeterminada. Cuando se establece en `false`, los usuarios ya existentes que coincidan por dirección de correo electrónico, ID de usuario, `phone` o nombre de usuario producirán un error. Cuando se establece en `true`, los usuarios ya existentes que coincidan por dirección de correo electrónico se actualizarán, pero solo con atributos que admitan upsert. Para ver una lista de los campos del perfil de usuario que pueden actualizarse mediante upsert durante la importación, consulte [User Profile Structure: User profile attributes](/docs/es/manage-users/user-accounts/user-profiles/user-profile-structure#user-profile-attributes). Nota: Incluir una entrada de usuario duplicada en el archivo de importación provocará un error. En este caso, Auth0 no realizará una inserción seguida de una actualización. |
-| `external_id`           | Cadena opcional definida por el usuario que puede usarse para correlacionar múltiples tareas. Se devuelve como parte de la respuesta de estado de la tarea.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `send_completion_email` | Valor booleano; `true` de forma predeterminada. Cuando se establece en `true`, envía un correo electrónico de finalización a todos los propietarios del tenant cuando finaliza la tarea de importación. Si *no* desea que se envíen correos electrónicos, debe establecer explícitamente este parámetro en `false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Parámetro               | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`                 | Archivo en formato JSON que contiene los usuarios que se importarán.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `connection_id`         | ID de la conexión en la que se insertarán los usuarios. Puede recuperar el ID mediante el endpoint [GET /api/v2/connections](https://auth0.com/docs/api/management/v2#!/Connections/get_connections).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `upsert`                | Valor booleano; `false` de forma predeterminada. Cuando se establece en `false`, los usuarios ya existentes que coincidan por dirección de correo electrónico, ID de usuario, phone o nombre de usuario producirán un error. Cuando se establece en `true`, los usuarios ya existentes que coincidan por dirección de correo electrónico se actualizarán, pero solo con atributos compatibles con `upsert`. Para ver una lista de los campos del perfil de usuario que pueden actualizarse mediante `upsert` durante la importación, consulte [Estructura del perfil de usuario: atributos del perfil de usuario](/docs/es/manage-users/user-accounts/user-profiles/user-profile-structure#user-profile-attributes). Nota: Incluir una entrada de usuario duplicada en el archivo de importación provocará un error. En este caso, Auth0 no realizará una inserción seguida de una actualización. |
+| `external_id`           | Cadena opcional definida por el usuario que se puede utilizar para correlacionar múltiples tareas. Se devuelve como parte de la respuesta de estado de la tarea.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `send_completion_email` | Valor booleano; `true` de forma predeterminada. Cuando se establece en `true`, envía un correo electrónico de finalización a todos los propietarios del tenant cuando finaliza la tarea de importación. Si *no* desea que se envíen correos electrónicos, debe establecer explícitamente este parámetro en `false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 Si la solicitud se realiza correctamente, recibirá una respuesta similar a la siguiente:
 
@@ -321,13 +321,13 @@ Si la solicitud se realiza correctamente, recibirá una respuesta similar a la s
 
 La entidad devuelta representa la tarea de importación.
 
-Cuando finalice la tarea de importación de usuarios, si `send_completion_email` se estableció en `true`, el/los administrador(es) del tenant recibirán un correo electrónico en el que se les notificará si la tarea falló o se completó correctamente. Un correo electrónico sobre una tarea fallida podría notificar al/a los administrador(es) que no se pudo procesar el archivo JSON de usuarios durante la importación.
+Cuando la tarea de importación de usuarios finalice y `send_completion_email` se haya establecido en `true`, los administradores del tenant recibirán un correo electrónico en el que se les notificará si la tarea falló o se completó correctamente. En el caso de una tarea fallida, el correo electrónico podría notificar a los administradores que no se pudo procesar el archivo JSON de usuarios durante la importación.
 
 <div id="concurrent-import-jobs">
-  ### Tareas de importación simultáneas
+  ### Tareas de importación concurrentes
 </div>
 
-El [endpoint Create Import Users Job](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports) tiene un límite de dos tareas de importación simultáneas. Si se solicitan tareas adicionales cuando ya hay dos pendientes, se devuelve una respuesta `429 Too Many Requests`:
+El endpoint [Create Import Users Job](https://auth0.com/docs/api/management/v2#!/Jobs/post_users_imports) tiene un límite de dos tareas de importación concurrentes. Si se solicitan tareas adicionales mientras hay dos pendientes, se devuelve una respuesta `429 Too Many Requests`:
 
 ```json lines
 {
@@ -341,7 +341,7 @@ El [endpoint Create Import Users Job](https://auth0.com/docs/api/management/v2#!
   ## Consultar el estado de la tarea
 </div>
 
-Para consultar el estado de una tarea, haz una solicitud `GET` al endpoint [Get a Job](https://auth0.com/docs/api/management/v2#!/Jobs/get_jobs_by_id). Asegúrate de reemplazar los valores de marcador de posición `MGMT_API_ACCESS_TOKEN` y `JOB_ID` por tu token de acceso de la Management API y el ID de la tarea de importación de usuarios.
+Para consultar el estado de una tarea, realiza una solicitud `GET` al endpoint [Obtener una tarea](https://auth0.com/docs/api/management/v2#!/Jobs/get_jobs_by_id). Asegúrate de reemplazar los valores de marcador de posición `MGMT_API_ACCESS_TOKEN` y `JOB_ID` por tu token de acceso de la Management API y el ID de la tarea de importación de usuarios.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -498,7 +498,7 @@ Según el estado de la tarea de importación de usuarios, recibirás una respues
 
 **Completada**
 
-Si una tarea se ha completado, la respuesta de estado de la tarea incluirá los totales de registros procesados correctamente, fallidos, insertados y actualizados.
+Si una tarea se ha completado, la respuesta del estado de la tarea incluirá los totales de registros procesados correctamente, fallidos, insertados y actualizados.
 
 ```json lines
 {
@@ -517,9 +517,9 @@ Si una tarea se ha completado, la respuesta de estado de la tarea incluirá los 
 }
 ```
 
-**Fallida**
+**Fallido**
 
-Si se produce un error en la tarea, su estado aparecerá como fallida. Sin embargo, ten en cuenta que la información de usuario no válida, como una dirección de correo electrónico no válida, no hará que falle toda la tarea.
+Si se produce un error en la tarea, se marcará como fallida. Sin embargo, ten en cuenta que la información de usuario no válida, como una dirección de correo electrónico no válida, no hará que falle toda la tarea.
 
 ```json lines
 {
@@ -532,25 +532,25 @@ Si se produce un error en la tarea, su estado aparecerá como fallida. Sin embar
 }
 ```
 
-Para obtener más información sobre las entradas fallidas, consulta **Recuperar entradas fallidas** a continuación.
+Para obtener más detalles sobre las entradas fallidas, consulta **entrada fallida** más abajo.
 
 <div id="job-timeouts">
-  ## Tiempos de espera de las tareas
+  ## Tiempo de espera de las tareas
 </div>
 
-Todas las tareas de importación de usuarios caducan después de **dos (2) horas**. Si tu tarea no se completa dentro de ese plazo, se marca como fallida.
+Todas las tareas de importación de usuarios caducan después de **dos (2) horas**. Si su tarea no se completa dentro de este plazo, se marca como fallida.
 
-Además, todos los datos relacionados con tu tarea se eliminan automáticamente después de 24 horas y ya no se puede acceder a ellos. Por ello, **recomendamos encarecidamente guardar los resultados de la tarea mediante el mecanismo de almacenamiento que prefieras**.
+Además, todos los datos relacionados con su tarea se eliminan automáticamente después de 24 horas y no se puede acceder a ellos después. Por ello, **recomendamos encarecidamente guardar los resultados de la tarea mediante el mecanismo de almacenamiento que prefiera**.
 
 <div id="retrieve-failed-entries">
-  ## Recuperar entradas fallidas
+  ## entrada fallida
 </div>
 
 <Warning>
-  Todos los datos relacionados con la tarea se eliminan automáticamente después de 24 horas y ya no se puede acceder a ellos. Por este motivo, recomendamos encarecidamente almacenar los resultados de la tarea mediante el mecanismo de almacenamiento que prefiera.
+  Todos los datos relacionados con la tarea se eliminan automáticamente después de 24 horas y ya no se puede acceder a ellos. Por ello, recomendamos encarecidamente almacenar los resultados de la tarea con el mecanismo de almacenamiento que prefiera.
 </Warning>
 
-Si hubo errores en la tarea de importación de usuarios, puede obtener los detalles del error haciendo una solicitud `GET` al endpoint [Get Job Error Details](https://auth0.com/docs/api/management/v2#!/Jobs/get_errors). Asegúrese de reemplazar los valores de marcador de posición `MGMT_API_ACCESS_TOKEN` y `JOB_ID` por su token de acceso de la Management API y el ID de la tarea de importación de usuarios.
+Si hubo errores en la tarea de importación de usuarios, puede obtener los detalles del error mediante una solicitud `GET` al endpoint [Get Job Error Details](https://auth0.com/docs/api/management/v2#!/Jobs/get_errors). Asegúrese de reemplazar los placeholder values `MGMT_API_ACCESS_TOKEN` y `JOB_ID` por su token de acceso de la Management API y el ID de la tarea de importación de usuarios.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -716,7 +716,7 @@ Si la solicitud se realiza correctamente, recibirá una respuesta similar a la s
 ]
 ```
 
-Cada objeto de error incluirá un código de error y un mensaje que explicará el error con más detalle. Los posibles códigos de error son:
+Cada objeto de error incluirá un código de error y un mensaje que explica el error con más detalle. Los posibles códigos de error son:
 
 * ANY&#95;OF&#95;MISSING
 * ARRAY&#95;LENGTH&#95;LONG
@@ -743,33 +743,33 @@ Cada objeto de error incluirá un código de error y un mensaje que explicará e
   ## Prácticas recomendadas para migraciones a gran escala
 </div>
 
-Al importar grandes volúmenes de usuarios (que requieren 10 o más tareas), sigue estas recomendaciones para garantizar una migración exitosa:
+Al importar un gran volumen de usuarios (lo que requiere 10 o más tareas), sigue estas recomendaciones para garantizar una migración exitosa:
 
 <div id="file-size-and-chunking">
-  ### Tamaño de archivo y fragmentación
+  ### Tamaño del archivo y fragmentación
 </div>
 
-Divide los registros de usuarios en fragmentos pequeños de menos de 400 KB por archivo. Esto permite procesar aproximadamente 1.000 usuarios por tarea con menos de 10 campos de metadatos por usuario, sin acercarse al límite de 500 KB por archivo.
+Divide los registros de usuario en fragmentos pequeños de menos de 400 KB por archivo. Esto permite procesar aproximadamente 1.000 usuarios por tarea con menos de 10 campos de metadatos por usuario, sin acercarse al límite de tamaño de archivo de 500 KB.
 
 <div id="job-scheduling-and-concurrency">
   ### Programación de tareas y concurrencia
 </div>
 
-Dado que Auth0 limita las importaciones de usuarios a dos tareas simultáneas por tenant, usa un framework de programación de tareas (como [Bull](https://github.com/OptimalBits/bull) o [Agenda](https://github.com/agenda/agenda)) para:
+Como Auth0 limita las importaciones de usuarios a dos tareas simultáneas por tenant, usa un framework de programación de tareas (como [Bull](https://github.com/OptimalBits/bull) o [Agenda](https://github.com/agenda/agenda)) para:
 
 * Programar las tareas de importación de forma sistemática
-* Aplicar el límite de concurrencia requerido
-* Hacer seguimiento del progreso de la importación para reanudarla donde se quedó si se interrumpe
+* Garantizar el límite de concurrencia requerido
+* Hacer seguimiento del progreso de la importación para reanudarla donde la dejaste si se interrumpe
 * Mantener el historial de tareas y los estados actuales
 
 <div id="error-handling-strategy">
   ### Estrategia de gestión de errores
 </div>
 
-* No interrumpas el proceso de importación por fallos de usuarios individuales. Importa a todos los usuarios y resuelve los problemas después.
-* Implementa una tarea de &quot;finalización&quot; que revise todas las tareas generadas y recopile los registros fallidos en un archivo nuevo.
-* Corrige cualquier error en los registros fallidos recopilados e impórtalos como una nueva tarea.
-* Incluye una estrategia de reintento para gestionar caídas de la conexión de red y fallos temporales.
+* No interrumpa el proceso de importación por fallos puntuales de usuarios. Importe todos los usuarios y gestione los problemas después.
+* Implemente una tarea de &quot;finalización&quot; que revise todas las tareas generadas y recopile los registros fallidos en un archivo nuevo.
+* Corrija cualquier error en los registros fallidos recopilados e impórtelos como una nueva tarea.
+* Incluya una estrategia de reintento para gestionar caídas de la conexión de red y fallos temporales.
 
 <div id="upsert-mode-considerations">
   ### Consideraciones sobre el modo upsert
@@ -777,21 +777,21 @@ Dado que Auth0 limita las importaciones de usuarios a dos tareas simultáneas po
 
 Ten cuidado al habilitar el modo `upsert`:
 
-* Las importaciones con upsert son más lentas que las importaciones estándar.
-* El modo upsert no admite la fusión de `user_metadata` ni `app_metadata`. Los metadatos existentes se sobrescribirán por completo con los nuevos valores.
+* Las importaciones con upsert son más lentas que las importaciones normales.
+* El modo upsert no permite fusionar `user_metadata` ni `app_metadata`. Los metadatos existentes se sobrescribirán por completo con los nuevos valores.
 * Usa el modo upsert solo cuando necesites actualizar usuarios existentes y comprendas estas limitaciones.
 
 <div id="data-retention">
   ### Retención de datos
 </div>
 
-Recuerda que todos los datos relacionados con las tareas se eliminan automáticamente al cabo de 24 horas. Guarda los resultados de las tareas y los detalles de los errores en tu propio sistema de almacenamiento para su seguimiento y análisis a largo plazo.
+Recuerda que todos los datos relacionados con las tareas se eliminan automáticamente al cabo de 24 horas. Guarda los resultados de las tareas y los detalles de los errores con tu propio mecanismo de almacenamiento para su seguimiento y análisis a largo plazo.
 
 <div id="learn-more">
   ## Más información
 </div>
 
-* [Configure la migración automática desde su base de datos](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database)
+* [Configurar la migración automática desde tu base de datos](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database)
 * [Extensión de importación/exportación de usuarios](/docs/es/manage-users/user-migration/user-import-export-extension)
 * [Esquema y ejemplos para la importación masiva de usuarios de base de datos](/docs/es/manage-users/user-migration/bulk-user-import-database-schema-and-examples)
-* [Escenarios de migración de usuarios](/docs/es/manage-users/user-migration/user-migration-scenarios)
+* [Escenarios de Migración de usuarios](/docs/es/manage-users/user-migration/user-migration-scenarios)

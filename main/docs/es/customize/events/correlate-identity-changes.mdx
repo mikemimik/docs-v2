@@ -1,9 +1,9 @@
 ---
-description: Reacciona a los cambios de identidad en Auth0 actualizando CRM, facturación o sistemas de terceros con Event Streams.
-title: Correlacionar los cambios de identidad con sistemas externos
+description: Reacciona a los cambios de identidad en Auth0 actualizando sistemas de CRM, facturación o de terceros con Event Streams.
+title: Correlacionar cambios de identidad con sistemas externos
 ---
 
-Con Event Streams, puedes reaccionar a los cambios de identidad en Auth0 y propagar esos cambios a sistemas externos, como plataformas de CRM, servicios de facturación o herramientas de licencias SaaS. En lugar de consultar la Management API para buscar actualizaciones, tu integración recibe eventos en tiempo real y los correlaciona con registros de tus sistemas de destino.
+Con Event Streams, puedes reaccionar a los cambios de identidad en Auth0 y propagar esos cambios a sistemas externos, como plataformas de CRM, servicios de facturación o herramientas de licencias SaaS. En lugar de consultar periódicamente la Management API para detectar actualizaciones, tu integración recibe eventos en tiempo real y los correlaciona con registros en tus sistemas de destino.
 
 <div id="why-correlate-identity-changes">
   ## Por qué correlacionar los cambios de identidad
@@ -13,18 +13,18 @@ Correlacionar los eventos de identidad de Auth0 con sistemas externos resulta ú
 
 * Actualizar un registro en el CRM cuando cambian el correo electrónico o los datos del perfil de un usuario.
 * Notificar a un sistema de facturación o licencias cuando una cuenta se desactiva o se elimina.
-* Activar flujos de trabajo de cumplimiento cuando cambian atributos del usuario, como el consentimiento o el rol.
-* Mantener alineados los segmentos de usuarios en las plataformas de marketing con los datos de identidad actuales.
+* Activar flujos de trabajo de cumplimiento cuando cambian los atributos del usuario, como el consentimiento o el role.
+* Mantener alineados con los datos de identidad actuales los segmentos de usuarios en las plataformas de marketing.
 
 <div id="how-it-works">
   ## Cómo funciona
 </div>
 
-1. Auth0 publica un evento cuando se crea, actualiza o elimina un perfil de usuario.
-2. Tu Event Stream envía ese evento a un destino (webhook, AWS EventBridge o Auth0 Action).
-3. Tu manejador vincula el usuario de Auth0 con un registro en el sistema externo y aplica la actualización correspondiente.
+1. Auth0 emite un evento cuando se crea, actualiza o elimina un perfil de usuario.
+2. Tu Event Stream entrega ese evento a un destino (webhook, AWS EventBridge o Auth0 Action).
+3. Tu controlador vincula el usuario de Auth0 con un registro en el sistema externo y aplica la actualización correspondiente.
 
-Los siguientes tipos de eventos son relevantes para correlacionar datos:
+Los siguientes tipos de eventos son relevantes para la correlación de datos:
 
 | Tipo de evento | Cuándo se activa                             |
 | -------------- | -------------------------------------------- |
@@ -36,23 +36,23 @@ Los siguientes tipos de eventos son relevantes para correlacionar datos:
   ## Requisitos previos
 </div>
 
-Antes de comenzar, asegúrate de contar con lo siguiente:
+Antes de comenzar, asegúrate de tener:
 
-* Un tenant de Auth0 con Events habilitado. Para obtener más información sobre en qué planes está disponible, consulta [Create an Event Stream](/docs/es/customize/events/create-an-event-stream).
-* Un Event Stream activo suscrito a los tipos de eventos que necesitas. Para obtener más información, consulta [Create an Event Stream](/docs/es/customize/events/create-an-event-stream).
-* Credenciales de API del sistema externo que planeas actualizar (por ejemplo, una clave de API de CRM o un token de OAuth).
+* Un tenant de Auth0 con Events habilitado. Para obtener más información sobre la disponibilidad de los planes, consulta [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream).
+* Un Event Stream activo suscrito a los tipos de eventos que necesitas. Para obtener más información, consulta [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream).
+* Credenciales de API del sistema externo que vas a actualizar (por ejemplo, una clave de API de un CRM o un token de OAuth).
 
 <div id="implement-identity-correlation">
-  ## Correlación de identidad de Implement
+  ## Implement correlación de identidades
 </div>
 
-Las secciones siguientes muestran cómo correlacionar eventos de Auth0 con una plataforma de CRM. Las funciones del manejador son las mismas independientemente del destino de Event Stream que uses. La sección [Enrutar eventos por tipo](#route-events-by-type) muestra cómo distribuir eventos tanto a destinos de webhook como de Auth0 Action.
+En las secciones siguientes se muestra cómo correlacionar eventos de Auth0 con una plataforma de CRM. Las funciones del controlador son las mismas independientemente del destino de tu Event Stream. La sección [Enrutar eventos por tipo](#route-events-by-type) muestra cómo enviar eventos tanto a destinos de webhook como de Auth0 Action.
 
 <div id="map-auth0-users-to-external-records">
   ### Vincular usuarios de Auth0 con registros externos
 </div>
 
-La mayoría de los sistemas externos identifican los contactos por su dirección de correo electrónico o por un ID externo almacenado en `app_metadata` de Auth0. Define una función de búsqueda que encuentre el registro externo correspondiente a un usuario de Auth0 determinado.
+La mayoría de los sistemas externos identifican los contactos por su dirección de correo electrónico o por un ID externo almacenado en `app_metadata` de Auth0. Define una función de búsqueda que localice el registro externo correspondiente a un usuario de Auth0 determinado.
 
 ```javascript wrap lines
 async function findCrmContact(user) {
@@ -62,7 +62,7 @@ async function findCrmContact(user) {
         return externalId;
     }
 
-    // Usar búsqueda por correo electrónico como alternativa
+    // Recurrir a la búsqueda por correo electrónico
     const response = await fetch(
         `https://api.example-crm.com/contacts?email=${encodeURIComponent(user.email)}`,
         { headers: { "Authorization": `Bearer ${CRM_API_TOKEN}` } }
@@ -77,7 +77,7 @@ async function findCrmContact(user) {
   ### Gestiona user.created
 </div>
 
-Cuando se cree un nuevo usuario en Auth0, crea el contacto correspondiente en tu sistema externo.
+Cuando se crea un nuevo usuario en Auth0, crea el contacto correspondiente en tu sistema externo.
 
 ```javascript wrap lines
 async function handleUserCreated(user) {
@@ -102,10 +102,10 @@ async function handleUserCreated(user) {
 ```
 
 <div id="handle-userupdated">
-  ### Gestiona `user.updated`
+  ### Gestionar user.updated
 </div>
 
-Cuando cambie el perfil de un usuario, actualiza el contacto correspondiente en el CRM con los nuevos datos.
+Cuando cambie un perfil de usuario, actualiza el contacto del CRM correspondiente con los nuevos datos.
 
 ```javascript wrap lines
 async function handleUserUpdated(user) {
@@ -132,10 +132,10 @@ async function handleUserUpdated(user) {
 ```
 
 <div id="handle-userdeleted">
-  ### Gestionar user.deleted
+  ### Gestiona user.deleted
 </div>
 
-Cuando se elimine un usuario de Auth0, desactiva o marca el registro correspondiente en tu sistema externo.
+Cuando se elimina un usuario de Auth0, desactiva o marca el registro correspondiente en tu sistema externo.
 
 ```javascript wrap lines
 async function handleUserDeleted(user) {
@@ -160,7 +160,7 @@ async function handleUserDeleted(user) {
   ### Enruta eventos por tipo
 </div>
 
-Usa un enrutador principal para dirigir cada evento al manejador correcto. Los ejemplos siguientes muestran cómo enrutar eventos para destinos de webhook y Auth0 Action.
+Usa un controlador de nivel superior para dirigir cada evento al controlador correcto. Los ejemplos a continuación muestran cómo enrutar eventos para destinos de webhook y Auth0 Action.
 
 <Tabs>
   <Tab title="Webhook">
@@ -193,7 +193,7 @@ Usa un enrutador principal para dirigir cada evento al manejador correcto. Los e
     ```
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Devuelve una respuesta HTTP `2XX` lo antes posible. Si las llamadas a tus APIs externas son lentas, coloca el evento en una cola interna y procésalo de forma asíncrona. Para obtener más información, consulta [Prácticas recomendadas para eventos](/docs/es/customize/events/events-best-practices).
+      Devuelve una respuesta HTTP `2XX` lo antes posible. Si tus llamadas externas a la API son lentas, coloca el evento en una cola interna y procésalo de forma asíncrona. Para obtener más información, consulta [Events Best Practices](/docs/es/customize/events/events-best-practices).
     </Callout>
   </Tab>
 
@@ -227,15 +227,15 @@ Usa un enrutador principal para dirigir cada evento al manejador correcto. Los e
 
 Al correlacionar datos de identidad entre sistemas, ten en cuenta lo siguiente:
 
-* **Falta de registros externos.** Un evento `user.updated` puede llegar para un usuario que todavía no existe en tu sistema externo. Decide si crear el registro o dejarlo registrado para una revisión manual.
-* **Límites de tasa en las API externas.** Si Auth0 envía una ráfaga de eventos (por ejemplo, durante una importación masiva), tu manejador puede superar los límites de tasa de la API externa. Usa una cola asíncrona con backoff para mantenerte dentro de esos límites.
+* **Faltan registros externos.** Un evento `user.updated` puede llegar para un usuario que aún no existe en tu sistema externo. Decide si crear el registro o dejarlo registrado para una revisión manual.
+* **Límites de frecuencia en APIs externas.** Si Auth0 envía una ráfaga de eventos (por ejemplo, durante una importación masiva), tu controlador puede superar los límites de frecuencia de la API externa. Usa una cola asíncrona con reintentos y espera incremental para mantenerte dentro de esos límites.
 * **Datos parciales.** No todos los eventos `user.updated` incluyen todos los campos del perfil. Aplica solo los campos presentes en el payload del evento para evitar sobrescribir datos con valores vacíos.
 
 <div id="example-correlate-with-hubspot-crm">
-  ## Ejemplo: Correlación con HubSpot CRM
+  ## Ejemplo: Correlacionar con HubSpot CRM
 </div>
 
-La siguiente Action de Auth0 muestra un manejador de correlación completo que crea, actualiza y elimina contactos en HubSpot CRM. La Action utiliza la API de contactos de HubSpot para buscar contactos existentes por correo electrónico y aplicar la operación correspondiente.
+La siguiente Auth0 Action muestra un controlador de correlación completo que crea, actualiza y elimina contactos en HubSpot CRM. La Action utiliza la API de contactos de HubSpot para buscar contactos existentes por correo electrónico y aplicar la operación correspondiente.
 
 ```javascript wrap lines
 exports.onExecuteEventStream = async (event, api) => {
@@ -333,17 +333,17 @@ exports.onExecuteEventStream = async (event, api) => {
 };
 ```
 
-Para almacenar de forma segura la clave de API de HubSpot, añade un secreto llamado `HUBSPOT_TOKEN` en el editor de acciones. Para obtener más información, consulta [Action Secrets](/docs/es/customize/actions/write-your-first-action#add-a-secret).
+Para almacenar de forma segura la API key de HubSpot, agrega un Secret llamado `HUBSPOT_TOKEN` en el editor de Action. Para obtener más información, lee [Secrets de Action](/docs/es/customize/actions/write-your-first-action#add-a-secret).
 
 <div id="verify-correlation">
-  ## Verifica la correlación
+  ## Verificar la correlación
 </div>
 
-Después de desplegar tu manejador, crea o actualiza un usuario de prueba en Auth0 y confirma lo siguiente:
+Después de implementar tu controlador, crea o actualiza un usuario de prueba en Auth0 y confirma lo siguiente:
 
-1. El registro correspondiente en tu sistema externo refleja el cambio.
+1. Que el registro correspondiente en tu sistema externo refleje el cambio.
 2. Elimina el usuario de prueba en Auth0. Confirma que el registro externo se haya desactivado o eliminado.
-3. Revisa los logs de tu manejador para detectar errores o eventos omitidos.
+3. Revisa los registros de tu controlador para detectar errores o eventos omitidos.
 
 Para obtener más información sobre cómo probar Event Streams, consulta [Event Testing, Observability, and Failure Recovery](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
 
@@ -353,4 +353,4 @@ Para obtener más información sobre cómo probar Event Streams, consulta [Event
 
 * [Tipos de eventos](/docs/es/customize/events/event-types)
 * [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream)
-* [Prácticas recomendadas para eventos](/docs/es/customize/events/events-best-practices)
+* [Prácticas recomendadas de Events](/docs/es/customize/events/events-best-practices)

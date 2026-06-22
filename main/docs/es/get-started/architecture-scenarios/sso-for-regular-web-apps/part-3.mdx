@@ -1,77 +1,77 @@
 ---
-description: Implementación de la aplicación en un escenario habitual de aplicación web
+description: Implementación de la aplicación en el escenario de aplicación web tradicional
 title: Implementación de la aplicación (aplicaciones web + SSO)
 ---
 
-Veamos la implementación de nuestra aplicación web habitual. Usamos ASP.NET Core para implementarla; puedes encontrar el código en [este repositorio de GitHub](https://github.com/auth0-samples/auth0-pnp-webapp-oidc).
+Veamos la implementación de nuestra aplicación web tradicional. Usamos ASP .NET Core para implementarla; puedes encontrar el código en [este repositorio de GitHub](https://github.com/auth0-samples/auth0-pnp-webapp-oidc).
 
-El ejemplo incluye una aplicación que usa la integración con Active Directory para autenticar a los empleados de la empresa y una conexión de base de datos de Auth0 para contratistas externos. La autorización se implementa mediante reglas y claims, como veremos en detalle en este apartado.
+El ejemplo incluye una aplicación que usa la integración con Active Directory para autenticar a los empleados de la empresa y una conexión de base de datos de Auth0 para contratistas externos. La autorización se implementa mediante reglas y claims, como veremos en detalle en esta sección.
 
 <div id="user-login">
-  ## Inicio de sesión de usuario
+  ## Inicio de sesión del usuario
 </div>
 
-Auth0 proporciona un widget llamado Lock que funciona como componente de inicio de sesión para su aplicación, por lo que no necesita implementar su propia pantalla de inicio de sesión. El widget Lock se integra perfectamente con todas las conexiones que configure en su <Tooltip tip="Auth0 Dashboard: el producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+dashboard">Auth0 Dashboard</Tooltip>, ya sean conexiones de base de datos, sociales o empresariales.
+Auth0 proporciona un widget de Lock que funciona como componente de inicio de sesión para su aplicación, por lo que no tiene que implementar su propia pantalla de inicio de sesión. El widget de Lock se integra perfectamente con todas las conexiones que configure en su <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar sus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+dashboard">Auth0 Dashboard</Tooltip>, ya sean conexiones de base de datos, sociales o empresariales.
 
 Hay varias formas de implementar una pantalla de inicio de sesión con una aplicación web y Auth0:
 
-* **Hosted Lock**: Use una instancia del widget Lock alojada en la infraestructura de Auth0.
-* **Embedded Lock**: Inserte el widget Lock en una página web de su aplicación. Tiene algunas opciones de personalización para el propio widget Lock y control total sobre el resto del HTML de la página.
-* **Custom UI**: Desarrolle una página web completamente personalizada para la pantalla de inicio de sesión. El formulario HTML personalizado enviará los datos de vuelta a su servidor, que a su vez autenticará al usuario mediante la Authentication API. Para obtener más información sobre cuándo usar una Custom UI, consulte [Customize Classic Login Pages with Lock or SDK](/docs/es/customize/login-pages/classic-login/customize-with-lock-sdk).
+* **Hosted Lock**: Use una instancia del widget de Lock alojada en la infraestructura de Auth0.
+* **Embedded Lock**: Inserte el widget de Lock en una página web de su aplicación. Tiene algunas opciones de personalización para el propio widget de Lock y control total sobre el resto del HTML de la página.
+* **Interfaz personalizada**: Desarrolle una página web completamente personalizada para la pantalla de inicio de sesión. El formulario HTML personalizado enviará los datos de vuelta a su servidor, que a su vez autenticará al usuario mediante la Authentication API. Para obtener más información sobre cuándo usar una interfaz personalizada, consulte [Customize Classic Login Pages with Lock or SDK](/docs/es/customize/login-pages/classic-login/customize-with-lock-sdk).
 
 <div id="automate-home-realm-discovery-hrd">
-  ### Automatizar el Home Realm Discovery (HRD)
+  ### Automatiza Home Realm Discovery (HRD)
 </div>
 
-De forma predeterminada, Lock mostrará todas las conexiones disponibles para iniciar sesión. La selección del <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=Identity+Providers">Proveedor de identidad</Tooltip> adecuado entre varias opciones se denomina Home Realm Discovery (HRD). En nuestro caso, las opciones son autenticarse con Active Directory (para los empleados de la empresa) o usar correo electrónico y contraseña para nuestra conexión de base de datos (contratistas externos).
+De forma predeterminada, Lock mostrará todas las conexiones disponibles para iniciar sesión. Seleccionar los <Tooltip tip="Proveedor de identidad (IdP): servicio que almacena y administra identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=Identity+Providers">proveedores de identidad</Tooltip> adecuados entre varias opciones se denomina Home Realm Discovery (HRD). En nuestro caso, las opciones son autenticarse con Active Directory (para los empleados de la empresa) o usar correo electrónico y contraseña para nuestra conexión de base de datos (contratistas externos).
 
-Sin embargo, puede que quieras evitar ese primer paso, en el que el usuario debe elegir el proveedor de identidad (IdP), y hacer que el sistema lo identifique en vez de preguntarlo cada vez. Lock te ofrece las siguientes opciones:
+Sin embargo, quizá quieras evitar ese primer paso, en el que el usuario debe elegir el proveedor de identidad (IdP), y hacer que el sistema lo identifique en lugar de preguntárselo cada vez. Lock te ofrece las siguientes opciones:
 
-* **Identificar el IdP mediante programación**: Cuando inicias una transacción de autenticación con Auth0, puedes enviar opcionalmente un parámetro `connection`. Este valor se corresponde directamente con cualquier conexión definida en tu panel. Al usar la versión Hosted de Lock y llamar al endpoint `/authorize`, puedes pasar un parámetro `connection` en la cadena de consulta que contenga el nombre de la conexión. Como alternativa, si estás usando Embedded Lock, es tan simple como escribir `auth0.show({connections: ['{yourConnection}']});`.
+* **Identificar el IdP de forma programática**: Cuando inicias una transacción de autenticación con Auth0, opcionalmente puedes enviar un parámetro `connection`. Este valor se corresponde directamente con cualquier conexión definida en tu Dashboard. Al usar la versión Hosted de Lock mediante una llamada al endpoint `/authorize`, puedes pasar un parámetro `connection` en la query string que contenga el nombre de la conexión. Como alternativa, si estás usando Embedded Lock, basta con escribir `auth0.show({connections: ['{yourConnection}']});`.
 
   * Hay varias formas prácticas de obtener el valor de `connection`. Una de ellas es usar **URL personalizadas**: por ejemplo, los empleados de la empresa usarán `https://internal.yoursite.com`, mientras que los contratistas externos usarán `https://external.yoursite.com`.
-* **Usar dominios de correo electrónico**: Lock puede usar dominios de correo electrónico para enrutar las solicitudes de autenticación. Las conexiones empresariales en Auth0 pueden asignarse a `domains`. Si una conexión tiene esta configuración, el campo de contraseña se desactiva automáticamente al escribir un correo electrónico con un dominio asignado. Ten en cuenta que puedes asociar varios dominios a una sola conexión.
+* **Usar dominios de correo electrónico**: Lock puede usar dominios de correo electrónico para enrutar solicitudes de autenticación. Las conexiones empresariales en Auth0 pueden asignarse a `domains`. Si una conexión tiene esta configuración, el campo de contraseña se desactiva automáticamente al escribir un correo electrónico con un dominio asignado. Ten en cuenta que puedes asociar varios dominios a una sola conexión.
 
-Para obtener más información sobre este tema, consulta [Select from Multiple Connection Options](/docs/es/libraries/lock/selecting-from-multiple-connection-options).
+Para obtener más información sobre este tema, consulta [Seleccionar entre múltiples opciones de conexión](/docs/es/libraries/lock/selecting-from-multiple-connection-options).
 
 <div id="session-management">
   ## Gestión de sesiones
 </div>
 
-Cuando hablamos de la gestión de sesiones, normalmente hay tres capas que debemos tener en cuenta:
+Cuando hablamos de gestionar sesiones, normalmente hay tres capas de sesiones que debemos tener en cuenta:
 
-* **Sesión de la aplicación**: La primera es la sesión dentro de la aplicación. Aunque tu aplicación usa Auth0 para autenticar a los usuarios, igualmente tendrás que llevar un registro de que el usuario ha iniciado sesión en tu aplicación. En una aplicación web normal, esto se consigue almacenando información en una cookie.
-* **Sesión de Auth0**: A continuación, Auth0 también mantendrá una sesión y almacenará la información del usuario en una cookie. La próxima vez que un usuario sea redirigido a la pantalla de Auth0 Lock, se recordará su información.
-* **Sesión del proveedor de identidad**: La última capa es la del proveedor de identidad, por ejemplo, Facebook o Google. Cuando permites que los usuarios inicien sesión con cualquiera de estos proveedores y ya han iniciado sesión en el proveedor, no se les volverá a pedir que inicien sesión. Puede que simplemente tengan que dar permisos para compartir su información con Auth0 y, a su vez, con tu aplicación.
+* **sesión de la aplicación**: La primera es la sesión dentro de la aplicación. Aunque tu aplicación usa Auth0 para autenticar a los usuarios, igualmente tendrás que llevar un control de si el usuario ha iniciado sesión en tu aplicación. En una aplicación web normal, esto se consigue almacenando información en una cookie.
+* **sesión de Auth0**: Además, Auth0 también mantendrá una sesión y almacenará la información del usuario en una cookie. La próxima vez que se redirija a un usuario a la pantalla de Auth0 Lock, se recordará su información.
+* **sesión del proveedor de identidad**: La última capa es la del proveedor de identidad, por ejemplo, Facebook o Google. Cuando permites que los usuarios inicien sesión con cualquiera de estos proveedores y ya han iniciado sesión en el proveedor, no se les pedirá que vuelvan a hacerlo. Puede que simplemente tengan que dar permisos para compartir su información con Auth0 y, a su vez, con tu aplicación.
 
-Por lo tanto, al desarrollar una aplicación web, tendrás que llevar un registro de que el usuario ha iniciado sesión en tu aplicación web. Puedes hacerlo mediante una sesión basada en cookies para registrar que el usuario ha iniciado sesión y almacenar también cualquier dato o token relacionado con él.
+Al desarrollar una aplicación web, por tanto, tendrás que llevar un control de si el usuario ha iniciado sesión en tu aplicación web. Puedes hacerlo mediante una sesión basada en cookies para mantener ese estado de inicio de sesión, así como almacenar información relacionada con el usuario o tokens.
 
 <Info>
-  ### ¿Cómo controlo la duración de la sesión local del usuario en la aplicación? ¿Puedo hacerlo desde Auth0?
+  ### ¿Cómo controlo la duración de la sesión local de la aplicación del usuario? ¿Puedo gestionarla desde Auth0?
 
-  La aplicación web tiene control total sobre la sesión local del usuario en la aplicación. La forma de hacerlo suele depender de la pila web que se esté usando (por ejemplo, ASP.NET). En cualquier caso, todos los enfoques terminan usando una o más cookies para controlar la sesión. El desarrollador puede optar por usar la expiración del JWT ID Token devuelto por Auth0 para controlar la duración de su sesión o ignorarla por completo. Algunos desarrolladores almacenan el propio ID Token en el estado de la sesión y finalizan la sesión del usuario cuando expira.
+  La aplicación web tiene control total sobre la sesión local del usuario en la aplicación. La forma de hacerlo suele depender de la pila web que se esté utilizando (por ejemplo, ASP.NET). En cualquier caso, todos los enfoques terminan usando una o más cookies para controlar la sesión. El desarrollador puede optar por usar el vencimiento del JWT token de ID devuelto por Auth0 para controlar la duración de su sesión o ignorarlo por completo. Algunos desarrolladores almacenan el propio token de ID en el estado de la sesión y finalizan la sesión del usuario cuando expira.
 
-  La razón por la que usarías la expiración del token para determinar la expiración de la sesión local es que te permite controlar de forma centralizada la duración de la sesión de un usuario desde el Auth0 Dashboard.
+  La razón para usar el vencimiento del token para determinar el vencimiento de la sesión local es que te permite controlar de forma centralizada la duración de la sesión de un usuario desde el Auth0 Dashboard.
 </Info>
 
 El flujo de inicio de sesión es el siguiente:
 
 <Frame>![undefined](/docs/images/cdy7uua7fh8z/4bqozVk6fF4JrWRP1BJK7Y/1403eb1c0efb12552307358a26c6e7f7/login-flow.png)</Frame>
 
-1. **Iniciar el flujo de autenticación de OIDC**: El navegador del usuario enviará una solicitud a Auth0 para iniciar el flujo de OIDC.
-2. **Establecer la cookie de SSO**: Auth0 establecerá una cookie para almacenar la información del usuario.
-3. **Intercambiar el código y devolver el ID Token**: Auth0 hará una solicitud de vuelta al servidor web y devolverá el código. El servidor web intercambiará el código por un ID Token.
-4. **Establecer la cookie de autenticación y enviar la respuesta**: El servidor web enviará una respuesta de vuelta al navegador y establecerá la cookie de autenticación de la aplicación para almacenar la información de la sesión del usuario.
-5. **La cookie de autenticación se envía con cada solicitud posterior**: La cookie de autenticación de la aplicación se enviará con cada solicitud posterior como prueba de que el usuario está autenticado.
+1. **Initiate OIDC Authentication Flow**: El navegador del usuario enviará una solicitud a Auth0 para iniciar el flujo de autenticación OIDC.
+2. **Set SSO Cookie**: Auth0 establecerá una cookie para almacenar la información del usuario.
+3. **Code exchange and return ID Token**: Auth0 hará una solicitud de vuelta al servidor web y devolverá el código. El servidor web intercambiará el código por un token de ID.
+4. **Set auth cookie and send response**: El servidor web enviará una respuesta de vuelta al navegador y establecerá la cookie de autenticación de la aplicación para almacenar la información de sesión del usuario.
+5. **Auth cookie sent with every subsequent request**: La cookie de autenticación de la aplicación se enviará con cada solicitud posterior como prueba de que el usuario está autenticado.
 
 <Info>
   ### ¿Cómo afecta la sesión SSO de Auth0 a la sesión de la aplicación?
 
-  Auth0 gestiona su propia sesión de inicio de sesión único. Las aplicaciones pueden optar por respetar o ignorar esa sesión SSO a la hora de mantener su propia sesión local. El widget Lock incluso tiene una funcionalidad especial que puede detectar si existe una sesión SSO de Auth0 y preguntar al usuario si quiere volver a iniciar sesión como ese mismo usuario.
+  Auth0 gestiona su propia sesión de inicio de sesión único. Las aplicaciones pueden optar por respetar o ignorar esa sesión SSO cuando se trata de mantener su propia sesión local. El widget de Lock incluso tiene una funcionalidad especial que puede detectar si existe una sesión SSO de Auth0 y preguntar al usuario si desea volver a iniciar sesión como ese mismo usuario.
 
   <Frame>![Lock Widget SSO](https://cdn2.auth0.com/docs/1.14516.0/media/articles/architecture-scenarios/web-app-sso/sso-login.png)</Frame>
 
-  Si lo hacen, iniciarán sesión sin tener que volver a introducir sus credenciales en el proveedor de identidad real. Aunque el usuario no se autenticó directamente, la aplicación sigue realizando un flujo de autenticación con Auth0 y obtiene un nuevo ID Token, que puede usarse después para gestionar la nueva sesión local de la aplicación.
+  Si lo hacen, iniciarán sesión sin tener que volver a introducir sus credenciales en el IdP. Aunque el usuario no se haya autenticado de nuevo, la aplicación sigue realizando un flujo de autenticación con Auth0 y obtiene un nuevo token de ID, que luego puede usarse para gestionar la nueva sesión local de la aplicación.
 </Info>
 
 **Consulta la implementación en** [**ASP.NET Core**](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/implementation-aspnetcore#configure-the-cookie-and-oidc-middleware).
@@ -82,21 +82,21 @@ El flujo de inicio de sesión es el siguiente:
 
 Al cerrar la sesión del usuario, una vez más tendrás que pensar en las tres capas de sesión de las que hablamos antes:
 
-* **Sesión de la aplicación**: Debes cerrar la sesión del usuario en tu aplicación web eliminando su sesión.
-* **Sesión de Auth0**: Debes cerrar la sesión del usuario en Auth0. Para ello, redirígelo a `https://{yourDomain}/v2/logout`. Redirigir al usuario a esta URL borra todas las cookies de <Tooltip tip="Single Sign-On (SSO): Servicio que, después de que un usuario inicia sesión en una aplicación, inicia automáticamente la sesión de ese usuario en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=single+sign-on">inicio de sesión único</Tooltip> establecidas por Auth0 para ese usuario.
-* **Sesión del proveedor de identidad**: Aunque no es lo habitual, puedes forzar al usuario a cerrar la sesión en el proveedor de identidad utilizado, por ejemplo Facebook o Google. Para ello, agrega el parámetro de cadena de consulta `federated` a la URL de cierre de sesión: `https://{yourDomain}/v2/logout?federated`.
+* **Sesión de la aplicación**: Debes cerrar la sesión del usuario en tu aplicación web borrando su sesión.
+* **Sesión de Auth0**: Debes cerrar la sesión del usuario en Auth0. Para hacerlo, redirige al usuario a `https://{yourDomain}/v2/logout`. Redirigir al usuario a esta URL borra todas las cookies de <Tooltip tip="Inicio de sesión único (SSO): servicio que, después de que un usuario inicia sesión en una aplicación, automáticamente inicia sesión en otras aplicaciones." cta="Ver glosario" href="/docs/es/glossary?term=single+sign-on">inicio de sesión único</Tooltip> que Auth0 haya configurado para el usuario.
+* **Sesión del proveedor de identidad**: Aunque no es una práctica habitual, puedes forzar al usuario a cerrar la sesión en el proveedor de identidad utilizado, por ejemplo Facebook o Google. Para ello, agrega un parámetro de query string `federated` a la cierre de sesión URL: `https://{yourDomain}/v2/logout?federated`.
 
-Para redirigir a un usuario después de cerrar la sesión, agrega un parámetro de cadena de consulta `returnTo` con la URL de destino como valor: `https://{yourDomain}/v2/logout?returnTo=http://www.example.com`. Ten en cuenta que tendrás que agregar la URL de `returnTo` como una **Allowed Logout URLs**. Para obtener más información sobre cómo implementar esto, consulta: [Logout](/docs/es/authenticate/login/logout).
+Para redirigir a un usuario después del cierre de sesión, agrega un parámetro de query string `returnTo` con la URL de destino como valor: `https://{yourDomain}/v2/logout?returnTo=http://www.example.com`. Ten en cuenta que tendrás que agregar la URL `returnTo` a **Allowed cierre de sesión URLs**. Para obtener más información sobre cómo implementar esto, consulta: [cierre de sesión](/docs/es/authenticate/login/logout).
 
 El flujo de cierre de sesión (sin incluir el cierre de sesión federado) es el siguiente:
 
 <Frame>![undefined](/docs/images/cdy7uua7fh8z/5t5iXTeGMUzyKHhqOAGRmp/d51797c6513686ea758f0613d01b55d4/logout-flow.png)</Frame>
 
-1. **Iniciar el flujo de cierre de sesión**: El flujo de cierre de sesión se iniciará desde el navegador, por ejemplo, cuando el usuario haga clic en un enlace de **Logout**. Se realizará una solicitud al servidor web.
-2. **Borrar la sesión local del usuario**: Se borrará la sesión/cookie de la aplicación del usuario.
-3. **Redirigir el navegador al cierre de sesión de Auth0**: El navegador del usuario será redirigido a la URL de cierre de sesión de Auth0.
+1. **Iniciar el flujo de cierre de sesión**: El flujo de cierre de sesión se iniciará desde el navegador, por ejemplo, cuando el usuario haga clic en un enlace de **cierre de sesión**. Se hará una solicitud al servidor web.
+2. **Borrar la sesión local del usuario**: Se borrará la Sesión de la aplicación / cookie del usuario.
+3. **Redirigir el navegador al cierre de sesión de Auth0**: El navegador del usuario será redirigido a la cierre de sesión URL de Auth0.
 4. **Borrar la cookie de SSO**: Auth0 borrará la cookie de SSO del usuario.
-5. **Redirigir a la URL posterior al cierre de sesión**: Auth0 devolverá una respuesta de redirección y redirigirá el navegador del usuario al parámetro de cadena de consulta `returnTo`.
+5. **Redirigir a la URL posterior al cierre de sesión**: Auth0 devolverá una respuesta de redirección y redirigirá el navegador del usuario al parámetro de query string `returnTo`.
 
 **Consulta la implementación en** [**ASP.NET Core**](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/implementation-aspnetcore#implement-the-logout).
 
@@ -104,39 +104,39 @@ El flujo de cierre de sesión (sin incluir el cierre de sesión federado) es el 
   ## Control de acceso
 </div>
 
-La autorización se refiere al proceso de determinar qué acciones puede realizar un usuario dentro de su aplicación.
+La autorización se refiere al proceso de determinar qué acciones puede realizar un usuario dentro de tu aplicación.
 
-Puede implementar la autorización directamente en su aplicación, de forma independiente de Auth0, o usar una de las opciones disponibles para recuperar los niveles de autorización del usuario, incluirlos como claims de autorización dentro del <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">ID Token</Tooltip> y validar esos claims en su aplicación, una vez recuperado el token, para controlar el acceso.
+Puedes implementar la autorización directamente en tu aplicación, de forma independiente de Auth0, o usar una de las opciones disponibles para recuperar los niveles de autorización del usuario, incluirlos como claims de autorización dentro del <Tooltip tip="Credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">token de ID</Tooltip> y validar esos claims en tu aplicación, una vez recuperado el token, para controlar el acceso.
 
 Hay varias formas de recuperar y establecer los claims de autorización del usuario al usar Auth0:
 
-* Configurando y usando la [Authorization Extension de Auth0](/docs/es/customize/extensions/authorization-extension).
-* Usando grupos de Active Directory. Estos pueden usarse en combinación con la Authorization Extension, asignando grupos de Active Directory a los grupos que defina con la Authorization Extension.
-* Añadiendo metadatos al perfil del usuario mediante [rules](/docs/es/customize/rules).
+* Configurando y usando la [Authorization Extension](/docs/es/customize/extensions/authorization-extension).
+* Usando grupos de Active Directory. Pueden usarse en combinación con la Authorization Extension, mapeando los grupos de Active Directory a los grupos que definas con la Authorization Extension.
+* Agrega metadata al perfil del usuario mediante [reglas](/docs/es/customize/rules).
 * Llamando a servicios externos desde una rule.
 
-Dado que, en nuestro caso, la empresa ya tiene Active Directory configurado, aplicaremos el control de acceso usando la Authorization Extension en combinación con grupos de Active Directory.
+Dado que, en nuestro caso, la empresa ya tiene Active Directory configurado, aplicaremos el control de acceso mediante la Authorization Extension en combinación con grupos de Active Directory.
 
 <Card title="Authorization Extension">
-  En este momento, la extensión de autorización está diseñada principalmente para aplicar una autorización general; por ejemplo, para controlar el acceso a una aplicación en función de la pertenencia de un usuario a un grupo. No está necesariamente diseñada para controlar accesos más específicos (como si un usuario puede realizar una acción concreta dentro de la aplicación), aunque en este caso la estamos utilizando de esa manera.
+  En este momento, la Authorization Extension está diseñada principalmente para aplicar una autorización de grano grueso; por ejemplo, para controlar el acceso a una aplicación en función de la pertenencia de un usuario a un grupo. No está necesariamente diseñada para controlar un acceso de grano fino (por ejemplo, si un usuario puede realizar una acción específica dentro de la aplicación), aunque así es como la estamos utilizando en este caso.
 </Card>
 
-Todos los usuarios serán, de forma predeterminada, usuarios regulares, pero a los administradores de hojas de horas se les asignará un grupo `Admin` que les permitirá aprobar hojas de horas. La Authorization Extension permite asignar grupos a pertenencias a grupos ya existentes.
+Todos los usuarios serán, de forma implícita, usuarios normales, pero a los administradores de hojas de hora se les asignará un grupo `Admin`, lo que les permitirá aprobar hojas de hora. La Authorization Extension permite mapear grupos a pertenencias a grupos existentes.
 
-A todos los administradores de hojas de horas se les asignará el grupo `Timesheet Administrators` en Active Directory, que se asignará automáticamente al grupo `Admin` dentro de la aplicación Timesheet.
+A todos los administradores de hojas de hora se les asignará el grupo `Timesheet Administrators` en Active Directory, que se mapeará automáticamente al grupo `Admin` dentro de la aplicación Timesheet.
 
-Cuando instala la Authorization Extension, esta crea una rule en segundo plano que hace lo siguiente:
+Cuando instalas la Authorization Extension, esta crea una rule en segundo plano, que hace lo siguiente:
 
 1. Determina la pertenencia del usuario a grupos.
-2. Almacena la información de pertenencia del usuario a grupos como parte de `app_metadata`.
-3. Añade la pertenencia del usuario a grupos al token emitido.
+2. Almacena la información sobre la pertenencia del usuario a grupos como parte de `app_metadata`.
+3. Agrega la pertenencia del usuario a grupos al token de salida.
 4. Verifica que al usuario se le haya concedido acceso a la aplicación actual.
 
 <div id="install-the-authorization-extension">
-  ### Instalar la Authorization Extension
+  ### Instala la Authorization Extension
 </div>
 
-Para instalar la Authorization Extension, ve a la vista [Extensions](https://manage.auth0.com/#/extensions) de tu Auth0 Dashboard y selecciona e instala la extensión Auth0 Authorization.
+Para instalar la Authorization Extension, ve a la vista de [Extensions](https://manage.auth0.com/#/extensions) de tu Auth0 Dashboard y selecciona e instala la extensión Auth0 Authorization.
 
 Una vez instalada, verás la aplicación en la lista de Installed Extensions.
 
@@ -146,23 +146,23 @@ Una vez en el Authorization Dashboard, ve a Groups en el menú de navegación y 
 
 <Frame>![undefined](/docs/images/cdy7uua7fh8z/6zOF0mCrLV2rwdpxn9JD1e/5d6e227c4a96260856afd8f94c4212d9/create-admin-group.png)</Frame>
 
-Después de agregar el grupo, puedes hacer clic en él para ir a la sección de administración de grupos. Ve a la pestaña Group Mappings y agrega una nueva asignación de grupo para asignar todos los usuarios de Active Directory de los grupos `Timesheet Admins` al grupo `Admin` que acabas de crear.
+Después de agregar el grupo, puedes hacer clic en él para ir a la sección de administración de grupos. Ve a la pestaña Group Mappings y agrega un nuevo mapeo de grupo que asigne todos los usuarios de Active Directory de los grupos `Timesheet Admins` al grupo `Admin` que acabas de crear.
 
 <Frame>![undefined](/docs/images/cdy7uua7fh8z/RaMHHJ1G9LoO5xoz3BJnN/b01c93948b1a54b599f1eb106bd8ef26/add-group-mapping.png)</Frame>
 
-Una vez que hagas clic en **Save**, podrás ver la nueva asignación en la lista.
+Una vez que hagas clic en **Save** podrás ver el nuevo mapeo en la lista.
 
 <Frame>![undefined](/docs/images/cdy7uua7fh8z/1whRHGlsRhGhA6vcrsElsv/093716ca939c843729c3022c810ee6a7/view-group-mapping.png)</Frame>
 
-Con la asignación configurada, solo necesitas mantener la pertenencia al grupo `Timesheet Admins` en Active Directory, y esos usuarios se asignarán automáticamente al grupo `Admin` dentro de nuestra aplicación.
+Con el mapeo configurado, solo necesitas mantener la pertenencia al grupo `Timesheet Admins` en Active Directory, y esos usuarios se asignarán automáticamente al grupo `Admin` dentro de nuestra aplicación.
 
-Para obtener más información, consulta la [documentación de la Authorization Extension](/docs/es/customize/extensions/authorization-extension).
+Para más información, consulta la [documentación de la Authorization Extension](/docs/es/customize/extensions/authorization-extension).
 
 <div id="enforce-permissions-in-your-application">
-  ### Aplica permisos en tu aplicación
+  ### Haz cumplir los permisos en tu aplicación
 </div>
 
-Cuando instalaste la Authorization Extension, también se creó una rule de Auth0 que añadirá una claim de `authorization` con toda la configuración relacionada con la autorización para un usuario en particular. Los grupos de un usuario se añadirán como una subclaim de la claim `authorization` llamada `groups`, y todos los grupos a los que pertenece un usuario se añadirán a esta claim como un arreglo. Este es un ejemplo de cómo puede verse el payload JSON de un ID Token con la lista de grupos:
+Cuando instalaste la Authorization Extension, también se creó una rule de Auth0 que agregará un `claim` de `authorization` con toda la configuración relacionada con la autorización de un usuario en particular. Los grupos de un usuario se agregarán como un sub-`claim` del `claim` de `authorization` llamado `groups`, y todos los grupos a los que pertenece se agregarán como un arreglo en este `claim`. Este es un ejemplo de cómo puede verse el payload JSON de un token de ID con los grupos enumerados:
 
 ```json lines
 {
@@ -174,7 +174,7 @@ Cuando instalaste la Authorization Extension, también se creó una rule de Auth
 }
 ```
 
-Por lo tanto, en su aplicación tendrá que decodificar el ID Token que se devuelve cuando se autentica un usuario y extraer del claim `authorization` los grupos a los que pertenece. Después, puede almacenar estos grupos, junto con otra información del usuario, en la sesión del usuario y, posteriormente, consultar esta información para determinar si un usuario tiene permisos para realizar una determinada acción en función de su pertenencia a grupos.
+En su aplicación, por lo tanto, deberá decodificar el token de ID que se devuelve cuando se autentica a un usuario y extraer del claim `authorization` los grupos a los que pertenece. Luego, puede almacenar estos grupos, junto con otra información del usuario, en la sesión del usuario y, posteriormente, consultarlos para determinar si un usuario tiene permisos para realizar una determinada acción en función de su pertenencia a grupos.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
   Consulte la implementación en [ASP.NET Core](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/implementation-aspnetcore#implement-admin-permissions).

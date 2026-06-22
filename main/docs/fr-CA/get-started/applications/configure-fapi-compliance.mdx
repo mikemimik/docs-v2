@@ -1,14 +1,14 @@
 ---
 description: Découvrez comment configurer la conformité FAPI pour un tenant Auth0.
-sidebarTitle: Overview
+sidebarTitle: Aperçu
 title: Configurer la conformité FAPI
 ---
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Pour utiliser les fonctionnalités Highly Regulated Identity, vous devez avoir un Enterprise Plan avec le module complémentaire Highly Regulated Identity. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
+  Pour utiliser les fonctionnalités Highly Regulated Identity, vous devez avoir un Enterprise Plan avec le module complémentaire Highly Regulated Identity add-on. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
 </Callout>
 
-Pour aider les clients à configurer leur tenant Auth0 afin qu’il respecte l’un des profils Financial-grade API (FAPI), le modèle Application comprend une propriété `compliance_level` qui peut être définie sur l’une des trois valeurs suivantes :
+Pour aider les clients à configurer leur tenant Auth0 afin de respecter l’un des profils Financial-grade API (FAPI), le modèle Application comprend une propriété `compliance_level` qui peut être définie sur l’une des trois valeurs suivantes :
 
 * `null` ou non défini : aucun niveau de conformité n’est requis. Il s’agit de la valeur par défaut.
 * `fapi1_adv_mtls_par` : le client souhaite que cette application se comporte conformément au profil FAPI1 Advanced profile en utilisant [mTLS](/docs/fr-CA/get-started/applications/configure-mtls) et [PAR](/docs/fr-CA/get-started/applications/configure-par).
@@ -16,9 +16,9 @@ Pour aider les clients à configurer leur tenant Auth0 afin qu’il respecte l�
 * `fapi2_sp_pkj_mtls` : le client souhaite que cette application se comporte conformément au profil FAPI 2.0 Security Profile en utilisant [Private Key JWT](/docs/fr-CA/get-started/applications/configure-private-key-jwt) et [mTLS Token Sender-Constraining](/docs/fr-CA/secure/sender-constraining/mtls-sender-constraining).
 * `fapi2_sp_mtls_mtls` : le client souhaite que cette application se comporte conformément au profil FAPI 2.0 Security Profile en utilisant [mTLS Client Authentication](/docs/fr-CA/get-started/applications/configure-mtls) et [mTLS Token Sender-Constraining](/docs/fr-CA/secure/sender-constraining/mtls-sender-constraining).
 
-Pour respecter un profil FAPI, un certain nombre de modifications de configuration sont nécessaires. Définir `compliance_level` garantit qu’aucune request d’autorisation ne peut aboutir à moins que la request et la configuration soient conformes à la norme sélectionnée.
+Le respect d’un profil FAPI exige plusieurs changements de configuration. Définir `compliance_level` garantit qu’aucune requête d’autorisation ne peut aboutir à moins que la requête et la configuration soient conformes à la norme sélectionnée.
 
-Par exemple, les niveaux de conformité `fapi1_adv_pkj_par` et `fapi1_adv_mtls_par` exigent tous deux PAR. Si l’un ou l’autre de ces niveaux de conformité est sélectionné, PAR est obligatoire, quelle que soit la valeur du paramètre `require_pushed_authorization_requests`. Si vous tentez une autorisation sans utiliser PAR, vous obtenez la réponse d’erreur suivante :
+Par exemple, les niveaux de conformité `fapi1_adv_pkj_par` et `fapi1_adv_mtls_par` exigent tous deux PAR. Si l’un ou l’autre de ces niveaux de conformité est sélectionné, PAR est obligatoire, quelle que soit la valeur du paramètre `require_pushed_authorization_requests`. Toute tentative d’autorisation sans utiliser PAR entraîne la réponse d’erreur suivante :
 
 ```json lines
 {
@@ -27,38 +27,38 @@ Par exemple, les niveaux de conformité `fapi1_adv_pkj_par` et `fapi1_adv_mtls_p
 }
 ```
 
-Dans certains cas, le réglage d’un niveau de conformité modifie aussi le comportement d’Auth0. Par exemple, les niveaux de conformité `fapi1_adv_pkj_par` et `fapi1_adv_mtls_par` amènent tous deux Auth0 à inclure une claim `s_hash` dans le <Tooltip tip="ID token : jeton destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">ID token</Tooltip> renvoyé, contenant un hachage SHA256 de la valeur `state`. Cela permet aux ID tokens de servir de signature détachée.
+Dans certains cas, définir un niveau de conformité modifie aussi le comportement d’Auth0. Par exemple, les niveaux de conformité `fapi1_adv_pkj_par` et `fapi1_adv_mtls_par` font en sorte qu’Auth0 inclue un claim `s_hash` dans le <Tooltip tip="ID token : jeton destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton ID</Tooltip> retourné, contenant un hachage SHA256 de la valeur `state`. Les jetons ID peuvent ainsi servir de signature détachée.
 
-Les tableaux suivants résument les règles de validation supplémentaires ainsi que les changements au comportement d’Auth0 qu’active chaque niveau de conformité :
+Les tableaux suivants résument les règles de validation supplémentaires et les changements de comportement d’Auth0 activés par chaque niveau de conformité :
 
-| Validation                                                                                                                                                                            | `fapi1_adv_pkj_par` | `fapi1_adv_mtls_par` | `fapi2_sp_pkj_mtls` | `fapi2_sp_mtls_mtls` |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------- | ------------------- | -------------------- |
-| Empêche l’utilisation de jetons d’accès dans la chaîne de requête de l’URL lors de l’appel à `/userinfo`. Les jetons d’accès doivent plutôt être placés dans l’en-tête Authorization. | Y                   | Y                    | Y                   | Y                    |
-| Exige PAR.                                                                                                                                                                            | Y                   | Y                    | Y                   | Y                    |
-| Exige PKCE avec la méthode de challenge S256.                                                                                                                                         | Y                   | Y                    | Y                   | Y                    |
-| Empêche l’utilisation de caractères génériques dans les URI de rappel autorisés d’une application.                                                                                   | Y                   | Y                    | N                   | N                    |
-| Exige l’utilisation de JAR.                                                                                                                                                           | Y                   | Y                    | N                   | N                    |
-| Veille à ce que la charge utile JAR soit signée à l’aide de l’algorithme PS256.                                                                                                       | Y                   | Y                    | N                   | N                    |
-| Veille à ce que la charge utile JAR contienne la claim `nbf` et qu’elle ne date pas de plus de 60 minutes.                                                                            | Y                   | Y                    | N                   | N                    |
-| Veille à ce que la charge utile JAR contienne la claim `exp` et qu’elle ne dépasse pas de plus de 60 minutes la claim `nbf`.                                                          | Y                   | Y                    | N                   | N                    |
-| Veille à ce que l’application ait défini la propriété `oidc_conformant` sur true.                                                                                                     | Y                   | Y                    | Y                   | Y                    |
-| Exige l’utilisation des en-têtes `x-fapi-*`                                                                                                                                           | Y                   | Y                    | N                   | N                    |
-| Exige l’utilisation de Private Key JWT pour l’authentification de l’application.                                                                                                      | Y                   | N                    | Y                   | N                    |
-| Exige l’utilisation de mTLS pour l’authentification de l’application.                                                                                                                 | N                   | Y                    | N                   | Y                    |
-| Types de réponse autorisés.                                                                                                                                                           | code `id_token`     | code `id_token`      | code                | code                 |
-| Exige que la claim `aud` corresponde exactement à l’issuer dans l’assertion Private Key JWT.                                                                                          | N                   | N/A                  | Y                   | N/A                  |
-| Exige le paramètre `redirect_uri` dans les Pushed Authorization Requests.                                                                                                             | N                   | N                    | Y                   | Y                    |
+| Validation                                                                                                                                                             | `fapi1_adv_pkj_par` | `fapi1_adv_mtls_par` | `fapi2_sp_pkj_mtls` | `fapi2_sp_mtls_mtls` |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------- | ------------------- | -------------------- |
+| Empêche l’utilisation de jetons d’accès dans la requête URL lors de l’appel à `/userinfo`. Les jetons d’accès doivent plutôt être placés dans l’en-tête Authorization. | Y                   | Y                    | Y                   | Y                    |
+| Nécessite PAR.                                                                                                                                                         | Y                   | Y                    | Y                   | Y                    |
+| Nécessite PKCE avec la méthode de challenge S256.                                                                                                                      | Y                   | Y                    | Y                   | Y                    |
+| Empêche l’utilisation de caractères génériques dans les URI de rappel autorisées d’un client.                                                                          | Y                   | Y                    | N                   | N                    |
+| Impose l’utilisation de JAR.                                                                                                                                           | Y                   | Y                    | N                   | N                    |
+| Garantit que la payload JAR est signée à l’aide de l’algorithme PS256.                                                                                                 | Y                   | Y                    | N                   | N                    |
+| Garantit que la payload JAR contient la claim nbf et que celle-ci ne remonte pas à plus de 60 minutes.                                                                 | Y                   | Y                    | N                   | N                    |
+| Garantit que la payload JAR contient la claim exp et que celle-ci n’est pas à plus de 60 minutes après la claim nbf.                                                   | Y                   | Y                    | N                   | N                    |
+| Garantit que le client a défini la propriété `oidc_conformant` à true.                                                                                                 | Y                   | Y                    | Y                   | Y                    |
+| Nécessite l’utilisation des en-têtes `x-fapi-*`                                                                                                                        | Y                   | Y                    | N                   | N                    |
+| Nécessite l’utilisation de Private Key JWT pour l’authentification du client.                                                                                          | Y                   | N                    | Y                   | N                    |
+| Nécessite l’utilisation de mTLS pour l’authentification du client.                                                                                                     | N                   | Y                    | N                   | Y                    |
+| Types de réponse autorisés.                                                                                                                                            | code `id_token`     | code `id_token`      | code                | code                 |
+| Nécessite que la claim `aud` corresponde strictement à l’issuer dans l’assertion Private Key JWT.                                                                      | N                   | N/A                  | Y                   | N/A                  |
+| Nécessite le paramètre `redirect_uri` dans les Pushed Authorization Requests.                                                                                          | N                   | N                    | Y                   | Y                    |
 
-| Comportement mis à jour d’Auth0                                                                                                                                                                                                                                      | `fapi1_adv_pkj_par` | `fapi1_adv_mtls_par` | `fapi2_sp_pkj_mtls` | `fapi2_sp_mtls_mtls` |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------- | ------------------- | -------------------- |
-| Ajoute la claim `s_hash` aux ID tokens.                                                                                                                                                                                                                              | Y                   | Y                    | N                   | N                    |
-| Lorsque la portée `profile` est demandée, la claim `update_at` contient un horodatage Unix conforme à OIDC plutôt qu’une chaîne de caractères.                                                                                                                       | Y                   | Y                    | Y                   | Y                    |
-| Retourne uniquement des codes d’erreur conformes à OIDC. Dans certains cas, Auth0 peut retourner des codes d’erreur supplémentaires, mais l’activation de ce niveau de conformité garantit qu’Auth0 n’utilise que des codes d’erreur définis dans les normes OpenID. | Y                   | Y                    | Y                   | Y                    |
-| Retourne l’issuer comme paramètre `iss` dans les réponses de code.                                                                                                                                                                                                   | N                   | N                    | Y                   | Y                    |
-| Réduit la durée de vie maximale du code d’autorisation à 60 secondes.                                                                                                                                                                                                | N                   | N                    | Y                   | Y                    |
+| Comportement mis à jour d’Auth0                                                                                                                                                                                                                                           | `fapi1_adv_pkj_par` | `fapi1_adv_mtls_par` | `fapi2_sp_pkj_mtls` | `fapi2_sp_mtls_mtls` |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------- | ------------------- | -------------------- |
+| Ajoute la claim s&#95;hash aux ID tokens.                                                                                                                                                                                                                                 | Y                   | Y                    | N                   | N                    |
+| Lorsque la portée profile est demandée, la claim `update_at` contient un horodatage Unix conforme à OIDC plutôt qu’une chaîne de caractères.                                                                                                                              | Y                   | Y                    | Y                   | Y                    |
+| Retourne uniquement des codes d’erreur conformes à OIDC. Dans certains cas, Auth0 peut retourner des codes d’erreur supplémentaires, mais l’activation de ce niveau de conformité garantit qu’Auth0 utilise uniquement les codes d’erreur définis dans les normes OpenID. | Y                   | Y                    | Y                   | Y                    |
+| Retourne l’issuer dans le paramètre `iss` des réponses de code.                                                                                                                                                                                                           | N                   | N                    | Y                   | Y                    |
+| Réduit à 60 secondes la durée de validité maximale du code d’autorisation.                                                                                                                                                                                                | N                   | N                    | Y                   | Y                    |
 
 <div id="configure-fapi-compliance-for-a-client">
-  ## Configurer la conformité FAPI pour une application
+  ## Configurer la conformité FAPI pour un client
 </div>
 
 <Tabs>
@@ -74,10 +74,10 @@ Les tableaux suivants résument les règles de validation supplémentaires ainsi
     Les options de configuration de la conformité FAPI sont les suivantes :
 
     * **None** : Aucun niveau de conformité n’est requis. Il s’agit de la valeur par défaut.
-    * **FAPI 1 Advanced profile using Private Key JWT and PAR** : L’application souhaite que cette application se comporte conformément au profil FAPI1 Advanced profile en utilisant [Private Key JWT](/docs/fr-CA/get-started/applications/configure-private-key-jwt) et [PAR](/docs/fr-CA/get-started/applications/configure-par).
-    * **FAPI 1 Advanced profile using mTLS and PAR** : L’application souhaite que cette application se comporte conformément au profil FAPI1 Advanced profile en utilisant [mTLS](/docs/fr-CA/get-started/applications/configure-mtls) et [PAR](/docs/fr-CA/get-started/applications/configure-par).
-    * **FAPI 2.0 Security Profile with Private Key JWT and certificate binding** : L’application souhaite que cette application se comporte conformément au FAPI 2.0 Security Profile en utilisant [Private Key JWT Client Authentication](/docs/fr-CA/get-started/applications/configure-private-key-jwt) et [mTLS Token Sender-Constraining](/docs/fr-CA/secure/sender-constraining/mtls-sender-constraining).
-    * **FAPI 2.0 Security Profile with mTLS and certificate binding** : L’application souhaite que cette application se comporte conformément au FAPI 2.0 Security Profile en utilisant [mTLS Client Authentication](/docs/fr-CA/get-started/applications/configure-mtls) et [mTLS Token Sender-Constraining](/docs/fr-CA/secure/sender-constraining/mtls-sender-constraining).
+    * **FAPI 1 Advanced profile using Private Key JWT and PAR** : Le client souhaite que cette application se comporte conformément au profil avancé FAPI1 à l’aide de [Private Key JWT](/docs/fr-CA/get-started/applications/configure-private-key-jwt) et de [PAR](/docs/fr-CA/get-started/applications/configure-par).
+    * **FAPI 1 Advanced profile using mTLS and PAR** : Le client souhaite que cette application se comporte conformément au profil avancé FAPI1 à l’aide de [mTLS](/docs/fr-CA/get-started/applications/configure-mtls) et de [PAR](/docs/fr-CA/get-started/applications/configure-par).
+    * **FAPI 2.0 Security Profile with Private Key JWT and certificate binding** : Le client souhaite que cette application se comporte conformément au FAPI 2.0 Security Profile à l’aide de [Private Key JWT Client Authentication](/docs/fr-CA/get-started/applications/configure-private-key-jwt) et de [mTLS Token Sender-Constraining](/docs/fr-CA/secure/sender-constraining/mtls-sender-constraining).
+    * **FAPI 2.0 Security Profile with mTLS and certificate binding** : Le client souhaite que cette application se comporte conformément au FAPI 2.0 Security Profile à l’aide de [mTLS Client Authentication](/docs/fr-CA/get-started/applications/configure-mtls) et de [mTLS Token Sender-Constraining](/docs/fr-CA/secure/sender-constraining/mtls-sender-constraining).
   </Tab>
 
   <Tab title="Management API">
@@ -99,7 +99,7 @@ Les tableaux suivants résument les règles de validation supplémentaires ainsi
       --header 'Authorization: Bearer {YOUR_MANAGEMENT_API_ACCESS_TOKEN}'
     ```
 
-    Pour la conformité FAPI 2.0, vous pouvez configurer l’expiration des requêtes d’autorisation poussées à une valeur inférieure à 600 secondes; la valeur par défaut est de 30 secondes. Vous pouvez définir cette valeur d’expiration à l’aide de la Management API.
+    Pour la conformité FAPI 2.0, vous pouvez configurer l’expiration des requêtes d’autorisation poussées à une valeur inférieure à 600 secondes, la valeur par défaut étant de 30 secondes. Vous pouvez définir cette valeur d’expiration à l’aide de la Management API.
   </Tab>
 </Tabs>
 
@@ -107,6 +107,6 @@ Les tableaux suivants résument les règles de validation supplémentaires ainsi
   ## En savoir plus
 </div>
 
-* [Configurer l’authentification Private Key JWT](/docs/fr-CA/get-started/applications/configure-private-key-jwt)
+* [Configurer l’authentification par Private Key JWT](/docs/fr-CA/get-started/applications/configure-private-key-jwt)
 * [Configurer les requêtes d’autorisation poussées (PAR)](/docs/fr-CA/get-started/applications/configure-par)
 * [Configurer l’authentification mTLS](/docs/fr-CA/get-started/applications/configure-mtls)

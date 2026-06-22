@@ -1,17 +1,17 @@
 ---
-description: La mise en œuvre de la SPA avec Angular 2 pour le scénario d’architecture SPA + API
-title: Mise en œuvre de la SPA avec Angular 2 (SPA + API)
+description: La mise en œuvre Angular 2 de la SPA pour le scénario d’architecture SPA + API
+title: Mise en œuvre Angular 2 de la SPA (SPAs + API)
 ---
 
-Ce document fait partie du scénario d’architecture SPA + API et explique comment mettre en œuvre la SPA avec Angular 2. Veuillez consulter ce scénario pour en savoir plus sur la solution mise en œuvre.
+Ce document fait partie du scénario d’architecture SPA + API et explique comment implémenter la SPA avec Angular 2. Veuillez consulter le scénario pour en savoir plus sur la solution mise en œuvre.
 
-Le code source complet de la mise en œuvre de la SPA avec Angular 2 se trouve dans [ce dépôt GitHub](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-spa/angular).
+Le code source complet de la mise en œuvre Angular 2 de la SPA se trouve dans [ce dépôt GitHub](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-spa/angular).
 
 <div id="step-1-configuration">
   ## Étape 1. Configuration
 </div>
 
-Votre application aura besoin de certains paramètres de configuration. Avant de poursuivre la mise en œuvre, créez une interface `AuthConfig` qui contiendra diverses valeurs de configuration. Placez cette interface dans un fichier appelé `auth0-variables.ts`.
+Votre application aura besoin de certains paramètres de configuration. Avant de poursuivre la mise en œuvre, créez une interface `AuthConfig` qui contiendra diverses valeurs de configuration. Placez cette interface dans un fichier nommé `auth0-variables.ts`.
 
 ```ts lines
 interface AuthConfig {
@@ -34,10 +34,10 @@ export const AUTH_CONFIG: AuthConfig = {
 </div>
 
 <div id="create-an-authorization-service">
-  ### Créez un service d’autorisation
+  ### Créer un service d’authentification
 </div>
 
-La meilleure façon de gérer et de coordonner les tâches nécessaires à l’authentification de l’utilisateur consiste à créer un service réutilisable. Une fois le service en place, vous pourrez appeler ses méthodes partout dans votre application. Vous pouvez créer dans ce service une instance de l’objet `WebAuth` de [auth0.js](/docs/fr-CA/libraries/auth0js).
+La meilleure façon de gérer et de coordonner les tâches nécessaires à l’authentification des utilisateurs consiste à créer un service réutilisable. Une fois ce service en place, vous pourrez appeler ses méthodes partout dans votre application. Une instance de l’objet `WebAuth` de [auth0.js](/docs/fr-CA/libraries/auth0js) peut être créée dans ce service.
 
 ```jsx lines expandable
 import { Injectable } from '@angular/core';
@@ -82,12 +82,12 @@ export class AuthService {
   }
 
   private setSession(authResult): void {
-    // Définir l'heure d'expiration du jeton d’accès
+    // Définir l'heure d'expiration du jeton d'accès
     const expiresAt = JSON.stringify((authResult.expiresIn * 1000) + new Date().getTime());
 
-    // Si une valeur est présente dans le paramètre scope de authResult,
-    // l'utiliser pour définir les scopes dans la session de l'utilisateur. Sinon,
-    // utiliser les scopes tels que demandés. Si aucun scope n'a été demandé,
+    // Si le paramètre scope de authResult contient une valeur,
+    // l'utiliser pour définir les scopes de la session de l'utilisateur. Sinon,
+    // utiliser les scopes demandés. Si aucun scope n'a été demandé,
     // ne rien définir
     const scopes = authResult.scope || this.requestedScopes || '';
 
@@ -108,8 +108,8 @@ export class AuthService {
   }
 
   public isAuthenticated(): boolean {
-    // Vérifier si l'heure actuelle dépasse
-    // l'heure d'expiration du jeton d’accès
+    // Vérifier si l'heure actuelle est postérieure à
+    // l'heure d'expiration du jeton d'accès
     const expiresAt = JSON.parse(localStorage.getItem('expires_at'));
     return new Date().getTime() < expiresAt;
   }
@@ -123,19 +123,19 @@ export class AuthService {
 
 Le service comprend plusieurs méthodes pour gérer l’authentification.
 
-* **login**: appelle `authorize` dans auth0.js, ce qui déclenche <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur le serveur d’autorisation d’Auth0, pour vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip>
-* **handleAuthentication**: recherche un résultat d’authentification dans le hachage de l’URL et le traite avec la méthode `parseHash` d’auth0.js
-* **setSession**: définit l’<Tooltip tip="jeton d’accès : identifiant d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip>, l’<Tooltip tip="jeton d’accès : identifiant d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+Token">ID Token</Tooltip> de l’utilisateur, ainsi que le moment où le jeton d’accès expirera
+* **login**: appelle `authorize` d’auth0.js, qui déclenche <Tooltip tip="Universal Login : votre application est redirigée vers Universal Login, hébergé sur le serveur d’autorisation d’Auth0, afin de vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip>
+* **handleAuthentication**: recherche un résultat d’authentification dans le hachage de l’URL et le traite à l’aide de la méthode `parseHash` d’auth0.js
+* **setSession**: définit le <Tooltip tip="Jeton d’accès : information d’identification d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">jeton d’accès</Tooltip>, le <Tooltip tip="Jeton d’accès : information d’identification d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+Token">jeton d’identité</Tooltip> de l’utilisateur, ainsi que l’heure d’expiration du jeton d’accès
 * **logout**: supprime les jetons de l’utilisateur du stockage du navigateur
-  isAuthenticated: vérifie si l’heure d’expiration du jeton d’accès est dépassée
+  isAuthenticated: vérifie si le jeton d’accès a expiré
 
 <div id="process-the-authentication-result">
   ### Traiter le résultat de l’authentification
 </div>
 
-Lorsqu’un utilisateur s’authentifie au moyen de Universal Login, puis est redirigé vers votre application, ses renseignements d’authentification se trouvent dans un fragment de hachage d’URL. La méthode `handleAuthentication` d’`AuthService` sert à traiter ce hachage.
+Lorsqu’un utilisateur s’authentifie à l’aide de Universal Login, puis est redirigé vers votre application, ses données d’authentification se trouvent dans un fragment de hachage de l’URL. La méthode `handleAuthentication` dans `AuthService` est chargée de traiter ce hachage.
 
-Appelez `handleAuthentication` dans le composant racine de votre application afin que le fragment de hachage d’authentification puisse être traité au chargement initial de l’application, après la redirection de l’utilisateur.
+Appelez `handleAuthentication` dans le composant racine de votre application afin que le fragment de hachage d’authentification puisse être traité au premier chargement de l’application après la redirection de l’utilisateur.
 
 ```javascript lines
 // src/app/app.component.ts
@@ -158,15 +158,15 @@ export class AppComponent {
 ```
 
 <div id="add-the-callback-component">
-  ### Ajouter le composant de rappel
+  ### Ajouter le composant Callback
 </div>
 
-Utiliser Universal Login signifie que les utilisateurs quittent votre application pour être redirigés vers une page hébergée par Auth0. Une fois l’authentification réussie, ils sont renvoyés vers votre application, où une session côté client est établie pour eux.
+L’utilisation d’Universal Login signifie que les utilisateurs sont redirigés hors de votre application vers une page hébergée par Auth0. Une fois l’authentification réussie, ils sont renvoyés vers votre application, où une session côté client est établie.
 
-Vous pouvez choisir de renvoyer les utilisateurs vers n’importe quelle URL de votre application; toutefois, il est recommandé de créer une route de rappel dédiée qui servira de point central vers lequel l’utilisateur sera redirigé après une authentification réussie. Le fait d’avoir une seule route de rappel présente deux principaux avantages :
+Vous pouvez choisir de faire revenir les utilisateurs à n’importe quelle URL de votre application. Toutefois, il est recommandé de créer une route de rappel dédiée qui servira de point central vers lequel l’utilisateur sera renvoyé après une authentification réussie. Le fait d’avoir une seule route de rappel présente deux avantages principaux :
 
-* Cela évite d’avoir à autoriser plusieurs URL de rappel (parfois inconnues)
-* Cela permet d’afficher un indicateur de chargement pendant que votre application établit la session côté client de l’utilisateur
+* Cela évite d’avoir à autoriser plusieurs URL de rappel, parfois inconnues
+* Cela fournit un endroit où afficher un indicateur de chargement pendant que votre application établit la session côté client de l’utilisateur
 
 Créez un composant nommé `CallbackComponent` et ajoutez-y un indicateur de chargement.
 
@@ -178,22 +178,22 @@ Créez un composant nommé `CallbackComponent` et ajoutez-y un indicateur de c
 </div>
 ```
 
-Cet exemple suppose qu’un indicateur de chargement est disponible dans un répertoire `assets`. Consultez l’exemple téléchargeable pour voir comment cela fonctionne.
+Cet exemple suppose qu’un indicateur de chargement est disponible dans un répertoire `assets`. Consultez l’exemple à télécharger pour voir comment cela fonctionne.
 
-Après l’authentification, les utilisateurs seront brièvement dirigés vers la route `/callback`, où un indicateur de chargement s’affichera. Pendant ce temps, leur session côté client sera établie, puis ils seront redirigés vers la route `/home`.
+Après l’authentification, les utilisateurs seront brièvement dirigés vers la route `/callback`, où un indicateur de chargement s’affichera. Pendant ce temps, leur session côté client sera établie, puis ils seront redirigés vers la route `/home`.
 
 <div id="step-3-get-the-user-profile">
-  ## Step 3. Obtenir le profil de l’utilisateur
+  ## Étape 3. Obtenir le profil de l’utilisateur
 </div>
 
-<Card title="Extraire des informations du jeton">
-  Cette section explique comment récupérer les informations de l’utilisateur à l’aide du jeton d’accès et du [point de terminaison /userinfo](https://auth0.com/docs/api/authentication#get-user-info). Vous pouvez aussi simplement décoder le ID Token [à l’aide d’une bibliothèque](https://jwt.io/#libraries-io) (assurez-vous d’abord de le valider). Le résultat sera le même. Si vous avez besoin de renseignements supplémentaires sur l’utilisateur, envisagez d’utiliser [notre Management API](https://auth0.com/docs/api/management/v2#!/Users/get_users_by_id).
+<Card title="Extraire des renseignements du jeton">
+  Cette section montre comment récupérer les renseignements de l’utilisateur à l’aide du jeton d’accès et du [point de terminaison `/userinfo`](https://auth0.com/docs/api/authentication#get-user-info). Vous pouvez aussi simplement décoder le jeton d’identité [à l’aide d’une bibliothèque](https://jwt.io/#libraries-io) (assurez-vous d’abord de le valider). Le résultat sera le même. Si vous avez besoin de renseignements supplémentaires sur l’utilisateur, vous pouvez utiliser [notre Management API](https://auth0.com/docs/api/management/v2#!/Users/get_users_by_id).
 </Card>
 
-Pour obtenir le profil de l’utilisateur, mettez à jour la classe `AuthService` existante. Ajoutez une fonction `getProfile` qui extraira le jeton d’accès de l’utilisateur du stockage local, puis le transmettra à la fonction `userInfo` pour récupérer les informations de l’utilisateur.
+Pour obtenir le profil de l’utilisateur, mettez à jour la classe `AuthService` existante. Ajoutez une fonction `getProfile` qui extraira le jeton d’accès de l’utilisateur du stockage local, puis l’utilisera pour appeler la fonction `userInfo` afin de récupérer les renseignements de l’utilisateur.
 
 ```javascript lines
-// Le code existant de la classe AuthService est omis dans cet exemple de code par souci de brièveté
+// Le code existant de la classe AuthService est omis dans cet exemple de code par souci de concision
 @Injectable()
 export class AuthService {
   public getProfile(cb): void {
@@ -213,9 +213,9 @@ export class AuthService {
 }
 ```
 
-Vous pouvez maintenant appeler simplement cette fonction depuis n’importe quel service dans lequel vous souhaitez récupérer et afficher des renseignements sur l’utilisateur.
+Vous pouvez maintenant simplement appeler cette fonction depuis n’importe quel service où vous souhaitez récupérer et afficher des renseignements sur l’utilisateur.
 
-Par exemple, vous pouvez choisir de créer un nouveau composant pour afficher les renseignements du profil de l’utilisateur :
+Par exemple, vous pouvez choisir de créer un nouveau composant pour afficher les renseignements sur le profil de l’utilisateur :
 
 ```jsx lines
 import { Component, OnInit } from '@angular/core';
@@ -244,7 +244,7 @@ export class ProfileComponent implements OnInit {
 }
 ```
 
-Le modèle de ce composant est le suivant :
+Le gabarit de ce composant se présente comme suit :
 
 ```jsx lines
 <div class="panel panel-default profile-area">
@@ -263,23 +263,23 @@ Le modèle de ce composant est le suivant :
 ```
 
 <div id="step-4-display-ui-elements-conditionally-based-on-scope">
-  ## Étape 4. Afficher les éléments de l’interface utilisateur de manière conditionnelle en fonction des scopes
+  ## Étape 4. Afficher les éléments de l’UI de façon conditionnelle selon les scope
 </div>
 
-Au cours du processus d’autorisation, nous avons déjà enregistré dans le stockage local les scopes réellement accordés à l’utilisateur. Si le `scope` renvoyé dans `authResult` n’est pas vide, cela signifie que l’utilisateur s’est vu attribuer un ensemble de scopes différent de celui qui avait été demandé au départ; nous devons donc utiliser `authResult.scope` pour déterminer les scopes qui lui ont été accordés.
+Pendant le processus d’autorisation, nous avons déjà stocké dans le stockage local les scope réellement accordés à l’utilisateur. Si le `scope` renvoyé dans `authResult` n’est pas vide, cela signifie qu’un ensemble de scope différent de celui demandé au départ a été accordé à l’utilisateur; nous devons donc utiliser `authResult.scope` pour déterminer les scope qui lui ont été accordés.
 
-Si le `scope` renvoyé dans `authResult` est vide, cela signifie que tous les scopes demandés ont été accordés à l’utilisateur, et que nous pouvons donc utiliser les scopes demandés pour déterminer les scopes qui lui ont été accordés.
+Si le `scope` renvoyé dans `authResult` est vide, cela signifie que l’utilisateur s’est vu accorder toutes les scope demandées, et nous pouvons donc utiliser les scope demandés pour déterminer les scope qui lui ont été accordés.
 
-Voici le code que nous avons écrit plus tôt pour la fonction `setSession`, qui effectue cette vérification :
+Voici le code que nous avons écrit plus tôt pour la fonction `setSession`, qui effectue cette vérification :
 
 ```jsx lines
 private setSession(authResult): void {
-  // Définir l'heure d'expiration de l'access token
+  // Définir l'heure d'expiration du jeton d’accès
   const expiresAt = JSON.stringify((authResult.expiresIn * 1000) + new Date().getTime());
 
-  // Si une valeur est présente dans le paramètre `scope` de authResult,
-  // l'utiliser pour définir les scopes dans la session de l'utilisateur. Sinon,
-  // utiliser les scopes tels que demandés. Si aucun scope n'a été demandé,
+  // S'il y a une valeur dans le paramètre `scope` de authResult,
+  // l'utiliser pour définir les scope dans la session de l'utilisateur. Sinon,
+  // utiliser les scope tels que demandés. Si aucun scope n'a été demandé,
   // laisser vide
   const scopes = authResult.scope || this.requestedScopes || '';
 
@@ -291,7 +291,7 @@ private setSession(authResult): void {
 }
 ```
 
-Ensuite, nous devons ajouter à la classe `AuthService` une fonction que nous pourrons appeler pour vérifier si un utilisateur s’est vu accorder un scope précis :
+Ensuite, nous devons ajouter à la classe `AuthService` une fonction que nous pourrons appeler pour déterminer si un scope précis a été accordé à un utilisateur :
 
 ```jsx lines
 @Injectable()
@@ -305,7 +305,7 @@ export class AuthService {
 }
 ```
 
-Vous pouvez appeler cette méthode pour déterminer si un élément précis de l’UI doit être affiché. Par exemple, nous voulons afficher le lien **Approuver les feuilles de temps** seulement si l’utilisateur possède le `scope` `approve:timesheets`. Notez, dans le code ci-dessous, que nous avons ajouté un appel à la fonction `userHasScopes` pour déterminer si ce lien doit être affiché ou non.
+Vous pouvez appeler cette méthode pour déterminer si un élément précis de l’UI doit être affiché. Par exemple, nous voulons afficher le lien **Approuver les feuilles de temps** seulement si l’utilisateur a le scope `approve:timesheets`. Notez que, dans le code ci-dessous, nous avons ajouté un appel à la fonction `userHasScopes` pour déterminer si ce lien doit être affiché.
 
 ```xml lines
 <nav class="navbar navbar-default">
@@ -337,7 +337,7 @@ Vous pouvez appeler cette méthode pour déterminer si un élément précis de l
   ### Protéger une route
 </div>
 
-Nous devrions aussi protéger une route pour empêcher qu’on puisse y accéder si un utilisateur ne s’est pas vu accorder les scopes appropriés. Pour ce faire, nous pouvons ajouter une nouvelle classe de service `ScopeGuardService` :
+Nous devrions aussi protéger une route pour empêcher qu’on puisse y accéder si un utilisateur ne s’est pas vu accorder les scope appropriés. Pour ce faire, nous pouvons ajouter une nouvelle classe de service `ScopeGuardService` :
 
 ```jsx lines
 import { Injectable } from '@angular/core';
@@ -363,7 +363,7 @@ export class ScopeGuardService implements CanActivate {
 }
 ```
 
-Servez-vous-en ensuite lors de la configuration des routes pour déterminer si une route peut être activée. Notez l’utilisation du nouveau `ScopeGuardService` dans la définition de la route `approval` ci-dessous :
+Et utilisez-le ensuite au moment de configurer les routes afin de déterminer si une route peut être activée. Remarquez l’utilisation du nouveau `ScopeGuardService` dans la définition de la route `approval` ci-dessous :
 
 ```javascript lines
 // app.routes.ts
@@ -393,7 +393,7 @@ export const ROUTES: Routes = [
   ## Étape 5. Appeler l’API
 </div>
 
-Le module [angular2-jwt](https://github.com/auth0/angular2-jwt) peut servir à joindre automatiquement des <Tooltip tip="JSON Web Token (JWT) : format standard de ID Token (et souvent de Access Token) utilisé pour représenter de façon sécurisée des claims entre deux parties." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JSON+Web+Tokens">JSON Web Tokens</Tooltip> aux requêtes envoyées à votre API. Pour ce faire, il fournit une classe `AuthHttp` qui agit comme un encapsulateur de la classe `Http` d’Angular.
+Le module [angular2-jwt](https://github.com/auth0/angular2-jwt) peut être utilisé pour ajouter automatiquement des <Tooltip tip="JSON Web Token (JWT) : format standard d’ID Token (et souvent d’Access Token) utilisé pour représenter des claims de façon sécurisée entre deux parties." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JSON+Web+Tokens">JSON Web Tokens</Tooltip> aux requêtes envoyées à votre API. Pour ce faire, il fournit une classe `AuthHttp` qui agit comme une surcouche à la classe `Http` d’Angular.
 
 Installez `angular2-jwt` :
 
@@ -405,7 +405,7 @@ npm install --save angular2-jwt
 yarn add angular2-jwt
 ```
 
-Créez une fonction de fabrique avec certaines valeurs de configuration pour `angular2-jwt` et ajoutez-la au tableau `providers` du `@NgModule` de votre application. La fonction de fabrique doit inclure une fonction `tokenGetter` qui récupère le `access_token` à partir du stockage local.
+Créez une fonction de fabrique avec quelques valeurs de configuration pour `angular2-jwt` et ajoutez-la au tableau `providers` de l’`@NgModule` de votre application. La fonction de fabrique doit inclure une fonction `tokenGetter` qui récupère le `access_token` à partir du stockage local.
 
 ```jsx lines
 import { Http, RequestOptions } from '@angular/http';
@@ -432,7 +432,7 @@ export function authHttpServiceFactory(http: Http, options: RequestOptions) {
 })
 ```
 
-Après avoir configuré `angular2-jwt`, vous pouvez utiliser la classe `AuthHttp` pour effectuer des appels sécurisés à votre API depuis n’importe où dans l’application. Pour ce faire, injectez `AuthHttp` dans tout composant ou service qui en a besoin, puis utilisez-la comme vous le feriez avec la classe `Http` standard d’Angular.
+Une fois `angular2-jwt` configuré, vous pouvez utiliser la classe `AuthHttp` pour effectuer des appels sécurisés à votre API depuis n’importe où dans l’application. Pour ce faire, injectez `AuthHttp` dans tout composant ou service qui en a besoin, puis utilisez-la comme vous le feriez avec la classe `Http` standard d’Angular.
 
 ```jsx lines
 import { Injectable } from '@angular/core';
@@ -458,10 +458,10 @@ export class TimesheetsService {
 ```
 
 <div id="step-6-renew-the-access-token">
-  ## Étape 6. Renouveler le jeton d’accès
+  ## Étape 6. Renouveler le jeton d&#39;accès
 </div>
 
-Pour renouveler le jeton d’accès de l’utilisateur, il faut mettre à jour la SPA Angular. Ajoutez à `AuthService` une méthode qui appelle la méthode `checkSession` de auth0.js. Si le renouvellement réussit, utilisez la méthode existante `setSession` pour enregistrer les nouveaux jetons dans le stockage local.
+Pour renouveler le jeton d&#39;accès de l&#39;utilisateur, vous devez mettre à jour la SPA Angular. Ajoutez une méthode à `AuthService` qui appelle la méthode `checkSession` d&#39;auth0.js. Si le renouvellement réussit, utilisez la méthode `setSession` existante pour enregistrer les nouveaux jetons dans le stockage local.
 
 ```ts lines
 public renewToken() {
@@ -475,7 +475,7 @@ public renewToken() {
 }
 ```
 
-Dans la classe `AuthService`, ajoutez une méthode appelée `scheduleRenewal` pour définir le moment où l’authentification doit être renouvelée en arrière-plan. Dans l’exemple ci-dessous, cette opération est configurée pour se produire 30 secondes avant l’expiration réelle du token. Ajoutez également une méthode appelée `unscheduleRenewal` qui se désabonnera de l’Observable.
+Dans la classe `AuthService`, ajoutez une méthode appelée `scheduleRenewal` pour définir le moment où l’authentification doit être renouvelée en arrière-plan. Dans l’exemple ci-dessous, elle est configurée pour s’exécuter 30 secondes avant l’expiration réelle du jeton. Ajoutez également une méthode appelée `unscheduleRenewal` qui annulera l’abonnement à l’Observable.
 
 ```ts lines expandable
 public scheduleRenewal() {
@@ -489,14 +489,14 @@ public scheduleRenewal() {
       const now = Date.now();
 
       // Utiliser le délai dans un minuteur pour
-      // actualiser au bon moment
+      // exécuter l'actualisation au bon moment
       var refreshAt = expiresAt - (1000 * 30); // Actualiser 30 secondes avant l'expiration
       return Observable.timer(Math.max(1, refreshAt - now));
     });
 
-  // Once the delay time from above is
-  // reached, get a new JWT and schedule
-  // additional refreshes
+  // Une fois le délai ci-dessus écoulé,
+  // obtenir un nouveau JWT et planifier
+  // des actualisations supplémentaires
   this.refreshSubscription = source.subscribe(() => {
     this.renewToken();
   });
@@ -508,10 +508,10 @@ public unscheduleRenewal() {
 }
 ```
 
-Enfin, vous devez lancer le renouvellement planifié. Pour ce faire, appelez `scheduleRenewal` dans votre `AppComponent` lors du chargement de la page. Cela se produira après chaque flux d’authentification, que l’utilisateur ouvre explicitement une session ou qu’une authentification silencieuse ait lieu.
+Enfin, vous devez lancer le renouvellement planifié. Pour ce faire, appelez `scheduleRenewal` dans votre `AppComponent` afin qu’il s’exécute au chargement de la page. Cela se produira après chaque processus d’authentification, que l’utilisateur ouvre explicitement une session ou qu’une authentification silencieuse ait lieu.
 
 <Info>
   ### Rotation des jetons d’actualisation
 
-  Les récentes avancées en matière de contrôles de confidentialité dans les navigateurs nuisent à l’expérience utilisateur en bloquant l’accès aux cookies tiers. Auth0 recommande d’utiliser la [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation), qui offre une méthode sécurisée pour utiliser des jetons d’actualisation dans les SPA tout en donnant aux utilisateurs finaux un accès fluide aux ressources, sans les perturbations de l’UX causées par des technologies de confidentialité des navigateurs comme ITP.
+  Les récentes avancées en matière de contrôles de confidentialité dans les navigateurs nuisent à l’expérience utilisateur en empêchant l’accès aux cookies tiers. Auth0 recommande d’utiliser la [Rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation), qui offre une méthode sécurisée pour utiliser des jetons d’actualisation dans les SPA tout en assurant aux utilisateurs finaux un accès fluide aux ressources, sans les perturbations de l’UX causées par les technologies de protection de la vie privée des navigateurs, comme ITP.
 </Info>

@@ -1,5 +1,5 @@
 ---
-description: Describe cómo migrar del uso de tokens de identidad al de tokens de acceso al vincular cuentas de usuario.
+description: Describe cómo migrar del uso de tokens de ID a tokens de acceso al vincular cuentas de usuario.
 title: Migrar a tokens de acceso para la vinculación de cuentas
 ---
 
@@ -56,7 +56,7 @@ export const codeExample4 = `{
   }
 }`;
 
-export const codeExample5 = `// obtener un token de identidad
+export const codeExample5 = `// obtener un token de ID
 var webAuth = new auth0.WebAuth({
   clientID: '{yourClientId}',
   domain: '{yourDomain}',
@@ -118,7 +118,7 @@ export const codeExample20 = `DELETE https://{yourDomain}/api/v2/users/{primaryA
   Authorization: 'Bearer {yourMgmtApiAccessToken}'
 `;
 
-Anteriormente, podías usar <Tooltip tip="token de identidad: credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+tokens">tokens de identidad</Tooltip> para vincular y desvincular cuentas de usuario en ciertos casos de uso. Auth0 está marcando esta funcionalidad como obsoleta. A partir de ahora, tendrás que usar <Tooltip tip="token de identidad: credencial destinada al propio cliente, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> en todos los casos.
+Antes podías usar <Tooltip tip="token de identidad: credencial destinada al cliente mismo, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+tokens">tokens de identidad</Tooltip> para vincular y desvincular cuentas de usuario en algunos casos de uso. Auth0 está declarando obsoleta esta funcionalidad. Ahora tendrás que usar <Tooltip tip="token de identidad: credencial destinada al cliente mismo, en lugar de para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> en todos los casos.
 
 <Warning>
   Esta obsolescencia responde a una posible vulnerabilidad de seguridad. Auth0 recomienda encarecidamente que actualices tu código lo antes posible.
@@ -131,12 +131,12 @@ Anteriormente, podías usar <Tooltip tip="token de identidad: credencial destina
 Los cambios en la vinculación de cuentas son los siguientes:
 
 * Ya no puedes usar un token de identidad en el encabezado `Authorization`; en su lugar, debes usar un token de acceso.
-* Si usas un token de acceso en el encabezado `Authorization` con `update:users` como permiso concedido, puedes enviar en el cuerpo de la request el `user_id` o el token de ID de la cuenta secundaria.
-* Si usas un token de acceso en el encabezado `Authorization` con `update:current_user_metadata` como permiso concedido, solo puedes enviar el token de ID de la cuenta secundaria en el cuerpo de la request.
-* Si envías el token de ID de la cuenta secundaria en el cuerpo de la request (los casos de uso descritos en los dos puntos anteriores), debe cumplirse lo siguiente:
+* Si usas un token de acceso en el encabezado `Authorization` con `update:users` como permiso concedido, puedes enviar en el cuerpo de la solicitud el `user_id` o el token de identidad de la cuenta secundaria.
+* Si usas un token de acceso en el encabezado `Authorization` con `update:current_user_metadata` como permiso concedido, solo puedes enviar el token de identidad de la cuenta secundaria en el cuerpo de la solicitud.
+* Si envías el token de identidad de la cuenta secundaria en el cuerpo de la solicitud (los casos de uso descritos en los dos puntos anteriores), debe cumplirse lo siguiente:
 
-  * El token de ID debe estar firmado con `RS256` (puedes establecer este valor en **Dashboard &gt; Clients &gt; Client Settings &gt; Advanced Settings &gt; OAuth**.
-  * El claim `aud` del token de ID debe identificar al cliente y tener el mismo valor que el claim `azp` del token de acceso.
+  * El token de identidad debe estar firmado con `RS256` (puedes establecer este valor en **Dashboard &gt; Clients &gt; Client Settings &gt; Advanced Settings &gt; OAuth**.
+  * El claim `aud` del token de identidad debe identificar al cliente y tener el mismo valor que el claim `azp` del token de acceso.
 * Para desvincular cuentas, ya no puedes usar un token de identidad en el encabezado `Authorization`. Debes usar un token de acceso en su lugar.
 
 Hay varias formas de vincular y desvincular cuentas. En la siguiente lista puedes ver los casos de uso y cómo les afectan estos cambios.
@@ -146,10 +146,10 @@ Hay varias formas de vincular y desvincular cuentas. En la siguiente lista puede
 | Usa el endpoint `POST /api/v2/users/{id}/identities` de la Management API y envía el token de identidad de la cuenta principal en el encabezado `Authorization`.                                                                          | Afectado          |
 | Usa el endpoint `POST /api/v2/users/{id}/identities` de la Management API y envía un token de acceso (con scope `update:users`) en el encabezado `authorization`, y el `user_id` de la cuenta secundaria en el payload.                   | No afectado       |
 | Usa el endpoint `POST /api/v2/users/{id}/identities` de la Management API y envía un token de acceso (con scope `update:current_user_identities`) en el encabezado `Authorization`, y el `user_id` de la cuenta secundaria en el payload. | Afectado          |
-| Usa el endpoint `POST /api/v2/users/{id}/identities` de la Management API y envía un token de acceso en el encabezado `Authorization` y el token de ID de la cuenta secundaria en el payload.                                             | Nuevo caso de uso |
-| Usa la biblioteca auth0.js y el token de identidad de la cuenta principal para crear una instancia de `auth0.Management`.                                                                                                                 | Afectado          |
-| Usa la biblioteca auth0.js y un token de acceso (con scope `update:users`) para crear una instancia de `auth0.Management`.                                                                                                                | No afectado       |
-| Usa la biblioteca auth0.js y un token de acceso (con scope `update:current_user_identities`) para crear una instancia de `auth0.Management`.                                                                                              | Afectado          |
+| Usa el endpoint `POST /api/v2/users/{id}/identities` de la Management API y envía un token de acceso en el encabezado `Authorization` y el token de identidad de la cuenta secundaria en el payload.                                             | Nuevo caso de uso |
+| Usa la biblioteca auth0.js y el token de identidad de la cuenta principal para instanciar `auth0.Management`.                                                                                                                             | Afectado          |
+| Usa la biblioteca auth0.js y un token de acceso (con scope `update:users`) para instanciar `auth0.Management`.                                                                                                                            | No afectado       |
+| Usa la biblioteca auth0.js y un token de acceso (con scope `update:current_user_identities`) para instanciar `auth0.Management`.                                                                                                          | Afectado          |
 | Usa el endpoint `DELETE	/api/v2/users/{id}/identities/{provider}/{user_id}` de la Management API y envía el token de identidad de la cuenta principal en el encabezado `Authorization`.                                                   | Afectado          |
 | Usa el endpoint `DELETE	/api/v2/users/{id}/identities/{provider}/{user_id}` de la Management API y envía un token de acceso en el encabezado `Authorization`.                                                                             | No afectado       |
 
@@ -157,28 +157,28 @@ Hay varias formas de vincular y desvincular cuentas. En la siguiente lista puede
   ## Actions
 </div>
 
-Revise todas las llamadas a la [endpoint de Identities](https://auth0.com/docs/api/management/v2/#!/Users/post_identities) para la vinculación de cuentas y actualice aquellas que usan el flujo vulnerable descrito anteriormente. Puede actualizar sus llamadas de cualquiera de las siguientes maneras:
+Revisa todas tus llamadas al [endpoint de Identities](https://auth0.com/docs/api/management/v2/#!/Users/post_identities) para el account linking y actualiza las que utilicen el flujo vulnerable descrito anteriormente. Puedes actualizar tus llamadas de una de estas dos maneras:
 
-* **Escenarios de vinculación iniciados por el usuario / del lado del cliente:** En los escenarios de vinculación del lado del cliente, haga la llamada a la endpoint de Identities con un token de acceso que tenga el scope `update:current_user_identities` y proporcione el token de identidad de la cuenta secundaria en el payload (`link_with`). Este token de identidad debe obtenerse mediante un flujo compatible con <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth">OAuth</Tooltip>/OIDC.
-* **Escenarios de vinculación del lado del servidor**: Para los escenarios de vinculación del lado del servidor, haga la llamada a la endpoint de Identities con un token de acceso que tenga el scope `update:users` y proporcione el `user_id` de la cuenta secundaria en el payload.
+* **Escenarios de vinculación iniciados por el usuario / del lado del cliente:** En los escenarios de vinculación del lado del cliente, haz la llamada al endpoint de Identities con un token de acceso que tenga el scope `update:current_user_identities` y proporciona el token de identidad de la cuenta secundaria en el payload (`link_with`). Este token de identidad debe obtenerse mediante un flujo conforme con <Tooltip tip="OAuth 2.0: Framework de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth">OAuth</Tooltip>/OIDC.
+* **Escenarios de vinculación del lado del servidor**: Para los escenarios de vinculación del lado del servidor, haz la llamada al endpoint de Identities con un token de acceso que tenga el scope `update:users` y proporciona el `user_id` de la cuenta secundaria en el payload.
 
-Consulte [Vincular cuentas de usuario](/docs/es/manage-users/user-accounts/user-account-linking/link-user-accounts) para obtener más detalles.
+Consulta [Link User Accounts](/docs/es/manage-users/user-accounts/user-account-linking/link-user-accounts) para obtener más información.
 
 <div id="link-user-accounts">
   ### Vincular cuentas de usuario
 </div>
 
-Para vincular cuentas de usuario, puedes llamar al [endpoint Link a User Account](https://auth0.com/docs/api/management/v2#!/Users/post_identities) de la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> o usar la [biblioteca auth0.js](/docs/es/libraries/auth0js).
+Para vincular cuentas de usuario, puedes llamar al [Link a User Account endpoint](https://auth0.com/docs/api/management/v2#!/Users/post_identities) de la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> o utilizar la [biblioteca Auth0.js](/docs/es/libraries/auth0js).
 
 <div id="link-current-user-accounts-with-the-management-api">
   #### Vincular las cuentas del usuario actual con la Management API
 </div>
 
-Un caso de uso común es permitir que el usuario que ha iniciado sesión vincule sus cuentas desde tu aplicación.
+Un caso de uso común es permitir que el usuario que ha iniciado sesión vincule sus cuentas mediante tu aplicación.
 
 Antes de la obsolescencia, podías usar el token de identidad o el token de acceso del usuario principal (que contenía el `scope` `update:current_user_identities`) para autenticarte con la Management API y usar el [endpoint Link a User Account](https://auth0.com/docs/api/management/v2#!/Users/post_identities).
 
-Ahora debes obtener un token de acceso (que contenga el `scope` `update:current_user_identities`) y usarlo para autenticarte con la API y usar el endpoint Link a User Account. El payload debe ser el token de identidad del usuario secundario.
+Ahora debes obtener un token de acceso (que contenga el `scope` `update:current_user_identities`) y usarlo para autenticarte con la API y utilizar el endpoint Link a User Account. El payload debe ser el token de identidad del usuario secundario.
 
 1. Obtén un token de acceso con el `scope` `update:current_user_identities`, como se muestra en el siguiente ejemplo. El ejemplo usa el [flujo implícito](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post); sin embargo, puedes [obtener tokens de acceso](/docs/es/secure/tokens/access-tokens/get-access-tokens) para cualquier tipo de aplicación.
 
@@ -186,47 +186,47 @@ Ahora debes obtener un token de acceso (que contenga el `scope` `update:current_
 
    <AuthCodeBlock children={codeExample1} language="http" />
 
-   Con el nuevo método, usando un token de acceso, tu código se verá similar a esto:
+   Con el nuevo método, usando un token de acceso, tu código se vería similar a esto:
 
    <AuthCodeBlock children={codeExample2} language="http" />
 
 3. Para obtener un token de acceso que pueda acceder a la Management API:
 
-   1. Establece el `audience` en `https://{yourDomain}/api/v2/`.
+   1. Establece la `audience` en `https://{yourDomain}/api/v2/`.
    2. Solicita el `scope` `${scope}`.
-   3. Establece el `response_type` en `id_token token` para que Auth0 envíe tanto un token de identidad como un token de acceso.
+   3. Establece `response_type` en `id_token token` para que Auth0 envíe tanto un token de identidad como un token de acceso.
       Si decodificamos el token de acceso y revisamos su contenido, podemos ver lo siguiente:
 
       <AuthCodeBlock children={codeExample3} language="json" />
 
-      Observa que `aud` está establecido en el URI de la API de tu tenant, `scope` en `${scope}` y `sub` en el ID del usuario que ha iniciado sesión.
+      Ten en cuenta que `aud` está configurado con el URI de la API de tu tenant, `scope` con `${scope}` y `sub` con el ID de usuario del usuario que ha iniciado sesión.
 
 4. Debe cumplirse lo siguiente:
 
    1. El token de identidad de la cuenta secundaria debe estar firmado con `RS256.`
    2. El claim `aud` del token de identidad de la cuenta secundaria debe identificar al cliente y tener el mismo valor que el claim `azp` del token de acceso usado para realizar la solicitud.
 
-5. Una vez que tengas el token de acceso, puedes usarlo para vincular cuentas de usuario. Esta parte sigue siendo la misma; no cambia nada más en la solicitud, excepto el valor que usas como token `Bearer`. La respuesta también sigue siendo la misma.
+5. Una vez que tengas el token de acceso, podrás usarlo para vincular cuentas de usuario. Esta parte sigue siendo la misma; no cambia nada más en la solicitud, excepto el valor que usas como token `Bearer`. La respuesta también sigue siendo la misma.
 
    <AuthCodeBlock children={codeExample4} language="json" />
 
 <div id="link-current-user-accounts-with-auth0js">
-  #### Vincular las cuentas del usuario actual con auth0.js
+  #### Vincula las cuentas del usuario actual con auth0.js
 </div>
 
-Si usas la [biblioteca auth0.js](/docs/es/libraries/auth0js) para acceder a la Management API y vincular cuentas, probablemente uses el token de identidad de la identidad principal del usuario para crear una instancia de `auth0.Management` y usarla para vincular cuentas.
+Si usas la [biblioteca auth0.js](/docs/es/libraries/auth0js) para acceder a la Management API y vincular cuentas, probablemente uses el token de identidad de la identidad principal del usuario para instanciar `auth0.Management` y usarlo para vincular cuentas.
 
-1. Obtén un token de acceso con el scope `update:current_user_identities` y luego úsalo para crear una instancia de `auth0.Management`. La llamada final a `linkUser` sigue siendo la misma.
-2. Si usaras el método anterior con un token de identidad, tu código se vería más o menos así:
+1. Obtén un token de acceso con el scope `update:current_user_identities` y luego úsalo para instanciar `auth0.Management`. La llamada final a `linkUser` sigue siendo la misma.
+2. Si usabas el método anterior con un token de identidad, tu código se vería parecido a esto:
 
    <AuthCodeBlock children={codeExample5} language="javascript" />
 
-   Con el nuevo método, que usa un token de acceso, tu código se verá más o menos así:
+   Con el nuevo método que usa un token de acceso, tu código se vería parecido a esto:
 
    <AuthCodeBlock children={codeExample6} language="javascript" />
 
    1. Solicita tanto un token de identidad como un token de acceso en la respuesta (`` responseType: `token id_token` ``).
-   2. Establece la Management API como la audience prevista del token (`` audience: `https://YOUR_DOMAIN/api/v2/` ``).
+   2. Establece la Management API como la audiencia prevista del token (`` audience: `https://YOUR_DOMAIN/api/v2/` ``).
    3. Solicita el permiso requerido (`` scope: `update:current_user_identities` ``).
    4. Se autentica con la Management API usando el token de acceso.
 
@@ -234,9 +234,9 @@ Si usas la [biblioteca auth0.js](/docs/es/libraries/auth0js) para acceder a la M
   #### Vincula cualquier cuenta de usuario con la Management API
 </div>
 
-Si obtienes un token de acceso para la vinculación de cuentas que contiene el `scope` `update:users` y envías el `user_id` y el `provider` de la cuenta secundaria en la solicitud, no tienes que hacer ningún cambio.
+Si obtienes un token de acceso para la vinculación de cuentas que contiene el scope `update:users` y envías el `user_id` y el `provider` de la cuenta secundaria en la solicitud, no tienes que hacer ningún cambio.
 
-Sin embargo, este nuevo método ofrece una alternativa. Sigues usando un token de acceso que contiene el `scope` `update:users` para autenticarte con la API, pero en el payload de la solicitud puedes enviar el token de identidad de la cuenta secundaria (en lugar de `user_id` y `provider`).
+Sin embargo, este nuevo método ofrece una alternativa. Sigues usando un token de acceso que contiene el scope `update:users` para autenticarte con la API, pero en el payload de la solicitud puedes enviar el token de identidad de la cuenta secundaria (en lugar de `user_id` y `provider`).
 
 <AuthCodeGroup>
   ```bash cURL lines
@@ -384,10 +384,8 @@ Sin embargo, este nuevo método ofrece una alternativa. Sigues usando un token d
   ```
 </AuthCodeGroup>
 
-Se debe cumplir lo siguiente:
-
 * El token de identidad de la cuenta secundaria debe estar firmado con `RS256`.
-* El claim `aud` del token de identidad de la cuenta secundaria debe identificar al cliente y tener el mismo valor que el claim `azp` del token de acceso utilizado para realizar la solicitud.
+* El claim `aud` del token de identidad de la cuenta secundaria debe identificar al cliente y tener el mismo valor que el claim `azp` del token de acceso usado para realizar la solicitud.
 
 <div id="unlink-user-accounts">
   ### Desvincular cuentas de usuario
@@ -397,7 +395,7 @@ Si usas tokens de identidad para desvincular cuentas, debes actualizar tu códig
 
 1. Primero, debes obtener un token de acceso con el scope `update:current_user_identities`.
 
-2. Con el método anterior, que usa un token de identidad, tu código se vería así:
+2. Con el método anterior, que usaba un token de identidad, tu código se vería así:
 
    <AuthCodeBlock children={codeExample17} language="http" />
 
@@ -407,25 +405,25 @@ Si usas tokens de identidad para desvincular cuentas, debes actualizar tu códig
 
 3. Para obtener un token de acceso que pueda acceder a la Management API:
 
-   1. Establece el `audience` en `https://{yourDomain}/api/v2/`.
+   1. Configura el `audience` como `https://{yourDomain}/api/v2/`.
    2. Solicita el `scope` `${scope}`.
-   3. Establece `response_type` en `id_token token` para que Auth0 envíe tanto un token de identidad como un token de acceso.
+   3. Configura el `response_type` como `id_token token` para que Auth0 envíe tanto un token de identidad como un token de acceso.
       Si decodificamos el token de acceso y revisamos su contenido, veremos lo siguiente:
 
       <AuthCodeBlock children={codeExample19} language="json" />
 
-      Ten en cuenta que `aud` está configurado con el URI de la API de tu tenant, `scope` con `update:current_user_identities` y `sub` con el ID del usuario que inició sesión.
+      Observa que `aud` está configurado con el URI de la API de tu tenant, `scope` con `update:current_user_identities` y `sub` con el user ID del usuario que inició sesión.
 
-4. Una vez que tengas el token de acceso, puedes llamar al [endpoint Unlink a user identity](https://auth0.com/docs/api/management/v2#!/Users/delete_user_identity_by_user_id) de la Management API usándolo en el header `Authorization`.
+4. Una vez que tengas el token de acceso, puedes llamar al [endpoint Unlink a user identity](https://auth0.com/docs/api/management/v2#!/Users/delete_user_identity_by_user_id) de la Management API usándolo en el encabezado `Authorization`.
 
-5. Con el método anterior, tu llamada se vería así:
+5. Con el método anterior, la llamada se vería así:
 
    ```http lines
    DELETE https://YOUR_DOMAIN/api/v2/users/{primaryAccountUserId}/identities/{secondaryAccountProvider}/{secondaryAccountUserId}
        Authorization: 'Bearer {yourIdTokenOrMgmtApiAccessToken}'
    ```
 
-   Con el nuevo método, tu llamada se verá así:
+   Con el nuevo método, la llamada se verá así:
 
    <AuthCodeBlock children={codeExample20} language="http" />
 
@@ -433,13 +431,13 @@ Si usas tokens de identidad para desvincular cuentas, debes actualizar tu códig
   ## Consideraciones de seguridad
 </div>
 
-Hemos identificado una debilidad en un flujo concreto de vinculación de cuentas que podría permitir su uso indebido en determinadas circunstancias. No hemos encontrado indicios de que se haya utilizado de forma maliciosa, pero hemos decidido deprecar el flujo para evitar que eso pueda suceder.
+Hemos identificado una vulnerabilidad en un flujo concreto de vinculación de cuentas que podría permitir su uso indebido en determinadas circunstancias. No hemos encontrado indicios de que se haya utilizado con fines maliciosos, pero hemos decidido dejar obsoleto este flujo para evitar que eso llegue a ocurrir.
 
-Por lo tanto, Auth0 exige a los clientes que utilizan el flujo de vinculación de cuentas afectado que migren a una implementación más segura antes del 19 de octubre de 2018. En esta guía se indican las rutas de migración, que no deberían implicar ninguna pérdida de funcionalidad.
+Por lo tanto, Auth0 exige a los clientes que utilizan el flujo de vinculación de cuentas afectado que migren a una implementación más segura antes del 19 de octubre de 2018. En esta guía se indican las rutas de migración, que no deberían suponer ninguna pérdida de funcionalidad.
 
 A partir del 19 de octubre de 2018, el flujo de vinculación de cuentas afectado se deshabilitará y se producirán errores en tiempo de ejecución.
 
-Te afecta si llamas al [endpoint Post Identities](https://auth0.com/docs/api/management/v2#!/Users/post_identities) usando un token (ID o token de acceso) con el scope `update:current_user_identities` en el header Authorization e incluyes el `user_id` de la cuenta secundaria en el payload. Ningún otro caso de uso se ve afectado.
+Se verá afectado si llama al [endpoint Post Identities](https://auth0.com/docs/api/management/v2#!/Users/post_identities) usando un token (ID o token de acceso) con el scope `update:current_user_identities` en el encabezado Authorization e incluye el `user_id` de la cuenta secundaria en el payload. Ningún otro caso de uso se verá afectado.
 
 <div id="learn-more">
   ## Más información

@@ -1,38 +1,38 @@
 ---
-description: Découvrez comment lier des comptes utilisateur provenant de divers fournisseurs d’identité afin que vos utilisateurs puissent s’authentifier avec n’importe lequel de leurs comptes et être reconnus par votre application.
-title: Lier des comptes utilisateur
+description: Découvrez comment lier des comptes d’utilisateur provenant de différents fournisseurs d’identité, afin que vos utilisateurs puissent s’authentifier avec n’importe lequel de leurs comptes et être reconnus par votre application.
+title: Lier des comptes d’utilisateur
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
 <Card title="La disponibilité varie selon le plan Auth0">
-  Votre implémentation de connexion ainsi que votre plan Auth0 ou votre entente personnalisée déterminent si cette fonctionnalité est offerte. Pour en savoir plus, consultez [Tarification](https://auth0.com/pricing).
+  L’accès à cette fonctionnalité dépend de votre implémentation de connexion ainsi que de votre plan Auth0 ou de votre entente sur mesure. Pour en savoir plus, consultez [Tarification](https://auth0.com/pricing).
 </Card>
 
-Vous pouvez lier des comptes utilisateur de différentes façons :
+Vous pouvez lier des comptes d’utilisateur de plusieurs façons :
 
-* Action avec application externe de liaison de comptes
-* Auth0 <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>
+* Action avec une application externe de liaison
+* Auth0 <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>
 * bibliothèque auth0.js
 
 <div id="action-with-external-linking-application">
-  ## Action avec une application externe de liaison de comptes
+  ## Action avec une application externe de liaison
 </div>
 
-Vous pouvez utiliser une Action avec une application externe de liaison de comptes pour lier des comptes d’utilisateur au moyen de la Management API.
+Vous pouvez utiliser une Action avec une application externe de liaison pour lier des comptes d’utilisateur à l’aide de la Management API.
 
 <Warning>
-  **Auth0 ne bascule pas automatiquement vers le bon** **utilisateur principal** après la liaison de comptes; ce changement doit donc être effectué dans le code des Actions une fois la liaison de comptes réussie.
+  **Auth0 ne passe pas automatiquement au bon** **utilisateur principal** après la liaison de comptes; ce changement doit donc être effectué dans le code des Actions une fois la liaison de comptes réussie.
 
-  **Toute liaison manuelle de comptes devrait inviter l’utilisateur à saisir ses identifiants**. Votre tenant devrait demander l’authentification des deux comptes avant la liaison afin d’éviter que des acteurs malveillants puissent accéder à des comptes d’utilisateur légitimes.
+  **Toute liaison manuelle de comptes devrait inviter l’utilisateur à saisir ses informations d’identification**. Votre tenant devrait exiger une authentification pour les deux comptes avant d’effectuer la liaison afin d’éviter que des acteurs malveillants puissent accéder à des comptes d’utilisateur légitimes.
 </Warning>
 
-Les étapes suivantes illustrent un exemple d’implémentation :
+Les étapes suivantes illustrent un exemple de mise en œuvre :
 
-1. L’Action identifie les comptes d’utilisateur susceptibles d’être liés (s’ils existent).
+1. L’Action identifie les comptes d’utilisateur potentiels à lier (s’ils existent).
 
-2. L’Action redirige l’utilisateur vers une application externe de liaison de comptes avec une charge utile de jeton contenant les identités d’utilisateur candidates :
+2. L’Action redirige l’utilisateur vers une application externe de liaison avec une charge utile de jeton contenant les identités d’utilisateur candidates :
 
    ```json lines
    {
@@ -57,9 +57,9 @@ Les étapes suivantes illustrent un exemple d’implémentation :
    }
    ```
 
-3. L’application externe de liaison de comptes invite l’utilisateur à s’authentifier à l’aide des identifiants du compte qu’il souhaite lier.
+3. L’application externe de liaison invite l’utilisateur à s’authentifier à l’aide des informations d’identification du compte qu’il souhaite lier.
 
-4. L’application externe de liaison de comptes redirige l’utilisateur vers l’Action avec une charge utile de jeton contenant les identités d’utilisateur principale et secondaire :
+4. L’application externe de liaison redirige l’utilisateur vers l’Action avec une charge utile de jeton contenant les identités d’utilisateur principale et secondaire :
 
    ```json lines
    {
@@ -78,9 +78,9 @@ Les étapes suivantes illustrent un exemple d’implémentation :
 
 5. L’Action valide l’authenticité et le contenu du jeton.
 
-6. L’Action appelle la Management API pour lier les comptes selon les résultats de l’application externe de liaison de comptes.
+6. L’Action appelle la Management API pour lier les comptes selon les résultats de l’application externe de liaison.
 
-7. L’Action bascule vers l’utilisateur principal si celui-ci ne correspond pas à `event.user.user_id`.
+7. L’Action passe à l’utilisateur principal s’il ne correspond pas à `event.user.user_id`.
 
 <div id="example-account-linking-action">
   ### Exemple : Action de liaison de comptes
@@ -155,7 +155,7 @@ const getUsersWithSameEmail = async (event, api) => {
 };
 
 /**
- * Filtrer et mapper les identités candidates avec une adresse courriel vérifiée
+ * Filtrer et mapper les identités candidates avec adresse courriel vérifiée
  */
 const getCandidateIdentitiesWithVerifiedEmail = (event, candidateUsers) => {
   return candidateUsers
@@ -175,7 +175,7 @@ const getCandidateIdentitiesWithVerifiedEmail = (event, candidateUsers) => {
 const linkAccounts = async (event, primaryIdentity, secondaryIdentity) => {
   const accessToken = await getManagementAccessToken(event, { cache: { get: () => null, set: () => {} } });
 
-  // Extraire la partie de l'identifiant après le | pour l'API
+  // Extraire la partie ID après le | pour l'API
   const idParts = secondaryIdentity.user_id.split('|');
   const userId = idParts.length > 1 ? idParts[1] : secondaryIdentity.user_id;
 
@@ -231,13 +231,13 @@ exports.onExecutePostLogin = async (event, api) => {
     !event.secrets.SESSION_TOKEN_SHARED_SECRET ||
     !event.secrets.ACCOUNT_LINKING_SERVICE_URL
   ) {
-    console.log('Configuration requise manquante - liaison de comptes ignorée');
+    console.log('Missing required configuration - skipping account linking');
     return;
   }
 
 // Nous ne traiterons pas les utilisateurs pour la liaison de comptes tant qu'ils n'auront pas vérifié leur adresse courriel.
   // Nous pourrions envisager de rejeter les connexions ici ou de rediriger les utilisateurs vers un outil externe pour
-  // rappeler à l'utilisateur de confirmer son adresse courriel avant de continuer.
+  // rappeler à l'utilisateur de confirmer son adresse courriel avant de poursuivre.
   //
   // Dans cet exemple, nous ne traiterons simplement pas les utilisateurs à moins que leur adresse courriel ne soit vérifiée.
   if (!event.user.email_verified) {
@@ -251,7 +251,7 @@ exports.onExecutePostLogin = async (event, api) => {
   }
 
   try {
-    // Trouver les utilisateurs ayant la même adresse courriel
+    // Trouver les utilisateurs ayant le même courriel
     const candidateUsers = await getUsersWithSameEmail(event, api);
 
     if (!Array.isArray(candidateUsers) || candidateUsers.length === 0) {
@@ -289,7 +289,7 @@ exports.onExecutePostLogin = async (event, api) => {
     });
 
   } catch (err) {
-    console.error('Erreur de liaison de comptes :', err.message);
+    console.error('Account linking error:', err.message);
     // Ne pas bloquer la connexion en cas d'erreur
   }
 };
@@ -306,14 +306,14 @@ exports.onContinuePostLogin = async (event, api) => {
     });
 
     if (!primaryIdentity || !secondaryIdentity) {
-      // L'utilisateur a annulé - continuer sans liaison
+      // L'utilisateur a annulé - poursuivre sans liaison
       return;
     }
 
     const currentUserId = event.user.user_id;
 
     // CRITIQUE : Basculer vers l'utilisateur principal AVANT la liaison
-    // Cela évite l'erreur « Unable to construct login user »
+    // Cela évite l'erreur "Unable to construct login user"
     if (primaryIdentity.user_id !== currentUserId) {
       api.authentication.setPrimaryUser(primaryIdentity.user_id);
     }
@@ -326,11 +326,11 @@ exports.onContinuePostLogin = async (event, api) => {
       api.user.setAppMetadata(ACCOUNT_LINKING_TIMESTAMP_KEY, Date.now());
       completeProperties(event, api);
     } else {
-      api.access.deny('Échec de la liaison de comptes');
+      api.access.deny('Account linking failed');
     }
   } catch (err) {
-    console.error('Erreur onContinuePostLogin :', err.message);
-    api.access.deny('Erreur de liaison de comptes : ' + err.message);
+    console.error('onContinuePostLogin error:', err.message);
+    api.access.deny('Account linking error: ' + err.message);
   }
 };
 ```
@@ -341,18 +341,18 @@ exports.onContinuePostLogin = async (event, api) => {
 
 Vous pouvez utiliser le point de terminaison [Lier un compte d’utilisateur](https://auth0.com/docs/api/v2#!/Users/post_identities) de la Management API de deux façons :
 
-* Liaison de comptes côté client initiée par l’utilisateur au moyen de <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> avec la portée `update:current_user_identities`.
-* Liaison de comptes côté serveur au moyen de jetons d’accès avec la portée `update:users`.
+* Liaison de compte côté client initiée par l’utilisateur à l’aide de <Tooltip tip="Jeton d’accès : information d’identification d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, servant à accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> avec la portée `update:current_user_identities`.
+* Liaison de compte côté serveur à l’aide de jetons d’accès avec la portée `update:users`.
 
 <div id="user-initiated-client-side-account-linking">
   ### Liaison de comptes côté client initiée par l’utilisateur
 </div>
 
-Pour une liaison de comptes côté client initiée par l’utilisateur, vous avez besoin d’un jeton d’accès qui contient les éléments suivants dans la charge utile :
+Pour la liaison de comptes côté client initiée par l’utilisateur, vous avez besoin d’un jeton d’accès contenant les éléments suivants dans la charge utile :
 
-* portée `update:current_user_identites`
-* `user_id` du compte principal dans l’URL
-* <Tooltip tip="Jeton d’identification : justificatif destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton d’identification</Tooltip> du compte secondaire, signé avec RS256 et comprenant une revendication `aud` qui identifie le client correspondant à la valeur de la revendication `azp` du jeton d’accès à l’origine de la demande.
+* la portée `update:current_user_identites`
+* le `user_id` du compte principal dans l’URL
+* le <Tooltip tip="ID Token : jeton destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton d’ID</Tooltip> du compte secondaire, signé avec RS256 et incluant une claim `aud` qui identifie le client et correspond à la valeur de la claim `azp` du jeton d’accès demandeur.
 
 Un jeton d’accès qui contient la portée `update:current_user_identities` ne peut être utilisé que pour mettre à jour les renseignements de l’utilisateur actuellement connecté. Cette méthode convient donc aux scénarios où l’utilisateur lance le processus de liaison.
 
@@ -509,14 +509,14 @@ Un jeton d’accès qui contient la portée `update:current_user_identities` ne 
   ### Liaison de comptes côté serveur
 </div>
 
-Pour la liaison de comptes côté serveur, vous avez besoin d’un jeton d’accès contenant les éléments suivants dans la charge utile :
+Pour effectuer la liaison de comptes côté serveur, vous avez besoin d’un jeton d’accès contenant les éléments suivants dans la charge utile :
 
 * la portée `update:users`
 * le `user_id` du compte principal dans l’URL
 * le `user_id` du compte secondaire
-* le jeton d’identification du compte secondaire, signé avec RS256, qui comprend une revendication `aud` identifiant le client correspondant à la valeur de la revendication `azp` du jeton d’accès demandeur.
+* le jeton d’ID du compte secondaire, signé avec RS256, qui comprend une claim `aud` identifiant le client et correspondant à la valeur de la claim `azp` du jeton d’accès demandeur.
 
-Les jetons d’accès qui contiennent la portée `update:users` peuvent être utilisés pour mettre à jour les renseignements de n’importe quel utilisateur. Cette méthode est donc destinée uniquement au code côté serveur.
+Les jetons d’accès qui contiennent la portée `update:users` peuvent servir à mettre à jour les renseignements de n’importe quel utilisateur. Par conséquent, cette méthode est destinée à être utilisée uniquement dans du code côté serveur.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -667,12 +667,12 @@ Les jetons d’accès qui contiennent la portée `update:users` peuvent être ut
   ```
 </AuthCodeGroup>
 
-Le `user_id` et le `provider` du compte utilisateur secondaire peuvent être déduits à partir de son identifiant unique. Par exemple, pour l’identifiant `google-oauth2|108091299999329986433` :
+Le `user_id` et le `provider` du compte d’utilisateur secondaire se déduisent de son identifiant unique. Par exemple, pour l’identifiant `google-oauth2|108091299999329986433` :
 
 * `provider` est `google-oauth2`
 * `user_id` est `108091299999329986433`
 
-Vous pouvez également envoyer le jeton d’identification du compte secondaire au lieu du `provider` et du `user_id` :
+Vous pouvez aussi envoyer le jeton d’ID du compte secondaire au lieu du `provider` et du `user_id` :
 
 <AuthCodeGroup>
   ```bash cURL
@@ -824,15 +824,15 @@ Vous pouvez également envoyer le jeton d’identification du compte secondaire 
 </AuthCodeGroup>
 
 <div id="auth0js-library">
-  ## Bibliothèque auth0.js
+  ## Bibliothèque Auth0.js
 </div>
 
-Vous pouvez utiliser la bibliothèque auth0.js pour effectuer la liaison de comptes côté client. Consultez [Référence auth0.js &gt; Gestion des utilisateurs](/docs/fr-CA/libraries/auth0js#user-management) pour en savoir plus.
+Vous pouvez utiliser la bibliothèque Auth0.js pour effectuer la liaison de comptes côté client. Consultez [Référence d’Auth0.js &gt; Gestion des utilisateurs](/docs/fr-CA/libraries/auth0js#user-management) pour en savoir plus.
 
 <div id="learn-more">
   ## En savoir plus
 </div>
 
-* [Liaison de comptes d’utilisateur : implémentation côté serveur](/docs/fr-CA/manage-users/user-accounts/user-account-linking/suggested-account-linking-server-side-implementation)
-* [Liaison de comptes initiée par l’utilisateur : implémentation côté client](/docs/fr-CA/manage-users/user-accounts/user-account-linking/user-initiated-account-linking-client-side-implementation)
-* [Dissocier des comptes d’utilisateur](/docs/fr-CA/manage-users/user-accounts/user-account-linking/unlink-user-accounts)
+* [Liaison de comptes d’utilisateurs : mise en œuvre côté serveur](/docs/fr-CA/manage-users/user-accounts/user-account-linking/suggested-account-linking-server-side-implementation)
+* [Liaison de comptes d’utilisateurs initiée par l’utilisateur : mise en œuvre côté client](/docs/fr-CA/manage-users/user-accounts/user-account-linking/user-initiated-account-linking-client-side-implementation)
+* [Dissocier des comptes d’utilisateurs](/docs/fr-CA/manage-users/user-accounts/user-account-linking/unlink-user-accounts)

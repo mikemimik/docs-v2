@@ -1,5 +1,5 @@
 ---
-description: Découvrez comment utiliser une API logique unique dans Auth0 pour représenter plusieurs API et en contrôler l’accès.
+description: Découvrez comment utiliser une API logique unique dans Auth0 pour représenter et gérer l’accès à plusieurs API.
 title: Configurer une API logique pour plusieurs API
 ---
 
@@ -14,25 +14,25 @@ export const codeExample = `https://{yourDomain}/authorize?
    nonce={nonce}
 `;
 
-Si vous avez plusieurs implémentations d’API distinctes qui font toutes logiquement partie de la même API, vous pouvez simplifier votre processus d’autorisation en les représentant par une seule API logique dans le <Tooltip tip="Auth0 Dashboard : principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Vous n’aurez ainsi qu’un seul <Tooltip tip="Auth0 Dashboard : principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+flow">flux d’autorisation</Tooltip> à mettre en place, tout en continuant de contrôler l’accès à chaque API en attribuant les scopes appropriés.
+Si vous avez plusieurs mises en œuvre d’API distinctes qui font toutes logiquement partie de la même API, vous pouvez simplifier votre processus d’autorisation en les représentant par une seule API logique dans le <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip>. Vous n’avez ainsi qu’un seul <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+flow">flux d’autorisation</Tooltip> à mettre en place, tout en continuant de contrôler l’accès à chaque API en attribuant les scopes appropriés.
 
-Les sections suivantes expliquent comment utiliser et représenter plusieurs API comme un seul <Tooltip tip="Resource Server : serveur hébergeant des ressources protégées. Les serveurs de ressources acceptent les requêtes de ressources protégées et y répondent." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Resource+Server">Resource Server</Tooltip> dans Auth0. Nous utiliserons l’application exemple suivante. Cette application repose sur une architecture de microservices et contient :
+Les sections suivantes expliquent comment utiliser et représenter plusieurs API comme un seul <Tooltip tip="serveur de ressources : serveur hébergeant des ressources protégées. Les serveurs de ressources acceptent les requêtes de ressources protégées et y répondent." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Resource+Server">serveur de ressources</Tooltip> dans Auth0. Nous utiliserons l’exemple d’application suivant. Cette application repose sur une architecture de microservices et contient :
 
 * 2 API Node.js : `contacts` et `calendar` (vous pouvez les considérer comme des microservices)
-* 1 Resource Server représentant les 2 API
-* 2 scopes avec espace de noms : `read:contacts` et `read:calendar`
-* Le flux Implicit Grant pour obtenir un `access_token` qui fonctionne pour les deux API
+* 1 serveur de ressources représentant les 2 API
+* 2 scopes qualifiés par un espace de noms : `read:contacts` et `read:calendar`
+* Le flux implicite pour obtenir un `access_token` qui fonctionne pour les deux API
 
-Nous représenterons les deux API à l’aide d’une seule API Auth0 appelée `Organizer Service`. Nous créerons ensuite deux scopes pour montrer comment utiliser le [Implicit Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) afin d’accéder aux API `calendar` et `contacts` à partir de la SPA.
+Nous représenterons les deux API à l’aide d’une seule API Auth0 appelée `Organizer Service`. Nous créerons ensuite deux scopes pour montrer comment utiliser le [flux implicite](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) afin d’accéder aux API `calendar` et `contacts` à partir de la SPA.
 
 Vous devez effectuer les étapes suivantes :
 
 1. Activer une connexion pour votre application
 2. Créer un utilisateur de test
 3. Enregistrer une API logique dans Auth0
-4. Configurer les scopes de l’API logique
+4. Configurer des scopes pour l’API logique
 5. Accorder l’accès à l’API logique
-6. (Facultatif) Mettre en place la déconnexion unique (SLO) ou l’authentification unique (SSO)
+6. (Facultatif) Mettre en œuvre la déconnexion unique (SLO) ou l’authentification unique (SSO)
 
 <div id="prerequisites">
   ## Prérequis
@@ -40,7 +40,7 @@ Vous devez effectuer les étapes suivantes :
 
 * [Enregistrez votre application](/docs/fr-CA/get-started/auth0-overview/create-applications/single-page-web-apps).
 
-  * Sélectionnez le **Type d’application** **Single-Page App**.
+  * Sélectionnez **Type d’application** et choisissez **Application monopage**.
   * Ajoutez `http://localhost:3000` et `http://localhost:3000/callback.html` aux **URL de rappel autorisées**.
 * Téléchargez l’[application exemple](https://github.com/auth0-samples/auth0-api-auth-implicit-sample). Pour savoir comment la configurer, consultez le [README](https://github.com/auth0-samples/auth0-api-auth-implicit-sample#readme).
 
@@ -48,58 +48,58 @@ Vous devez effectuer les étapes suivantes :
   ## Activer une connexion pour votre application
 </div>
 
-Vous aurez besoin d’une source d’utilisateurs pour l’application que vous venez d’enregistrer; vous devrez donc configurer une [connexion](/docs/fr-CA/authenticate/identity-providers). Pour cet exemple, nous allons créer une [connexion de base de données](/docs/fr-CA/authenticate/database-connections) simple qui demande uniquement l’adresse courriel de l’utilisateur et un mot de passe. Pour en savoir plus, consultez [Configurer les connexions de base de données](/docs/fr-CA/get-started/applications/set-up-database-connections).
+Vous aurez besoin d&#39;une source d&#39;utilisateurs pour votre application nouvellement enregistrée; vous devrez donc configurer une [connexion](/docs/fr-CA/authenticate/identity-providers). Pour cet exemple, nous allons créer une [connexion de base de données](/docs/fr-CA/authenticate/database-connections) simple qui demande uniquement l&#39;adresse courriel de l&#39;utilisateur et un mot de passe. Pour en savoir plus, consultez [Configurer les connexions de base de données](/docs/fr-CA/get-started/applications/set-up-database-connections).
 
 <div id="create-a-test-user">
   ## Créer un utilisateur de test
 </div>
 
-Comme vous utilisez une connexion nouvellement créée, aucun utilisateur n’y est associé. Avant de pouvoir tester le processus de connexion de l’application exemple, vous devrez créer un utilisateur et l’associer à cette connexion. Assurez-vous donc de sélectionner votre connexion nouvellement créée au moment de créer l’utilisateur. Pour en savoir plus, consultez [Créer des utilisateurs](/docs/fr-CA/manage-users/user-accounts/create-users).
+Comme vous travaillez avec une connexion nouvellement créée, aucun utilisateur n’y est associé. Avant de pouvoir tester le processus de connexion de l’application d’exemple, vous devrez créer un utilisateur et l’associer à cette connexion. Assurez-vous donc de sélectionner votre nouvelle connexion lorsque vous créez l’utilisateur. Pour en savoir plus, consultez [Créer des utilisateurs](/docs/fr-CA/manage-users/user-accounts/create-users).
 
 <div id="register-a-logical-api-in-auth0">
   ## Enregistrer une API logique dans Auth0
 </div>
 
-Enregistrez une seule API logique que vous utiliserez pour représenter les multiples API comprises dans l’application exemple. Pour les besoins de cet exemple, nommez votre API `Organizer Service` et définissez son identifiant unique sur `organize`. Par défaut, l’<Tooltip tip="Algorithme de signature : algorithme utilisé pour signer numériquement les jetons afin de garantir que le jeton n’a pas été altéré." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=signing+algorithm">algorithme de signature</Tooltip> des jetons obtenus pour cette API est **RS256**; vous devez le laisser tel quel. Pour en savoir plus, consultez [Enregistrer des API](/docs/fr-CA/get-started/auth0-overview/set-up-apis).
+Enregistrez une seule API logique que vous utiliserez pour représenter les multiples API de l’exemple d’application. Aux fins de cet exemple, nommez votre API `Organizer Service` et attribuez-lui l’identifiant unique `organize`. Par défaut, l’<Tooltip tip="Algorithme de signature : algorithme utilisé pour signer numériquement les jetons afin de garantir qu’ils n’ont pas été altérés." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=signing+algorithm">algorithme de signature</Tooltip> des jetons obtenus pour cette API est **RS256**; vous devez le laisser tel quel. Pour en savoir plus, consultez [Enregistrer des API](/docs/fr-CA/get-started/auth0-overview/set-up-apis).
 
 <div id="configure-permissions-for-the-logical-api">
-  ## Configurer les autorisations pour l’API logique
+  ## Configurer les permissions pour l’API logique
 </div>
 
-Pour permettre à l’API logique de représenter les API comprises dans l’application exemple, vous devrez créer les autorisations (scopes) appropriées.
+Pour permettre à l’API logique de représenter les API incluses dans l’application d’exemple, vous devez créer les permissions (scopes) appropriées.
 
-Les scopes vous permettent de définir quelles actions d’API seront accessibles aux applications appelantes. Chaque scope représente une combinaison API/action. Dans cet exemple, vous voulez que les applications appelantes puissent effectuer une opération `read` sur une API appelée `calendar` et une autre appelée `contacts`; vous devrez donc créer les autorisations suivantes :
+Les scopes vous permettent de définir quelles actions d’API seront accessibles aux applications appelantes. Chaque scope représente une combinaison API/action. Dans le cadre de cet exemple, vous voulez que les applications appelantes puissent effectuer l’action `read` sur une API appelée `calendar` et une autre appelée `contacts`; vous devez donc créer les permissions suivantes :
 
 * `read:calendar`
 * `read:contacts`
 
-Vous pouvez considérer chacune comme un microservice. Pour en savoir plus, consultez [Ajouter des autorisations d’API](/docs/fr-CA/get-started/apis/add-api-permissions) et [Portées d’API](/docs/fr-CA/get-started/apis/scopes/api-scopes).
+Vous pouvez considérer chacune d’elles comme un microservice. Pour en savoir plus, consultez [Ajouter des permissions d’API](/docs/fr-CA/get-started/apis/add-api-permissions) et [Scopes d’API](/docs/fr-CA/get-started/apis/scopes/api-scopes).
 
 <div id="grant-access-to-the-logical-api">
   ## Accorder l’accès à l’API logique
 </div>
 
-Vous êtes maintenant prêt à donner accès à vos API en permettant à l’API logique d’obtenir des <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Tokens">jetons d’accès</Tooltip>. En incluant les scopes nécessaires, vous pouvez contrôler l’accès d’une application aux API représentées par l’API logique. Les étapes suivantes utilisent le [flux implicite](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post) pour reprendre l’exemple. Toutefois, vous pouvez utiliser le flux qui convient le mieux à vos besoins. Par exemple :
+Vous êtes maintenant prêt à donner accès à vos API en permettant à l’API logique d’obtenir des <Tooltip tip="Jeton d’accès : justificatif d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisé pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Tokens">jetons d’accès</Tooltip>. En incluant les scopes nécessaires, vous pouvez contrôler l’accès d’une application aux API représentées par l’API logique. Les étapes suivantes utilisent le [Flux implicite](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post) pour illustrer l’exemple. Toutefois, vous pouvez utiliser le flux qui convient le mieux à vos besoins. Par exemple :
 
-* Si vous avez une **application machine-to-machine**, vous pouvez l’autoriser à demander des jetons d’accès pour votre API en exécutant un [Client Credentials Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/client-credentials-flow).
-* Si vous créez une **application Native**, vous pouvez mettre en œuvre le [Authorization Code Flow with Proof Key for Code Exchange (PKCE)](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
+* Si vous avez une **application Machine-to-Machine**, vous pouvez l’autoriser à demander des jetons d’accès pour votre API en exécutant un [flux Client Credentials](/docs/fr-CA/get-started/authentication-and-authorization-flow/client-credentials-flow).
+* Si vous créez une **application Native**, vous pouvez implémenter le [Flux de code d’autorisation avec clé de preuve pour l’échange de code (PKCE)](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
 
 Pour en savoir plus sur les flux d’autorisation, consultez [Flux d’authentification et d’autorisation](/docs/fr-CA/get-started/authentication-and-authorization-flow).
 
-1. L’utilisateur clique sur Login dans la SPA, puis l’application le redirige vers l’Auth0 Authorization Server (point de terminaison `/authorize`). Pour en savoir plus sur les paramètres de l’appel, consultez notre tutoriel : [Appeler votre API à l’aide du flux Authorization Code avec PKCE](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce).
+1. L’utilisateur clique sur Login dans la SPA, puis l’application le redirige vers le serveur d’autorisation Auth0 (point de terminaison `/authorize`). Pour en savoir plus sur les paramètres de l’appel, consultez notre tutoriel : [Appeler votre API à l’aide du flux de code d’autorisation avec PKCE](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/call-your-api-using-the-authorization-code-flow-with-pkce).
 
    {/* codeblockOld.header.login.logInButton codeblockOld.header.login.configureSnippet */}
 
    <AuthCodeBlock children={codeExample} language="http" />
 
    <Frame>![Exemple de page de connexion de l’application](/docs/images/cdy7uua7fh8z/1ogYIaeDdyGL3Qo511m6Sh/5ab97c1535b2b62523a367594d44d66f/home.png)</Frame>
-2. Votre Auth0 Authorization Server redirige l’utilisateur vers la page de connexion, où il s’authentifie à l’aide de l’une des options de connexion configurées.
+2. Votre serveur d’autorisation Auth0 redirige l’utilisateur vers la page de connexion, où il s’authentifie à l’aide de l’une des options de connexion configurées.
 
    <Frame>![Page de connexion Lock](/docs/images/cdy7uua7fh8z/6z6aA5nfA1uwOyx8srhvvI/2435a0909cfe44a57bef3ff27ef24e5b/lock.png)</Frame>
-3. S’il s’agit de la première fois que l’utilisateur suit ce flux, il voit un écran de consentement indiquant les autorisations qu’Auth0 accordera à la SPA. Dans ce cas-ci, on lui demande d’autoriser l’application à lire ses contacts et son calendrier.
+3. S’il s’agit de la première fois que l’utilisateur suit ce flux, il voit une invite de consentement qui énumère les permissions qu’Auth0 accordera à la SPA. Dans ce cas-ci, on lui demande d’autoriser l’application à lire ses contacts et son calendrier.
 
-   <Frame>![Écran de consentement Lock de l’exemple d’application](/docs/images/cdy7uua7fh8z/1te4FYRbu0aFcdohdXY2Rv/116bed5515eb2114c39374fb0a258912/consent-screen.png)</Frame>
-4. Si l’utilisateur consent, Auth0 le redirige vers la SPA avec des jetons dans le fragment de l’URI. La SPA peut maintenant extraire les jetons du fragment à l’aide de JavaScript et utiliser le jeton d’accès pour appeler vos API au nom de l’utilisateur.
+   <Frame>![Exemple d’écran de consentement Lock de l’application](/docs/images/cdy7uua7fh8z/1te4FYRbu0aFcdohdXY2Rv/116bed5515eb2114c39374fb0a258912/consent-screen.png)</Frame>
+4. Si l’utilisateur consent, Auth0 le redirige vers la SPA avec des jetons dans le fragment de hachage de l’URI. La SPA peut maintenant extraire les jetons du fragment de hachage à l’aide de JavaScript et utiliser le jeton d’accès pour appeler vos API au nom de l’utilisateur.
 
    ```javascript lines
    function getParameterByName(name) {
@@ -112,22 +112,22 @@ Pour en savoir plus sur les flux d’autorisation, consultez [Flux d’authentif
    }
    ```
 
-   Dans notre exemple, après vous être connecté avec succès, vous verrez des boutons qui vous permettent d’appeler l’une ou l’autre de vos API à l’aide du jeton d’accès obtenu à partir de l’API logique.
+   Dans notre exemple, une fois la connexion réussie, vous verrez des boutons qui vous permettent d’appeler l’une ou l’autre de vos API à l’aide du jeton d’accès obtenu à partir de l’API logique.
 
-   <Frame>![Écran d’autorisation de l’utilisateur de l’exemple d’application](/docs/images/cdy7uua7fh8z/2pGWG5Wa7U1tBPhAJZ7Bat/7e194066560605cc842f20624b80d958/apis.png)</Frame>
+   <Frame>![Exemple d’écran d’autorisation utilisateur de l’application](/docs/images/cdy7uua7fh8z/2pGWG5Wa7U1tBPhAJZ7Bat/7e194066560605cc842f20624b80d958/apis.png)</Frame>
 
 <div id="implement-single-logout-slo-or-single-sign-on-sso">
-  ### Mettre en place la déconnexion unique (SLO) ou l’authentification unique (SSO)
+  ### Mettre en œuvre la déconnexion unique (SLO) ou l’authentification unique (SSO)
 </div>
 
-Dans certains scénarios à plusieurs applications où la déconnexion unique est souhaitée (lorsqu’un utilisateur se déconnecte d’une application, il doit aussi être déconnecté des autres applications), une application peut être configurée pour interroger périodiquement Auth0 à l’aide de `checkSession()` afin de vérifier si une session existe. Si la session n’existe pas, vous pouvez alors déconnecter l’utilisateur de l’application. La même méthode d’interrogation peut être utilisée pour mettre en place l’authentification silencieuse dans un scénario de <Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur se connecte à une application, le connecte automatiquement aux autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on">authentification unique</Tooltip> (SSO).
+Dans certains scénarios à plusieurs applications, lorsqu’une déconnexion unique est souhaitée (si un utilisateur se déconnecte d’une application, il doit aussi être déconnecté des autres applications), une application peut être configurée pour interroger périodiquement Auth0 à l’aide de `checkSession()` afin de vérifier si une session existe. Si la session n’existe pas, vous pouvez alors déconnecter l’utilisateur de l’application. La même méthode peut être utilisée pour mettre en œuvre l’authentification silencieuse dans un scénario de <Tooltip tip="Single Sign-On (SSO) : service qui, après qu’un utilisateur s’est connecté à une application, connecte automatiquement cet utilisateur aux autres applications." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Single+Sign-on">authentification unique</Tooltip> (SSO).
 
-L’intervalle entre les vérifications de `checkSession()` doit être d’au moins 15 minutes afin d’éviter tout problème futur lié à la limitation du taux de requêtes pour cet appel.
+L’intervalle entre les vérifications effectuées avec `checkSession()` doit être d’au moins 15 minutes afin d’éviter tout problème futur lié à la limitation du taux de requêtes pour cet appel.
 
 <div id="learn-more">
   ## En savoir plus
 </div>
 
 * [Enregistrer des API](/docs/fr-CA/get-started/auth0-overview/set-up-apis)
-* [Ajouter des autorisations d’API](/docs/fr-CA/get-started/apis/add-api-permissions)
+* [Ajouter des permissions d’API](/docs/fr-CA/get-started/apis/add-api-permissions)
 * [Scopes d’API](/docs/fr-CA/get-started/apis/scopes/api-scopes)

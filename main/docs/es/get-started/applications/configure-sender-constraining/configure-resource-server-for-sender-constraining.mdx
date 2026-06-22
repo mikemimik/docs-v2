@@ -1,82 +1,82 @@
 ---
-description: Descripción general de cómo configurar Sender Constraining para su tenant de Auth0.
+description: Información general sobre cómo configurar Sender Constraining para tu tenant de Auth0.
 title: Configurar Sender Constraining
 ---
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  La restricción del emisor de tokens mediante Demonstrating Proof-of-Possession (DPoP) se encuentra actualmente en acceso anticipado. Para solicitar acceso a esta funcionalidad, póngase en contacto con su representante de Auth0.
+  La protección de tokens con Sender Constraining mediante Demonstrating Proof-of-Possession (DPoP) está actualmente en acceso anticipado. Para solicitar acceso a esta funcionalidad, ponte en contacto con tu representante de Auth0.
 </Callout>
 
-[Sender constraining](/docs/es/secure/sender-constraining) es un mecanismo de seguridad de <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> y <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) que vincula criptográficamente los tokens de acceso y los <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=refresh+tokens">refresh tokens</Tooltip> con la aplicación cliente específica que los obtuvo, lo que evita el robo y el uso indebido de tokens.
+[Sender constraining](/docs/es/secure/sender-constraining) es un mecanismo de seguridad de <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> y <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=OpenID">OpenID</Tooltip> Connect (OIDC) que vincula criptográficamente los tokens de acceso y los <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=refresh+tokens">tokens de actualización</Tooltip> con la aplicación cliente específica que los obtuvo, lo que evita el robo y el uso indebido de tokens.
 
-Auth0 admite la restricción del emisor mediante mTLS y Demonstrating Proof-of-Possession (DPoP). Si habilita la restricción del emisor para una aplicación cliente, también debe aplicarla al <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip> al que realiza llamadas a la API.
+Auth0 admite mTLS sender constraining y Demonstrating Proof-of-Possession (DPoP). Si habilitas sender constraining para una aplicación cliente, también debes exigirlo en el <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip> al que haces llamadas a la API.
 
-Para configurar la restricción del emisor en Auth0, debe hacer lo siguiente:
+Para configurar sender constraining en Auth0, debes hacer lo siguiente:
 
-* [Configurar la restricción del emisor para una aplicación cliente](#configure-sender-constraining-for-a-client-application).
-* [Configurar la restricción del emisor para un servidor de recursos](#configure-sender-constraining-for-a-resource-server).
+* [Configurar sender constraining para una aplicación cliente](#configure-sender-constraining-for-a-client-application).
+* [Configurar sender constraining para un servidor de recursos](#configure-sender-constraining-for-a-resource-server).
 
 <div id="how-it-works">
   ## Cómo funciona
 </div>
 
-<Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Access+tokens">Los tokens de acceso</Tooltip> están restringidos al remitente en Auth0 según cómo configures esta restricción del emisor para tu aplicación cliente y tu servidor de recursos:
+<Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Access+tokens">Tokens de acceso</Tooltip> se vinculan al remitente en Auth0 según cómo configures Sender Constraining para tu aplicación cliente y tu servidor de recursos:
 
-1. **Audiencia solicitada:** En una solicitud de token, el hecho de que la audiencia solicitada sea solo `/userinfo`, que esté destinada únicamente a usarse con el endpoint [`/userinfo`](https://auth0.com/docs/api/authentication/user-profile/get-user-info), o que sea una API personalizada que puede incluir `/userinfo` cuando también solicitas el alcance `openid`, afecta a si los tokens de acceso quedan restringidos al remitente.
-2. **Aplicación cliente:** Si estableces la restricción del emisor como `required` para la aplicación cliente.
-3. **Servidor de recursos:** Si configuras la restricción del emisor para el servidor de recursos:
+1. **Audiencia solicitada:** En una solicitud de token, influye en si los tokens de acceso quedan vinculados al remitente el hecho de que la audiencia solicitada sea solo `/userinfo`, que esté destinada únicamente a usarse con el endpoint [`/userinfo`](https://auth0.com/docs/api/authentication/user-profile/get-user-info), o que sea una API personalizada que pueda incluir `/userinfo` cuando también solicitas el scope `openid`.
+2. **Aplicación cliente:** Si estableces Sender Constraining como `required` en la aplicación cliente.
+3. **Servidor de recursos:** Si configuras Sender Constraining para el servidor de recursos:
 
-   1. `none`: No has configurado la restricción del emisor para el servidor de recursos.
-   2. `allowed`: Has configurado la restricción del emisor para el servidor de recursos al establecer un método de restricción del emisor.
-   3. `required`: Has configurado la restricción del emisor como obligatoria para el servidor de recursos, lo que significa que los tokens de acceso deben estar restringidos al remitente y asociados a una aplicación. Requiere un método de restricción del emisor.
+   1. `none`: No has configurado Sender Constraining para el servidor de recursos.
+   2. `allowed`: Has configurado Sender Constraining para el servidor de recursos estableciendo un método de Sender Constraining.
+   3. `required`: Has configurado Sender Constraining como obligatorio para el servidor de recursos, lo que significa que los tokens de acceso deben estar vinculados a una aplicación. Requiere un método de Sender Constraining.
 
-* **Prueba de posesión:** Si la aplicación cliente envió una aserción de prueba de posesión en la solicitud de token:
+* **prueba de posesión:** Si la aplicación cliente envió una aserción de prueba de posesión en la solicitud de token:
 
-  * Restricción del emisor con mTLS: La prueba de posesión se demuestra mediante la presentación satisfactoria por parte del cliente de una clave privada específica (asociada a un certificado de cliente) durante la negociación TLS.
-  * DPoP: La prueba de posesión se logra cuando el cliente crea un JWT de prueba DPoP, lo firma criptográficamente con su clave privada e incluye el JWT de prueba `DPoP` en el encabezado HTTP DPoP de cada solicitud en la que se use el token de acceso asociado.
+  * mTLS sender constraining: La prueba de posesión se demuestra mediante la presentación correcta por parte del cliente de una clave privada específica (asociada a un certificado de cliente) durante el handshake de TLS.
+  * DPoP: La prueba de posesión se logra cuando el cliente crea un JWT de prueba DPoP, lo firma criptográficamente con su clave privada y lo incluye en el encabezado HTTP `DPoP` de cada solicitud en la que se usa el token de acceso asociado.
 
-La siguiente tabla describe cómo se emiten los tokens de acceso y si están restringidos al remitente en función de varios parámetros de solicitud del cliente y de las configuraciones del servidor de recursos de Auth0:
+La siguiente tabla describe cómo se emiten los tokens de acceso y si quedan vinculados al remitente según varios parámetros de solicitud del cliente y las configuraciones del servidor de recursos de Auth0:
 
-| Tipo de audiencia solicitada                     | ¿El cliente requiere PoP? | ¿El cliente envió prueba de posesión (PoP)? | Política del servidor de recursos de Auth0: None | Política del servidor de recursos de Auth0: Allowed (No requerido) | Política del servidor de recursos de Auth0: Required |
-| ------------------------------------------------ | ------------------------- | ------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------- |
-| Solo Userinfo                                    | No                        | No                                          | Emitido, no restringido al remitente             | N/A                                                                | N/A                                                  |
-| Solo Userinfo                                    | No                        | Sí                                          | Emitido, restringido al remitente                | N/A                                                                | N/A                                                  |
-| Solo Userinfo                                    | Sí                        | No                                          | No emitido                                       | N/A                                                                | N/A                                                  |
-| Solo Userinfo                                    | Sí                        | Sí                                          | Emitido, restringido al remitente                | N/A                                                                | N/A                                                  |
-| Audiencia personalizada (puede incluir Userinfo) | No                        | No                                          | Emitido, no restringido al remitente             | Emitido, no restringido al remitente                               | No emitido                                           |
-| Audiencia personalizada (puede incluir Userinfo) | No                        | Sí                                          | Emitido, no restringido al remitente             | Emitido, restringido al remitente                                  | Emitido, restringido al remitente                    |
-| Audiencia personalizada (puede incluir Userinfo) | Sí                        | No                                          | No emitido                                       | No emitido                                                         | No emitido                                           |
-| Audiencia personalizada (puede incluir Userinfo) | Sí                        | Sí                                          | No emitido                                       | Emitido, restringido al remitente                                  | Emitido, restringido al remitente                    |
+| Tipo de audiencia solicitada                      | ¿El cliente requiere PoP? | ¿El cliente envió prueba de posesión (PoP)? | Política del servidor de recursos de Auth0: None | Política del servidor de recursos de Auth0: Allowed (No obligatorio) | Política del servidor de recursos de Auth0: Required |
+| ------------------------------------------------- | ------------------------- | ------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------- |
+| Solo Userinfo                                     | No                        | No                                          | Emitido, no vinculado al remitente               | N/A                                                                  | N/A                                                  |
+| Solo Userinfo                                     | No                        | Sí                                          | Emitido, vinculado al remitente                  | N/A                                                                  | N/A                                                  |
+| Solo Userinfo                                     | Sí                        | No                                          | No emitido                                       | N/A                                                                  | N/A                                                  |
+| Solo Userinfo                                     | Sí                        | Sí                                          | Emitido, vinculado al remitente                  | N/A                                                                  | N/A                                                  |
+| Audiencia personalizada (puede contener Userinfo) | No                        | No                                          | Emitido, no vinculado al remitente               | Emitido, no vinculado al remitente                                   | No emitido                                           |
+| Audiencia personalizada (puede contener Userinfo) | No                        | Sí                                          | Emitido, no vinculado al remitente               | Emitido, vinculado al remitente                                      | Emitido, vinculado al remitente                      |
+| Audiencia personalizada (puede contener Userinfo) | Sí                        | No                                          | No emitido                                       | No emitido                                                           | No emitido                                           |
+| Audiencia personalizada (puede contener Userinfo) | Sí                        | Sí                                          | No emitido                                       | Emitido, vinculado al remitente                                      | Emitido, vinculado al remitente                      |
 
 <div id="configure-sender-constraining-for-a-client-application">
-  ## Configura la restricción del emisor para una aplicación cliente
+  ## Configurar Sender Constraining para una aplicación cliente
 </div>
 
-Cuando requieres la restricción del emisor para una aplicación cliente, los tokens de acceso quedan restringidos a esa aplicación. Auth0 verifica las solicitudes para garantizar que solo la aplicación que solicitó el token pueda usarlo para acceder al recurso asociado.
+Cuando exige Sender Constraining para una aplicación cliente, los tokens de acceso quedan vinculados a esa aplicación. Auth0 verifica las solicitudes para garantizar que solo la aplicación que solicitó el token pueda usarlo para acceder al recurso asociado.
 
-Una vez que configures una aplicación cliente para requerir la restricción del emisor, puedes establecer el método de restricción del emisor, ya sea mTLS o DPoP, al configurar tu servidor de recursos.
+Una vez que configure una aplicación cliente para exigir Sender Constraining, puede establecer el método de Sender Constraining, ya sea mTLS o DPoP, al configurar su servidor de recursos.
 
-Puedes configurar la restricción del emisor para una aplicación cliente con el <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o con la <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
+Puede configurar Sender Constraining para una aplicación cliente con el <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o la <Tooltip tip="" cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
 
 <Tabs>
   <Tab title="Auth0 Dashboard">
-    1. Ve a [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications). Selecciona la aplicación que quieres configurar.
-    2. En **Settings**, desplázate hasta **Token Sender-Constraining**.
-    3. Activa **Require Sender Constraining**. Desactíalo para quitar el requisito de Sender Constraining de la aplicación.
+    1. Vaya a [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications). Seleccione la aplicación que desea configurar.
+    2. En **Settings**, desplácese hasta **Token Sender-Constraining**.
+    3. Active el interruptor de **Require Sender Constraining**. Desactívelo para quitar el requisito de Sender Constraining de la aplicación.
 
     <Frame>![](/docs/images/cdy7uua7fh8z/3BoGW9NEYKPBkfk2tPBL7l/0f884ac3f64f17b23fd6a0e9436bb472/Screenshot_2024-07-23_at_1.30.19_PM.png)</Frame>
   </Tab>
 
   <Tab title="Management API">
-    Para configurar un cliente para restricción del emisor, usa la [Management API](https://auth0.com/docs/api/management/v2).
+    Para configurar un cliente para Sender Constraining, use la [Management API](https://auth0.com/docs/api/management/v2).
 
-    Para requerir restricción del emisor para un cliente, envía una solicitud PATCH para [actualizar la configuración del cliente](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id). Establece el parámetro `require_proof_of_possession` en `true`.
+    Para exigir Sender Constraining para un cliente, envíe una solicitud PATCH para [actualizar la configuración del cliente](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id). Establezca el parámetro `require_proof_of_possession` en `true`.
 
     ```json lines
     "require_proof_of_possession": true
     ```
 
-    Para quitar el requisito de restricción del emisor, establece el parámetro `require_proof_of_possession` en `false`.
+    Para quitar el requisito de Sender Constraining, establezca el parámetro `require_proof_of_possession` en `false`.
 
     ```json lines
     "require_proof_of_possession": false
@@ -85,42 +85,42 @@ Puedes configurar la restricción del emisor para una aplicación cliente con el
 </Tabs>
 
 <div id="configure-sender-constraining-for-a-resource-server">
-  ## Configura la restricción del emisor para un servidor de recursos
+  ## Configurar Sender Constraining para un servidor de recursos
 </div>
 
-Los tokens de acceso emitidos por Auth0 pueden restringirse al emisor (es decir, la aplicación cliente) que necesita acceder a las API en un servidor de recursos.
+Los tokens de acceso emitidos por Auth0 pueden vincularse al remitente (es decir, la aplicación cliente) que necesita acceder a las API de un servidor de recursos.
 
-Puedes configurar la restricción del emisor para un servidor de recursos con Auth0 Dashboard o Management API.
+Puedes configurar Sender Constraining para un servidor de recursos con Auth0 Dashboard o la Management API.
 
 <Tabs>
   <Tab title="Auth0 Dashboard">
-    Para habilitar Token Binding o la restricción del emisor, configura los **API Settings** de tu API.
+    Para habilitar Token Binding o Sender Constraining, configura los **Ajustes de la API**.
 
     1. Ve a [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis).
     2. Selecciona la API que quieres configurar.
     3. En la pestaña **Settings**, busca la sección **Token Sender-Constraining**.
     4. Configura lo siguiente:
 
-       1. Método de restricción del emisor:
+       1. Método de Sender Constraining:
 
-          1. **None:** No habilites ningún método de restricción del emisor para tu servidor de recursos.
-          2. **mTLS**: Habilita mTLS como método de restricción del emisor para tu servidor de recursos.
-          3. **DPoP:** Habilita DPoP como método de restricción del emisor para tu servidor de recursos.
+          1. **None:** No habilites ningún método de Sender Constraining para tu servidor de recursos.
+          2. **mTLS**: Habilita mTLS como método de Sender Constraining para tu servidor de recursos.
+          3. **DPoP:** Habilita DPoP como método de Sender Constraining para tu servidor de recursos.
 
-    B. Activa **Require Token Sender Constraining**. Todos los tokens de acceso emitidos a una aplicación para esta API estarán restringidos a esa aplicación.
+    B. Activa **Require Token Sender Constraining**. Todos los tokens de acceso emitidos a una aplicación para esta API quedarán vinculados a esa aplicación.
 
     <Frame>![Auth0 Dashboard > APIs > Settings > Token binding](/docs/images/cdy7uua7fh8z/3Dv98iZosdpJMcZXfXyurn/823fa368ab874218fbb737aacac9b262/Screenshot_2025-07-28_at_3.59.01_PM.png)</Frame>
   </Tab>
 
   <Tab title="Management API">
-    Para habilitar la restricción del emisor con Management API, envía una solicitud PATCH para [actualizar el servidor de recursos](https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id). Configura los parámetros del objeto `proof_of_possession` de la siguiente manera:
+    Para habilitar Sender Constraining con la Management API, envía una solicitud PATCH para [actualizar el servidor de recursos](https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id). Configura los parámetros del objeto `proof_of_possession` de la siguiente manera:
 
-    | Parámetro   | Descripción                                                                                                                                                                                                                              |
-    | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-    | `mechanism` | Establece el método de restricción del emisor: `none`, `mtls` o `dpop`.                                                                                                                                                                  |
-    | `required`  | Cuando se establece en `true`, todos los tokens de acceso emitidos a una aplicación para esta API estarán restringidos a esa aplicación. Cuando se establece en `false`, la restricción del emisor no es obligatoria para la aplicación. |
+    | Parámetro   | Descripción                                                                                                                                                                                                                 |
+    | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `mechanism` | Establece el método de Sender Constraining: `none`, `mtls` o `dpop`.                                                                                                                                                        |
+    | `required`  | Si se establece en `true`, todos los tokens de acceso emitidos a una aplicación para esta API quedarán vinculados a esa aplicación. Si se establece en `false`, Sender Constraining no será obligatorio para la aplicación. |
 
-    El siguiente ejemplo de código muestra un cuerpo de solicitud para configurar un servidor de recursos con restricción del emisor mediante mTLS:
+    El siguiente ejemplo de código muestra un cuerpo de la solicitud que configura un servidor de recursos para usar Sender Constraining con mTLS:
 
     ```json lines
     "proof_of_possession": {

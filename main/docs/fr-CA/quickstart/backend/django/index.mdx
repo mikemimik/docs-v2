@@ -1,5 +1,5 @@
 ---
-title: "API Django : autorisation"
+title: "API Django : Authorization"
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
@@ -8,14 +8,14 @@ import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
   ##### Par Luciano Balmaceda
 </div>
 
-Ce tutoriel montre comment ajouter l’autorisation à une API Django REST Framework. Nous vous recommandons de vous connecter pour suivre ce Quickstart avec des exemples configurés pour votre compte.
+Ce tutoriel montre comment ajouter la gestion des autorisations à une API Django REST Framework. Nous vous recommandons de vous connecter pour suivre ce Quickstart avec des exemples configurés pour votre compte.
 
 {/* <Card title="Voir sur Github" href="https://github.com/auth0-samples/auth0-django-api/tree/master/01-Authorization" icon="github">
-  Configuration système requise : Python 3.5 et versions ultérieures | Django 2.2.\* | djangorestframework 3.10.\* | drf-jwt 1.13.\*
+  Configuration requise : Python 3.5 ou version ultérieure | Django 2.2.\* | djangorestframework 3.10.\* | drf-jwt 1.13.\*
   </Card> */}
 
 <Info>
-  **Vous découvrez Auth0 ?** Découvrez [comment fonctionne Auth0](/docs/fr-CA/get-started/auth0-overview) et apprenez-en plus sur [la mise en œuvre de l’authentification et de l’autorisation des API](/docs/fr-CA/get-started/authentication-and-authorization-flow) à l’aide du framework OAuth 2.0.
+  **Vous débutez avec Auth0 ?** Découvrez [comment fonctionne Auth0](/docs/fr-CA/get-started/auth0-overview) et apprenez-en davantage sur [la mise en œuvre de l’authentification et de l’autorisation des API](/docs/fr-CA/get-started/authentication-and-authorization-flow) à l’aide du framework OAuth 2.0.
 </Info>
 
 <div id="configure-auth0-apis">
@@ -26,7 +26,7 @@ Ce tutoriel montre comment ajouter l’autorisation à une API Django REST Frame
   ### Créer une API
 </div>
 
-Dans la section [APIs](https://manage.auth0.com/#/apis) de l’Auth0 Dashboard, cliquez sur **Create API**. Entrez un nom et un identifiant pour votre API, par exemple `https://quickstarts/api`. Vous utiliserez cet identifiant plus tard comme `audience`, lors de la configuration de la vérification du jeton d’accès. Laissez l’**algorithme de signature** à **RS256**.
+Dans la section [APIs](https://manage.auth0.com/#/apis) du Dashboard Auth0, cliquez sur **Create API**. Entrez un nom et un identifiant pour votre API, par exemple `https://quickstarts/api`. Vous utiliserez ensuite cet identifiant comme `audience` lorsque vous configurerez la vérification du jeton d’accès. Laissez l’**algorithme de signature** à **RS256**.
 
 <Frame>![Create API](https://cdn2.auth0.com/docs/1.14550.0/media/articles/server-apis/create-api.png)</Frame>
 
@@ -36,20 +36,20 @@ Par défaut, votre API utilise RS256 comme algorithme de signature des jetons. C
   ### Définir les permissions
 </div>
 
-Les permissions vous permettent de définir comment il est possible d’accéder aux ressources au nom de l’utilisateur à l’aide d’un jeton d’accès donné. Par exemple, vous pouvez choisir d’accorder un accès en lecture à la ressource `messages` si les utilisateurs ont le niveau d’accès Manager, et un accès en écriture à cette ressource s’ils ont le niveau d’accès d’administrateur.
+Les permissions vous permettent de définir comment il est possible d’accéder aux ressources au nom de l’utilisateur au moyen d’un jeton d’accès donné. Par exemple, vous pourriez choisir d’accorder un accès en lecture à la ressource `messages` si les utilisateurs ont le niveau d’accès gestionnaire, et un accès en écriture à cette ressource s’ils ont le niveau d’accès administrateur.
 
 Vous pouvez définir les permissions autorisées dans la vue **Permissions** de la section [APIs](https://manage.auth0.com/#/apis) de l’Auth0 Dashboard.
 
 <Frame>![Configurer les permissions](https://cdn2.auth0.com/docs/1.14550.0/media/articles/server-apis/configure-permissions.png)</Frame>
 
 <Info>
-  Cet exemple utilise la portée `read:messages`.
+  Cet exemple utilise le scope `read:messages`.
 </Info>
 
 Cet exemple montre :
 
 * Comment vérifier la présence d’un JSON Web Token (JWT) dans l’en-tête `Authorization` d’une requête HTTP entrante.
-* Comment vérifier si le jeton est valide à l’aide du [JSON Web Key Set (JWKS)](/docs/fr-CA/secure/tokens/json-web-tokens/json-web-key-sets) de votre compte Auth0. Pour en savoir plus sur la validation des jetons d’accès, consultez [Valider les jetons d’accès](/docs/fr-CA/secure/tokens/access-tokens/validate-access-tokens).
+* Comment vérifier si le jeton est valide, à l’aide du [JSON Web Key Set (JWKS)](/docs/fr-CA/secure/tokens/json-web-tokens/json-web-key-sets) de votre compte Auth0. Pour en savoir plus sur la validation des jetons d’accès, consultez [Validate Access Tokens](/docs/fr-CA/secure/tokens/access-tokens/validate-access-tokens).
 
 <div id="setup-the-django-application">
   ## Configurer l’application Django
@@ -77,7 +77,7 @@ requests~=2.22.0
 
 Ce guide suppose que vous avez déjà configuré une application Django. Si ce n’est pas le cas, suivez les étapes du [tutoriel Django](https://docs.djangoproject.com/en/2.2/intro/tutorial01/).
 
-L’exemple de projet a été créé à l’aide des commandes suivantes :
+Le projet d’exemple a été créé à l’aide des commandes suivantes :
 
 ```bash lines
 django-admin startproject apiexample
@@ -86,12 +86,12 @@ python manage.py startapp auth0authorization
 ```
 
 <div id="add-a-django-remote-user">
-  ### Ajouter un utilisateur distant à Django
+  ### Ajouter un utilisateur distant dans Django
 </div>
 
-Vous devez définir une façon de faire correspondre le nom d’utilisateur contenu dans la charge utile du jeton d’accès avec un utilisateur du système d’authentification de Django.
+Vous devez définir une façon de mapper le nom d’utilisateur du contenu du jeton d’accès à l’utilisateur du système d’authentification de Django.
 
-Ajoutez le middleware [`RemoteUserMiddleware`](https://docs.djangoproject.com/en/2.2/ref/middleware/#django.contrib.auth.middleware.RemoteUserMiddleware) après `AuthenticationMiddleware` dans la liste des middlewares.
+Ajoutez le composant middleware [`RemoteUserMiddleware`](https://docs.djangoproject.com/en/2.2/ref/middleware/#django.contrib.auth.middleware.RemoteUserMiddleware) après `AuthenticationMiddleware` dans la liste des middleware.
 
 ```py lines
 # apiexample/settings.py
@@ -103,7 +103,7 @@ MIDDLEWARE = [
 ]
 ```
 
-Ajoutez `ModelBackend` et `RemoteUserBackend` aux modules d’authentification.
+Ajoutez `ModelBackend` et `RemoteUserBackend` aux backends d’authentification.
 
 ```py lines
 # apiexample/settings.py
@@ -114,7 +114,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 ```
 
-Créez le fichier `utils.py` dans le dossier de votre application et définissez une fonction qui fait correspondre le champ `sub` du `access_token` au nom d’utilisateur. Ensuite, la méthode [authenticate](https://docs.djangoproject.com/en/2.2/ref/contrib/auth/#django.contrib.auth.backends.RemoteUserBackend.authenticate) de [RemoteUserBackend](https://docs.djangoproject.com/en/2.2/ref/contrib/auth/#django.contrib.auth.backends.RemoteUserBackend) créera un utilisateur distant dans le système d’authentification de Django et renverra un objet User correspondant au nom d’utilisateur.
+Créez le fichier `utils.py` dans le dossier de votre application et définissez une fonction qui permet de mapper le champ `sub` de l’`access_token` au nom d’utilisateur. Ensuite, la méthode [authenticate](https://docs.djangoproject.com/en/2.2/ref/contrib/auth/#django.contrib.auth.backends.RemoteUserBackend.authenticate) de [RemoteUserBackend](https://docs.djangoproject.com/en/2.2/ref/contrib/auth/#django.contrib.auth.backends.RemoteUserBackend) créera un utilisateur distant dans le système d’authentification de Django et retournera un objet User correspondant au nom d’utilisateur.
 
 ```py lines
 # auth0authorization/utils.py
@@ -133,7 +133,7 @@ def jwt_get_username_from_payload_handler(payload):
 
 Le fichier `settings.py` contient la configuration du projet Django.
 
-Ajoutez l’application `rest_framework` dans l’entrée `INSTALLED_APPS`.
+Ajoutez l’application `rest_framework` à l’entrée `INSTALLED_APPS`.
 
 ```py lines
 # apiexample/settings.py
@@ -144,7 +144,7 @@ INSTALLED_APPS = [
 ]
 ```
 
-Ajoutez `JSONWebTokenAuthentication` à `DEFAULT_AUTHENTICATION_CLASSES` du framework Django REST.
+Ajoutez `JSONWebTokenAuthentication` à `DEFAULT_AUTHENTICATION_CLASSES` de Django REST Framework.
 
 ```py lines
 # apiexample/settings.py
@@ -163,7 +163,7 @@ REST_FRAMEWORK = {
 
 Configurez le [Django REST Framework JWK](https://github.com/Styria-Digital/django-rest-framework-jwt/) en définissant la variable `JWT_AUTH`.
 
-Attribuez à `JWT_AUDIENCE` votre identificateur d’API et à `JWT_ISSUER` votre domaine Auth0. Par défaut, ces valeurs sont récupérées dans le fichier `.env`.
+Définissez `JWT_AUDIENCE` avec l’identifiant de votre API et `JWT_ISSUER` avec votre domaine Auth0. Par défaut, ces valeurs sont récupérées depuis le fichier `.env`.
 
 export const codeExample1 = `# apiexample/settings.py
 
@@ -180,7 +180,7 @@ JWT_AUTH = {
 
 <AuthCodeBlock children={codeExample1} language="py" />
 
-Créez la fonction permettant de récupérer le JWKS de votre compte Auth0 afin de vérifier et décoder le jeton d’accès reçu.
+Créez la fonction permettant de récupérer le JWKS de votre compte Auth0 afin de vérifier et de décoder le jeton d’accès reçu.
 
 export const codeExample2 = `# auth0authorization/utils.py
 
@@ -206,10 +206,10 @@ def jwt_decode_token(token):
 <AuthCodeBlock children={codeExample2} language="py" />
 
 <div id="validate-scopes">
-  ### Valider les portées
+  ### Valider les scopes
 </div>
 
-Ajoutez les méthodes suivantes au fichier `views.py` pour créer un décorateur qui vérifiera les portées accordées dans l’`access_token`.
+Ajoutez les méthodes suivantes au fichier `views.py` pour créer un décorateur qui vérifiera les scopes accordés dans l’`access_token`.
 
 ```py lines
 # auth0authorization/views.py
@@ -220,7 +220,7 @@ import jwt
 from django.http import JsonResponse
 
 def get_token_auth_header(request):
-    """Obtient le jeton d'accès à partir de l'en-tête Authorization
+    """Obtient le jeton d’accès à partir de l'Authorization Header
     """
     auth = request.META.get("HTTP_AUTHORIZATION", None)
     parts = auth.split()
@@ -229,7 +229,7 @@ def get_token_auth_header(request):
     return token
 
 def requires_scope(required_scope):
-    """Détermine si le scope requis est présent dans le jeton d'accès
+    """Détermine si le scope requis est présent dans le jeton d’accès
     Args:
         required_scope (str): Le scope requis pour accéder à la ressource
     """
@@ -254,13 +254,13 @@ def requires_scope(required_scope):
   ## Protéger les points de terminaison d’API
 </div>
 
-Les routes ci-dessous sont disponibles pour les requêtes suivantes :
+Les routes ci-dessous sont accessibles pour les requêtes suivantes :
 
-* `GET /api/public` : disponible pour les requêtes non authentifiées
-* `GET /api/private` : disponible pour les requêtes authentifiées contenant un jeton d’accès sans portée supplémentaire
-* `GET /api/private-scoped` : disponible pour les requêtes authentifiées contenant un jeton d’accès auquel la portée `read:messages` a été accordée
+* `GET /api/public` : accessible aux requêtes non authentifiées
+* `GET /api/private` : accessible aux requêtes authentifiées contenant un jeton d’accès sans scopes supplémentaires
+* `GET /api/private-scoped` : accessible aux requêtes authentifiées contenant un jeton d’accès auquel le scope `read:messages` a été accordé
 
-Dans le fichier `views.py`, ajoutez les points de terminaison `public` et `private`. Ajoutez le décorateur `@api_view` à tous les points de terminaison pour indiquer que la méthode nécessite une authentification. Enfin, ajoutez le décorateur `@permission_classes([AllowAny])` au point de terminaison `public` pour accepter les requêtes non authentifiées.
+Dans le fichier `views.py`, ajoutez les points de terminaison `public` et `private`. Ajoutez le décorateur `@api_view` à tous les points de terminaison pour indiquer que la méthode exige une authentification. Enfin, ajoutez le décorateur `@permission_classes([AllowAny])` au point de terminaison `public` pour accepter les requêtes non authentifiées.
 
 ```py lines
 # auth0authorization/views.py
@@ -280,7 +280,7 @@ def private(request):
     return JsonResponse({'message': 'Hello from a private endpoint! You need to be authenticated to see this.'})
 ```
 
-Utilisez le décorateur `requires_scope` dans les méthodes qui nécessitent des portées précises ayant été accordées. La méthode ci-dessous nécessite que la portée `read:messages` ait été accordée.
+Utilisez le décorateur `requires_scope` dans les méthodes qui exigent certains scopes. La méthode ci-dessous exige le scope `read:messages`.
 
 ```py lines
 # auth0authorization/views.py
@@ -295,9 +295,9 @@ def private_scoped(request):
   ### Ajouter des correspondances d’URL
 </div>
 
-Dans les étapes précédentes, nous avons ajouté des méthodes au fichier `views.py`. Nous devons maintenant associer ces méthodes à des URL.
+Dans les étapes précédentes, nous avons ajouté des méthodes au fichier `views.py`. Nous devons associer ces méthodes à des URL.
 
-Django dispose d’un [répartiteur d’URL](https://docs.djangoproject.com/en/2.2/topics/http/urls/) qui vous permet d’associer des modèles d’URL à des vues.
+Django possède un [répartiteur d’URL](https://docs.djangoproject.com/en/2.2/topics/http/urls/) qui permet d’associer des modèles d’URL à des vues.
 
 Créez le fichier `urls.py` dans le dossier de votre application. Ajoutez les modèles d’URL.
 
@@ -315,7 +315,7 @@ urlpatterns = [
 ]
 ```
 
-Le projet Django comprend aussi un fichier `urls.py`. Ajoutez une référence au fichier `urls.py` de votre application.
+Le projet Django contient également un fichier `urls.py`. Ajoutez une référence au fichier `urls.py` de votre application.
 
 ```py lines
 # apiexample/urls.py
@@ -332,10 +332,10 @@ urlpatterns = [
 <Info>
   ##### Que pouvez-vous faire ensuite ?
 
-  | [Configurer d’autres fournisseurs d’identité](/docs/fr-CA/authenticate/identity-providers)                                                 | [Activer l’authentification multifactorielle](/docs/fr-CA/secure/multi-factor-authentication) |
-  | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-  | [En savoir plus sur la protection contre les attaques](/docs/fr-CA/secure/attack-protection)                                               | [En savoir plus sur les Rules](/docs/fr-CA/customize/rules)                                   |
-  | [Modifier dans GitHub](https://github.com/auth0/docs/edit/master/articles/quickstart/backend/aspnet-core-webapi/01-authorization.md) |                                                                                         |
+  | [Configurer d’autres fournisseurs d’identité](/docs/fr-CA/authenticate/identity-providers)                                                | [Activer l’authentification multifacteur](/docs/fr-CA/secure/multi-factor-authentication) |
+  | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+  | [En savoir plus sur la protection contre les attaques](/docs/fr-CA/secure/attack-protection)                                              | [En savoir plus sur les Rules](/docs/fr-CA/customize/rules)                               |
+  | [Modifier sur GitHub](https://github.com/auth0/docs/edit/master/articles/quickstart/backend/aspnet-core-webapi/01-authorization.md) |                                                                                     |
 </Info>
 
 ***

@@ -1,6 +1,6 @@
 ---
-description: "Appelez l’API d’un fournisseur d’identité social ou d’un fournisseur d’identité d’entreprise à partir de votre application Auth0 en utilisant le jeton d’accès du fournisseur en amont qu’Auth0 a conservé après la connexion de l’utilisateur."
-title: "Appeler l’API d’un fournisseur d’identité"
+description: Appelez l’API d’un fournisseur d’identité social ou d’entreprise depuis votre application Auth0 à l’aide du jeton d’accès en amont qu’Auth0 a conservé après la connexion de l’utilisateur.
+title: Appeler l’API d’un fournisseur d’identité
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
@@ -11,18 +11,18 @@ import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
   Si [Token Vault](/docs/fr-CA/secure/tokens/token-vault) est activé pour votre connexion, les jetons d’accès et d’actualisation ne seront plus stockés dans le tableau `identities` de l’utilisateur. Ils seront plutôt stockés dans un ensemble de jetons sécurisé dans Token Vault. Pour activer Token Vault, consultez [Configurer Token Vault](/docs/fr-CA/secure/tokens/token-vault/configure-token-vault).
 </Callout>
 
-Une fois qu’un utilisateur est authentifié avec succès auprès d’un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseur d’identité</Tooltip> (IdP) externe, comme Facebook ou GitHub, l’IdP inclut souvent un <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+token">jeton d’accès</Tooltip> dans le profil utilisateur qu’il renvoie à Auth0.
+Une fois que vous avez authentifié avec succès un utilisateur auprès d’un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Identity+Provider">fournisseur d’identité</Tooltip> (IdP) externe, comme Facebook ou GitHub, l’IdP inclut souvent un <Tooltip tip="Jeton d’accès : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+token">jeton d’accès</Tooltip> dans le profil de l’utilisateur qu’il renvoie à Auth0.
 
-Vous pouvez récupérer ce jeton et l’utiliser pour appeler l’API de l’IdP.
+Vous pouvez récupérer et utiliser ce jeton pour appeler l’API de l’IdP.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Cet article suppose que vous avez déjà configuré la connexion avec l’IdP de votre choix. Sinon, consultez [Identity Providers Supported by Auth0](/docs/fr-CA/authenticate/identity-providers/social-identity-providers), sélectionnez l’IdP voulu et suivez les étapes de configuration.
+  Cet article suppose que vous avez déjà configuré la connexion avec l’IdP de votre choix. Sinon, consultez [Fournisseurs d’identité pris en charge par Auth0](/docs/fr-CA/authenticate/identity-providers/social-identity-providers), sélectionnez l’IdP voulu et suivez les étapes de configuration.
 </Callout>
 
 Le processus à suivre diffère selon que votre code s’exécute dans le backend ou le frontend :
 
-* Si votre code s’exécute dans le backend, on peut supposer que votre serveur est fiable et qu’il peut stocker des secrets de façon sécuritaire (comme vous le verrez, nous utilisons un secret dans le scénario backend). Si c’est le cas, passez à la [section backend](#from-the-backend) de cet article.
-* Si votre code s’exécute dans le frontend (par exemple, s’il s’agit d’une SPA, d’une application native de bureau ou mobile), votre application ne peut pas stocker des informations d’authentification de façon sécuritaire et doit donc suivre une autre approche. Dans ce cas, passez à la [section frontend](#from-the-frontend) de cet article.
+* Si votre code s’exécute dans le backend, nous pouvons supposer que votre serveur est fiable et peut stocker les secrets en toute sécurité (comme vous le verrez, nous utilisons un secret dans le scénario backend). Si c’est le cas, passez à la [section backend](#from-the-backend) de cet article.
+* Si votre code s’exécute dans le frontend (par exemple, il s’agit d’une SPA, d’une application native de bureau ou d’une application mobile), votre application ne peut pas stocker les informations d’authentification de façon sécuritaire et doit donc suivre une autre approche. Dans ce cas, passez à la [section frontend](#from-the-frontend) de cet article.
 
 <div id="from-the-backend">
   ## Depuis le backend
@@ -30,10 +30,10 @@ Le processus à suivre diffère selon que votre code s’exécute dans le backen
 
 Une fois que vous avez authentifié un utilisateur, l’IdP inclut souvent un jeton d’accès dans le profil utilisateur qu’il renvoie à Auth0.
 
-Pour des raisons de sécurité et de conformité, Auth0 n’envoie pas ce jeton à votre application avec le profil utilisateur. Pour l’obtenir, vous devez accéder à l’Auth0 <Tooltip tip="Management API : Un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> et récupérer le profil complet de l’utilisateur :
+Pour des raisons de sécurité et de conformité, Auth0 n’envoie pas ce jeton à votre application dans le profil utilisateur. Pour l’obtenir, vous devez accéder à l’Auth0 <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> et récupérer le profil complet de l’utilisateur :
 
 1. Obtenez un jeton d’accès qui vous permet d’appeler l’[Auth0 Management API](https://auth0.com/docs/api/management/v2).
-2. Appelez le [point de terminaison Get Users by ID](https://auth0.com/docs/api/management/v2#!/Users/get_users_by_id) de l’Auth0 Management API à l’aide du jeton d’accès obtenu à l’étape 1. Ce point de terminaison renvoie le profil complet de l’utilisateur, qui contient le jeton d’accès de l’IdP.
+2. Appelez l’[point de terminaison Get Users by ID de l’Auth0 Management API](https://auth0.com/docs/api/management/v2#!/Users/get_users_by_id) à l’aide du jeton d’accès obtenu à l’étape 1. Ce point de terminaison renvoie le profil complet de l’utilisateur, qui contient le jeton d’accès de l’IdP.
 3. Extrayez le jeton d’accès de l’IdP de la réponse et utilisez-le pour appeler l’API de l’IdP.
 
 <div id="step-1-get-a-token">
@@ -46,28 +46,28 @@ Vous aurez besoin d’un jeton d’accès pour appeler la [Management API](https
   #### Créer une application de test pour la Management API
 </div>
 
-Si c’est la première fois que vous demandez un [Management APIv2 Token](https://auth0.com/docs/api/management/v2/tokens), vous devrez créer et configurer une application qui pourra servir à appeler la Management API :
+Si c’est la première fois que vous demandez un [Management APIv2 Token](https://auth0.com/docs/api/management/v2/tokens), vous devrez créer et configurer une application qui pourra être utilisée pour appeler la Management API :
 
 1. Accédez à [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis), puis sélectionnez l’[Auth0 Management API](https://manage.auth0.com/#/apis/management/authorized-clients).
 2. Sélectionnez la vue **API Explorer**, puis cliquez sur **Create &amp; Authorize a Test Application**.
 
-Cela créera une nouvelle application et lui accordera tous les scopes de la Management API, ce qui signifie que les tokens générés pour cette application pourront accéder à tous les points de terminaison de la Management API.
+Cela créera une nouvelle application et lui accordera tous les scopes de la Management API, ce qui signifie que les jetons générés pour cette application pourront accéder à tous les points de terminaison de la Management API.
 
-<Card title="Vous ne voyez pas le bouton ?">
-  Si vous ne voyez pas ce bouton, cela signifie que vous avez déjà au moins une application autorisée pour la Management API. Dans ce cas, vous pouvez soit mettre à jour les scopes de l’application existante et l’utiliser, soit en créer une nouvelle en suivant ces étapes :
+<Card title="Vous ne voyez pas le bouton ?">
+  Si vous ne voyez pas ce bouton, cela signifie que vous avez déjà au moins une application autorisée pour la Management API. Dans ce cas, vous pouvez soit mettre à jour les scopes de l’application existante et l’utiliser, soit en créer une nouvelle en suivant ces étapes :
 
   1. Accédez à [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications), puis sélectionnez **Create Application**.
   2. Sélectionnez **Machine to Machine Applications**, puis **Create**.
   3. Dans la liste déroulante **Select an API**, sélectionnez `Auth0 Management API`.
   4. Activez les scopes requis, puis sélectionnez **Authorize**.
-  5. Sélectionnez la vue **APIs**, puis activez le bouton bascule pour **Auth0 Management API**.
+  5. Sélectionnez la vue **APIs**, puis activez la bascule pour **Auth0 Management API**.
 </Card>
 
 <Warning>
-  Pour des raisons de sécurité, nous vous recommandons d’attribuer uniquement les scopes requis à l’application que vous utiliserez. Dans ce cas précis, les scopes dont vous avez besoin sont : `read:users`, `read:user_idp_tokens`. Les scopes requis sont indiqués pour chaque point de terminaison dans le [Management API Explorer](https://auth0.com/docs/api/management/v2).
+  Pour des raisons de sécurité, nous vous recommandons d’attribuer uniquement les scopes requis à l’application que vous utiliserez. Dans ce cas précis, les scopes dont vous avez besoin sont : `read:users`, `read:user_idp_tokens`. Les scopes requis sont indiqués pour chaque point de terminaison dans le [Management API Explorer](https://auth0.com/docs/api/management/v2).
 </Warning>
 
-Pour accorder ou supprimer des scopes de l’[Auth0 Management API enregistrée](https://manage.auth0.com/#/apis/management/authorized-clients), sélectionnez la [vue **Machine to Machine Applications**](https://manage.auth0.com/#/apis/management/authorized-clients) :
+Pour accorder ou supprimer des scopes de l’[Auth0 Management API](https://manage.auth0.com/#/apis/management/authorized-clients) enregistrée, sélectionnez la [vue **Machine to Machine Applications**](https://manage.auth0.com/#/apis/management/authorized-clients) :
 
 <Frame>![Modifier les scopes accordés à l’application](/docs/images/cdy7uua7fh8z/6nuMjQMrTWhoVqtRwJBQz7/28a0f7c89c696426e273f43bd849b5e5/2025-02-25_11-11-36.png)</Frame>
 
@@ -75,25 +75,25 @@ Pour accorder ou supprimer des scopes de l’[Auth0 Management API enregistrée]
   #### Obtenir le jeton de la Management API
 </div>
 
-Vous avez maintenant terminé la configuration et êtes prêt à obtenir votre jeton de la Management API :
+Vous avez maintenant terminé la configuration et êtes prêt à obtenir votre jeton de la Management API :
 
-1. Dans l’[Auth0 Management API enregistrée](https://manage.auth0.com/#/apis/management/authorized-clients), sélectionnez la vue [**Test**](https://manage.auth0.com/#/apis/management/test).
+1. Dans l’[Auth0 Management API enregistrée](https://manage.auth0.com/#/apis/management/authorized-clients), sélectionnez la [vue **Test**](https://manage.auth0.com/#/apis/management/test).
 2. Choisissez votre application dans la liste déroulante **Application** afin de préremplir les extraits de code prêts à l’emploi avec des variables personnalisées.
 3. Choisissez la langue de votre choix pour l’extrait de code, puis copiez-le et exécutez-le.
 4. Extrayez la propriété `access_token` de la réponse. C’est ce que vous utiliserez pour accéder à la Management API.
 
-<Card title="À quoi servent les extraits de code?">
-  Les extraits de code effectuent une opération `POST` vers le [point de terminaison /oauth/token de l’Auth0 Authentication API](https://auth0.com/docs/api/authentication#client-credentials), en utilisant l’**octroi Client Credentials OAuth 2.0**. Il s’agit de l’octroi qu’emploient les processus machine-à-machine pour accéder à une API. Pour en savoir plus sur le flux, consultez [Client Credentials Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/client-credentials-flow).
+<Card title="À quoi servent les extraits de code ?">
+  Les extraits de code effectuent une opération `POST` vers le [point de terminaison /oauth/token de l’Auth0 Authentication API](https://auth0.com/docs/api/authentication#client-credentials), en utilisant le **grant Client Credentials d’OAuth 2.0**. Il s’agit du grant qu’utilisent les processus machine-to-machine pour accéder à une API. Pour en savoir plus sur ce flux, consultez [Client Credentials Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/client-credentials-flow).
 </Card>
 
 <div id="token-expiration">
   #### Expiration du jeton
 </div>
 
-Par défaut, le jeton que vous avez reçu expire au bout de 24 heures (86 400 secondes). Pour modifier ce délai :
+Par défaut, le jeton que vous avez reçu expire au bout de 24 heures (86 400 secondes). Pour modifier ce délai :
 
 1. Accédez à [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis), puis sélectionnez l’[Auth0 Management API](https://manage.auth0.com/#/apis/management/authorized-clients).
-2. Sélectionnez la vue **Settings**, repérez le champ **Token Expiration (Seconds)**, saisissez une nouvelle valeur, puis cliquez sur **Save**. La valeur maximale que vous pouvez définir est de 2 592 000 secondes (30 jours), bien que nous vous recommandions de conserver la valeur par défaut.
+2. Sélectionnez la vue **Settings**, repérez le champ **Token Expiration (Seconds)**, entrez une nouvelle valeur, puis cliquez sur **Save**. La valeur maximale que vous pouvez définir est de 2 592 000 secondes (30 jours), mais nous vous recommandons de conserver la valeur par défaut.
 
 Le prochain jeton que vous générerez utilisera le nouveau délai d’expiration.
 
@@ -102,7 +102,7 @@ Le prochain jeton que vous générerez utilisera le nouveau délai d’expiratio
 </Warning>
 
 <div id="step-2-get-the-full-user-profile">
-  ### Étape 2 : Obtenir le profil utilisateur complet
+  ### Étape 2 : Obtenir le profil complet de l’utilisateur
 </div>
 
 Pour obtenir le profil d’un utilisateur, appelez le [point de terminaison Get a User](https://auth0.com/docs/api/management/v2#!/Users/get_users_by_id) de la Management API à l’aide du jeton d’accès que vous avez extrait dans la section précédente :
@@ -233,15 +233,15 @@ Pour obtenir le profil d’un utilisateur, appelez le [point de terminaison Get 
   ```
 </AuthCodeGroup>
 
-Remplacez ces valeurs :
+Remplacez les valeurs suivantes :
 
-* `{userId}` : identifiant de l’utilisateur pour lequel vous voulez appeler l’API de l’IdP.
+* `{userId}` : ID de l’utilisateur pour lequel vous voulez appeler l’API de l’IdP.
 * `{yourAccessToken}` : jeton d’accès que vous avez extrait dans la section précédente.
 
-<Card title="Où puis-je trouver l’ID utilisateur ?">
-  - À des fins de test, vous pouvez trouver un ID utilisateur dans [Auth0 Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users). Repérez un utilisateur et copiez la valeur du champ **user&#95;id**.
+<Card title="Où trouver l’ID utilisateur ?">
+  - À des fins de test, vous pouvez trouver un ID utilisateur dans [Auth0 Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users). Repérez un utilisateur, puis copiez la valeur du champ **user&#95;id**.
 
-  - Pour votre implémentation, vous pouvez soit extraire l’ID utilisateur du claim `sub` dans le [ID Token](/docs/fr-CA/secure/tokens/id-tokens), soit appeler le [point de terminaison /userinfo](https://auth0.com/docs/api/authentication#get-user-info) de la Authentication API et l’extraire de la propriété de réponse `user_id`.
+  - Pour votre mise en œuvre, vous pouvez soit extraire l’ID utilisateur de la revendication `sub` dans le [ID Token](/docs/fr-CA/secure/tokens/id-tokens), soit appeler le [point de terminaison /userinfo](https://auth0.com/docs/api/authentication#get-user-info) de l’Authentication API et l’extraire de la propriété de réponse `user_id`.
 </Card>
 
 <div id="step-3-extract-the-idp-access-token">
@@ -251,10 +251,10 @@ Remplacez ces valeurs :
 Vous trouverez le jeton d’accès utilisé pour appeler l’API de l’IdP dans le tableau `identities` de l’utilisateur : `user.identities[0].access_token`.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Pour certains fournisseurs d’identité, Auth0 stocke également un jeton d’actualisation, que vous pouvez utiliser pour obtenir un nouveau jeton d’accès de l’IdP. Cela fonctionne pour : BitBucket, Google (OAuth 2.0), OAuth 2.0, SharePoint et Azure AD. Pour en savoir plus, consultez [Jetons d’accès du fournisseur d’identité](/docs/fr-CA/secure/tokens/access-tokens/identity-provider-access-tokens).
+  Pour certains fournisseurs d’identité, Auth0 stocke également un jeton d’actualisation, que vous pouvez utiliser pour obtenir un nouveau jeton d’accès pour l’IdP. Cela fonctionne avec : BitBucket, Google (OAuth 2.0), OAuth 2.0, SharePoint et Azure AD. Pour en savoir plus, consultez [Jetons d’accès des fournisseurs d’identité](/docs/fr-CA/secure/tokens/access-tokens/identity-provider-access-tokens).
 </Callout>
 
-Dans la plupart des cas, l’utilisateur n’aura qu’une seule identité, mais s’il s’est connecté plusieurs fois au moyen de différentes connexions et que vous avez utilisé la [liaison de comptes](/docs/fr-CA/manage-users/user-accounts/user-account-linking/link-user-accounts), il peut y en avoir plus d’une.
+Dans la plupart des cas, l’utilisateur n’aura qu’une seule identité, mais s’il s’est connecté plusieurs fois au moyen de différentes connexions et que vous avez utilisé la [liaison de comptes](/docs/fr-CA/manage-users/user-accounts/user-account-linking/link-user-accounts), il peut y en avoir plusieurs.
 
 Dans cet exemple de réponse, nous voyons que notre utilisateur n’a qu’une seule identité : `google-oauth2`.
 
@@ -288,25 +288,25 @@ Dans cet exemple de réponse, nous voyons que notre utilisateur n’a qu’une s
 }
 ```
 
-Vous êtes maintenant prêt à appeler l’API de l’IdP. Veuillez consulter la documentation de l’IdP pour savoir exactement comment procéder.
+Vous êtes maintenant prêt à appeler l’API de l’IdP. Consultez la documentation de l’IdP pour savoir précisément comment procéder.
 
 <Warning>
-  N’exposez pas les jetons de l’IdP dans votre application côté client ! Si votre application est publique, consultez la [section frontend](#from-the-frontend) de cet article.
+  N’exposez pas les jetons de l’IdP dans votre application côté client ! Si votre application est publique, consultez la [section frontend](#from-the-frontend) de cet article.
 </Warning>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Pour en savoir plus sur la façon de demander des scopes précis pour un jeton d’accès de fournisseur d’identité, consultez [Ajouter des scopes/autorisations pour appeler les API du fournisseur d’identité](/docs/fr-CA/authenticate/identity-providers/adding-scopes-for-an-external-idp).
+  Pour en savoir plus sur la façon de demander des scopes précis pour un jeton d’accès du fournisseur d’identité, consultez [Ajouter des scopes/autorisations pour appeler les API du fournisseur d’identité](/docs/fr-CA/authenticate/identity-providers/adding-scopes-for-an-external-idp).
 </Callout>
 
 <div id="from-the-frontend">
-  ## Depuis le frontend
+  ## Du frontend
 </div>
 
 Si vous travaillez avec une application publique (SPA, application native de bureau ou application mobile), vous êtes au bon endroit.
 
-Lorsque vous travaillez avec une application frontend, le processus pour appeler les API de l’IdP diffère de celui du backend, car les applications frontend sont des applications publiques qui **ne peuvent pas protéger des informations d’authentification de façon sécuritaire**. Comme le code d’une SPA peut être consulté et modifié, et que les applications natives ou mobiles peuvent être décompilées et inspectées, on ne peut pas leur faire confiance pour stocker des renseignements sensibles comme des clés secrètes ou des mots de passe.
+Lorsque vous travaillez avec une application frontend, le processus pour appeler les API de l’IdP diffère du processus backend, parce que les applications frontend sont des applications publiques qui **ne peuvent pas stocker des informations d’authentification de façon sécurisée**. Comme le code d’une SPA peut être consulté et modifié, et que les applications natives et mobiles peuvent être décompilées et inspectées, on ne peut pas leur faire confiance pour stocker des renseignements sensibles, comme des clés secrètes ou des mots de passe.
 
-Plus précisément, elles ne peuvent pas stocker de façon sécuritaire le **<Tooltip tip="Client Secret : secret utilisé par un client (application) pour s’authentifier auprès de l’Authorization Server; il ne devrait être connu que du client et de l’Authorization Server et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Client+Secret">Client Secret</Tooltip>** de la Machine to Machine Application, que vous utilisez pour appeler `/oauth/token` à la première étape du processus backend.
+Plus précisément, elles ne peuvent pas stocker de façon sécurisée le **<Tooltip tip="Client Secret : secret utilisé par un client (application) pour s’authentifier auprès du serveur d’autorisation; il ne devrait être connu que du client et du serveur d’autorisation et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Client+Secret">Client Secret</Tooltip>** de l’application Machine to Machine, que vous utilisez pour appeler `/oauth/token` pendant la première étape du processus backend.
 
 Vous devez plutôt créer un proxy pour votre backend et l’exposer à votre application sous forme d’API.
 
@@ -314,14 +314,14 @@ Vous devez plutôt créer un proxy pour votre backend et l’exposer à votre ap
   ### Créer un proxy
 </div>
 
-D’abord, créez un processus dans votre backend qui met en œuvre les étapes décrites dans [la section backend](#from-the-backend) de cet article, puis exposez-le à votre application sous forme d’API.
+D’abord, vous allez créer un processus dans votre backend qui exécutera les étapes décrites dans [la section backend](#from-the-backend) de cet article, puis l’exposer à votre application sous forme d’API.
 
-Vous appellerez l’API de l’IdP à partir du même processus backend afin que le jeton d’accès ne soit jamais exposé à votre application publique.
+Vous appellerez l’API de l’IdP à partir du même processus backend, de sorte que le jeton d’accès ne soit jamais exposé à votre application publique.
 
-Ensuite, vous appellerez votre API proxy à partir de votre application publique au moyen du [flux du code d’autorisation avec Proof Key for Code Exchange (PKCE)](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
+Ensuite, vous appellerez votre API proxy depuis votre application publique à l’aide du [flux de code d’autorisation avec clé de preuve pour l’échange de code (PKCE)](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce).
 
 <Card title="Montrez-moi comment">
-  Si vous n’avez jamais fait cela auparavant, notre scénario d’[architecture Applications monopages (SPA) avec API](/docs/fr-CA/get-started/architecture-scenarios/spa-api) pourrait vous être utile. Il couvre un scénario différent, mais explique comment configurer Auth0, comment appeler une API à partir d’une SPA et comment mettre en œuvre les validations d’API. Il comprend aussi un exemple qui utilise [Angular 2](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-spa/angular) et [Node.js](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-api/node).
+  Si vous n’avez jamais fait cela auparavant, notre scénario d’architecture [Applications monopages (SPA) avec API](/docs/fr-CA/get-started/architecture-scenarios/spa-api) pourrait vous être utile. Il couvre un scénario différent, mais explique comment configurer Auth0, comment appeler une API à partir d’une SPA et comment mettre en place les validations d’API. Il comprend un exemple utilisant [Angular 2](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-spa/angular) et [Node.js](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-api/node).
 
-  Nous offrons aussi une variante [Applications mobiles avec API](/docs/fr-CA/get-started/architecture-scenarios/mobile-api) (l’exemple utilise [Android](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-mobile/android) et [Node.js](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-api/node)).
+  Nous proposons également une variante [Applications mobiles avec API](/docs/fr-CA/get-started/architecture-scenarios/mobile-api) (l’exemple utilise [Android](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-mobile/android) et [Node.js](https://github.com/auth0-samples/auth0-pnp-exampleco-timesheets/tree/master/timesheets-api/node)).
 </Card>

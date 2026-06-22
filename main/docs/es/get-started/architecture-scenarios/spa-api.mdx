@@ -1,40 +1,40 @@
 ---
-description: Explica el escenario de arquitectura en el que una aplicación de una sola página (SPA) se comunica con una API mediante OpenID Connect (OIDC) y el flujo de concesión implícita de OAuth 2.0 para autenticar usuarios con Auth0.
-title: Aplicaciones de una sola página (SPA) con API
+description: Explica el escenario de arquitectura en el que una aplicación de página única (SPA) se comunica con una API mediante OpenID Connect (OIDC) y el flujo de concesión implícita de OAuth 2.0 para autenticar usuarios con Auth0.
+title: Aplicaciones de página única (SPA) con API
 ---
 
-En este escenario, construiremos una API de hoja de hora para una empresa ficticia llamada ExampleCo. La API permitirá agregar entradas de hoja de hora para un empleado o un contratista.
+En este escenario, construiremos una API de hojas de horas para una empresa ficticia llamada ExampleCo. La API permitirá agregar entradas de hojas de horas para un empleado o un contratista.
 
-También construiremos una aplicación de una sola página (SPA) que se utilizará para registrar entradas de hoja de hora y enviarlas a la base de datos centralizada de hojas de hora mediante la API.
+También construiremos una aplicación de página única (SPA) que se usará para registrar entradas de hojas de horas y enviarlas a la base de datos centralizada de hojas de horas mediante la API.
 
 <Info>
   ### En resumen
 
-  * Auth0 proporciona autenticación y autorización de API como un medio para proteger el acceso a los endpoints de API (consulte [API Authentication and Authorization](/docs/es/get-started/architecture-scenarios/spa-api/part-1#api-authentication-and-authorization))
-  * Para autorizar a un usuario de una SPA, Auth0 admite la concesión implícita (consulte [Implicit Grant](/docs/es/get-started/architecture-scenarios/spa-api/part-1#implicit-grant))
-  * Tanto la SPA como la API deben configurarse en el Auth0 Dashboard (consulte [Auth0 Configuration](/docs/es/get-started/architecture-scenarios/spa-api/part-2#auth0-configuration))
-  * Los permisos de usuario se pueden aplicar mediante la Authorization Extension (consulte [Configure the Authorization Extension](/docs/es/get-started/architecture-scenarios/spa-api/part-2#configure-the-authorization-extension))
-  * La API estará protegida al garantizar que se envíe un token de acceso válido en el header HTTP Authorization al hacer llamadas a la API (consulte [Implement the API](/docs/es/get-started/architecture-scenarios/spa-api/part-3#implement-the-api))
-  * La biblioteca Auth0.js puede utilizarse para autorizar al usuario de la SPA y obtener un token de acceso válido que pueda usarse para llamar a la API (consulte [Authorize the User](/docs/es/get-started/architecture-scenarios/spa-api/part-3#authorize-the-user))
-  * La SPA puede enviar el token de acceso en el header HTTP Authorization al hacer llamadas a la API (consulte [Call the API](/docs/es/get-started/architecture-scenarios/spa-api/part-3#call-the-api))
-  * La SPA puede mostrar elementos de la interfaz de usuario de forma condicional según los scopes concedidos al usuario (consulte [Display UI Elements Conditionally Based on Scope](/docs/es/get-started/architecture-scenarios/spa-api/part-3#display-ui-elements-conditionally-based-on-scope))
+  * Auth0 proporciona autenticación y autorización para API como una forma de proteger el acceso a los endpoints de API (consulta [Autenticación y autorización de API](/docs/es/get-started/architecture-scenarios/spa-api/part-1#api-authentication-and-authorization))
+  * Para autorizar a un usuario de una SPA, Auth0 admite la concesión implícita (consulta [Concesión implícita](/docs/es/get-started/architecture-scenarios/spa-api/part-1#implicit-grant))
+  * Tanto la SPA como la API deben configurarse en el Auth0 Dashboard (consulta [Auth0 Configuration](/docs/es/get-started/architecture-scenarios/spa-api/part-2#auth0-configuration))
+  * Los permisos de usuario pueden aplicarse mediante la Authorization Extension (consulta [Configurar la Authorization Extension](/docs/es/get-started/architecture-scenarios/spa-api/part-2#configure-the-authorization-extension))
+  * La API se protegerá asegurando que se envíe un token de acceso válido en el encabezado HTTP Authorization cuando se hagan llamadas a la API (consulta [Implementar la API](/docs/es/get-started/architecture-scenarios/spa-api/part-3#implement-the-api))
+  * La biblioteca Auth0.js puede usarse para autorizar al usuario de la SPA y obtener un token de acceso válido que puede utilizarse para llamar a la API (consulta [Autorizar al usuario](/docs/es/get-started/architecture-scenarios/spa-api/part-3#authorize-the-user))
+  * La SPA puede enviar el token de acceso en el encabezado HTTP Authorization al hacer llamadas a la API (consulta [Llamar a la API](/docs/es/get-started/architecture-scenarios/spa-api/part-3#call-the-api))
+  * La SPA puede mostrar elementos de UI de forma condicional según los scopes concedidos al usuario (consulta [Mostrar elementos de UI de forma condicional según el scope](/docs/es/get-started/architecture-scenarios/spa-api/part-3#display-ui-elements-conditionally-based-on-scope))
 </Info>
 
 <div id="the-premise">
   ## La premisa
 </div>
 
-ExampleCo es una startup de consultoría. Actualmente, cuenta con aproximadamente 100 empleados y también externaliza varias actividades a contratistas externos. Todos los empleados y contratistas externos deben completar sus hojas de hora cada semana.
+ExampleCo es una startup de consultoría. Actualmente, tiene aproximadamente 100 empleados y además subcontrata varias actividades a contratistas externos. Todos los empleados y los contratistas externos deben completar sus hojas de horas cada semana.
 
-La empresa ha desarrollado una aplicación de hojas de hora, un escenario que analizamos en [Inicio de sesión único para aplicaciones web tradicionales](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps). Los empleados internos usan esta aplicación web para completar sus hojas de hora, pero la empresa quiere reemplazarla por una SPA. La aplicación se utilizará para registrar entradas en las hojas de hora y enviar los datos a la base de datos centralizada de hojas de hora mediante la API. La aplicación también permitirá que los gerentes aprueben las entradas de las hojas de hora.
+La empresa ha creado una aplicación de hojas de horas, un caso que ya vimos en [inicio de sesión único para aplicaciones web tradicionales](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps). Los empleados internos usan esta aplicación web para completar sus hojas de horas, pero la empresa quiere reemplazarla por una SPA. La aplicación se usará para registrar las entradas de las hojas de horas y enviar los datos a la base de datos centralizada de hojas de horas mediante la API. La aplicación también permitirá que los gerentes aprueben las entradas de las hojas de horas.
 
 <div id="goals-requirements">
   ## Objetivos y requisitos
 </div>
 
-ExampleCo quiere desarrollar una solución flexible. Por el momento, solo se necesita una SPA para registrar entradas de hoja de hora, pero en el futuro la empresa tiene previsto lanzar más aplicaciones, como una aplicación móvil para dar soporte a sus equipos de ventas. Por eso, la empresa ha decidido desarrollar una única API de hoja de hora que se utilizará para registrar el tiempo no solo mediante este proceso del servidor, sino también desde todas las aplicaciones futuras. Quieren implementar una arquitectura de seguridad lo bastante flexible como para dar cabida a esto. ExampleCo quiere asegurarse de que gran parte del código y de la lógica de negocio de la aplicación pueda compartirse entre las distintas aplicaciones.
+ExampleCo quiere crear una solución flexible. Por ahora, solo se necesita una SPA para registrar entradas de hoja de hora, pero en el futuro la empresa tiene previsto lanzar más aplicaciones, como una aplicación móvil para dar soporte a sus equipos de ventas. Por eso, la empresa ha decidido desarrollar una única API de parte de horas que se utilizará para registrar el tiempo no solo mediante este proceso del servidor, sino también desde todas las aplicaciones futuras. Quieren implementar una arquitectura de seguridad lo bastante flexible como para dar cabida a esto. ExampleCo quiere asegurarse de que gran parte del código y de la lógica de negocio de la aplicación pueda compartirse entre las distintas aplicaciones.
 
-Se requiere que solo los usuarios y las aplicaciones autorizados puedan acceder a la API de hoja de hora.
+Se requiere que solo los usuarios y las aplicaciones autorizados tengan acceso a la API de parte de horas.
 
 Esta SPA será utilizada por dos tipos de usuarios: empleados y gerentes. Los empleados deben poder leer, crear y eliminar sus propias entradas de hoja de hora, mientras que los gerentes también deben poder aprobar hojas de hora.
 
@@ -42,9 +42,9 @@ Esta SPA será utilizada por dos tipos de usuarios: empleados y gerentes. Los em
   ## Más información
 </div>
 
-* [Descripción general de la solución (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/part-1)
-* [Configuración de Auth0 (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/part-2)
+* [Información general de la solución (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/part-1)
+* [Auth0 Configuration (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/part-2)
 * [Configuración de la API y la SPA (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/part-3)
-* [Implementación de la API en Node.js (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/api-implementation-nodejs)
+* [Implementación de la API con Node.js (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/api-implementation-nodejs)
 * [Implementación de la SPA en Angular 2 (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/spa-implementation-angular2)
 * [Conclusión (SPAs + API)](/docs/es/get-started/architecture-scenarios/spa-api/part-4)

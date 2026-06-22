@@ -3,16 +3,16 @@ description: Describe cómo usar los parámetros de paginación para consultas d
 title: Migrar a consultas paginadas de endpoints de Management API v2
 ---
 
-Después del **26 de enero de 2021** (o la versión 2202 de Private Cloud), las solicitudes a los endpoints de <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> v2 devolverán un máximo de 50 elementos para los tenants en Public Cloud. Para recuperar más elementos, debes incluir los parámetros `page` y `per_page`. A partir del **21 de julio de 2020** (o la versión 2108 de Private Cloud), Auth0 mostrará los registros del tenant y un interruptor de migración para ayudarte a prepararte para este cambio.
+Después del **26 de enero de 2021** (o la versión 2202 de Private Cloud), las solicitudes a los endpoints v2 de <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip> devolverán un máximo de 50 elementos para los tenants en Public Cloud. Para recuperar más elementos, debes incluir los parámetros `page` y `per_page`. A partir del **21 de julio de 2020** (o la versión 2108 de Private Cloud), Auth0 mostrará los registros del tenant y un selector de migración para ayudarte a prepararte para este cambio.
 
 Los tenants afectados son aquellos que cumplen los siguientes criterios:
 
-* Tenants de Public Cloud creados **antes del 21 de julio de 2020** o implementaciones de Private Cloud en la versión 2108
+* Tenants de Public Cloud creados **antes del 21 de julio de 2020** o despliegues de Private Cloud en la versión 2108
 * Realizan activamente llamadas a los endpoints afectados sin pasar el parámetro `per_page` en consultas que pueden devolver más de 1 resultado.
 
-Los siguientes tenants adoptarán de forma predeterminada el nuevo comportamiento de paginación y seguirán funcionando como lo hacen hoy después del 26 de enero de 2021:
+Los siguientes tenants usarán de forma predeterminada el nuevo comportamiento de paginación y seguirán funcionando como hasta ahora después del 26 de enero de 2021:
 
-* Tenants de Public Cloud creados **el 21 de julio de 2020 o después** o implementaciones de Private Cloud en la versión 2108 o superior
+* Tenants de Public Cloud creados **el 21 de julio de 2020 o después** o despliegues de Private Cloud en la versión 2108 o superior
 * No usan ninguno de los endpoints afectados
 * Usan los endpoints afectados y pasan el parámetro `per_page`, o realizan consultas que siempre devolverán un único resultado.
 
@@ -30,40 +30,40 @@ Las llamadas a los siguientes endpoints de Management API v2 se ven afectadas:
 * [`GET /api/v2/resource-servers`](https://auth0.com/docs/api/management/v2#!/Clients/resource_servers)
 * [`GET /api/v2/rules`](https://auth0.com/docs/api/management/v2#!/Clients/rules)
 
-Los avisos de obsolescencia se registrarán en los registros de tu tenant para todas las solicitudes sin opciones de paginación que actualmente devuelvan más de un elemento, una vez por hora por cada cliente y endpoint distintos.
+Se registrarán avisos de obsolescencia en el registro del tenant para todas las solicitudes sin opciones de paginación que actualmente devuelvan más de 1 elemento, una vez por hora por cada cliente y endpoint distintos.
 
 <div id="actions">
   ## Actions
 </div>
 
-1. Reemplaza todas las llamadas a los endpoints afectados incluyendo los parámetros `page` y `per_page`.
+1. Reemplace todas las llamadas a los endpoints afectados proporcionando los parámetros `page` y `per_page`.
 
-| Parámetro  | Tipo   | Descripción                                                                                |
-| ---------- | ------ | ------------------------------------------------------------------------------------------ |
-| `page`     | Entero | Índice de la página de los resultados que se devolverán. La primera página es 0.           |
-| `per_page` | Entero | Número de resultados por página. La paginación se desactiva si no se envía este parámetro. |
+| Parámetro  | Tipo    | Descripción                                                                              |
+| ---------- | ------- | ---------------------------------------------------------------------------------------- |
+| `page`     | Integer | Índice de página de los resultados que se devolverán. La primera página es 0.            |
+| `per_page` | Integer | Número de resultados por página. La paginación se desactiva si no se envía el parámetro. |
 
-2. Confirma que ya no aparecen avisos de obsolescencia en el registro del tenant. Verifica si una solicitud devolvió más de 50 elementos. Consulta el campo `details.size_exceeded` y comprueba si es `true`.
+2. Confirme que ya no aparecen avisos de obsolescencia en los registros de su tenant. Verifique si una solicitud devolvió más de 50 elementos. Revise el campo `details.size_exceeded` y compruebe si es `true`.
 
-   1. Usa la siguiente consulta de logs para devolver todas las llamadas sin opciones de paginación con más de 1 resultado:
+   1. Use la siguiente consulta de registros para devolver todas las llamadas sin opciones de paginación con más de 1 resultado:
       `type:depnote AND description:*Unpaginated*`
-   2. Usa la siguiente consulta de logs para devolver todas las llamadas sin opciones de paginación con más de 50 resultados:
+   2. Use la siguiente consulta de registros para devolver todas las llamadas sin opciones de paginación con más de 50 resultados:
       `type:depnote AND description:*Unpaginated* AND details.size_exceeded:true`
 
-   Para identificar la aplicación que realiza la solicitud, los logs incluirán el `client_id` usado para hacerla. También puedes encontrar el endpoint que se está usando en el campo `details.path` de los logs.
-3. Desactiva las solicitudes no paginadas de Management API para tu tenant. Ve a [Dashboard &gt; Configuración del tenant &gt; Advanced &gt; Migration](https://manage.auth0.com/#/tenant/advanced). Esto simulará el comportamiento esperado cuando se cierre la ventana de migración, haciendo que las llamadas a los endpoints afectados devuelvan hasta 50 resultados. Podrás volver a habilitar las solicitudes no paginadas en cualquier momento antes de esa fecha.
+   Para identificar la aplicación que realiza la solicitud, los registros incluirán el `client_id` utilizado para realizarla. También puede encontrar el endpoint que se está usando en el campo `details.path` de los registros.
+3. Desactive las solicitudes no paginadas de Management API para su tenant. Vaya a [Dashboard &gt; Configuración del tenant &gt; Advanced &gt; Migration](https://manage.auth0.com/#/tenant/advanced). Esto simulará el comportamiento esperado después de que cierre la ventana de migración, haciendo que las llamadas a los endpoints afectados devuelvan hasta 50 resultados. Podrá volver a habilitar las solicitudes no paginadas en cualquier momento antes de esa fecha.
 
 <div id="update-extensions">
   ### Actualizar extensiones
 </div>
 
-Es posible que tengas que actualizar versiones anteriores de [Auth0 Extensions](/docs/es/customize/extensions) y extensiones personalizadas a las versiones más recientes para asegurarte de que solo realicen consultas paginadas.
+Es posible que debas actualizar [Auth0 Extensions](/docs/es/customize/extensions) y las extensiones personalizadas desde versiones anteriores a las versiones más recientes para asegurarte de que solo realicen consultas paginadas.
 
-1. Revisa los registros de tu tenant para ver si hay avisos de obsolescencia para clientes con un ID que coincida con la URL de una extensión. Esto significa que tendrás que actualizar esa extensión.
-2. Ve a [Dashboard &gt; Extensions](https://manage.auth0.com/#/extensions), selecciona **Installed Extensions** y haz clic en el enlace **Update** de la extensión, si aparece.
+1. Revisa el registro del tenant para ver avisos de obsolescencia de clientes con un ID que coincida con la URL de una extensión. Esto significa que deberás actualizar esa extensión.
+2. Ve a [Dashboard &gt; Extensions](https://manage.auth0.com/#/extensions), selecciona **Installed Extensions** y haz clic en el enlace **Update** de la extensión si aparece.
 
 <div id="update-deploy-cli-tool">
-  ### Actualiza la herramienta Deploy CLI
+  ### Actualice la herramienta Deploy CLI
 </div>
 
-Si usas la herramienta `auth0-deploy-cli`, debes actualizarla a la versión **5.3.0 o posterior**. Para obtener más información, consulta [la herramienta Deploy CLI](/docs/es/deploy-monitor/deploy-cli-tool).
+Si usa la herramienta `auth0-deploy-cli`, debe actualizarla a la versión **5.3.0 o posterior**. Para obtener más información, consulte [Herramienta Deploy CLI](/docs/es/deploy-monitor/deploy-cli-tool).

@@ -1,22 +1,22 @@
 ---
-description: Aprende a usar cuotas granulares de tokens M2M para las aplicaciones y organizaciones asociadas a tu tenant.
-title: Acceso anticipado a las cuotas granulares de tokens de máquina a máquina
+description: Aprende a usar cuotas granulares de token M2M para las aplicaciones y organizaciones asociadas a tu tenant.
+title: Acceso anticipado a las cuotas granulares de token de máquina a máquina
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Las cuotas granulares de tokens M2M se encuentran actualmente en acceso anticipado. Ponte en contacto con tu contacto de Auth0 para solicitar acceso. Para obtener más información sobre el ciclo de lanzamiento de productos de Auth0, consulta [Etapas de lanzamiento del producto](/docs/es/troubleshoot/product-lifecycle/product-release-stages).
+  Las cuotas granulares de tokens M2M están actualmente en acceso anticipado. Comunícate con tu contacto de Auth0 para solicitar acceso. Para obtener más información sobre el ciclo de lanzamiento de productos de Auth0, consulta [Etapas de lanzamiento del producto](/docs/es/troubleshoot/product-lifecycle/product-release-stages).
 </Callout>
 
-El [flujo de credenciales de cliente](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow) permite a las aplicaciones de máquina a máquina (M2M), como las CLI, los demonios o los servicios de backend, obtener <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> en su propio nombre, sin interacción del usuario.
+El [Client Credentials Flow](/docs/es/get-started/authentication-and-authorization-flow/client-credentials-flow) permite que las aplicaciones de máquina a máquina (M2M), como CLIs, daemons o servicios de backend, obtengan <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> en su propio nombre sin interacción del usuario.
 
-Implementar prácticas recomendadas para el almacenamiento en caché de tokens de acceso puede minimizar las llamadas a Auth0 y controlar el volumen de emisión de tokens. Sin embargo, algunas aplicaciones, como los sistemas de terceros o las que se ejecutan en despliegues grandes y complejos, podrían no implementar un almacenamiento en caché adecuado y presentar un comportamiento en ráfagas. Esto puede hacer que Auth0 genere un gran volumen de tokens M2M en períodos cortos, lo que afecta la cuota general de tokens M2M de tu tenant y provoca un comportamiento inesperado del servicio.
+Implementar prácticas recomendadas de almacenamiento en caché de tokens de acceso puede minimizar las llamadas a Auth0 y controlar el volumen de emisión de tokens. Sin embargo, es posible que algunas aplicaciones, como sistemas de terceros o aquellas en implementaciones grandes y complejas, no implementen un almacenamiento en caché adecuado y presenten picos de actividad. Esto puede hacer que Auth0 genere un gran volumen de tokens M2M en períodos cortos, lo que afecta la cuota general de tokens M2M de tu tenant y provoca comportamientos inesperados del servicio.
 
-Las cuotas granulares de tokens M2M de Auth0 te permiten establecer límites horarios y diarios de tokens de acceso M2M para aplicaciones y Auth0 Organizations. Esto proporciona un control operativo más detallado sobre la emisión de tokens para evitar un consumo excesivo.
+Las cuotas granulares de tokens M2M de Auth0 te permiten establecer límites horarios y diarios de tokens de acceso M2M para aplicaciones y Auth0 Organizations. Esto proporciona un control operativo granular sobre la emisión de tokens para evitar un consumo excesivo.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Las cuotas granulares de tokens M2M son distintas de la asignación mensual general de tokens M2M de tu tenant. Puedes usar las cuotas granulares de tokens como protección frente a ráfagas de solicitudes de tokens.
+  Las cuotas granulares de tokens M2M son distintas de la asignación mensual general de tokens M2M de tu tenant. Puedes usar cuotas granulares de tokens como medida de protección frente a solicitudes rápidas de tokens.
 </Callout>
 
 <div id="use-cases">
@@ -24,59 +24,59 @@ Las cuotas granulares de tokens M2M de Auth0 te permiten establecer límites hor
 </div>
 
 * **Controla las aplicaciones fuera de control**: Aplica cuotas a nivel de aplicación para limitar que las aplicaciones M2M soliciten tokens con demasiada frecuencia (debido a errores, falta de caché, etc.) sin afectar la cuota general de tokens M2M de tu tenant.
-* **Garantiza un uso justo en entornos multi-tenant**: Asigna cuotas a nivel de organización a distintos clientes (Auth0 Organizations) para evitar que uno agote la cuota de los demás.
-* **Establece protecciones para todo el tenant**: Usa cuotas predeterminadas a nivel de tenant como línea base para limitar las solicitudes excesivas de tokens M2M de aplicaciones y organizaciones.
-* **Supervisa antes de aplicar restricciones**: Implementa cuotas con `enforce: false` para observar el consumo de tokens mediante los [registros de advertencia de consumo](#consumption-warning-logs) y los [encabezados de cuota de Auth0](#auth0-quota-headers). Después, establece límites fundamentados antes de activar el bloqueo.
+* **Garantiza un uso equitativo en entornos multi-tenant**: Asigna cuotas a nivel de organización a distintos clientes (Auth0 Organizations) para evitar que uno consuma la cuota de los demás.
+* **Establece salvaguardas para todo el tenant**: Usa cuotas predeterminadas a nivel del tenant como límite de línea base frente a solicitudes excesivas de tokens M2M por parte de aplicaciones y organizaciones.
+* **Supervisa antes de aplicar restricciones**: Implementa cuotas con `enforce: false` para observar el consumo de tokens mediante [logs de advertencia de consumo](#consumption-warning-logs) y [headers de cuota de Auth0](#auth0-quota-headers). Luego, establece límites fundamentados antes de activar el bloqueo.
 
 <div id="how-it-works">
   ## Cómo funciona
 </div>
 
-Puedes aplicar cuotas granulares de tokens M2M a las siguientes entidades:
+Puede aplicar cuotas granulares de token M2M a las siguientes entidades:
 
-* **Aplicación**: Limita los tokens generados para un cliente, lo que permite controlar el comportamiento de cada aplicación.
-* **Organización**: Limita los tokens de las solicitudes realizadas con una organización para ayudar a gestionar la actividad M2M del cliente de SaaS o de la unidad de negocio en todas las aplicaciones que usan tokens asociados a un `org_id`.
+* **Aplicación**: limita los tokens generados para un cliente a fin de controlar el comportamiento de cada aplicación.
+* **Organización**: limita los tokens de las solicitudes realizadas con una organización para ayudar a gestionar la actividad de máquina a máquina del cliente de SaaS o de la unidad de negocio en todas las aplicaciones que utilizan tokens asociados con un `org_id`.
 
-Auth0 admite dos tipos de cuotas granulares de tokens M2M:
+Auth0 admite dos tipos de cuotas granulares de token M2M:
 
-* **Por hora:** La cantidad máxima de tokens que se puede obtener en una sola hora. La cuota se restablece al inicio de cada hora UTC.
-* **Diaria:** La cantidad máxima de tokens que se puede obtener en un período de 24 horas. La cuota se restablece al inicio de cada día UTC.
+* **Hourly:** la cantidad máxima de tokens que se puede obtener en una sola hora. La cuota se restablece al comienzo de cada hora UTC.
+* **Daily:** la cantidad máxima de tokens que se puede obtener en un período de 24 horas. La cuota se restablece al comienzo de cada día UTC.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  El mecanismo de conteo de tokens de Auth0 tiene consistencia eventual, por lo que puede haber excesos menores y breves antes de que el límite se aplique en solicitudes posteriores.
+  El mecanismo de recuento de tokens de Auth0 tiene consistencia eventual, por lo que puede haber excesos leves y breves antes de que el control se aplique en solicitudes posteriores.
 </Callout>
 
 <div id="quota-evaluation-and-enforcement-rules">
   ### Reglas de evaluación y aplicación de cuotas
 </div>
 
-Auth0 determina y aplica cuotas granulares de tokens M2M para las aplicaciones y organizaciones asociadas a tu tenant:
+Auth0 determina y aplica cuotas granulares de token M2M para aplicaciones y organizaciones asociadas a tu tenant:
 
 1. **Cuota a nivel de cliente:**
 
-   * Si has configurado una **cuota específica de la aplicación** para el `client_id`, Auth0 aplica la cuota al cliente.
-   * En caso contrario, Auth0 aplica al cliente la **cuota predeterminada a nivel de tenant para clientes**. Si no has configurado una cuota predeterminada a nivel de tenant para clientes, Auth0 no aplica ninguna cuota granular al cliente.
+   * Si has configurado una **Cuota específica de la aplicación** para `client_id`, Auth0 aplica la cuota al cliente.
+   * De lo contrario, Auth0 aplica al cliente la **Cuota predeterminada a nivel del tenant para clientes**. Si no has configurado un valor predeterminado a nivel del tenant para clientes, Auth0 no aplica una cuota granular al cliente.
 2. **Cuota a nivel de organización:**
 
-   * Si has configurado una **cuota específica de la organización** para el `org_id` asociado a la solicitud de token, Auth0 aplica la cuota a la organización.
-   * En caso contrario, Auth0 aplica al `org_id` asociado a la solicitud de token la **cuota predeterminada a nivel de tenant para Organizations**. Si no has configurado una cuota predeterminada a nivel de tenant para Organizations, Auth0 no aplica ninguna cuota granular al `org_id` asociado a la solicitud de token.
-3. En función de si la solicitud de token tiene una organización asociada, Auth0 comprueba si hay alguna cuota aplicable:
+   * Si has configurado una **Cuota específica de la organización** para el `org_id` asociado con la solicitud de token, Auth0 aplica la cuota a la organización.
+   * De lo contrario, Auth0 aplica al `org_id` asociado con la solicitud de token la **Cuota predeterminada a nivel del tenant para Organizations**. Si no has configurado un valor predeterminado a nivel del tenant para Organizations, Auth0 no aplica una cuota granular al `org_id` asociado con la solicitud de token.
+3. Dependiendo de si la solicitud de token tiene una organización asociada, Auth0 verifica si existe una cuota aplicable:
 
-   * Si la solicitud de token tiene una organización asociada definida explícitamente o mediante la configuración predeterminada de la organización, Auth0 comprueba simultáneamente las cuotas a nivel de cliente y de organización.
-   * Si la solicitud de token no tiene una organización asociada, Auth0 solo comprueba la cuota a nivel de cliente.
+   * Si la solicitud de token tiene una organización asociada definida explícitamente o mediante la configuración predeterminada de la organización, Auth0 verifica simultáneamente las cuotas a nivel de cliente y de organización.
+   * Si la solicitud de token no tiene una organización asociada, Auth0 solo verifica la cuota a nivel de cliente.
 
 Auth0 evalúa simultáneamente todas las cuotas aplicables a la transacción y aplica aquellas que tienen el indicador `enforce` establecido en `true` en la configuración de la cuota:
 
-* **Cuando se aplica una cuota (**`enforce: true`**):** Si se supera una cuota aplicada, la solicitud de token se **rechaza** con un error HTTP 429 Too Many Requests. Para obtener más información, consulta [Respuestas de error para cuotas excedidas](#error-responses-for-exceeded-quotas).
-* **Cuando no se aplica una cuota (**`enforce: false`**):** Las solicitudes de token **no se rechazan** por esta cuota, aunque se supere su límite. Auth0 sigue contabilizando tokens y genera [registros de advertencia de consumo](#consumption-warning-logs) al alcanzarse los umbrales, lo que permite el monitoreo antes de habilitar la aplicación de la cuota.
+* **Cuando se aplica una cuota (**`enforce: true`**):** Si se supera una cuota aplicada, la solicitud de token se **rechaza** con un error HTTP 429 Too Many Requests. Para obtener más información, consulta [Respuestas de error para cuotas superadas](#error-responses-for-exceeded-quotas).
+* **Cuando no se aplica una cuota (**`enforce: false`**):** Las solicitudes de token **no se rechazan** por esta cuota, incluso si se supera su límite. Auth0 sigue contabilizando tokens y genera [registros de advertencia de consumo](#consumption-warning-logs) en los umbrales, lo que permite el monitoreo antes de activar su aplicación.
 
 <div id="observability">
   ### Observabilidad
 </div>
 
-Para ofrecer visibilidad sobre el consumo de cuota, Auth0 genera [registros de advertencia de consumo](#consumption-warning-logs). Estos registros se generan cuando una cuota alcanza el 60 %, el 80 % y el 100 % de su límite. Puede usar estos registros para supervisar de forma proactiva el uso de tokens e identificar posibles problemas.
+Para ofrecer visibilidad sobre el consumo de la cuota, Auth0 genera [registros de advertencia de consumo](#consumption-warning-logs). Estos registros se generan cuando una cuota alcanza el 60 %, 80 % y 100 % de su límite. Puedes usarlos para supervisar de forma proactiva el uso de tokens e identificar posibles incidencias.
 
-Las aplicaciones también pueden determinar mediante programación la cuota restante usando los [encabezados de cuota de Auth0](#auth0-quota-headers). Estos encabezados HTTP se incluyen tanto en las respuestas exitosas como en las respuestas de error a las solicitudes de flujo de credenciales de cliente, y proporcionan información en tiempo real sobre el uso de la cuota.
+Las aplicaciones también pueden determinar mediante programación la cuota que les queda usando los [encabezados de cuota de Auth0](#auth0-quota-headers). Estos encabezados HTTP se incluyen tanto en las respuestas correctas como en las de error a las solicitudes de Client Credentials Flow, y proporcionan información en tiempo real sobre el uso de la cuota.
 
 <div id="configure-m2m-token-quotas">
   ## Configurar cuotas de tokens M2M
@@ -85,12 +85,12 @@ Las aplicaciones también pueden determinar mediante programación la cuota rest
 Puede configurar cuotas granulares de tokens M2M mediante la [Management API](https://auth0.com/docs/api/management/v2).
 
 <div id="tenant-level-default-quotas">
-  ### Cuotas predeterminadas a nivel de tenant
+  ### Cuotas predeterminadas a nivel del tenant
 </div>
 
-Las cuotas a nivel de tenant funcionan como la configuración predeterminada para todas las aplicaciones y organizaciones dentro de tu tenant de Auth0. Puedes usar las cuotas a nivel de tenant para establecer límites de línea base para el uso de tokens M2M. Estas cuotas se sustituyen por cuotas específicas de la aplicación y de la organización.
+Las cuotas a nivel del tenant sirven como configuración predeterminada para todas las aplicaciones y organizaciones dentro de tu tenant de Auth0. Puedes usar cuotas a nivel del tenant para establecer límites de línea base para el uso de tokens de máquina a máquina. Estas cuotas se sustituyen por las cuotas específicas de la aplicación y las cuotas específicas de la organización.
 
-Puedes especificar cuotas de tokens predeterminadas para las aplicaciones y/o organizaciones asociadas a tu tenant. Para configurar las cuotas a nivel de tenant, usa el endpoint [Update a tenant](https://auth0.com/docs/api/management/v2/tenants/patch-settings):
+Puedes especificar cuotas predeterminadas de tokens para las aplicaciones y/o organizaciones asociadas a tu tenant. Para configurar cuotas a nivel del tenant, usa el endpoint [Update a tenant](https://auth0.com/docs/api/management/v2/tenants/patch-settings):
 
 ```bash lines
 curl --request PATCH 'https://YOUR_DOMAIN/api/v2/tenants/settings' \
@@ -120,21 +120,21 @@ El objeto `default_token_quota` contiene las siguientes configuraciones de cuota
 
 * `clients.client_credentials`: (Opcional) Define cuotas de tokens M2M para aplicaciones individuales.
 * `organizations.client_credentials`: (Opcional) Define cuotas de tokens M2M para organizaciones.
-* `per_hour`: (Opcional) Establece la cuota horaria de tokens.
+* `per_hour`: (Opcional) Establece la cuota de tokens por hora.
 * `per_day`: (Opcional) Establece la cuota diaria de tokens.
-* `enforce`: (Opcional) Determina si las solicitudes de tokens se rechazan cuando se supera la cuota. El valor predeterminado es `true`.
+* `enforce`: (Opcional) Determina si se rechazan las solicitudes de tokens cuando se supera la cuota. El valor predeterminado es true.
 
-En el ejemplo, todas las aplicaciones del tenant tienen, de forma predeterminada, un límite de 100 tokens M2M por hora y 1000 por día. Para Organizations, el valor predeterminado es de 500 tokens por hora y 5000 por día, pero actualmente la aplicación de los límites está deshabilitada (`enforce: false`). Esto le permite supervisar el uso de tokens de la organización antes de aplicar los límites.
+En el ejemplo, todas las aplicaciones del tenant tienen, de forma predeterminada, un límite de 100 tokens M2M por hora y 1000 por día. Para Organizations, el valor predeterminado es 500 tokens por hora y 5000 por día, pero la aplicación de este límite está deshabilitada actualmente (`enforce: false`). Esto le permite supervisar el uso de tokens de la organización antes de aplicar límites.
 
 <div id="application-specific-quotas">
   ### Cuotas específicas por aplicación
 </div>
 
-Puede configurar cuotas para aplicaciones específicas que sustituyan los valores predeterminados del tenant. Esto resulta útil para tener un control más preciso sobre el comportamiento de cada aplicación.
+Puedes configurar cuotas para aplicaciones específicas y reemplazar los valores predeterminados a nivel del tenant. Esto resulta útil para tener un control más detallado sobre el comportamiento de cada aplicación.
 
-Puede establecer cuotas específicas por aplicación al crear o actualizar una aplicación.
+Puedes establecer cuotas específicas por aplicación al crear o actualizar una aplicación.
 
-Para crear una aplicación con una cuota de token, use el endpoint [Crear un cliente](https://auth0.com/docs/api/management/v2/clients/post-clients):
+Para crear una aplicación con una cuota de tokens, usa el endpoint [Crear un cliente](https://auth0.com/docs/api/management/v2/clients/post-clients):
 
 ```bash lines
 curl --location 'https://YOUR_DOMAIN/api/v2/clients' \
@@ -169,26 +169,26 @@ curl --location --request PATCH 'https://YOUR_DOMAIN/api/v2/clients/a01FUMJHEtb0
 }'
 ```
 
-El objeto `token_quota` contiene la configuración de cuotas de tokens de la aplicación:
+El objeto `token_quota` contiene la configuración de la cuota de tokens de la aplicación:
 
-* `client_credentials`: Define las cuotas de tokens M2M.
+* `client_credentials`: Define las cuotas de tokens de máquina a máquina.
 * `per_hour`: Establece la cuota horaria de tokens.
 * `per_day`: Establece la cuota diaria de tokens.
-* `enforce`: Determina si las solicitudes de tokens se rechazan cuando se supera la cuota. El valor predeterminado es `true`.
+* `enforce`: Determina si las solicitudes de token se rechazan cuando se supera la cuota. El valor predeterminado es `true`.
 
-En este ejemplo, la aplicación con `{yourClientId}` está limitada a 10 tokens M2M por hora y 50 por día, lo que sustituye cualquier configuración a nivel de tenant.
+En este ejemplo, la aplicación con `{yourClientId}` está limitada a 10 tokens de máquina a máquina por hora y 50 por día, lo que reemplaza cualquier configuración a nivel del tenant.
 
-Puedes obtener la configuración de cuotas de tokens de una aplicación mediante el endpoint [Get a client by ID](https://auth0.com/docs/api/management/v2/clients/get-clients-by-id).
+Puedes obtener la configuración de la cuota de tokens de una aplicación mediante el endpoint [Obtener un cliente por ID](https://auth0.com/docs/api/management/v2/clients/get-clients-by-id).
 
 <div id="organization-specific-quotas">
   ### Cuotas específicas por organización
 </div>
 
-También puedes configurar cuotas para organizaciones específicas y reemplazar los valores predeterminados del tenant. Esto te permite gestionar el uso de tokens M2M para clientes individuales de SaaS o partners.
+También puedes configurar cuotas para organizaciones específicas y anular los valores predeterminados a nivel del tenant. Esto te permite gestionar el uso de tokens M2M para clientes individuales de SaaS o partners.
 
 Puedes establecer cuotas específicas por organización al crear o actualizar una organización.
 
-Para crear una organización con una cuota de token, usa el endpoint [Crear una organización](https://auth0.com/docs/api/management/v2/organizations/post-organizations):
+Para crear una organización con una cuota de tokens, usa el endpoint [Crear una organización](https://auth0.com/docs/api/management/v2/organizations/post-organizations):
 
 ```bash lines
 curl --location 'https://YOUR_DOMAIN/api/v2/organizations' \
@@ -226,50 +226,50 @@ curl --request PATCH 'https://YOUR_DOMAIN/api/v2/organizations/YOUR_ORG_ID' \
 
 El objeto `token_quota` contiene la configuración de la cuota de tokens de la organización:
 
-* `client_credentials`: Define las cuotas de tokens M2M.
+* `client_credentials`: Define las cuotas de tokens de máquina a máquina.
 * `per_hour`: Establece la cuota horaria de tokens.
 * `per_day`: Establece la cuota diaria de tokens.
-* `enforce`: Determina si las solicitudes de tokens se rechazan cuando se supera la cuota. El valor predeterminado es `true`.
+* `enforce`: Determina si las solicitudes de token se rechazan cuando se supera la cuota. El valor predeterminado es `true`.
 
-En este ejemplo, la organización con `YOUR_ORG_ID` está limitada a 50 tokens M2M por hora y 250 por día.
+En este ejemplo, la organización con `YOUR_ORG_ID` está limitada a 50 tokens de máquina a máquina por hora y 250 por día.
 
-Puede obtener la configuración de la cuota de tokens de una organización mediante el endpoint [Get an organization](https://auth0.com/docs/api/management/v2/organizations/get-organizations-by-id).
+Puedes obtener la configuración de la cuota de tokens de una organización mediante el endpoint [Get an organization](https://auth0.com/docs/api/management/v2/organizations/get-organizations-by-id).
 
 <div id="monitor-token-quota-consumption">
-  ## Supervisar el consumo de la cuota de tokens
+  ## Monitorear el consumo de la cuota de tokens
 </div>
 
 <div id="auth0-quota-headers">
   ### Encabezados de cuota de Auth0
 </div>
 
-Auth0 incluye encabezados HTTP en las respuestas del flujo de credenciales de cliente (tanto en las respuestas correctas como en las de error 429) para ofrecer información en tiempo real sobre el consumo de cuota:
+Auth0 incluye encabezados HTTP en las respuestas del Client Credentials Flow (tanto en las respuestas exitosas como en las respuestas de error 429) para proporcionar información en tiempo real sobre el consumo de cuotas:
 
-* `Auth0-Client-Quota-Limit`: Proporciona información sobre la cuota de la aplicación.
-* `Auth0-Organization-Quota-Limit`: Proporciona información sobre la cuota de la organización.
+* `Auth0-Client-Quota-Limit`: Proporciona información de cuota para la aplicación.
+* `Auth0-Organization-Quota-Limit`: Proporciona información de cuota para la organización.
 
 Auth0 solo incluye en la respuesta los encabezados correspondientes a las cuotas de la solicitud de token.
 
-La siguiente muestra de código es un ejemplo de encabezado de cuota de Auth0:
+El siguiente ejemplo de código muestra un encabezado de cuota de Auth0:
 
 ```http lines
 Auth0-Client-Quota-Limit: b=per_hour;q=10;r=7;t=3540,b=per_day;q=50;r=47;t=43200
 Auth0-Organization-Quota-Limit: b=per_hour;q=50;r=47;t=3540,b=per_day;q=250;r=247;t=43200
 ```
 
-Los valores de los encabezados son listas de buckets de cuota separadas por comas. Cada bucket se representa como una lista de pares clave-valor separada por punto y coma:
+Los valores del encabezado son listas de buckets de cuota separadas por comas. Cada bucket se representa como una lista de pares clave-valor separados por punto y coma:
 
 * `b` (bucket&#95;name): El nombre del bucket de cuota (`per_hour` o `per_day`).
 * `q` (quota): El límite de cuota configurado para el bucket.
-* r (remaining): La cantidad de tokens restantes en el bucket.
-* `t` (time): La cantidad de segundos hasta que el bucket se restablezca.
+* r (remaining): La cantidad de tokens que quedan en el bucket.
+* `t` (time): La cantidad de segundos hasta que el bucket se reinicie.
 
 En el ejemplo de `Auth0-Client-Quota-Limit`:
 
-* La aplicación tiene una cuota por hora (`b=per_hour`) de 10 tokens (`q=10`). Le quedan 7 tokens (`r=7`) y la cuota se restablece en 3540 segundos (`t=3540`).
-* La aplicación también tiene una cuota diaria (`b=per_day`) de 50 tokens (`q=50`). Le quedan 47 tokens (`r=47`) y la cuota se restablece en 43200 segundos (`t=43200`).
+* La aplicación tiene una cuota por hora (`b=per_hour`) de 10 tokens (`q=10`). Le quedan 7 tokens (`r=7`) y la cuota se reinicia en 3540 segundos (`t=3540`).
+* La aplicación también tiene una cuota diaria (`b=per_day`) de 50 tokens (`q=50`). Le quedan 47 tokens (`r=47`) y la cuota se reinicia en 43200 segundos (`t=43200`).
 
-Los Auth0 SDKs incluyen utilidades integradas para leer y analizar encabezados de cuota, lo que permite a las aplicaciones usar información de cuota en tiempo real para depurar, implementar estrategias de ralentización y mucho más. A continuación, se muestra un ejemplo con Node.js y el SDK [node-auth0](https://github.com/auth0/node-auth0):
+Auth0 SDKs proporcionan utilidades integradas para leer y analizar encabezados de cuota, lo que permite a las aplicaciones aprovechar información de cuota en tiempo real para depurar, implementar estrategias de ralentización y mucho más. A continuación, se muestra un ejemplo con Node.js y el SDK [node-auth0](https://github.com/auth0/node-auth0):
 
 export const codeExample1 = `const {
     AuthenticationClient,
@@ -284,26 +284,26 @@ const auth0 = new AuthenticationClient({
 
 async function getAccessToken() {
     try {
-        //obtén el token
+        //obtener el token
         const response = await auth0.oauth.clientCredentialsGrant({
             audience: '{{yourAudience}}'
         });
 
-        // Expón la información de cuota del token M2M en tu aplicación para supervisarla
+        // Mostrar en tu aplicación la información de cuota del token M2M para supervisarla
         const clientQuota = HttpResponseHeadersUtils.getClientQuotaLimit(response.headers);
         console.log("clientQuota ", clientQuota);
         console.log("clientQuota por día - cuota:", clientQuota?.perDay?.quota);
         console.log("clientQuota por día - restante:", clientQuota?.perDay?.remaining);
-        console.log("clientQuota por día - se restablece en:", clientQuota?.perDay?.resetAfter);
+        console.log("clientQuota por día - se restablece después de:", clientQuota?.perDay?.resetAfter);
         console.log("clientQuota por hora - cuota:", clientQuota?.perHour?.quota);
         console.log("clientQuota por hora - restante:", clientQuota?.perHour?.remaining);
-        console.log("clientQuota por hora - se restablece en:", clientQuota?.perHour?.resetAfter);
+        console.log("clientQuota por hora - se restablece después de:", clientQuota?.perHour?.resetAfter);
 
         return response.data.access_token;
 
     } catch (error) {
 
-        //maneja aquí el error
+        //maneja el error aquí
 
     }
 }
@@ -313,12 +313,12 @@ getAccessToken();`;
 <AuthCodeBlock children={codeExample1} language="javascript" />
 
 <div id="error-responses-for-exceeded-quotas">
-  ### Respuestas de error cuando se superan las cuotas
+  ### Respuestas de error cuando se exceden las cuotas
 </div>
 
-Cuando se supera una cuota aplicada, la Auth0 Authentication API devuelve un error `HTTP 429 Too Many Requests`. En el cuerpo de la respuesta, Auth0 devuelve el código de error con una descripción más detallada. Auth0 también emite un registro de eventos de tipo `feccft` (por error al intercambiar un token de acceso por una Concesión de credenciales de cliente).
+Cuando se excede una cuota aplicada, la Auth0 Authentication API devuelve un error `HTTP 429 Too Many Requests`. En el cuerpo de la respuesta, Auth0 devuelve el código de error con una descripción más detallada. Auth0 también genera un registro de eventos de tipo `feccft` (por un intercambio fallido de token de acceso para una Concesión de credenciales de cliente).
 
-El siguiente fragmento de código muestra un ejemplo de respuesta de error cuando se supera una cuota:
+El siguiente ejemplo de código muestra una respuesta de error por cuota excedida:
 
 ```json lines
 {
@@ -329,17 +329,17 @@ El siguiente fragmento de código muestra un ejemplo de respuesta de error cuand
 
 Además del cuerpo de la respuesta, Auth0 devuelve los siguientes encabezados:
 
-* `Auth0-Client-Quota-Limit` o `Auth0-Organization-Quota-Limit`: El encabezado de cuota de Auth0 correspondiente a la cuota consumida por la aplicación o la organización. Para obtener más información sobre el formato del encabezado, consulta [encabezados de cuota de Auth0](#auth0-quota-headers).
-* `X-RateLimit-Limit`: El límite configurado para la cuota que se ha consumido.
+* `Auth0-Client-Quota-Limit` o `Auth0-Organization-Quota-Limit`: El encabezado de cuota de Auth0 correspondiente a la cuota consumida por la aplicación o la organización. Para obtener más información sobre el formato del encabezado, consulta [Auth0 quota headers](#auth0-quota-headers).
+* `X-RateLimit-Limit`: El límite configurado para la cuota consumida.
 * `X-RateLimit-Remaining`: Se establece en cero, lo que indica que la cuota se ha consumido por completo.
-* `X-RateLimit-Reset`: Una marca de tiempo UNIX (en segundos) que representa el momento en que se espera que la cuota se restablezca y se permitan nuevas solicitudes.
-* `Retry-After`: El número de segundos hasta que la cuota se restablezca y las solicitudes posteriores se procesen correctamente.
+* `X-RateLimit-Reset`: Una marca de tiempo UNIX (en segundos) que representa el momento en que se espera que la cuota se restablezca y se permitan más solicitudes.
+* `Retry-After`: El número de segundos que faltan para que la cuota se restablezca y las solicitudes posteriores se completen correctamente.
 
-Para obtener más información sobre los encabezados de límite de frecuencia, consulta [Predecir cuándo las solicitudes a un tenant estarán sujetas a límite de frecuencia](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-use-cases#predict-when-requests-to-a-tenant-will-be-rate-limited-).
+Para obtener más información sobre los encabezados de límite de frecuencia, consulta [Predict when requests to a tenant will be rate-limited](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-use-cases#predict-when-requests-to-a-tenant-will-be-rate-limited-).
 
-Usa el encabezado `Retry-After` para determinar el tiempo de espera para obtener un nuevo token M2M, lo que permite a tu aplicación decidir si debe reintentarlo o lanzar un error. Esto también es importante para evitar consumir el límite de frecuencia de tu tenant.
+Usa el encabezado `Retry-After` para determinar el tiempo de espera antes de obtener un nuevo M2M token, de modo que tu aplicación pueda decidir si reintentar o lanzar un error. Esto también es importante para evitar consumir el límite de frecuencia de tu tenant.
 
-El siguiente ejemplo de código en Node.js intenta obtener un nuevo token M2M, recibe un error 429 y lo vuelve a intentar si el tiempo de espera es inferior a 60 segundos. De lo contrario, lanza un error:
+El siguiente ejemplo de código en Node.js intenta obtener un nuevo M2M token, recibe un error 429 y vuelve a intentarlo si el tiempo de espera es inferior a 60 segundos. De lo contrario, lanza un error:
 
 export const codeExample2 = `const {
     AuthenticationClient,
@@ -360,7 +360,7 @@ async function sleep(seconds) {
 
 async function getAccessToken(retry = true) {
     try {
-        // obtener el token
+        //obtener el token
         const response = await auth0.oauth.clientCredentialsGrant({
             audience: '{{yourAudience}}'
         });
@@ -370,10 +370,10 @@ async function getAccessToken(retry = true) {
     } catch (error) {
 
         if (error.statusCode === 429 && retry) {
-            // si se produce un error 429, calcula cuánto tiempo debes esperar para obtener un token nuevo
+            // si hay un error 429, calcula cuánto tiempo debo esperar para obtener un nuevo token
             const retryAfter = parseInt(error.headers.get('retry-after'), 10);
             if (retryAfter < MAX_RETRY_AFTER) {
-                // El reintento está por debajo del número máximo de segundos
+                // El tiempo de reintento es menor que el máximo de segundos permitido
                 console.warn(\`Se alcanzó el límite de frecuencia. Reintentando en \${retryAfter} segundos...\`);
                 await sleep(retryAfter);
                 return getAccessToken(false); // Reintentar solo una vez
@@ -392,9 +392,9 @@ getAccessToken();`;
   ## Registros de advertencia de consumo
 </div>
 
-Auth0 genera eventos de log `token_quota_consumption_warning` cuando el consumo de una cuota alcanza el 60%, el 80% y el 100%. Puedes analizar estos registros para supervisar los patrones de uso de tokens, identificar posibles problemas antes de que los límites se apliquen estrictamente y decidir valores de cuota adecuados.
+Auth0 genera eventos de log `token_quota_consumption_warning` cuando el consumo de una cuota alcanza el 60 %, el 80 % y el 100 %. Puede analizar estos registros para supervisar los patrones de uso de tokens, detectar posibles problemas antes de que los límites empiecen a aplicarse de forma estricta y decidir valores de cuota adecuados.
 
-El siguiente ejemplo de código muestra un registro de advertencia de consumo como una entrada de registro JSON:
+El siguiente ejemplo de código muestra un registro de advertencia de consumo como una entrada de registro en formato JSON:
 
 ```json lines expandable
 {
@@ -431,27 +431,27 @@ El siguiente ejemplo de código muestra un registro de advertencia de consumo co
 
 El registro de advertencia de consumo de ejemplo contiene los siguientes campos:
 
-* **type**: `token_quota_consumption_warning`. Identifica la advertencia de consumo de cuota de tokens M2M que está alcanzando un umbral.
-* **description**: (String) Resumen legible en el formato `<percent>% <entity_type> <bucket>` de la cuota consumida. Por ejemplo, &quot;Se consumió el 60% de la cuota diaria del cliente.&quot;
-* **details**: (Object) Describe detalles específicos sobre la cuota y su consumo:
+* **type**: `token_quota_consumption_warning`. Identifica la advertencia de consumo de cuota de tokens de máquina a máquina que está alcanzando un umbral.
+* **description**: (String) Resumen legible para humanos en el formato `<percent>% <entity_type> <bucket>` de cuota consumida. Por ejemplo, &quot;60% de la cuota diaria del cliente consumida.&quot;
+* **details**: (Object) Describe los detalles de la cuota y su consumo:
 
   * `bucket`: (String) `per_day` o `per_hour`.
   * `entity_type`: (String) cliente u organización.
   * `entity_id`: (String) ID del cliente o de la organización.
   * `quota`: (Integer) Límite configurado para este bucket.
-  * `quota_consumption_percentage`: (Integer) Porcentaje consumido (por ejemplo, 60, 80, 100).
-  * `quota_consumption`: (Integer) Cantidad real de tokens contabilizados.
+  * `quota_consumption_percentage`: (Integer) Porcentaje consumido (p. ej., 60, 80, 100).
+  * `quota_consumption`: (Integer) Número real de tokens contabilizados.
 
-Otros campos, como `date`, `client_name`, `ip` y `log_id`, son campos estándar de los registros de Auth0.
+Otros campos como `date`, `client_name`, `ip` y `log_id` son campos estándar de los registros de Auth0.
 
 <div id="best-practices">
   ## Prácticas recomendadas
 </div>
 
-* **Prioriza el almacenamiento en caché de tokens**: Haz hincapié en el almacenamiento en caché adecuado de tokens de acceso en aplicaciones M2M. Las cuotas son medidas de protección, no sustitutos de una gestión eficiente de tokens.
-* **Niveles de cuota adecuados**: Establece las cuotas en función de patrones de tráfico legítimos y de una capacidad razonable para picos de tráfico.
-* **Supervisa antes de aplicar**: Comienza con `enforce: false` para observar el uso mediante logs y headers, y luego establece límites fundamentados antes de habilitar `enforce: true`.
-* **Gestión del lado del cliente**: Las aplicaciones deben gestionar correctamente los errores 429 usando `Retry-After` como parte de las estrategias de reintento.
+* **Prioriza el almacenamiento en caché de tokens**: Haz hincapié en el almacenamiento en caché adecuado de los tokens de acceso en aplicaciones de máquina a máquina. Las cuotas son una medida de protección, no un sustituto de una gestión eficiente de tokens.
+* **Niveles de cuota adecuados**: Establece las cuotas en función de patrones de tráfico legítimos y una capacidad de ráfaga razonable.
+* **Supervisa antes de aplicar**: Empieza con `enforce: false` para observar el uso mediante logs y headers, y luego define límites fundamentados antes de habilitar `enforce: true`.
+* **Manejo del lado del cliente**: Las aplicaciones deben gestionar los errores 429 correctamente usando `Retry-After` como parte de las estrategias de retroceso.
 * **Comprueba de forma proactiva los headers de cuota**: Supervisa el uso de tokens para identificar posibles problemas.
 * **Revisa los logs con regularidad**: Supervisa los logs `token_quota_consumption_warning` para ajustar las cuotas de forma proactiva.
 
@@ -459,9 +459,9 @@ Otros campos, como `date`, `client_name`, `ip` y `log_id`, son campos estándar 
   ## Limitaciones
 </div>
 
-* **No son límites de llamadas a la API**: La cuota granular de token M2M se aplica a la cantidad de tokens de acceso obtenidos mediante flujo de credenciales de cliente, no a las llamadas realizadas a tus API con esos tokens.
-* **Consistencia eventual:** El recuento de tokens tiene consistencia eventual; puede haber excesos pequeños y breves antes de que se aplique el control en solicitudes posteriores.
-* Las solicitudes que generan una respuesta `429` cuentan para el límite de frecuencia de Auth0 Authentication API de tu tenant. Para obtener más información, consulta la [Política de límite de tasa](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy).
+* **No son límites de llamadas a la API**: Las cuotas granulares de tokens M2M se aplican a la cantidad de tokens de acceso obtenidos mediante Client Credentials Flow, no a las llamadas realizadas a tus APIs con esos tokens.
+* **Consistencia eventual:** La contabilización de tokens es de consistencia eventual; pueden producirse excesos leves y breves antes de que se aplique el control en solicitudes posteriores.
+* Las solicitudes que dan como resultado una respuesta `429` se contabilizan para el límite de frecuencia de Auth0 Authentication API de tu tenant. Para obtener más información, lee [Política de límite de tasa](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy).
 
 <div id="troubleshoot">
   ## Solucionar problemas
@@ -470,8 +470,8 @@ Otros campos, como `date`, `client_name`, `ip` y `log_id`, son campos estándar 
 * **Tráfico legítimo bloqueado:**
 
   * Considera establecer `enforce: false`.
-  * Revisa los registros del tenant de Auth0 para `token_quota_consumption_warning` y los eventos de intercambio fallidos (`feccft`).
+  * Revisa los registros del tenant de Auth0 para detectar `token_quota_consumption_warning` y eventos de intercambio fallidos (`feccft`).
   * Examina los encabezados `Auth0-...-Quota-Limit` en las respuestas.
-  * Revisa los patrones de solicitud de token y el almacenamiento en caché de la aplicación.
+  * Revisa los patrones de solicitudes de token de la aplicación y el uso de caché.
   * Considera si es necesario ajustar el límite de cuota.
-* **Interpretar errores 429**: Usa `X-RateLimit-*`, `Retry-After` y los encabezados `Auth0-...-Quota-Limit` específicos para identificar el límite consumido y el tiempo de restablecimiento.
+* **Interpretar errores 429**: Usa `X-RateLimit-*`, `Retry-After` y los encabezados específicos `Auth0-...-Quota-Limit` para identificar el límite consumido y el tiempo de restablecimiento.

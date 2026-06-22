@@ -1,12 +1,12 @@
 ---
 title: "Experiment Center e integración con Auth0 ACUL"
-description: "Cómo leer el contexto de un experimento en las pantallas de Auth0 Custom Universal Login (ACUL) y adaptar la renderización en función de la variación."
-sidebarTitle: Integración de ACUL
+description: "Cómo leer el contexto del experimento en las pantallas de Auth0 Custom Universal Login (ACUL) y condicionar la renderización según la variación."
+sidebarTitle: Integración con ACUL
 ---
 
 import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
 
-<ReleaseStageNotice feature="Auth0 Experiment Center" stage="beta" terms="true" contact="equipo de soporte de Auth0" />
+<ReleaseStageNotice feature="Auth0 Experiment Center" stage="beta" terms="true" contact="Auth0 Support" />
 
 Cuando un experimento está activo y se asigna una variación, Experiment Center inyecta un objeto `ExperimentContext` en tu componente [ACUL](/docs/es/customize/login-pages/advanced-customizations) como `experiment`.
 
@@ -14,9 +14,9 @@ Cuando un experimento está activo y se asigna una variación, Experiment Center
   Durante la Beta, Experiment Center funciona solo en tenants de desarrollo. Los tenants de producción no están admitidos.
 </Warning>
 
-La inyección solo ocurre en las pantallas para las que te hayas suscrito. La suscripción se hace por pantalla agregando `"experiment"` al arreglo `context_configuration` de esa pantalla.
+La inyección solo se produce en las pantallas que has habilitado explícitamente. Debes habilitarla explícitamente en cada pantalla agregando `"experiment"` al arreglo `context_configuration` de esa pantalla.
 
-Para suscribir una pantalla y que reciba el contexto del experimento, haz una llamada `PATCH` al endpoint [`/api/v2/prompts/{prompt}/screen/{screen}/rendering`](/docs/es/api/management/v2/prompts/patch-rendering).
+Para habilitar explícitamente una pantalla para que reciba contexto del experimento, realiza una llamada `PATCH` al endpoint [`/api/v2/prompts/{prompt}/screen/{screen}/rendering`](/docs/es/api/management/v2/prompts/patch-rendering).
 
 ```json Example
     "context_configuration": ["experiment"]
@@ -25,17 +25,17 @@ Para suscribir una pantalla y que reciba el contexto del experimento, haz una ll
 Reemplaza `{prompt}` por el nombre del prompt (por ejemplo, `login`) y `{screen}` por el nombre de la pantalla (por ejemplo, `login`).
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  La resolución del experimento y el enriquecimiento del registro del tenant siempre se ejecutan, independientemente de si una pantalla se ha habilitado o no. La habilitación solo controla si las propiedades de `experiment` se pasan a tu componente ACUL. Esta es una medida de minimización de datos: no habilites pantallas que no necesiten el contexto del experimento.
+  La resolución del experimento y el enriquecimiento del registro del tenant siempre se ejecutan, independientemente de si una pantalla se ha habilitado explícitamente. El OPT-IN solo controla si las propiedades de `experiment` se envían a tu componente ACUL. Esta es una medida de minimización de datos: no habilites explícitamente pantallas que no necesiten contexto del experimento.
 </Callout>
 
 <div id="the-experiment-context-shape">
   ## La estructura del contexto del experimento
 </div>
 
-Cuando una pantalla se ha habilitado y hay un experimento activo, puedes acceder al contexto del experimento mediante `window.universal_login_context.experiment`.
+Cuando una pantalla se ha habilitado explícitamente y hay un experimento activo, puedes acceder al contexto del experimento mediante `window.universal_login_context.experiment`.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Durante Experiment Center (Beta), el SDK de ACUL no añade automáticamente la propiedad `experiment`, por lo que debe definirse mediante `window.universal_login_context.experiment`.
+  Durante Experiment Center (Beta), el SDK de ACUL no agrega automáticamente la propiedad `experiment`, por lo que debe definirse mediante `window.universal_login_context.experiment`.
 </Callout>
 
 ```typescript
@@ -51,16 +51,16 @@ interface ExperimentContext {
   config: {                // Configuración combinada: línea base + sobrescritura
     [paramName: string]: { value: unknown };
   };
-  is_control: boolean;     // True cuando esta es la variación de control
+  is_control: boolean;     // True cuando se trata de la variación de control
 }
 ```
 
 Cuando no hay ningún experimento activo (o cuando la funcionalidad no está habilitada para el tenant), `experiment` es `null`.
 
-El parámetro `config` contiene la configuración completa resultante de la combinación para la variación asignada. Experiment Center toma los parámetros de línea base del flag de funcionalidad y les aplica las sobrescrituras de la variación asignada. Cada parámetro definido en el flag de funcionalidad siempre tiene un valor en `config`.
+El parámetro `config` contiene la configuración completa resultante de la combinación para la variación asignada. Experiment Center toma los parámetros de línea base del flag de funcionalidad y aplica por encima las sobrescrituras de la variación asignada. Cada parámetro definido en el flag de funcionalidad siempre tiene un valor en `config`.
 
-Por ejemplo, si tu flag de funcionalidad tiene un parámetro `button_label` con un valor de línea base de `"Sign in"` y la variación asignada lo sobrescribe con `"Continue"`, entonces `config.button_label.value` es `"Continue"`.
-Para la variación de control (sin sobrescrituras), `config.button_label.value` es `"Sign in"`.
+Por ejemplo, si tu flag de funcionalidad tiene un parámetro `button_label` con un valor de línea base de `"Sign in"` y la variación asignada lo sobrescribe con `"Continuar"`, entonces `config.button_label.value` es `"Continuar"`.
+En la variación de control (sin sobrescrituras), `config.button_label.value` es `"Sign in"`.
 
 <div id="read-a-parameter-value">
   ## Leer el valor de un parámetro
@@ -73,13 +73,13 @@ const experiment = window.universal_login_context.experiment;
 const label = experiment?.config?.button_label?.value;
 ```
 
-Usa el encadenamiento opcional (`?.`) en todos los casos. La prop `experiment` es `undefined` cuando no hay ningún experimento activo.
+Usa el encadenamiento opcional (`?.`) en todo el código. La prop `experiment` es `undefined` cuando no hay ningún experimento activo.
 
 <div id="use-is_control">
   ## Usar is_control
 </div>
 
-El parámetro `is_control` es `true` cuando el usuario está en el grupo de control (recibió la línea base, sin sobrescrituras aplicadas). Úsalo cuando necesites identificar qué usuarios vieron la experiencia sin modificar o cuando quieras omitir el procesamiento opcional para los usuarios del grupo de control.
+El parámetro `is_control` es `true` cuando el usuario está en el grupo de control (recibió la línea base, sin sobrescrituras aplicadas). Úsalo cuando necesites identificar qué usuarios vieron la experiencia sin modificar o cuando quieras omitir el procesamiento opcional para los usuarios de control.
 
 ```typescript
 if (!experiment?.is_control) {
@@ -88,14 +88,14 @@ if (!experiment?.is_control) {
 }
 ```
 
-Para la renderización por bifurcación, comprueba el valor del parámetro directamente (`config.my_param.value`) en lugar de `is_control`.
-Las comprobaciones basadas en parámetros son más legibles y siguen funcionando correctamente incluso si cambias qué variación es el control estadístico en un experimento futuro.
+Para la renderización con bifurcaciones, comprueba directamente el valor del parámetro (`config.my_param.value`) en lugar de `is_control`.
+Las comprobaciones basadas en parámetros son más fáciles de leer y funcionan correctamente incluso si en un experimento futuro cambias qué variante es el control estadístico.
 
 <div id="example-copy-variant-experiment">
-  ## Ejemplo: experimento de variantes de texto
+  ## Ejemplo: experimento de variante de texto
 </div>
 
-Este ejemplo muestra un flag de funcionalidad con dos variaciones que cambia el texto del botón. La versión de control usa la etiqueta estándar; el tratamiento usa una alternativa.
+Este ejemplo muestra un flag de funcionalidad con dos variaciones que cambia el texto de un botón. El control usa el texto estándar; el tratamiento usa una alternativa.
 
 **Parámetros del flag de funcionalidad:**
 
@@ -126,7 +126,7 @@ Este ejemplo muestra un flag de funcionalidad con dos variaciones que cambia el 
 ```typescript
 // LoginScreen.tsx
 export default function LoginScreen({...props }) {
-  // config siempre tiene un valor — no se necesita valor de respaldo
+  // config siempre tiene un valor — no se necesita fallback
   const experiment = window.universal_login_context.experiment;
   const buttonLabel = experiment?.config?.button_label?.value ?? "Sign in";
 
@@ -143,7 +143,7 @@ export default function LoginScreen({...props }) {
 }
 ```
 
-El valor alternativo `?? "Sign in"` de la última línea contempla el caso en que no haya ningún experimento activo (en cuyo caso `experiment` es `undefined` y `config?.button_label?.value` da como resultado `undefined`). Si lo prefieres, puedes usar una comprobación de `null` por separado:
+El valor de reserva `?? "Sign in"` de la última línea cubre el caso en que no hay ningún experimento activo (en ese caso, `experiment` es `undefined` y `config?.button_label?.value` da como resultado `undefined`). Si lo prefieres, puedes usar una comprobación de null independiente:
 
 ```typescript
 const buttonLabel = experiment
@@ -152,10 +152,10 @@ const buttonLabel = experiment
 ```
 
 <div id="example-boolean-feature-rollout">
-  ## Ejemplo: despliegue gradual de una función con valor booleano
+  ## Ejemplo: despliegue gradual de una funcionalidad booleana
 </div>
 
-Este ejemplo usa un parámetro booleano para mostrar de forma condicional un nuevo elemento de la interfaz de usuario.
+Este ejemplo usa un parámetro booleano para mostrar de forma condicional un nuevo elemento de la UI.
 
 ```typescript
 // PostLoginScreen.tsx
@@ -178,7 +178,7 @@ export default function PostLoginScreen({...props }) {
 }
 ```
 
-La comprobación `=== true` (en lugar de una comprobación de veracidad) es intencional: garantiza que el banner solo se muestre cuando el parámetro sea explícitamente `true`, no cuando `experiment` sea `undefined` o falte `config`.
+La comprobación `=== true` (en lugar de una comprobación de tipo truthy) es intencionada: garantiza que el banner solo se muestre cuando el parámetro sea explícitamente `true`, no cuando `experiment` sea `undefined` o falte `config`.
 
 <div id="troubleshoot">
   ## Solución de problemas
@@ -186,8 +186,8 @@ La comprobación `=== true` (en lugar de una comprobación de veracidad) es inte
 
 La propiedad `experiment` es `undefined` en tres situaciones:
 
-1. No hay ningún experimento activo actualmente en el tenant
-2. La pantalla no se ha activado mediante `context_configuration`
+1. No hay ningún experimento activo actualmente para el tenant
+2. La pantalla no se ha habilitado explícitamente mediante `context_configuration`
 3. Experiment Center no está habilitado en el tenant
 
 Trata siempre `experiment` como si pudiera ser `undefined`. El patrón más seguro:
@@ -199,4 +199,4 @@ const myParam = experiment?.config?.my_param?.value;
 // Usa un valor por defecto: myParam ?? "your-default"
 ```
 
-Nunca des por sentado que la propiedad `experiment` existe. El código que depende de que `experiment` esté definido provocará errores cuando no se esté ejecutando ningún experimento, que es lo habitual.
+Nunca des por sentado que la propiedad `experiment` existe. El código que depende de que `experiment` esté definida generará errores cuando no se esté ejecutando ningún experimento, lo cual ocurre la mayor parte del tiempo.

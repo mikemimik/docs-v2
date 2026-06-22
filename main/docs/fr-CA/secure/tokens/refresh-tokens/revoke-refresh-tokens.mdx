@@ -1,112 +1,112 @@
 ---
-title: Révoquer les jetons d’actualisation
-description: Découvrez comment révoquer un jeton d’actualisation s’il est compromis au moyen d’Auth0 Dashboard, de l’Authentication API ou de la Management API.
+title: Révoquer des jetons d’actualisation
+description: Découvrez comment révoquer un jeton d’actualisation s’il est compromis à l’aide de l’Auth0 Dashboard, de l’Authentication API ou de la Management API.
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Vous pouvez révoquer les <Tooltip tip="Refresh Token : Jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+tokens">jetons d’actualisation</Tooltip> s’ils sont compromis. Auth0 gère la révocation de jeton comme si le jeton avait pu être exposé à des acteurs malveillants.
+Vous pouvez révoquer les <Tooltip tip="Jeton d’actualisation : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se connecter de nouveau." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+tokens">jetons d’actualisation</Tooltip> s’ils ont été compromis. Auth0 traite la révocation d’un jeton comme si celui-ci avait potentiellement été exposé à des acteurs malveillants.
 
 De plus, vous pouvez envisager d’activer la [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation) afin que, chaque fois qu’un client échange un jeton d’actualisation pour obtenir un nouveau jeton d’accès, un nouveau jeton d’actualisation soit également renvoyé.
 
 <div id="choose-whether-token-revocation-deletes-grants">
-  ## Choisissez si la révocation d’un jeton supprime les grants
+  ## Déterminez si la révocation d’un jeton supprime les grants
 </div>
 
-Un grant permet à une application d’accéder à une ressource sur une autre entité sans exposer les informations d’identification de l’utilisateur. Des jetons sont émis dans le contexte d’un grant.
+Un grant permet à une application d’accéder à une ressource sur une autre entité sans exposer les informations d’identification de l’utilisateur. Les jetons sont émis dans le cadre d’un grant.
 
-Lorsqu’un grant est révoqué, tous les jetons émis dans le contexte de ce grant le sont aussi. Cependant, lorsqu’un jeton est révoqué, le grant n’a pas nécessairement à être révoqué.
+Lorsqu’un grant est révoqué, tous les jetons émis dans le cadre de ce grant le sont aussi. Cependant, lorsqu’un jeton est révoqué, il n’est pas nécessairement utile de révoquer le grant.
 
-Vous pouvez choisir si la révocation d’un jeton supprime le grant associé dans les paramètres de votre tenant :
+Vous pouvez choisir si la révocation d’un jeton supprime le grant associé dans les paramètres de votre tenant :
 
 1. Accédez à [Dashboard &gt; Tenant Settings &gt; Advanced](https://manage.auth0.com/#/tenant/advanced).
 
-2. Dans la section **Settings**, activez ou désactivez la **bascule** **Refresh Token Revocation Deletes Grant**.
+2. Dans la section **Settings**, activez ou désactivez la bascule **Refresh Token Revocation Deletes Grant**.
 
    * Activez la bascule pour supprimer le grant sous-jacent lorsque vous révoquez le jeton d’actualisation.
 
-   Chaque requête de révocation invalide tous les autres jetons fondés sur le même grant d’autorisation, ce qui révoque tous les jetons d’actualisation qui ont été émis pour le même utilisateur, la même application et la même audience.
+   Chaque demande de révocation invalide tous les autres jetons fondés sur le même grant d’autorisation, ce qui révoque tous les jetons d’actualisation émis pour le même utilisateur, la même application et la même audience.
 
    * Désactivez la bascule pour conserver le grant sous-jacent lorsque vous révoquez le jeton d’actualisation.
 
-   Lorsqu’un appareil est dissocié, seul le jeton d’actualisation associé est révoqué, et le grant demeure intact.
+   Lorsqu’un appareil est dissocié, seul le jeton d’actualisation associé est révoqué, et le grant reste intact.
 
-Cette fonctionnalité est désactivée par défaut pour tous les tenants créés après le 13 janvier 2021.
+Cette fonctionnalité est désactivée par défaut pour tous les tenants créés après le 13 janvier 2021.
 
 <div id="revoke-a-refresh-token">
   ## Révoquer un jeton d’actualisation
 </div>
 
-Vous pouvez révoquer un jeton d’actualisation de la façon suivante :
+Vous pouvez révoquer un jeton d’actualisation des façons suivantes :
 
 * [À l’aide de l’Auth0 Dashboard](#using-the-auth0-dashboard)
 * [À l’aide de l’Authentication API](#using-the-authenticaton-api)
 * [À l’aide de la Management API](#using-the-management-api)
 
 <div id="using-the-auth0-dashboard">
-  ### Utilisation de l’Auth0 Dashboard
+  ### Utilisation du Auth0 Dashboard
 </div>
 
-Vous pouvez utiliser l’Auth0 Dashboard pour révoquer l’autorisation d’accès d’un utilisateur à l’application qui a émis le jeton. Cela rend le jeton d’actualisation invalide, ce qui est fonctionnellement identique à la révocation du jeton lui-même.
+Vous pouvez utiliser le Auth0 Dashboard pour retirer à un utilisateur l’accès autorisé à l’application qui a émis le token. Cela invalide le jeton d’actualisation, ce qui équivaut, en pratique, à révoquer le token lui-même.
 
-1. Accédez à [Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users), puis sélectionnez le nom de l’utilisateur à afficher.
-2. Sélectionnez l’onglet **Authorized Applications**. Cette page répertorie toutes les applications auxquelles l’utilisateur a accordé un accès autorisé.
+1. Accédez à [Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users), puis sélectionnez le nom de l’utilisateur à consulter.
+2. Sélectionnez l’onglet **Authorized Applications**. Cette page répertorie toutes les applications auxquelles l’utilisateur a autorisé l’accès.
 3. Pour révoquer l’accès de l’utilisateur à une application autorisée et ainsi invalider le jeton d’actualisation, cliquez sur **Revoke**.
 
 <div id="using-the-authentication-api">
-  ### Utilisation de l’Authentication API
+  ### Utilisation de l&#39;Authentication API
 </div>
 
-Vous pouvez utiliser le [point de terminaison Revoke a refresh token](https://auth0.com/docs/api/authentication/revoke-refresh-token/revoke-refresh-token) de l’Authentication API pour révoquer un jeton d’actualisation.
+Vous pouvez utiliser le [point de terminaison Revoke a refresh token de l&#39;Authentication API](https://auth0.com/docs/api/authentication/revoke-refresh-token/revoke-refresh-token) pour révoquer un jeton d’actualisation.
 
-Le point de terminaison prend en charge l’accès sans le <Tooltip tip="Client Secret : secret utilisé par un client (application) pour s’authentifier auprès de l’Authorization Server; il ne devrait être connu que du client et de l’Authorization Server et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=client+secret">client secret</Tooltip> pour les applications qui ne peuvent pas le conserver en toute sécurité (comme les applications natives). L’application elle-même doit avoir sa [méthode d’authentification](/docs/fr-CA/get-started/applications/credentials) (`tokenEndpointAuthMethod`) définie sur `none`.
+Le point de terminaison permet l’accès sans le <Tooltip tip="Secret client : secret utilisé par un client (application) pour s’authentifier auprès de l’Authorization Server; il ne doit être connu que du client et de l’Authorization Server et doit être suffisamment aléatoire pour ne pas pouvoir être deviné." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=client+secret">secret client</Tooltip> pour les applications qui ne peuvent pas le conserver de façon sécuritaire (comme les applications natives). L’application elle-même doit avoir sa [méthode d’authentification](/docs/fr-CA/get-started/applications/credentials) (`tokenEndpointAuthMethod`) définie à none.
 
-Lorsque vous effectuez une requête, l’API valide d’abord les identifiants de l’application, puis vérifie si le jeton a été émis pour l’application qui effectue la requête de révocation. Si cette validation échoue, la requête est refusée et l’application est informée de l’erreur.
+Lorsque vous effectuez une requête, l’API valide d’abord les identifiants de l’application, puis vérifie si le jeton a été émis pour l’application qui présente la requête de révocation. Si cette validation échoue, la requête est refusée et l’application est informée de l’erreur.
 
-Ensuite, l’API invalide le jeton. L’invalidation a lieu immédiatement, et le jeton ne peut plus être utilisé après la révocation. Chaque requête de révocation invalide tous les jetons qui ont été émis pour le même grant d’autorisation.
+Ensuite, l’API invalide le jeton. L’invalidation prend effet immédiatement, et le jeton ne peut plus être utilisé après la révocation. Chaque requête de révocation invalide tous les jetons qui ont été émis pour le même grant d’autorisation.
 
-Pour en savoir plus, y compris les paramètres du corps, les schémas de réponse et des exemples de code, consultez la documentation de l’Authentication API sur le [point de terminaison Revoke a refresh token](https://auth0.com/docs/api/authentication/revoke-refresh-token/revoke-refresh-token).
+Pour en savoir plus, y compris les paramètres du body, les schémas de réponse et des exemples de code, consultez la documentation de l’Authentication API sur le [point de terminaison Revoke a refresh token](https://auth0.com/docs/api/authentication/revoke-refresh-token/revoke-refresh-token).
 
 <div id="using-the-management-api-device-credentials-endpoints">
-  ### Utiliser les points de terminaison des informations d’identification d’appareil de la Management API
+  ### Utilisation des points de terminaison des informations d’identification d’appareil de la Management API
 </div>
 
 Pour révoquer un jeton d’actualisation à l’aide des points de terminaison des informations d’identification d’appareil de l’Auth0 Management API :
 
-1. Récupérez l’`id` du jeton d’actualisation que vous souhaitez révoquer à l’aide du [point de terminaison de récupération des informations d’identification d’appareil](https://auth0.com/docs/api/management/v2/device-credentials/get-device-credentials).
+1. Obtenez l’`id` du jeton d’actualisation que vous souhaitez révoquer à l’aide du [point de terminaison Retrieve device credentials](https://auth0.com/docs/api/management/v2/device-credentials/get-device-credentials).
 
-   Spécifiez `type=refresh_token` et un `user_id` avec un jeton d’accès contenant la portée `read:device_credentials`. Pour affiner les résultats, vous pouvez aussi préciser le `client_id` associé au jeton (s’il est connu).
+   Spécifiez `type=refresh_token` et un `user_id` avec un jeton d’accès contenant la portée `read:device_credentials`. Pour préciser les résultats, vous pouvez aussi indiquer le `client_id` associé au jeton (si vous le connaissez).
 
-2. Révoquez le jeton d’actualisation à l’aide du [point de terminaison de suppression d’une information d’identification d’appareil](https://auth0.com/docs/api/management/v2/device-credentials/delete-device-credentials-by-id). Spécifiez un jeton d’accès contenant la portée `delete:device_credentials`, ainsi que l’ID du jeton d’actualisation.
+2. Révoquez le jeton d’actualisation à l’aide du [point de terminaison Delete a device credential](https://auth0.com/docs/api/management/v2/device-credentials/delete-device-credentials-by-id). Spécifiez un jeton d’accès contenant la portée `delete:device_credentials` et l’ID du jeton d’actualisation.
 
 <div id="using-the-management-api-refresh-token-endpoints">
-  ### Utilisation des points de terminaison des jetons d’actualisation de la Management API
+  ### Utilisation des points de terminaison de jeton d’actualisation de la Management API
 </div>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Les points de terminaison des jetons d’actualisation de l’Auth0 Management API sont actuellement offerts uniquement aux clients ayant un forfait Enterprise. Pour en savoir plus, consultez [Tarification](https://auth0.com/pricing).
+  Les points de terminaison de jeton d’actualisation de l’Auth0 Management API sont actuellement offerts uniquement aux clients ayant des forfaits Enterprise. Pour en savoir plus, consultez la page [Tarification](https://auth0.com/pricing).
 </Callout>
 
-Les points de terminaison des jetons d’actualisation de la Management API remplacent les points de terminaison de la ressource `/v2/device-credentials` en offrant des propriétés étendues et des opérations de révocation en masse.
+Les points de terminaison de jeton d’actualisation de la Management API remplacent les points de terminaison de la ressource `/v2/device-credentials`, avec des propriétés étendues et des opérations de révocation en bloc.
 
 Vous pouvez afficher ou révoquer un jeton d’actualisation précis à l’aide des points de terminaison suivants :
 
-* Afficher les renseignements d’un jeton d’actualisation par ID avec le [point de terminaison Get a refresh token](https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-token)
-* Révoquer un jeton d’actualisation par ID avec le [point de terminaison Delete a refresh token](https://auth0.com/docs/api/management/v2/refresh-tokens/delete-refresh-token)
-* Lister tous les jetons d’actualisation d’un utilisateur avec le [point de terminaison Get refresh tokens for a user](https://auth0.com/docs/api/management/v2/users/get-refresh-tokens-for-user)
-* Révoquer tous les jetons d’actualisation d’un utilisateur avec le [point de terminaison Delete refresh tokens for a user](https://auth0.com/docs/api/management/v2/users/delete-refresh-tokens-for-user)
+* Afficher les renseignements sur un jeton d’actualisation par ID avec le point de terminaison [Get a refresh token](https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-token)
+* Révoquer un jeton d’actualisation par ID avec le point de terminaison [Delete a refresh token](https://auth0.com/docs/api/management/v2/refresh-tokens/delete-refresh-token)
+* Lister tous les jetons d’actualisation d’un utilisateur avec le point de terminaison [Get refresh tokens for a user](https://auth0.com/docs/api/management/v2/users/get-refresh-tokens-for-user)
+* Révoquer tous les jetons d’actualisation d’un utilisateur avec le point de terminaison [Delete refresh tokens for a user](https://auth0.com/docs/api/management/v2/users/delete-refresh-tokens-for-user)
 
 <div id="considerations-and-limitations">
   ## Considérations et limites
 </div>
 
-* Avec le [Device Authorization Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/device-authorization-flow), la seule façon de forcer un appareil à être autorisé de nouveau est de révoquer le jeton d’actualisation qui lui est attribué. L’appareil ne sera pas forcé de s’autoriser de nouveau tant que le jeton d’accès actuel n’aura pas expiré et que l’application ne tentera pas d’utiliser le jeton d’actualisation révoqué. Pour en savoir plus, consultez [Dissocier des appareils des utilisateurs](/docs/fr-CA/manage-users/user-accounts/unlink-devices-from-users).
+* Avec le [Device Authorization Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/device-authorization-flow), la seule façon de forcer un appareil à se réautoriser est de révoquer le jeton d’actualisation attribué à l’appareil. L’appareil ne sera pas forcé de se réautoriser avant l’expiration du jeton d’accès actuel et avant que l’application tente d’utiliser le jeton d’actualisation révoqué. Pour en savoir plus, consultez [Dissocier des appareils des utilisateurs](/docs/fr-CA/manage-users/user-accounts/unlink-devices-from-users).
 
-* Lorsque vous utilisez [rotation des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation), si un jeton précédemment invalidé est utilisé, l’ensemble des jetons d’actualisation émis depuis l’émission de ce jeton invalidé sera immédiatement révoqué, ce qui obligera l’utilisateur final à s’authentifier de nouveau.
+* Lors de l’utilisation de [Refresh Token Rotation](/docs/fr-CA/secure/tokens/refresh-tokens/refresh-token-rotation), si un token précédemment invalidé est utilisé, l’ensemble des jetons d’actualisation émis depuis l’émission de ce token invalidé sera immédiatement révoqué, ce qui obligera l’utilisateur final à s’authentifier de nouveau.
 
-* Les opérations de révocation de jeton d’actualisation (`DELETE`) s’exécutent de façon asynchrone et suivent un modèle de cohérence éventuelle.
+* Les opérations de révocation de jeton d’actualisation (`DELETE`) s’exécutent de façon asynchrone et sont à cohérence éventuelle.
 
-* Les jetons d’actualisation émis le 21-09-2023 ou après cette date (le 22-02-2024 pour les tenants de la région US-3) contiennent la propriété d’ID de session (`session_id`) avec la valeur appropriée. Les jetons d’actualisation émis avant cette date contiennent cette propriété avec la valeur `null`.
+* Les jetons d’actualisation émis le 21-09-2023 ou après cette date (le 22-02-2024 pour les tenants de la région US-3) contiennent la propriété ID de session (`session_id`) avec la valeur appropriée. Les jetons d’actualisation émis avant cette date contiennent cette propriété avec une valeur `null`.
 
 Pour en savoir plus sur les limites des jetons d’actualisation, consultez [Limites des jetons d’actualisation](/docs/fr-CA/secure/tokens/refresh-tokens).

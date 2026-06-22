@@ -1,69 +1,69 @@
 ---
-description: Consulte las mejores prácticas para usar Events en Auth0
-title: Mejores prácticas de Events
+description: Consulta las prácticas recomendadas para usar Events en Auth0
+title: Events Best Practices
 ---
 
-Para obtener los mejores resultados al desarrollar flujos de eventos, Auth0 recomienda seguir las mejores prácticas que se indican a continuación. Estas pautas pueden ayudar a reducir la fricción, aumentar la eficiencia y fomentar una experiencia de gestión de eventos de primer nivel.
+Para obtener los mejores resultados al desarrollar Event Streams, Auth0 recomienda seguir las prácticas recomendadas que se recopilan a continuación. Estas pautas pueden ayudar a reducir obstáculos, aumentar la eficiencia y ofrecer una experiencia de eventos de primer nivel.
 
 <div id="use-asynchronous-queues-to-process-events">
   ### Usa colas asíncronas para procesar eventos
 </div>
 
-Al recibir un evento, responde con un código HTTP 2XX OK (p. ej., 200OK, 202 Accepted, 204 No Content) para indicar que el evento se entregó correctamente. Sin esta respuesta, Auth0 considera que la entrega del evento ha fallado y volverá a intentarlo según el comportamiento descrito en [Comportamiento del sistema durante fallos en la entrega de eventos](#system-behavior-during-failed-event-deliveries).
+Al recibir un evento, responde con un HTTP 2XX OK (p. ej., 200OK, 202 Accepted, 204 No Content) para indicar que el evento se entregó correctamente. Sin esta respuesta, Auth0 considera que la entrega del evento ha fallado y volverá a intentarlo según el comportamiento descrito en [Comportamiento del sistema durante las entregas fallidas de eventos](#system-behavior-during-failed-event-deliveries).
 
-Para evitar problemas de escalabilidad, configura tu manejador para procesar los eventos entrantes con una cola asíncrona. Si procesas los eventos de forma síncrona, cualquier pico importante en la entrega de webhooks (por ejemplo, a principios de mes, cuando se renuevan todas las suscripciones) puede saturar la infraestructura que aloja tus endpoints. Las colas asíncronas te permiten procesar los eventos simultáneos a un ritmo que tu sistema pueda soportar.
+Para evitar problemas de escalabilidad, configura tu controlador para procesar los eventos entrantes mediante una cola asíncrona. Si procesas los eventos de forma síncrona, cualquier pico importante en las entregas de webhook (por ejemplo, a principios de mes, cuando se renuevan todas las suscripciones) puede saturar los servidores que alojan tu endpoint. Las colas asíncronas te permiten procesar eventos simultáneos a un ritmo que tu sistema pueda soportar.
 
 <div id="ignore-duplicate-events">
   ### Ignora los eventos duplicados
 </div>
 
-Los endpoints de webhook pueden recibir ocasionalmente el mismo evento más de una vez. Para evitar procesar eventos duplicados, registra los ID de los eventos que ya hayas procesado.
+Los endpoints de webhook pueden recibir ocasionalmente el mismo evento más de una vez. Para evitar procesar eventos duplicados, registra los IDs de los eventos que ya has procesado.
 
 <div id="handle-out-of-sequence-events">
-  ### Gestionar eventos fuera de orden
+  ### Manejo de eventos fuera de secuencia
 </div>
 
-Auth0 no garantiza que los eventos se entreguen en el mismo orden en que se generan. Por ejemplo, cuando se crea un usuario y acto seguido se actualiza de forma que se vincula otro usuario a él, es posible que reciba:
+Auth0 no garantiza que los eventos se entreguen en el mismo orden en que se generan. Por ejemplo, cuando se crea un usuario y luego se actualiza de inmediato para vincularle otro usuario, es posible que reciba:
 
 * `user.updated (for User 1)`
 * `user.created (for User 1)`
 * `user.deleted (for User 2)`
 * `user.updated (for User 2)`
 
-Para asegurarse de no sobrescribir sus datos con información obsoleta, compare la marca de tiempo de los datos entrantes del webhook con la marca de tiempo de los datos de su sistema. Cada `data.object` del payload incluye un campo `created_at` y un campo `updated_at`.
+Para evitar sobrescribir sus datos con información desactualizada, compare la marca de tiempo de los datos entrantes del webhook con la marca de tiempo de los datos de su sistema. Cada `data.object` del payload incluye un campo `created_at` y un campo `updated_at`.
 
 <div id="listen-for-specific-event-types">
-  ### Escucha tipos específicos de eventos
+  ### Recibe tipos específicos de eventos
 </div>
 
-Configura tus endpoints de webhook para recibir solo los tipos de eventos que requiere tu integración. Escuchar eventos adicionales (o todos los eventos) sobrecarga innecesariamente tu servidor y no se recomienda.
+Configura tus endpoints de webhook para recibir solo los tipos de eventos que requiere tu integración. Recibir eventos adicionales (o todos los eventos) sobrecarga innecesariamente tu servidor y no se recomienda.
 
-Puedes cambiar los eventos que recibe un endpoint de webhook [actualizando los flujos de eventos](/docs/es/customize/events/create-an-event-stream).
+Puedes cambiar los eventos que recibe un endpoint de webhook [actualizando los event streams](/docs/es/customize/events/create-an-event-stream).
 
 <div id="system-behavior-during-failed-event-deliveries">
-  ### Comportamiento del sistema ante fallos en la entrega de eventos
+  ### Comportamiento del sistema durante las entregas fallidas de eventos
 </div>
 
-Actualmente, Auth0 solo permite cuatro intentos en total: el intento inicial y tres reintentos con espera exponencial (1 s, 2 s, 4 s). Si recibes un 4XX, el evento falla de inmediato y no se vuelve a intentar, ya que es poco probable que reintentarlo cambie la respuesta.
+Actualmente, Auth0 solo permite cuatro intentos en total: el intento inicial y tres reintentos con retardo exponencial (1 s, 2 s, 4 s). Si recibes un 4XX, el evento falla de inmediato y no se reintenta, ya que es poco probable que volver a intentarlo cambie la respuesta.
 
 Si tu endpoint sigue sin responder correctamente después de ese tiempo, el evento se marca como fallido y Auth0 deja de intentar enviarlo. Para obtener más información sobre los eventos fallidos, consulta [Pruebas, observabilidad y recuperación ante fallos de flujos de eventos](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
 
 <div id="disable-failing-event-streams">
-  ### Deshabilitar flujos de eventos con fallos
+  ### Deshabilitar los Event Streams con errores
 </div>
 
-Los flujos de eventos se deshabilitan automáticamente en los siguientes casos:
+Los Event Streams se deshabilitan automáticamente en los siguientes casos:
 
-* Auth0 recibe 500 fallos consecutivos (es decir, cualquier respuesta distinta de un `2XX`).
-* El flujo de eventos alcanza un total de 5000 entregas fallidas.
-* Auth0 recibe tres fallos consecutivos en los intentos de entrega (es decir, cualquier respuesta distinta de un `2XX`).
+* Auth0 recibe 500 fallos consecutivos (es decir, cualquier cosa distinta de un `2XX`).
+* El Event Stream alcanza un total de 5000 entregas fallidas.
+* Auth0 recibe tres fallos consecutivos en los intentos de entrega (es decir, cualquier cosa distinta de un `2XX`).
 
-  * Si desea permitir más fallos en los intentos de entrega, envíe un ticket de soporte indicando la cantidad de fallos que desea permitir, y Auth0 revisará su solicitud.
+  * Si deseas permitir más fallos en los intentos de entrega, envía un ticket de soporte en el que indiques la cantidad de fallos que deseas permitir, y Auth0 revisará tu solicitud.
 
 <div id="learn-more">
   ## Más información
 </div>
 
 * [Tipos de eventos](/docs/es/customize/events/event-types)
-* [Crear un flujo de eventos](/docs/es/customize/events/create-an-event-stream)
-* [Pruebas, observabilidad y recuperación ante fallos de flujos de eventos](/docs/es/customize/events/event-testing-observability-and-failure-recovery)
+* [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream)
+* [Pruebas de eventos, observabilidad y recuperación ante fallos](/docs/es/customize/events/event-testing-observability-and-failure-recovery)

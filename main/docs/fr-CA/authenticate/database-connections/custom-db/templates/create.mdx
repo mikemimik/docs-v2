@@ -1,15 +1,15 @@
 ---
 description: Décrit les modèles de scripts d’action de base de données personnalisée pour la création d’utilisateurs.
-title: Modèles de scripts Create
+title: Modèles de script Create
 ---
 
 Le script Create implémente la fonction définie lorsqu’un utilisateur est créé. Nous recommandons de nommer cette fonction `create`.
 
-Ce script est facultatif. S’il est activé, lorsqu’un utilisateur s’inscrit par l’intermédiaire de <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur le serveur d’autorisation d’Auth0, pour vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> ou est créé à partir du <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> ou de l’Auth0 <Tooltip tip="Auth0 Dashboard : le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, Auth0 exécute le script pour créer l’enregistrement utilisateur correspondant dans la base de données externe.
+Ce script est facultatif. S’il est activé, lorsqu’un utilisateur s’inscrit via <Tooltip tip="Universal Login : Votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, pour vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> ou est créé dans le <Tooltip tip="Auth0 Dashboard : Le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> ou au moyen de l’Auth0 <Tooltip tip="Auth0 Dashboard : Le principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, Auth0 exécute le script pour créer l’enregistrement utilisateur correspondant dans la base de données externe.
 
 Lorsqu’un utilisateur est créé dans Auth0, Auth0 appelle une série de scripts :
 
-1. [Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user) : Vérifie que l’utilisateur n’existe pas déjà dans Auth0 ni dans la base de données externe.
+1. [Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user) : Vérifie que l’utilisateur n’existe pas déjà dans Auth0 ou dans la base de données externe.
 2. Create : Crée l’utilisateur dans la base de données externe.
 3. [Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login) : Vérifie que l’utilisateur a bien été créé.
 
@@ -19,27 +19,27 @@ Lorsqu’un utilisateur est créé dans Auth0, Auth0 appelle une série de scrip
 
 La fonction `create` doit :
 
-* Envoyer les données de profil de l’utilisateur à l’API de la base de données externe.
-* Retourner une erreur si l’opération de création de l’utilisateur a échoué.
+* Envoyer les données du profil de l&#39;utilisateur à l&#39;API de la base de données externe.
+* Renvoyer une erreur si l&#39;opération de création de l&#39;utilisateur a échoué.
 
 <div id="definition">
   ### Définition
 </div>
 
-La fonction `create` prend deux paramètres et renvoie une fonction `callback` :
+La fonction `create` accepte deux paramètres et renvoie une fonction `callback` :
 
 ```js lines
 create(user, callback): function
 ```
 
-| Paramètre  | Description                                                                                                                   |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `user`     | Objet. Contient les [données du profil utilisateur](#user-object-parameter) issues du processus de création de l’utilisateur. |
-| `callback` | Fonction. Utilisée pour transmettre les données d’erreur dans le pipeline.                                                    |
+| Paramètre  | Description                                                                                                                      |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `user`     | Objet. Contient les [données du profil utilisateur](#user-object-parameter) provenant du processus de création de l’utilisateur. |
+| `callback` | Fonction. Utilisée pour transmettre les données d’erreur dans le pipeline.                                                       |
 
 ### Exemple
 
-Voici un exemple en pseudo-JavaScript montrant comment vous pourriez implémenter la fonction `create`. Pour des exemples de scripts propres à chaque langage, consultez [Exemples de scripts propres à chaque langage](#language-specific-script-examples).
+Voici un exemple en pseudo-JavaScript montrant comment vous pourriez implémenter la fonction `create`. Pour des exemples propres à chaque langage, consultez [Exemples de scripts propres à chaque langage](#language-specific-script-examples).
 
 ```javascript lines expandable
 function create(user, callback) {
@@ -75,10 +75,10 @@ function create(user, callback) {
 </div>
 
 <Warning>
-  Évitez de journaliser, de stocker ou de transporter les données d’authentification par mot de passe, où que ce soit, sous une forme non chiffrée.
+  Évitez de journaliser, de stocker ou de transmettre les données d’authentification du mot de passe sous une forme non chiffrée.
 </Warning>
 
-Chiffrez la valeur du mot de passe à l’aide d’une bibliothèque de hachage cryptographique comme `bcrypt` afin d’éviter toute fuite potentielle de données.
+Chiffrez la valeur du mot de passe à l’aide d’une bibliothèque de hachage cryptographique comme `bcrypt` pour éviter tout risque de fuite de données.
 
 #### Exemple
 
@@ -93,10 +93,10 @@ bcrypt.hash(password, 10, function (err, hash) {
 ```
 
 <div id="callback-function">
-  ## Fonction de rappel
+  ## Callback
 </div>
 
-La fonction `callback` accepte un paramètre et retourne une fonction.
+Le `callback` prend un paramètre et retourne une fonction.
 
 <div id="definition">
   ### Définition
@@ -106,15 +106,15 @@ La fonction `callback` accepte un paramètre et retourne une fonction.
 callback(error): function
 ```
 
-| Paramètre | Type  | Obligatoire | Description                    |
-| --------- | ----- | ----------- | ------------------------------ |
-| `error`   | Objet | Obligatoire | Contient les données d’erreur. |
+| Paramètre | Type  | Obligatoire | Description                        |
+| --------- | ----- | ----------- | ---------------------------------- |
+| `error`   | Objet | Obligatoire | Contient les données d&#39;erreur. |
 
 <div id="return-a-success">
-  ### Indiquer une réussite
+  ### Indiquer la réussite
 </div>
 
-Si l’opération de création de l’utilisateur a réussi, retournez la fonction `callback` et transmettez une valeur `null` au paramètre `error`.
+Si l’opération de création de l’utilisateur a réussi, appelez la fonction `callback` et transmettez une valeur `null` comme paramètre `error`.
 
 #### Exemple
 
@@ -123,16 +123,16 @@ return callback(null);
 ```
 
 <div id="return-an-error">
-  ### Retourner une erreur
+  ### Renvoyer une erreur
 </div>
 
-Si une erreur se produit, retournez la fonction callback et transmettez les renseignements pertinents sur l’erreur dans le paramètre `error`.
+Si une erreur se produit, renvoyez-la par le callback et transmettez les renseignements pertinents au paramètre `error`.
 
 <div id="validationerror-type-object">
-  #### Objet de type `ValidationError`
+  #### Objet de type ValidationError
 </div>
 
-Le type d’erreur personnalisé `ValidationError` vous permet de transmettre des données qui s’afficheront dans les [journaux du tenant](/docs/fr-CA/deploy-monitor/logs).
+L’objet d’erreur personnalisé `ValidationError` vous permet de transmettre des données qui s’afficheront dans vos [journaux du tenant](/docs/fr-CA/deploy-monitor/logs).
 
 <div id="constructor">
   ##### Constructeur
@@ -146,14 +146,14 @@ new ValidationError(errorCode[, message]): ValidationError
 
 | Paramètre   | Description                                                  |
 | ----------- | ------------------------------------------------------------ |
-| `errorCode` | (Obligatoire) String. Indique le type d’erreur.              |
-| `message`   | (Facultatif) String. Contient des informations sur l’erreur. |
+| `errorCode` | (Obligatoire) Chaîne. Indique le type d’erreur.              |
+| `message`   | (Facultatif) Chaîne. Contient de l’information sur l’erreur. |
 
 <div id="return-error-that-user-already-exists">
-  #### Retourner une erreur indiquant que l&#39;utilisateur existe déjà
+  #### Renvoyer une erreur indiquant que l’utilisateur existe déjà
 </div>
 
-Si vous retournez une erreur avec la valeur `user_exists` pour le paramètre `errorCode`, Auth0 consignera un événement `fs` dans le journal du tenant.
+Si vous renvoyez une erreur avec la valeur `user_exists` pour le paramètre `errorCode`, Auth0 enregistrera un événement `fs` dans le journal du tenant.
 
 <div id="example">
   ##### Exemple
@@ -173,30 +173,30 @@ return callback(new ValidationError("user_exists", "My custom error message."));
   ## Paramètre de l’objet `user`
 </div>
 
-Le paramètre d’objet `user` contient un ensemble prédéfini de propriétés issues du processus de création de l’utilisateur :
+Le paramètre de l’objet `user` contient un ensemble prédéfini de propriétés issues du processus de création de l’utilisateur :
 
-| Propriété       | Description                                                                                                                                                                                                                      |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client_id`     | L’ID client de l’application Auth0 si l’utilisateur s’est inscrit par l’entremise de Universal Login, ou la clé API si l’utilisateur a été créé au moyen de l’Auth0 Dashboard ou de la Management API.                           |
-| `tenant`        | Le nom du tenant Auth0.                                                                                                                                                                                                          |
-| `email`         | L’adresse courriel de l’utilisateur.                                                                                                                                                                                             |
-| `password`      | Le mot de passe de l’utilisateur en clair.                                                                                                                                                                                       |
-| `username`      | Le nom d’utilisateur de l’utilisateur. Obligatoire seulement si le paramètre [**Requires Username**](/docs/fr-CA/authenticate/database-connections/require-username) est activé pour la connexion à une base de données personnalisée. |
-| `connection`    | Le nom de la connexion Auth0.                                                                                                                                                                                                    |
-| `user_metadata` | Contient les propriétés de l’objet `user_metadata` dans le profil Auth0 de l’utilisateur, si cet objet existe.                                                                                                                   |
-| `app_metadata`  | Contient les propriétés de l’objet `app_metadata` dans le profil Auth0 de l’utilisateur, si cet objet existe.                                                                                                                    |
+| Propriété       | Description                                                                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `client_id`     | L’ID client de l’application Auth0 si l’utilisateur s’est inscrit au moyen de Universal Login, ou la clé API si l’utilisateur a été créé dans l’Auth0 Dashboard ou par la Management API.                    |
+| `tenant`        | Le nom du tenant Auth0.                                                                                                                                                                                      |
+| `email`         | L’adresse courriel de l’utilisateur.                                                                                                                                                                         |
+| `password`      | Le mot de passe de l’utilisateur en texte brut.                                                                                                                                                              |
+| `username`      | Le nom d’utilisateur. Obligatoire seulement si le paramètre [**Nécessite un nom d’utilisateur**](/docs/fr-CA/authenticate/database-connections/require-username) est activé pour la connexion de base de données personnalisée. |
+| `connection`    | Le nom de la connexion Auth0.                                                                                                                                                                                |
+| `user_metadata` | Contient les propriétés de l’objet `user_metadata` du profil Auth0 de l’utilisateur, si cet objet existe.                                                                                                    |
+| `app_metadata`  | Contient les propriétés de l’objet `app_metadata` du profil Auth0 de l’utilisateur, si cet objet existe.                                                                                                     |
 
 <div id="username-property">
-  ### Propriété `username`
+  ### Propriété username
 </div>
 
-Si le paramètre [Requires Username](/docs/fr-CA/authenticate/database-connections/require-username) est activé pour votre connexion de base de données personnalisée, les scripts [Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login) et [Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user) doivent prendre en charge la propriété `username`; vous devriez donc la stocker dans votre base de données externe.
+Si le paramètre [Nécessite un nom d’utilisateur](/docs/fr-CA/authenticate/database-connections/require-username) est activé pour votre connexion de base de données personnalisée, les scripts [Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login) et [Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user) doivent prendre en charge la propriété `username`; vous devriez donc la stocker dans votre base de données externe.
 
 <div id="user-and-app-metadata">
-  ### Métadonnées utilisateur et de l’application
+  ### Métadonnées utilisateur et d’application
 </div>
 
-Les propriétés `user_metadata` et `app_metadata` n’ont pas à être stockées dans votre base de données externe. Auth0 stocke automatiquement ces valeurs dans le profil utilisateur créé à l’interne.
+Les propriétés `user_metadata` et `app_metadata` n’ont pas besoin d’être stockées dans votre base de données externe. Auth0 stocke automatiquement ces valeurs dans le profil utilisateur qu’il crée à l’interne.
 
 <div id="custom-sign-up-fields">
   ### Champs personnalisés à l’inscription
@@ -226,7 +226,7 @@ Si vous [créez et utilisez des champs personnalisés](/docs/fr-CA/libraries/cus
   ## Exemples de scripts par langage
 </div>
 
-Auth0 fournit des scripts d’exemple pour les langages et technologies suivants :
+Auth0 fournit des exemples de scripts à utiliser avec les langages et technologies suivants :
 
 * [JavaScript](#javascript)
 * [ASP.NET Membership Provider (MVC3 - Universal Providers)](#asp-net-membership-provider-mvc3-universal-providers-)
@@ -239,23 +239,23 @@ Auth0 fournit des scripts d’exemple pour les langages et technologies suivants
 * [Requête avec authentification Basic](#request-with-basic-auth)
 
 <div id="javascript">
-  ### Javascript
+  ### JavaScript
 </div>
 
 ```javascript lines expandable
 function create(user, callback) {
-  // Ce script doit créer une entrée d'utilisateur dans votre base de données existante. Il sera
+  // Ce script doit créer une entrée utilisateur dans votre base de données existante. Il sera
   // exécuté lorsqu'un utilisateur tente de s'inscrire, ou lorsqu'un utilisateur est créé
   // via le Auth0 Dashboard ou la Management API.
   // Une fois l'exécution de ce script terminée, le Login script sera
   // exécuté immédiatement après, pour vérifier que l'utilisateur a bien été créé.
   //
-  // L'objet utilisateur contiendra toujours les propriétés suivantes :
+  // L'objet `user` contiendra toujours les propriétés suivantes :
   // * email : l'adresse courriel de l'utilisateur
   // * password : le mot de passe saisi par l'utilisateur, en texte brut
   // * tenant : le nom de ce compte Auth0
-  // * client_id : le ID client de l'application où l'utilisateur s'est inscrit, ou
-  //              clé API s'il a été créé via la Management API ou le Auth0 Dashboard
+  // * client_id : le client ID de l'application où l'utilisateur s'est inscrit, ou
+  //              la clé API si créé via la Management API ou le Auth0 Dashboard
   // * connection : le nom de cette database connection
   //
   // Ce script peut se terminer de trois façons :
@@ -303,7 +303,7 @@ function create(user, callback) {
    * @return    {[string]}      le mot de passe haché
    */
   function hashPassword(password, salt) {
-    // l'implémentation par défaut utilise HMACSHA256 et comme la longueur de la clé est de 64
+    // la mise en œuvre par défaut utilise HMACSHA256 et comme la longueur de la clé est de 64
     // et le salt par défaut est de 16 octets, Membership remplira le tampon en répétant le salt
     const key = Buffer.concat([salt, salt, salt, salt]);
     const hmac = crypto.createHmac('sha256', key);
@@ -311,7 +311,7 @@ function create(user, callback) {
     return hmac.digest('base64');
   }
   connection.on('debug', function(text) {
-    // si vous avez des problèmes de connexion, décommentez cette ligne pour obtenir des informations plus détaillées
+    // si vous avez des problèmes de connexion, décommentez ceci pour obtenir des informations plus détaillées
     // console.log(text);
   }).on('errorMessage', function(text) {
     // ceci affichera toutes les erreurs lors de la connexion à la base de données SQL ou avec les instructions SQL
@@ -419,10 +419,10 @@ function create(user, callback) {
     });
   }
   connection.on('debug', function (text) {
-    // en cas de problèmes de connexion, décommentez cette ligne pour obtenir des informations plus détaillées
+    // si vous avez des problèmes de connexion, décommentez cette ligne pour obtenir des informations plus détaillées
     // console.log(text);
   }).on('errorMessage', function (text) {
-    // affiche les erreurs survenant lors de la connexion à la base de données SQL ou dans les instructions SQL
+    // ceci affichera toutes les erreurs lors de la connexion à la base de données SQL ou dans les instructions SQL
     console.log(JSON.stringify(text));
   });
   connection.on('connect', function (err) {
@@ -603,7 +603,7 @@ function create(user, callback) {
 ```javascript lines expandable
 function create (user, callback) {
   //cet exemple utilise la bibliothèque "tedious"
-  //plus d'info ici : http://pekim.github.io/tedious/index.html
+  //plus d'informations ici : http://pekim.github.io/tedious/index.html
   var Connection = require('tedious@1.11.0').Connection;
   var Request = require('tedious@1.11.0').Request;
   var TYPES = require('tedious@1.11.0').TYPES;
@@ -667,11 +667,11 @@ function create(user, callback) {
   ## Dépannage
 </div>
 
-Si vous ne parvenez pas à créer un utilisateur dans votre base de données héritée ou dans Auth0 :
+Si vous ne parvenez pas à créer un utilisateur dans votre ancienne base de données ou dans Auth0 :
 
-1. Vérifiez les instructions `console.log()` dans les [Journaux en temps réel des Actions](/docs/fr-CA/customize/actions/actions-real-time-logs).
-2. Trouvez l&#39;utilisateur dans votre base de données héritée et supprimez-le au besoin. Si l&#39;utilisateur a été créé partiellement dans Auth0, utilisez le point de terminaison [Supprimer un utilisateur](https://auth0.com/docs/api/management/v2#!/Users/delete_users_by_id) ou le point de terminaison [Supprimer un utilisateur d’une connexion](https://auth0.com/docs/api/management/v2#!/Connections/delete_users_by_email) de la Management API.
-3. Assurez-vous que **Import Mode** est désactivé, puis configurez le script Create.
+1. Vérifiez les appels `console.log()` dans les [journaux en temps réel d’Actions](/docs/fr-CA/customize/actions/actions-real-time-logs).
+2. Trouvez l’utilisateur dans votre ancienne base de données et supprimez-le au besoin. Si un état utilisateur partiel se trouve dans Auth0, utilisez le point de terminaison [Supprimer un utilisateur](https://auth0.com/docs/api/management/v2#!/Users/delete_users_by_id) ou [Supprimer un utilisateur d’une connexion](https://auth0.com/docs/api/management/v2#!/Connections/delete_users_by_email) de la Management API.
+3. Assurez-vous que le **mode d’importation** est désactivé, puis configurez le script Create.
 
 <div id="learn-more">
   ## En savoir plus

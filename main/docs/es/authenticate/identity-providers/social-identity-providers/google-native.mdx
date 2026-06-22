@@ -1,76 +1,76 @@
 ---
-description: Descubre cómo implementar Sign In with Google en aplicaciones móviles nativas.
+description: Aprende a implementar Sign In with Google para aplicaciones móviles nativas.
 title: Agrega Sign In with Google a aplicaciones nativas de Android
 ---
 
-[Sign in with Google](https://developers.google.com/identity/gsi/web/guides/overview) permite a los usuarios autenticarse con una cuenta de Google activa y ofrece una experiencia de inicio de sesión fluida para tu aplicación. Puedes implementar esta función en tus aplicaciones nativas de Android con Credential Manager for Android y Auth0.
+[Sign in with Google](https://developers.google.com/identity/gsi/web/guides/overview) permite a los usuarios autenticarse con una Cuenta de Google activa, lo que les brinda una experiencia de inicio de sesión fluida en tu aplicación. Puedes implementar esta funcionalidad en tus aplicaciones nativas de Android con Credential Manager de Android y Auth0.
 
-Consulta las secciones a continuación para obtener más información sobre los pasos y métodos necesarios para configurar Sign in with Google.
+Consulta las secciones siguientes para obtener más información sobre los pasos y métodos necesarios para configurar Sign in with Google.
 
 <div id="how-it-works">
   ## Cómo funciona
 </div>
 
-Esta funcionalidad usa Credential Manager de Android para facilitar Sign in with Google en tu aplicación de Android protegida con Auth0. Los pasos que se indican a continuación muestran el flujo general que sigue el usuario para Sign in with Google.
+Esta funcionalidad usa Credential Manager de Android para facilitar Sign in with Google en tu aplicación Android protegida con Auth0. Los pasos a continuación muestran el flujo general que sigue el usuario para Sign in with Google.
 
 <Frame>![](/docs/images/cdy7uua7fh8z/6WofMhOOH7GU0NwEcyebiZ/4d4adcb20b74215c7026c1bc9c95be6c/Google_Sign_In_diagram.png)</Frame>
 
-1. Un usuario abre tu aplicación de Android y elige iniciar sesión con Google.
-2. Tu aplicación de Android usa Credential Manager para solicitar Sign in with Google.
-3. En el prompt de selección de cuenta, el usuario elige la cuenta de Google que prefiera.
-4. Google inicia la sesión del usuario de forma local y gestiona toda la autenticación.
+1. Un usuario abre tu aplicación Android y elige iniciar sesión con Google.
+2. Tu aplicación Android usa Credential Manager de Android para solicitar Sign in with Google.
+3. En el prompt de selección de cuenta, el usuario elige la cuenta de Google que prefiere.
+4. Google inicia la sesión del usuario localmente y se encarga de toda la autenticación.
 5. El usuario completa el inicio de sesión sin necesidad de ninguna interacción adicional.
-6. Google devuelve un `id_token` a tu aplicación de Android.
-7. Tu aplicación de Android envía el `id_token` a tu tenant de Auth0 para su validación. Auth0 valida el `client_id` del `id_token` con el `client_id` de la conexión social de Google configurada en tu tenant.
-8. El servidor de Auth0 devuelve un `access_token` a tu aplicación de Android.
+6. Google devuelve un `id_token` a tu aplicación Android.
+7. Tu aplicación Android envía el `id_token` a tu tenant de Auth0 para su validación. Auth0 valida el `client_id` del `id_token` comparándolo con el `client_id` de la conexión social de Google configurada en tu tenant.
+8. El servidor de Auth0 devuelve un `access_token` a tu aplicación Android.
 
 <div id="before-you-begin">
-  ## Antes de empezar
+  ## Antes de comenzar
 </div>
 
 Antes de empezar a configurar Sign in with Google, asegúrate de que se cumpla lo siguiente:
 
 * Se haya configurado una [conexión social de Google](https://marketplace.auth0.com/integrations/google-social-connection) en tu tenant de Auth0.
-  * En la configuración **Purpose**, habilita la conexión para autenticación, Connected Accounts for Token Vault o ambas. Para obtener más información, consulta [Autenticación de usuarios vs. Connected Accounts](/docs/es/secure/tokens/token-vault/connected-accounts-for-token-vault#user-authentication-vs-connected-accounts).
-* Se haya añadido Sign in with Google a tu aplicación Android mediante [Credential Manager de Android](https://developer.android.com/identity/sign-in/credential-manager-siwg).
+  * En la configuración de **Purpose**, habilita la conexión para autenticación, Connected Accounts for Token Vault o ambas. Para obtener más información, consulta [autenticación de usuario vs Connected Accounts](/docs/es/secure/tokens/token-vault/connected-accounts-for-token-vault#user-authentication-vs-connected-accounts).
+* Se haya agregado Sign in with Google a tu aplicación de Android mediante [Credential Manager de Android](https://developer.android.com/identity/sign-in/credential-manager-siwg).
 
 <div id="configuring-sign-in-with-google-for-android-applications">
-  ## Configurar Sign in with Google para aplicaciones Android
+  ## Configuración de Sign in with Google para aplicaciones de Android
 </div>
 
-La implementación de Sign in with Google consta de tres pasos principales:
+Para implementar Sign in with Google, hay tres pasos principales:
 
 1. Crear credenciales en Google Cloud Console.
-2. Configurar los datos de la aplicación en Auth0.
-3. Actualizar el código de tu aplicación Android.
+2. Configurar los detalles de la aplicación en Auth0.
+3. Actualizar el código de tu aplicación de Android.
 
-En las siguientes secciones se proporcionan detalles técnicos sobre cada uno de estos pasos.
+A continuación, se proporcionan detalles técnicos sobre cada uno de estos pasos.
 
 <div id="create-credentials-in-the-google-cloud-console">
-  ### Crear credenciales en la Google Cloud Console
+  ### Crear credenciales en Google Cloud Console
 </div>
 
-Para comenzar, primero debes configurar los siguientes elementos en tu Google Cloud Console:
+Para empezar, primero debes configurar los siguientes elementos en Google Cloud Console:
 
-1. Crea una credencial de OAuth 2.0 con el tipo configurado como `Android`. Se la denomina `client_id_native`.
+1. Crea una credencial de OAuth 2.0 con el tipo establecido en `Android`. Se denomina `client_id_native`.
 2. Agrega el hash SHA1 de la aplicación nativa al cliente de Android del paso 1.
 
    * Actualmente, Google solo admite SHA1.
-3. Crea un cliente OAuth adicional para web (`client_id_web`).
+3. Crea un cliente OAuth adicional para la web (`client_id_web`).
 
-   * En algunos casos, es posible que ya hayas configurado este elemento para tus conexiones sociales que admiten Sign in with Google en la web.
+   * En algunos casos, es posible que ya hayas configurado este elemento para tus conexiones sociales compatibles con Sign in with Google en la web.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  No puedes usar Google Credential Manager con el `client_id` de Android, o se producirá un error. En el token de ID que devuelve Google, la parte autorizada (azp) se establece automáticamente como el ID de cliente OAuth de Android, y la audiencia (aud) se establece como el ID de cliente OAuth web.
+  No puedes usar Google Credential Manager con el `client_id` de Android o se producirá un error. En el token de ID que devuelve Google, la parte autorizada (azp) se establece automáticamente en el ID de cliente de OAuth de Android, y la audiencia (aud) se establece en el ID de cliente de OAuth web.
 
-  Al invocar Credentials Manager desde Android, la aplicación nativa debe usar `client_id_web` mediante `.setServerClientId` en el SDK de Credentials Manager. `client_id_web` corresponde a la credencial OAuth 2.0 de aplicación web en la Google Cloud Console, y se configura en la conexión social de Google OAuth2. Para obtener más información, consulta la [documentación de Google](https://developer.android.com/training/sign-in/credential-manager).
+  Al invocar Credentials Manager desde Android, la aplicación nativa debe usar `client_id_web` mediante `.setServerClientId` en el SDK de Credentials Manager. `client_id_web` corresponde a la credencial de OAuth 2 para Aplicación web en Google Cloud Console y se configura en la conexión social de Google OAuth2. Para obtener más información, consulta la [documentación de Google](https://developer.android.com/training/sign-in/credential-manager).
 </Callout>
 
 <div id="configure-auth0">
-  ### Configura Auth0
+  ### Configurar Auth0
 </div>
 
-El flujo de Sign in with Google usa el <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> intercambio de tokens, que tiene lugar entre Auth0 y tu aplicación de Android.
+El flujo de Sign in with Google usa el <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> intercambio de tokens, que se realiza entre Auth0 y tu aplicación de Android.
 
 Después de crear tus credenciales en Google Cloud Console, puedes habilitar Sign in with Google con Credential Manager de Android. Para ello, actualiza tu aplicación desde el <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> o la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
 
@@ -79,14 +79,14 @@ Después de crear tus credenciales en Google Cloud Console, puedes habilitar Sig
     Para actualizar la aplicación desde el Auth0 Dashboard, sigue estos pasos:
 
     1. Ve a [Applications &gt; Applications](https://manage.auth0.com/#/applications) y elige tu aplicación nativa de Android.
-    2. En la pestaña **Settings**, expande la sección **Advanced Settings**.
+    2. En la pestaña **Settings**, despliega la sección **Advanced Settings**.
     3. Selecciona la pestaña **Device Settings** y activa la opción **Enable Sign in with Google (Android 4.4+) using Credentials Manager**.
-    4. **Para aplicaciones nuevas**: en la pestaña Device Settings, completa los campos de la sección **Android**, incluido **App Package Name**. Para obtener más información, consulta [Enable Android App Links Support](/docs/es/get-started/applications/enable-android-app-links-support).
+    4. **Para aplicaciones nuevas**: en la pestaña **Device Settings**, completa los campos de la sección **Android**, incluido **App Package Name**. Para más información, consulta [Enable Android App Links Support](/docs/es/get-started/applications/enable-android-app-links-support).
     5. Selecciona **Save Changes**.
   </Tab>
 
   <Tab title="Management API">
-    Para actualizar tu aplicación mediante la Management API, llama al endpoint [Update a client](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id) de la siguiente manera:
+    Para actualizar tu aplicación mediante la Management API, llama al endpoint [actualizar un cliente](https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id) de la siguiente manera:
 
     ```json lines
     PATCH /api/v2/clients/{id}
@@ -109,10 +109,10 @@ Después de crear tus credenciales en Google Cloud Console, puedes habilitar Sig
 </Tabs>
 
 <div id="update-code-in-the-android-application">
-  ### Actualizar el código en la aplicación de Android
+  ### Actualizar el código en la aplicación Android
 </div>
 
-El siguiente ejemplo puede complementar el flujo web utilizado para métodos de autenticación que no usan Google, como Microsoft, nombre de usuario y contraseña, o federaciones empresariales.
+El siguiente ejemplo puede complementar el flujo web que se usa para autenticaciones distintas de Google, como Microsoft, nombre de usuario y contraseña o federaciones empresariales.
 
 ```go lines
 auth0Client.loginWithNativeSocialToken(
@@ -132,7 +132,7 @@ auth0Client.loginWithNativeSocialToken(
     })
 ```
 
-Para obtener la `googleCredential`, es necesario que el código de la aplicación nativa invoque la biblioteca de Google. Para más información, consulta la [documentación de Credential Manager de Android de Google](https://developer.android.com/training/sign-in/credential-manager).
+Para obtener `googleCredential`, el código de la aplicación nativa debe invocar la biblioteca de Google. Para más información, consulta la [documentación de Google sobre Credential Manager de Android](https://developer.android.com/training/sign-in/credential-manager).
 
 ```go lines expandable
 // Generar un nonce para protección contra repetición de tokens
@@ -151,7 +151,7 @@ val request: GetCredentialRequest = GetCredentialRequest.Builder()
     .addCredentialOption(googleIdOption)
     .build()
 
-// Para el prompt
+// Para mostrar el prompt
 val credMan = CredentialManager.create(this@MainActivity.baseContext);
 val result = credMan.getCredential(
     request = request,
@@ -176,17 +176,17 @@ when (creds) {
   ## Escenarios adicionales de autenticación
 </div>
 
-Aunque la implementación actual de Google no ofrece una guía clara sobre la federación empresarial ni sobre las verificaciones adicionales de <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación del usuario que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=multi-factor+authentication">autenticación multifactor</Tooltip> (MFA), puedes incorporar estas capacidades cambiando a la experiencia web.
+Aunque la implementación actual de Google no ofrece una guía clara sobre la federación empresarial ni sobre desafíos adicionales de <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuario que utiliza un factor adicional además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=multi-factor+authentication">autenticación multifactor</Tooltip> (MFA), puede admitir estas capacidades al pasar a la experiencia web.
 
 <div id="enterprise-federation">
   ### Federación empresarial
 </div>
 
-Auth0 admite la federación empresarial, lo que te permite conectar [proveedores de identidad empresariales](/docs/es/authenticate/identity-providers/enterprise-identity-providers) externos (como Okta Workforce, ADFS u otros sistemas compatibles con OIDC) a tu tenant de Auth0 para que los usuarios puedan autenticarse con sus credenciales corporativas actuales.
+Auth0 admite la federación empresarial, que le permite conectar [proveedores de identidad empresariales](/docs/es/authenticate/identity-providers/enterprise-identity-providers) externos (como Okta Workforce, ADFS u otros sistemas compatibles con OIDC) a su tenant de Auth0 para que los usuarios puedan autenticarse con sus credenciales corporativas existentes.
 
-Si necesitas usar la federación empresarial, se recomienda redirigir al usuario al flujo web en lugar de depender del `id_token`, como se mostró en los ejemplos anteriores.
+Si necesita usar federación empresarial, se recomienda redirigir al usuario al flujo web, en lugar de depender del `id_token`, como se mostró en los ejemplos anteriores.
 
-Para ello, decodifica el <Tooltip tip="JSON Web Token (JWT): formato estándar de token de ID (y, a menudo, formato de Access Token) usado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> de Google y pasa el `email` proporcionado en el <Tooltip tip="JSON Web Token (JWT): formato estándar de token de ID (y, a menudo, formato de Access Token) usado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de identidad</Tooltip> como `login_hint`. Así evitas que el usuario final tenga que volver a introducir su dirección de correo electrónico en el flujo web.
+Para ello, decodifique el token de Google <Tooltip tip="JSON Web Token (JWT): Formato estándar del token de ID (y, a menudo, del token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> y pase el `email` proporcionado en el <Tooltip tip="JSON Web Token (JWT): Formato estándar del token de ID (y, a menudo, del token de acceso) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=ID+token">token de identidad</Tooltip> como `login_hint`. Esto evita que el usuario final tenga que volver a introducir su dirección de correo electrónico en el flujo web.
 
 ```go lines
 if (error.isAccessDenied && reason == "Enterprise Domain") {
@@ -200,9 +200,9 @@ WebAuthProvider.login(account)
   ### Consideraciones sobre MFA durante el intercambio de tokens
 </div>
 
-Auth0 devuelve un error a la aplicación durante el intercambio de tokens cuando la política de la conexión de Google OAuth requiere autenticación multifactor. Este error se incluye en la respuesta a la aplicación.
+Auth0 devuelve un error a la aplicación durante el intercambio de tokens cuando la política de la conexión de Google OAuth requiere autenticación multifactor. Este error se incluye en la respuesta enviada a la aplicación.
 
-Cuando se produce ese error, tu aplicación puede usar WebAuth con el contexto enriquecido disponible en el `id_token` de Google. En este caso, el usuario final solo verá la pantalla de MFA.
+Cuando se produce este error, tu aplicación puede usar WebAuth con el contexto enriquecido disponible en el `id_token` de Google. En este caso, el usuario final solo verá la pantalla de MFA.
 
 ```go lines
 if (error.isMultifactorRequired) {

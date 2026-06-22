@@ -1,48 +1,48 @@
 ---
-description: Solución de problemas de errores de estado no válido en el plugin Login by Auth0 para WordPress
-title: Solucionar errores de estado no válido del plugin de WordPress
+description: Solución de problemas de errores de invalid state en el plugin Login by Auth0 para WordPress
+title: Solucionar errores de invalid state en el plugin de WordPress
 ---
 
-Agregamos la validación de estado en la versión 3.6.0 del plugin de WordPress, que puedes encontrar en el [repositorio de GitHub `auth0/wordpress`](https://github.com/auth0/wordpress/releases/tag/3.6.0). Esta medida de seguridad ayuda a mitigar los ataques CSRF al garantizar que la respuesta corresponda a una solicitud iniciada por el mismo usuario. Para obtener más información, consulta [Prevenir ataques y redirigir usuarios con el parámetro de estado de OAuth 2.0](/docs/es/secure/attack-protection/state-parameters).
+Agregamos validación de state a la versión 3.6.0 del plugin para WordPress, que puedes encontrar en el [repositorio de GitHub `auth0/wordpress`](https://github.com/auth0/wordpress/releases/tag/3.6.0). Esta medida de seguridad ayuda a mitigar ataques CSRF al garantizar que la respuesta pertenezca a una solicitud iniciada por el mismo usuario. Para obtener más información, lee [Prevenir ataques y redirigir a los usuarios con el parámetro state de OAuth 2.0](/docs/es/secure/attack-protection/state-parameters).
 
 <div id="how-state-validation-works">
-  ## Cómo funciona la validación de estado
+  ## Cómo funciona la validación de state
 </div>
 
-El plugin realiza la validación de estado de la siguiente manera:
+El plugin realiza la validación de state de la siguiente manera:
 
-1. Establece una cookie `auth0_state` en el navegador mediante JavaScript cuando se muestra el formulario de inicio de sesión de Lock (en `wp-login.php` o en cualquier otra página al usar un shortcode o un widget).
-2. Pasa ese valor al formulario de inicio de sesión integrado de Lock para que pueda enviarse con la solicitud de autenticación.
-3. Recibe ese valor de vuelta desde Auth0 sin cambios en un parámetro de URL `state` si el inicio de sesión en Auth0 se realizó correctamente.
-4. Valida que el valor recibido coincida con el valor enviado y almacenado en la cookie `auth0_state`. Si es válido, el proceso de inicio de sesión continúa. Si no, el proceso se detiene y se muestra un mensaje de error de &quot;Estado no válido&quot;.
+1. Establece una cookie `auth0_state` en el navegador mediante Javascript cuando se muestra el formulario de inicio de sesión de Lock (en `wp-login.php` o en cualquier otra página al usar un shortcode o un widget).
+2. Pasa ese valor al formulario integrado de inicio de sesión de Lock para que pueda enviarse con la solicitud de autenticación.
+3. Recibe de vuelta ese valor desde Auth0, sin cambios, en un parámetro de URL `state` si el inicio de sesión de Auth0 se realizó correctamente.
+4. Valida que el valor recibido coincida con el valor enviado y almacenado en la cookie `auth0_state`. Si es válido, el proceso de inicio de sesión continúa. Si no, el proceso se detiene y se muestra el mensaje de error &quot;Invalid state&quot;.
 5. Elimina la cookie, independientemente de si es válida o no.
-6. Usa los valores del objeto decodificado en base64 para redirigir o realizar otras acciones de inicio de sesión, si es válido.
+6. Usa valores del objeto decodificado en base64 para redirigir o realizar otras acciones de inicio de sesión, si es válido.
 
-Este proceso debería ser completamente transparente tanto para el usuario que inicia sesión como para el administrador del sitio. El servidor de Auth0 no valida ni exige un valor de estado, y lo devuelve intacto a la URL de callback. Si aparece el mensaje &quot;Estado no válido&quot;, significa que uno de los primeros 4 pasos anteriores no se está produciendo.
+Este proceso debería ser completamente opaco tanto para el usuario que inicia sesión como para el administrador del sitio. El servidor de Auth0 no valida ni requiere un valor de state y lo devuelve intacto a la URL de devolución de llamada. Si aparece el mensaje &quot;Invalid state&quot;, significa que uno de los primeros 4 pasos anteriores no se está realizando.
 
 <div id="common-causes-of-the-invalid-state-error">
-  ## Causas comunes del error de estado no válido
+  ## Causas comunes del error `invalid state`
 </div>
 
-A continuación, se indican algunas causas comunes del error de estado no válido, así como algunos pasos de solución de problemas que puedes seguir.
+A continuación, se indican algunas causas comunes del error `invalid state`, así como algunos pasos de solución de problemas que puedes seguir.
 
 <div id="cached-callback-urls">
-  ### URL de callback almacenadas en caché
+  ### URLs de devolución de llamada en caché
 </div>
 
-La causa más común del error de estado no válido es que la URL de callback esté almacenada en caché en el servidor.
+La causa más común del error `invalid state` es que la URL de devolución de llamada esté en caché en el servidor.
 
-Excluye del almacenamiento en caché en tu servidor todas las URL incluidas en el campo **Allowed Callback URLs** de [Auth0 Dashboard &gt; Applications &gt; Applications &gt; Settings](https://manage.auth0.com/#/applications/\{yourClientId}/settings) y vuelve a intentarlo. Además, excluye del almacenamiento en caché la URL del sitio (`/index.php` en una instalación normal) si tiene un parámetro de URL de Auth0.
+Excluya el almacenamiento en caché en su servidor para todas las URL incluidas en el campo **Allowed Callback URLs** de [Auth0 Dashboard &gt; Applications &gt; Applications &gt; Settings](https://manage.auth0.com/#/applications/\{yourClientId}/settings) y vuelva a hacer la prueba. Además, excluya del almacenamiento en caché la URL del sitio (`/index.php` en una instalación normal) si tiene un parámetro de URL de Auth0.
 
-Comprueba si la hora de tu servidor está configurada correctamente. El error `BeforeValidException` puede producirse cuando se interpreta que el token se generó antes de la hora actual, lo que puede suceder si la hora del servidor está desajustada. Puedes comprobar la hora del servidor usando `echo current_time( 'c' )`. Como solución temporal, también puedes modificar el plugin para añadir un desfase horario si no puedes cambiar la hora del servidor, pero esto debería corregirse antes de pasar a producción.
+Compruebe si la hora de su servidor está mal configurada. El error `BeforeValidException` puede producirse cuando se interpreta que el token se generó antes de la hora actual, lo que puede ocurrir si la hora del servidor no es correcta. Puede comprobar la hora del servidor con `echo current_time( 'c' )`. Otra solución temporal puede ser modificar el plugin para añadir un offset de tiempo si no puede cambiar la hora del servidor, pero esto debe corregirse para Production.
 
-Si eso no resuelve el problema, continúa con los pasos de solución de problemas que se indican a continuación.
+Si eso no resuelve la incidencia, continúe con los pasos de solución de problemas que se indican a continuación.
 
 <div id="cached-cookies-and-url-parameters">
-  ### Cookies almacenadas en caché y parámetros de URL
+  ### Cookies en caché y parámetros de URL
 </div>
 
-Si usas un hosting administrado como WP-Engine, puede que necesites contactar con su equipo de soporte para obtener ayuda adicional. Hemos recibido informes de problemas para acceder a las cookies necesarias en la URL de callback, así como problemas al comprobar la autenticación en la página final que ven los usuarios después de iniciar sesión. En concreto, solicita que se añadan exclusiones de caché para:
+Si usas un servicio de alojamiento gestionado como WP-Engine, puede que necesites ponerte en contacto con su equipo de soporte para recibir ayuda adicional. Hemos recibido informes de problemas para acceder a las cookies necesarias en la URL de devolución de llamada, así como de problemas al verificar la autenticación en la página final que ven los usuarios después de iniciar sesión. En concreto, solicita que se añadan exclusiones de caché para:
 
 * **Cookie:** `auth0_state`
 * **Cookie:** `auth0_nonce`
@@ -55,59 +55,59 @@ Si usas un hosting administrado como WP-Engine, puede que necesites contactar co
   ### Recargar la página después de un mensaje de error
 </div>
 
-Si recargas la página después de ver otro mensaje de error (verificación del correo electrónico, etc.), aparecerá el mensaje de estado no válido, ya que se está intentando volver a validar un valor que ya se ha usado. Esto es normal.
+Si recargas la página después de ver un mensaje de error distinto (verificación del correo electrónico, etc.), aparecerá el mensaje de invalid state, ya que intenta volver a validar un valor que ya se usó. Esto es normal.
 
 <div id="cookie-names-requirement">
-  ### Requisito de nombres de cookies
+  ### Requisito sobre los nombres de las cookies
 </div>
 
-Algunos hosts, como Pantheon, requieren que se utilicen nombres de cookies específicos. Puedes cambiar el nombre de la cookie mediante el filtro `auth0_state_cookie_name` en tu tema o en un plugin personalizado. Para obtener más información sobre el filtro `auth0_state_cookie_name`, consulta [Extend Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/extend-login-by-auth0). Para más información, [consulta la incidencia relacionada en GitHub](https://github.com/auth0/wordpress/issues/494) y [revisa su corrección](https://github.com/auth0/wordpress/pull/495).
+Algunos proveedores de hosting, como Pantheon, requieren el uso de nombres de cookie específicos. Puedes cambiar el nombre de la cookie con el filtro `auth0_state_cookie_name` en tu tema o en un plugin personalizado. Para obtener más información sobre el filtro `auth0_state_cookie_name`, consulta [Amplía Login by Auth0 WordPress Plugin](/docs/es/customize/integrations/cms/wordpress-plugin/extend-login-by-auth0). Para más información, [consulta la incidencia relacionada en GitHub](https://github.com/auth0/wordpress/issues/494) y [revisa la solución](https://github.com/auth0/wordpress/pull/495).
 
 <div id="universal-login-page-and-link-building">
   ### Página de Universal Login y creación de enlaces
 </div>
 
-Si tu sitio usa la página de <Tooltip tip="Universal Login: Tu aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Universal+Login">Universal Login</Tooltip> y estás creando el enlace tú mismo en un tema o un plugin, debes:
+Si tu sitio usa la <Tooltip tip="Universal Login: Tu aplicación redirige a Universal Login, alojado en el servidor de autorización de Auth0, para verificar la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Universal+Login">página de Universal Login</Tooltip> y estás creando el enlace tú mismo en un tema o plugin, necesitas:
 
 * Establecer una cookie llamada `auth0_state` con un valor generado aleatoriamente
 * Enviar ese valor en un parámetro de URL `state`.
 
-Como alternativa, puedes ir a Settings &gt; Features tab &gt; Universal Login Page y redirigir las solicitudes de inicio de sesión a la página `wp-login.php`, donde esa cookie y ese parámetro de URL se establecerán automáticamente.
+Como alternativa, puedes ir a Configuración &gt; pestaña Funcionalidades &gt; Página de Universal Login y redirigir las solicitudes de inicio de sesión a la página `wp-login.php`, donde esa cookie y ese parámetro de URL se establecerán automáticamente.
 
 <div id="visiting-the-callback-url-directly">
-  ### Visitar directamente la URL de callback
+  ### Visitar directamente la URL de devolución de llamada
 </div>
 
-Si visitas directamente tu URL de callback (normalmente `yourdomain.com/index.php?auth0=1`) o vuelves a hacerlo después de que se haya intercambiado el código de autorización, es posible que aparezca el error de estado no válido. Esto indica que el estado ya se verificó y eliminó.
+Si visitas directamente tu URL de devolución de llamada (normalmente `yourdomain.com/index.php?auth0=1`) o vuelves a hacerlo después de que se haya intercambiado el código de autorización, podría aparecer el error invalid state. Esto indica que el `state` ya se ha verificado y eliminado.
 
 <div id="troubleshoot-invalid-state-errors">
-  ## Solucionar problemas de errores de estado no válido
+  ## Solución de problemas de errores de invalid state
 </div>
 
-Ten en cuenta que algunos de los pasos a continuación requerirán interrumpir el proceso de inicio de sesión durante la prueba (se indicará cuando sea así):
+Ten en cuenta que algunos de los pasos que se indican a continuación requerirán interrumpir el proceso de inicio de sesión mientras se realizan (se indicará cuando corresponda):
 
-1. Con la sesión cerrada en WordPress y Auth0, visita la página de inicio de sesión que estás probando.
-2. Comprueba si se está creando la cookie `auth0_state` (en Chrome, View &gt; Developer &gt; JavaScript Console &gt; pestaña Application &gt; Storage a la izquierda &gt; Cookies &gt; dominio que se está probando; busca una cookie `auth0_state` con un valor no vacío).
+1. Con la sesión cerrada tanto en WordPress como en Auth0, visita la página de inicio de sesión que se está probando.
+2. Comprueba si se está estableciendo la cookie `auth0_state` (en Chrome, ve a View &gt; Developer &gt; JavaScript Console &gt; pestaña Application &gt; Storage a la izquierda &gt; Cookies &gt; el dominio que se está probando, y busca una cookie `auth0_state` con un valor no vacío).
 
    * Si este valor no está establecido, revisa si hay errores en la consola de JS y asegúrate de que tu navegador acepte cookies (el inicio de sesión no funcionará sin cookies).
-   * Si el valor está establecido, cópialo y visualiza el código fuente de la página (en Chrome, **View** &gt; **Developer** &gt; **View Source**). Busca ese valor; debería aparecer como el valor asociado al parámetro `wpAuth0LockGlobal.settings.auth.params.state` ([ver ejemplo de JSON](https://gist.github.com/joshcanhelp/1b8bb990048325eb7214e2b3d7136b78)). Toma nota de este valor (lo necesitarás en un paso posterior).
-3. Si el valor aparece ahí y el formulario de Lock se carga normalmente, entonces los pasos 1 y 2 de la primera lista anterior están funcionando correctamente.
-4. Antes de iniciar sesión, [agrega este fragmento de código al principio de tu `wp-config.php`](https://gist.github.com/joshcanhelp/ba98f748747c7fd2ecdf54e73c6110f3) para poder hacer una instalación de prueba. **ADVERTENCIA**: Esto interrumpirá el inicio de sesión del sitio de WordPress que se está probando, así que úsalo solo en una instalación que no sea de producción.
+   * Si el valor está establecido, cópialo y visualiza el código fuente de la página (en Chrome, **View** &gt; **Developer** &gt; **View Source**). Busca ese valor; debería aparecer como el valor asociado al parámetro `wpAuth0LockGlobal.settings.auth.params.state` ([ver JSON de ejemplo](https://gist.github.com/joshcanhelp/1b8bb990048325eb7214e2b3d7136b78)). Toma nota de este valor (lo necesitarás en un paso posterior).
+3. Si el valor aparece ahí y el formulario de Lock se carga con normalidad, entonces los pasos 1 y 2 de la primera lista anterior están funcionando correctamente.
+4. Antes de iniciar sesión, [agrega este fragmento de código al principio de tu `wp-config.php`](https://gist.github.com/joshcanhelp/ba98f748747c7fd2ecdf54e73c6110f3), para que puedas hacer una instalación de prueba. **ADVERTENCIA**: Esto interrumpirá el inicio de sesión en el sitio de WordPress que se está probando, así que úsalo solo en una instalación que no sea de producción.
 5. Inicia sesión normalmente.
-6. Después de que se te redirija de vuelta a la URL de callback de tu sitio, el proceso se detendrá. Deberías ver una salida como la que se muestra en el Gist enlazado en el paso n.º 4. Si ves algo como `Array()` sin valores adicionales, entonces podría estar ocurriendo una de estas dos cosas:
+6. Después de que se te redirija de vuelta a la URL de devolución de llamada de tu sitio, el proceso se detendrá. Deberías ver una salida como la que se muestra en el Gist enlazado en el paso n.º 4 anterior. Si ves algo como `Array()` sin valores adicionales, entonces podría estar ocurriendo una de estas dos cosas:
 
-   * La URL de callback de WordPress está en caché. El almacenamiento en caché de páginas puede producirse de muchas formas distintas, por lo que no hay pasos concretos que podamos proporcionar aquí. Revisa cualquier plugin de caché que tengas instalado; por lo general, tienen algún tipo de exclusión de URL integrada. También consulta con tu proveedor de hosting, ya que el almacenamiento en caché puede ser automático y requerir la intervención del soporte.
-   * El servidor no está leyendo la cookie de Auth0. Para una posible solución, [consulta el issue relacionado en GitHub](https://github.com/auth0/wordpress/issues/494) y [revisa su corrección](https://github.com/auth0/wordpress/pull/495).
-7. Si los valores están presentes, comprueba los encabezados de respuesta de la URL de callback que se está cargando (en Chrome, View &gt; Developer &gt; JavaScript Console &gt; pestaña Network, haz clic en el primer &quot;document&quot; que aparece con estado 500 y busca &quot;Response Headers&quot;). Busca cualquier indicio de almacenamiento en caché, como un `Cache-Control` con un `max-age` distinto de cero, un `x-cache` con algo diferente de `MISS` o cualquier otra pista de que esta página se está sirviendo desde una caché.
-8. También en los encabezados de respuesta, comprueba que `set-cookie` incluya una directiva como `auth0_state=deleted` para confirmar que el proceso de validación se está llevando a cabo.
-9. Asegúrate de que el parámetro `state` de la URL coincida con el registrado en la cookie establecida en el paso n.º 3.
-10. Si no hay indicios de almacenamiento en caché, elimina el fragmento de depuración de `wp-config.php` y vuelve a cargar la URL de callback. Deberías volver a ver el mensaje &quot;estado no válido&quot;. Si se hicieron cambios relacionados con la caché, intenta completar todo el proceso de inicio de sesión (asegúrate de borrar las cookies y la caché del navegador del sitio antes de hacer la prueba).
+   * La URL de devolución de llamada de WordPress está en caché. El almacenamiento en caché de páginas puede producirse de muchas maneras distintas, así que no hay pasos concretos que podamos proporcionar aquí. Revisa cualquier Plugin de caché que tengas instalado; normalmente incluyen algún tipo de exclusión de URL. Consulta también con tu proveedor de hosting, ya que el almacenamiento en caché puede ser automático y requerir la intervención de soporte.
+   * El servidor no está leyendo la cookie de Auth0. Para una posible solución, [consulta la incidencia relacionada en GitHub](https://github.com/auth0/wordpress/issues/494) y [revisa su corrección](https://github.com/auth0/wordpress/pull/495).
+7. Si los valores están presentes, revisa los headers de respuesta de la URL de devolución de llamada que se está cargando (en Chrome, ve a View &gt; Developer &gt; JavaScript Console &gt; pestaña Network, haz clic en el primer &quot;document&quot; que aparezca con un status 500 y busca &quot;Response Headers&quot;). Busca aquí cualquier indicio de almacenamiento en caché, como un `Cache-Control` con un `max-age` distinto de cero, un `x-cache` con un valor distinto de `MISS`, o cualquier otra pista de que esta página se esté sirviendo desde una caché.
+8. También en los headers de respuesta, comprueba que `set-cookie` incluya una directiva como `auth0_state=deleted` para confirmar que el proceso de validación se está llevando a cabo.
+9. Asegúrate de que el parámetro `state` de la URL coincida con el registrado en la cookie establecida en el paso n.º 3 anterior.
+10. Si no hay indicios de almacenamiento en caché, elimina el fragmento de depuración de `wp-config.php` y actualiza la URL de devolución de llamada. Deberías volver a ver el mensaje &quot;Invalid state&quot;. Si se hicieron cambios relacionados con la caché, intenta completar todo el proceso de inicio de sesión (asegúrate de borrar las cookies y la caché del navegador del sitio antes de hacer la prueba).
 
-Los siguientes pasos de solución de problemas requieren cambios en el plugin que interrumpirán el proceso de inicio de sesión y que deberán revertirse una vez completados. Estos pasos deben realizarse en un servidor de prueba o de staging.
+Los siguientes pasos de solución de problemas requieren cambios en el Plugin que interrumpirán el proceso de inicio de sesión y que deberán revertirse una vez completados. Estos pasos deben realizarse en un servidor de prueba o staging.
 
-11. A continuación, tenemos que comprobar por qué el estado llega pero no coincide con el valor almacenado.
+11. A continuación, tenemos que comprobar por qué el state está llegando pero no coincide con el valor almacenado.
 
-12. En `lib/WP_Auth0_LoginManager.php`, muestra los valores del estado almacenado y del devuelto, y después detén el proceso. Justo antes de la [línea 148](https://github.com/auth0/wp-auth0/blob/master/lib/WP_Auth0_LoginManager.php#L148), agrega:
+12. En `lib/WP_Auth0_LoginManager.php`, muestra los valores del state almacenado y del devuelto, y después detén el proceso. Justo antes de la [línea 148](https://github.com/auth0/wp-auth0/blob/master/lib/WP_Auth0_LoginManager.php#L148), agrega:
 
 ```bash wrap lines
 echo '<h1>$_REQUEST</h1>'; var_dump($_REQUEST); echo '<h1>$_COOKIE</h1>'; var_dump($_COOKIE); die('<h1>Done</h1>');
@@ -115,38 +115,38 @@ echo '<h1>$_REQUEST</h1>'; var_dump($_REQUEST); echo '<h1>$_COOKIE</h1>'; var_du
 
 13. Una vez más, asegúrate de haber cerrado sesión y completa el proceso de inicio de sesión.
 
-14. Deberías ver valores mostrados cuando se te redirija de vuelta a la URL de callback de WordPress.
+14. Deberías ver valores mostrados al ser redirigido de nuevo a la URL de devolución de llamada de WordPress.
 
-15. Comprueba si el valor `state` en `$_REQUEST` existe y coincide con el valor `auth0_state` en `$_COOKIE`.
+15. Comprueba si el valor de `state` en `$_REQUEST` existe y coincide con el valor de `auth0_state` en `$_COOKIE`.
 
-* Si es diferente, debe coincidir con el valor original registrado en el paso n.º 3 anterior. Esto significa que el valor de estado de `$_COOKIE` cambió en algún momento del proceso.
+* Si es diferente, debe coincidir con el valor original registrado en el paso n.º 3 anterior. Esto significa que el valor `state` de `$_COOKIE` ha cambiado en algún momento del proceso.
 
-Si ninguno de los pasos anteriores resuelve el problema, recopile los resultados de los pasos anteriores y [póngase en contacto con soporte](https://support.auth0.com/center/s/) o [publique en Community](https://community.auth0.com/tag/wordpress) con la etiqueta `wordpress`. Incluya también:
+Si ninguno de los pasos anteriores resuelve la incidencia, recopila los resultados de los pasos anteriores y [ponte en contacto con el equipo de soporte](https://support.auth0.com/center/s/) o [publica en Community](https://community.auth0.com/tag/wordpress) con la etiqueta `wordpress`. Incluye también:
 
 * Versión de PHP
 * Versión de WordPress
 * Versión del plugin de Auth0
-* Navegador y sistema operativo usados para la prueba
-* Un [archivo HAR](https://support.auth0.com/center/s/article/generate-and-analyze-har-files-to-troubleshoot-auth0-issues) que registre todo el proceso, desde la carga de la página con el formulario de inicio de sesión hasta el mensaje &quot;estado no válido&quot;.
+* Navegador y sistema operativo utilizados para la prueba
+* Un [archivo HAR](https://support.auth0.com/center/s/article/generate-and-analyze-har-files-to-troubleshoot-auth0-issues) que registre todo el proceso, desde que se carga la página con el formulario de inicio de sesión hasta que aparece el mensaje &quot;Invalid state&quot;.
 
   <Warning>
-    Antes de compartir un archivo HAR con alguien (incluido Auth0), asegúrese de eliminar u ocultar todos los datos sensibles, como:
+    Antes de compartir un archivo HAR con alguien (incluido Auth0), asegúrate de eliminar u ocultar todos los datos sensibles, como:
 
     * Información confidencial del usuario
     * Información de identificación personal (PII)
     * Información confidencial de la aplicación
 
-    Para obtener más información, lea los siguientes artículos del Auth0 Support Center:
+    Para obtener más información, consulta los siguientes artículos en el Auth0 Support Center:
 
-    * [Sanitizing HTTP Traces](https://support.auth0.com/center/s/article/How-to-Remove-Secrets-from-a-har-File)
-    * [How to Sanitize an HTTP Trace File Automatically](https://support.auth0.com/center/s/article/How-to-Sanitize-a-HTTP-Trace-File-Automatically)
-    * [How to Manually Redact Sensitive Information](https://support.auth0.com/center/s/article/How-to-Manually-Redact-Sensitive-Information)
-    * [HAR File is Too Large to Upload to the Support Case](https://support.auth0.com/center/s/article/HAR-File-is-too-Large-to-Upload-to-the-Support-Case)
+    * [Cómo limpiar las trazas HTTP](https://support.auth0.com/center/s/article/How-to-Remove-Secrets-from-a-har-File)
+    * [Cómo limpiar automáticamente un archivo de traza HTTP](https://support.auth0.com/center/s/article/How-to-Sanitize-a-HTTP-Trace-File-Automatically)
+    * [Cómo ocultar manualmente información sensible](https://support.auth0.com/center/s/article/How-to-Manually-Redact-Sensitive-Information)
+    * [El archivo HAR es demasiado grande para subirlo al caso de soporte](https://support.auth0.com/center/s/article/HAR-File-is-too-Large-to-Upload-to-the-Support-Case)
   </Warning>
 
 <div id="related-posts">
   ## Publicaciones relacionadas
 </div>
 
-* [Error de &quot;estado no válido&quot; durante la redirección de Auth0 en WordPress](https://community.auth0.com/t/invalid-state-error-during-auth0-wordpress-redirect/12552/16) en Auth0 Community
-* [Estado no válido al acceder directamente a la URL de callback](https://wordpress.org/support/topic/unable-to-resolve-troubleshooting-with-a-client-grant-for-already-exists/) en wordpress.org
+* [Error de &quot;Invalid state&quot; durante la redirección de Auth0 WordPress](https://community.auth0.com/t/invalid-state-error-during-auth0-wordpress-redirect/12552/16) en Auth0 Community
+* [Invalid state al acceder directamente a la URL de devolución de llamada](https://wordpress.org/support/topic/unable-to-resolve-troubleshooting-with-a-client-grant-for-already-exists/) en wordpress.org

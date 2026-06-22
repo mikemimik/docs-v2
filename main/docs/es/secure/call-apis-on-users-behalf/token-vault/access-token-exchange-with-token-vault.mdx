@@ -1,17 +1,17 @@
 ---
-description: Aprende cómo una aplicación puede acceder a Token Vault para intercambiar un token de acceso de Auth0 por un token de acceso para llamar a API externas.
-title: Intercambio de token de acceso con Token Vault
+description: Aprende cómo una aplicación puede acceder a Token Vault para intercambiar un token de acceso de Auth0 por un token de acceso para llamar a APIs externas.
+title: Intercambio de tokens de acceso con Token Vault
 ---
 
-Token Vault admite el intercambio de token de acceso, que permite que una aplicación cliente intercambie un token de acceso de Auth0 (token de sujeto) por el token de acceso de un proveedor externo (token solicitado).
+Token Vault admite el intercambio de tokens de acceso, que permite a una aplicación cliente intercambiar un token de acceso de Auth0 (token de sujeto) por el token de acceso de un proveedor externo (token solicitado).
 
-Cuando una Single-Page Application (SPA) llama a una API de backend, solo envía un token de acceso de Auth0 en el encabezado `Authorization`. Como la API de backend no recibe ningún token de actualización emitido a la SPA, no puede usar el [intercambio de token de actualización](/docs/es/secure/tokens/token-vault/refresh-token-exchange-with-token-vault) para acceder a Token Vault y llamar a API externas.
+Cuando una aplicación de página única (SPA) llama a una API de backend, solo envía un token de acceso de Auth0 en el encabezado `Authorization`. Como la API de backend no recibe ningún token de actualización emitido para la SPA, no puede usar el [intercambio de token de actualización](/docs/es/secure/tokens/token-vault/refresh-token-exchange-with-token-vault) para acceder a Token Vault y llamar a APIs externas.
 
-En su lugar, la API de backend puede intercambiar el token de acceso de Auth0 recibido de la SPA por el token de acceso de un proveedor externo; a esto se le conoce como intercambio de token de acceso. Este proceso mantiene seguras las credenciales externas sensibles en el backend.
+En su lugar, la API de backend puede intercambiar el token de acceso de Auth0 recibido de la SPA por el token de acceso de un proveedor externo; esto es lo que se conoce como intercambio de tokens de acceso. Este proceso mantiene seguras las credenciales externas sensibles en el backend.
 
-En el intercambio de token de acceso de Auth0, la API de backend actúa tanto como cliente como servidor de recursos:
+En el intercambio de tokens de acceso de Auth0, la API de backend actúa a la vez como cliente y como servidor de recursos:
 
-* Cliente: Usa sus propias credenciales para realizar de forma segura el intercambio de token de acceso con el servidor de autorización de Auth0. En Auth0, se crea un cliente de API personalizada con el mismo identificador que la API de backend. La API de backend pasa las credenciales del cliente de API personalizada para realizar de forma segura el intercambio de token de acceso con el servidor de autorización de Auth0.
+* Cliente: Usa sus propias credenciales para realizar de forma segura el intercambio de tokens de acceso con el servidor de autorización de Auth0. En Auth0, se crea un cliente de API personalizada con el mismo identificador que la API de backend. La API de backend proporciona las credenciales del cliente de API personalizada para realizar de forma segura el intercambio de tokens de acceso con el servidor de autorización de Auth0.
 * Servidor de recursos: Expone la API de backend a la SPA y valida el token de acceso de Auth0.
 
 Al actuar como intermediaria entre la SPA y el servidor de autorización de Auth0, la API de backend evita que clientes no autorizados roben el token de Auth0 y lo usen para acceder al proveedor externo en nombre del usuario.
@@ -20,59 +20,59 @@ Al actuar como intermediaria entre la SPA y el servidor de autorización de Auth
   ## Casos de uso
 </div>
 
-Los casos de uso comunes del intercambio de token de acceso incluyen:
+Entre los casos de uso más comunes del intercambio de tokens de acceso se incluyen:
 
-* Una API de backend: Un usuario interactúa con una SPA, que luego llama a una API de backend para intercambiar un token de acceso de Auth0 por el token de acceso de un proveedor externo con el servidor de autorización de Auth0.
-* Arquitectura de microservicios: Servicios de backend, como servidores MCP u otros servidores de recursos de OAuth 2.0, que necesitan intercambiar tokens de acceso para acceder a API externas.
+* Una API de backend: un usuario interactúa con una SPA, que luego llama a una API de backend para intercambiar un token de acceso de Auth0 por un token de acceso de un proveedor externo mediante el servidor de autorización de Auth0.
+* Arquitectura de microservicios: servicios de backend, como servidores MCP u otros servidores de recursos de OAuth 2.0, que necesitan intercambiar tokens de acceso para acceder a API externas.
 
 <div id="how-it-works">
   ## Cómo funciona
 </div>
 
-El siguiente diagrama de secuencia describe de principio a fin cómo llamar a APIs externas mediante el intercambio de token de acceso en Auth0:
+El siguiente diagrama de secuencia describe, de extremo a extremo, cómo invocar API externas mediante el intercambio de tokens de acceso en Auth0:
 
 <Frame>![](/docs/images/token-vault/access_token_exchange_flow_diagram.png)</Frame>
 
-Veamos un ejemplo real: un usuario quiere programar una reunión en su Google Calendar usando una SPA.
+Veamos un ejemplo real: un usuario quiere programar una reunión en su Google Calendar desde una SPA.
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Antes de comenzar, debes [configurar el intercambio de token de acceso con Token Vault](/docs/es/secure/tokens/token-vault/configure-token-vault#configure-access-token-exchange).
+Antes de empezar, debes [configurar el intercambio de tokens de acceso con Token Vault](/docs/es/secure/tokens/token-vault/configure-token-vault#configure-access-token-exchange).
 
 <div id="step-1-connect-and-authorize-access">
   ## Paso 1: Conectar y autorizar el acceso
 </div>
 
-Para programar la reunión, la SPA necesita conectarse a Google mediante Auth0 y luego recibir el permiso del usuario para acceder a la API de Google Calendar.
-El usuario inicia sesión en la aplicación con Google mediante el [Connected Accounts flow](/docs/es/secure/tokens/token-vault/connected-accounts-for-token-vault#how-it-works), que utiliza la [My Account API](/docs/es/manage-users/my-account-api). Si la aplicación usa [Organizations](/docs/es/manage-users/organizations), el usuario inicia sesión en la organización de destino antes de continuar.
+Para programar la reunión, la SPA debe conectarse con Google a través de Auth0 y luego obtener el permiso del usuario para acceder a la API de Google Calendar.
+El usuario inicia sesión en la aplicación con Google mediante el [flujo de Connected Accounts](/docs/es/secure/tokens/token-vault/connected-accounts-for-token-vault#how-it-works), que utiliza la [My Account API](/docs/es/manage-users/my-account-api). Si la aplicación usa [Organizations](/docs/es/manage-users/organizations), el usuario inicia sesión en la organización de destino antes de continuar.
 
-Después de que la My Account API valida y completa la solicitud de Connected Accounts, almacena los tokens de acceso y de actualización de Google con los scopes de calendario solicitados en Token Vault.
+Después de que la My Account API valida y completa la solicitud de Connected Accounts, almacena el token de acceso de Google y los tokens de actualización con los scopes de calendario solicitados en el Token Vault.
 
 <div id="step-2-spa-calls-backend-api-with-auth0-access-token">
-  ## Paso 2: La SPA llama a la API de backend con un token de acceso de Auth0
+  ## Paso 2: La SPA llama a la API de backend con el token de acceso de Auth0
 </div>
 
 Cuando la SPA llama a la API de backend, envía el token de acceso de Auth0 en el encabezado `Authorization` a la API de backend. La API de backend valida el token de acceso de Auth0 comprobando lo siguiente:
 
-* Firma: Verifica la firma del token con la clave pública de Auth0. Esto confirma que Auth0 emitió el token de acceso.
+* Firma: Verifica la firma del token mediante la clave pública de Auth0. Esto confirma que Auth0 emitió el token de acceso.
 * Emisor: Comprueba el claim `iss` en el payload del token para confirmar que el token fue emitido por tu tenant de Auth0.
 * Audiencia: Comprueba el claim `aud` para asegurarse de que coincida con el identificador único de la propia API de backend. Esto confirma que el token se emitió específicamente para este servidor de recursos.
 * Expiración: Valida el claim `exp` para asegurarse de que el token siga siendo válido y no haya expirado.
 * Scopes: Comprueba el claim `scope` para determinar qué permisos se le han concedido al usuario.
 
-Después de completar correctamente estas comprobaciones, la API de backend puede confiar en el token de acceso de Auth0 y proceder con el intercambio de tokens.
+Después de completar correctamente estas comprobaciones, la API de backend puede confiar en el token de acceso de Auth0 y continuar con el intercambio de tokens.
 
 <div id="step-3-backend-api-performs-access-token-exchange">
-  ## Paso 3: La API de backend realiza el intercambio de token de acceso
+  ## Paso 3: La API de backend realiza el intercambio de tokens de acceso
 </div>
 
-Para el intercambio de token de acceso, debes [crear un cliente de API personalizada](/docs/es/secure/tokens/token-vault/configure-token-vault#create-custom-api-client) asociado a la API de backend. El cliente de API personalizada tiene el mismo identificador que tu API de backend y tiene habilitado el tipo de concesión de Token Vault.
+Para el intercambio de tokens de acceso, debes [crear un cliente de API personalizada](/docs/es/secure/tokens/token-vault/configure-token-vault#create-custom-api-client) asociado a la API de backend. El cliente de API personalizada tiene el mismo identificador que tu API de backend y tiene habilitado el tipo de concesión de Token Vault.
 
-Cuando la API de backend realiza el intercambio de token de acceso, se autentica pasando las credenciales del cliente de API personalizada al servidor de autorización de Auth0, lo que demuestra que es la misma entidad registrada en el Auth0 Dashboard.
+Cuando la API de backend realiza el intercambio de tokens de acceso, se autentica pasando las credenciales del cliente de API personalizada al servidor de autorización de Auth0, lo que demuestra que es la misma entidad que se registró en el Auth0 Dashboard.
 
-Para realizar el intercambio de token de acceso, la API de backend usa los Auth0 SDKs para enviar una solicitud `POST` al endpoint `/oauth/token`.
+Para realizar el intercambio de tokens de acceso, la API de backend usa los SDKs de Auth0 para enviar una solicitud `POST` al endpoint `/oauth/token`.
 
 En la solicitud de token, la API de backend:
 
@@ -93,29 +93,29 @@ curl --request POST 'https://{yourDomain}/oauth/token' \
   }'
 ```
 
-| Parámetro              | Descripción                                                                                                                                                                                                                                                                                                                                                |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `grant_type`           | El tipo de concesión. Para Token Vault, configúrelo como `urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token`                                                                                                                                                                                                              |
-| `client_id`            | ID de la aplicación cliente                                                                                                                                                                                                                                                                                                                                |
-| `client_secret`        | Secreto de cliente. **Nota:** Puede usar cualquier método de autenticación de cliente para obtener el token de acceso de un proveedor externo.                                                                                                                                                                                                             |
-| `subject_token_type`   | Tipo de token de sujeto. Para el intercambio de token de acceso, configúrelo como el token de acceso: `urn:ietf:params:oauth:token-type:access_token`.                                                                                                                                                                                                     |
-| `subject_token`        | El token de acceso de Auth0 que el servidor de autorización de Auth0 valida para identificar al usuario.                                                                                                                                                                                                                                                   |
-| `requested_token_type` | El tipo de token solicitado. Para Token Vault, configúrelo como el token de acceso del proveedor externo o `http://auth0.com/oauth/token-type/federated-connection-access-token`                                                                                                                                                                           |
-| `connection`           | El nombre de la conexión; en este caso, `google-oauth2`.                                                                                                                                                                                                                                                                                                   |
-| `login_hint`           | (Opcional) Use `login_hint` solo si el usuario tiene varias cuentas de la misma conexión, como una cuenta de Google del trabajo y una cuenta personal de Google. Cuando se pasa un valor para `login_hint` durante el intercambio de token de acceso, se identifica explícitamente a cuál de las múltiples cuentas vinculadas del usuario corresponde la solicitud. |
+| Parameter              | Descripción                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grant_type`           | El tipo de concesión. Para Token Vault, establézcalo como `urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token`                                                                                                                                                                                                       |
+| `client_id`            | ID de la aplicación cliente                                                                                                                                                                                                                                                                                                                          |
+| `client_secret`        | Secreto de cliente. **Nota:** Puede usar cualquier método de autenticación del cliente para obtener el token de acceso de un proveedor externo.                                                                                                                                                                                                      |
+| `subject_token_type`   | Tipo de token de sujeto. Para el intercambio de tokens de acceso, establézcalo como el token de acceso: `urn:ietf:params:oauth:token-type:access_token`.                                                                                                                                                                                             |
+| `subject_token`        | El token de acceso de Auth0 que el servidor de autorización de Auth0 valida para identificar al usuario.                                                                                                                                                                                                                                             |
+| `requested_token_type` | El tipo de token solicitado. Para Token Vault, establézcalo como el token de acceso del proveedor externo o `http://auth0.com/oauth/token-type/federated-connection-access-token`                                                                                                                                                                    |
+| `connection`           | El nombre de la conexión; en este caso, `google-oauth2`.                                                                                                                                                                                                                                                                                             |
+| `login_hint`           | (Opcional) Use `login_hint` solo si el usuario tiene varias cuentas de la misma conexión, como una cuenta de Google del trabajo y una cuenta personal de Google. Cuando se pasa un valor para `login_hint` durante el intercambio de tokens, se identifica explícitamente para cuál de las múltiples cuentas vinculadas del usuario es la solicitud. |
 
 <div id="step-4-auth0-authorization-server-validates-access-token">
-  ## Paso 4: El servidor de autorización de Auth0 valida el token de acceso
+  ## Paso 4: servidor de autorización de Auth0 valida el token de acceso
 </div>
 
-El servidor de autorización de Auth0 valida y carga el perfil de usuario asociado al token de acceso de Auth0:
+El servidor de autorización de Auth0 valida y carga el perfil de usuario asociado al Auth0 token de acceso:
 
-* Auth0 verifica que el cliente que realiza la solicitud de intercambio de token de acceso esté asociado a la API de backend identificada por el `audience` del token de acceso.
+* Auth0 verifica que el cliente que realiza la solicitud de intercambio de token de acceso esté vinculado a la API de backend identificada por el `audience` del token de acceso.
 * Auth0 comprueba si el arreglo `connected_accounts` del perfil de usuario contiene una cuenta de usuario con el nombre de la conexión indicado en la solicitud de autorización.
 * Si la solicitud de autorización contiene `login_hint`, Auth0 busca una identidad que coincida tanto con el nombre de la conexión como con `login_hint`.
 * Si Auth0 no encuentra al usuario, devuelve un código de estado `401` con un mensaje de error.
 
-Una vez que el servidor de autorización de Auth0 valida al usuario, localiza el token de acceso de Google dentro de Token Vault. Si sigue siendo válido, Auth0 devuelve el token de acceso de Google con sus scopes y su tiempo de expiración:
+Una vez que el servidor de autorización de Auth0 valida al usuario, localiza el Google token de acceso en Token Vault. Si sigue siendo válido, Auth0 devuelve el Google token de acceso con sus scopes y su tiempo de expiración:
 
 ```json lines
 {
@@ -127,4 +127,4 @@ Una vez que el servidor de autorización de Auth0 valida al usuario, localiza el
 }
 ```
 
-Usando el token de acceso de Google, la API de backend llama a la API de Google Calendar en nombre del usuario para programar la reunión.
+Con el token de acceso de Google, la API del backend llama a API de Google Calendar en nombre del usuario para programar la reunión.

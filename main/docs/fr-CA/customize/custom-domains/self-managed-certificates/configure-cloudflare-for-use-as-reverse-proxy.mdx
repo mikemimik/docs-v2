@@ -1,17 +1,17 @@
 ---
-description: Découvrez comment configurer Cloudflare pour l’utiliser comme proxy inverse de domaine personnalisé pour Auth0.
+description: Découvrez comment configurer Cloudflare pour l’utiliser comme proxy de domaine personnalisé pour Auth0.
 title: Configurer Cloudflare comme proxy inverse
 ---
 
-<Card title="La disponibilité varie selon le forfait Auth0">
-  La disponibilité de cette fonctionnalité dépend de votre forfait Auth0 ou de votre entente personnalisée. Pour en savoir plus, consultez la [page des tarifs d’Auth0](https://auth0.com/pricing).
+<Card title="La disponibilité varie selon le plan Auth0">
+  La disponibilité de cette fonctionnalité dépend de votre plan Auth0 ou de votre entente personnalisée. Pour en savoir plus, consultez la [page des tarifs d’Auth0](https://auth0.com/pricing).
 </Card>
 
-Pour configurer Cloudflare comme proxy inverse selon l’approche recommandée, vous devez disposer d’un forfait Enterprise de Cloudflare comprenant les fonctionnalités suivantes :
+Pour configurer Cloudflare comme proxy inverse selon l’approche recommandée, vous devez disposer d’un plan Enterprise de Cloudflare comprenant les fonctionnalités suivantes :
 
 | Fonctionnalité        | Description                                                                                                                                                                                                                                                                                                                                 |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host Header Override  | Réécrivez les en-têtes Host à l’aide de différentes règles Cloudflare. Pour en savoir plus, consultez [Rewrite Host headers on Cloudflare Docs](https://developers.cloudflare.com/rules/origin-rules/tutorials/change-uri-path-and-host-header/).                                                                                           |
+| Host Header Override  | Réécrit les en-têtes Host à l’aide de différentes règles Cloudflare. Pour en savoir plus, consultez [Rewrite Host headers on Cloudflare Docs](https://developers.cloudflare.com/rules/origin-rules/tutorials/change-uri-path-and-host-header/).                                                                                             |
 | True-Client-IP Header | L’activation de l’en-tête True-Client-IP ajoute l’en-tête True-Client-IP à toutes les requêtes envoyées à votre serveur d’origine, y compris l’adresse IP de l’utilisateur final. Pour en savoir plus, consultez [Understanding the True-Client-IP Header on Cloudflare](https://developers.cloudflare.com/network/true-client-ip-header/). |
 
 <div id="configure-cloudflare">
@@ -22,76 +22,76 @@ Pour configurer Cloudflare comme proxy inverse selon l’approche recommandée, 
   Comme prérequis, le domaine parent du domaine personnalisé choisi doit être [ajouté et activé dans le Dashboard Cloudflare](https://developers.cloudflare.com/learning-paths/get-started/add-domain-to-cf/minimize-downtime/#activate-your-domain). Assurez-vous également que le domaine personnalisé souhaité n’existe pas déjà dans votre zone Cloudflare. S’il existe déjà, la vérification Cloudflare échouera.
 </Warning>
 
-Pour configurer Cloudflare comme proxy inverse, vous devez créer un enregistrement CNAME, une règle de page et une règle de transformation dans Cloudflare.
+Pour configurer Cloudflare comme proxy inverse, vous devrez créer un enregistrement CNAME, une règle de page et une règle de transformation dans Cloudflare.
 
 1. [Configurez et vérifiez un domaine personnalisé avec des certificats autogérés](/docs/fr-CA/customize/custom-domains/self-managed-certificates) si ce n’est pas déjà fait. Prenez en note les valeurs **Origin Domain Name** et **cname-api-key**, car vous en aurez besoin plus tard.
-2. Dans le Dashboard Cloudflare de la zone cible, [créez un enregistrement CNAME](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/#create-dns-records) avec les paramètres suivants :
+2. Dans le Dashboard Cloudflare de la zone cible, [créez un enregistrement CNAME](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/#create-dns-records) avec les paramètres suivants :
 
-   | Paramètre       | Valeur                                               |
-   | --------------- | ---------------------------------------------------- |
-   | Nom             | Le nom du domaine personnalisé.                      |
-   | Cible           | La valeur **Origin Domain Name** notée précédemment. |
-   | Statut du proxy | `Proxied`                                            |
-3. [Créez une règle de page](https://developers.cloudflare.com/rules/page-rules/) qui s’applique à toutes les URL du domaine personnalisé choisi, avec les paramètres suivants :
+   | Paramètre    | Valeur                                           |
+   | ------------ | ------------------------------------------------ |
+   | Name         | Le nom de domaine personnalisé.                  |
+   | Target       | La valeur **Origin Domain Name** notée plus tôt. |
+   | Proxy Status | `Proxied`                                        |
+3. [Créez une règle de page](https://developers.cloudflare.com/rules/page-rules/) qui s’applique à toutes les URL du domaine personnalisé choisi, avec les paramètres suivants :
 
-   | Paramètre                      | Valeur                                               |
-   | ------------------------------ | ---------------------------------------------------- |
-   | Remplacement de l’en-tête Host | La valeur **Origin Domain Name** notée précédemment. |
-   | True-Client-IP                 | `Enable`                                             |
-4. [Créez une règle de transformation](https://developers.cloudflare.com/rules/transform/request-header-modification/create-dashboard/) :
+   | Paramètre            | Valeur                                           |
+   | -------------------- | ------------------------------------------------ |
+   | Host Header Override | La valeur **Origin Domain Name** notée plus tôt. |
+   | True-Client-IP       | `Enable`                                         |
+4. [Créez une règle de transformation](https://developers.cloudflare.com/rules/transform/request-header-modification/create-dashboard/) :
 
    <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-     Bien qu’il soit possible d’utiliser des Cloudflare Workers au lieu de règles de page et de transformation pour configurer un proxy inverse répondant aux exigences d’un domaine personnalisé avec certificat autogéré, nous recommandons l’approche fondée sur des règles, car elle évite d’avoir à écrire du code personnalisé.
+     Bien qu’il soit possible d’utiliser des Cloudflare Workers au lieu des règles de page et de transformation pour configurer un proxy inverse qui répond aux exigences d’un domaine personnalisé avec certificat autogéré, nous recommandons l’approche fondée sur des règles, car elle évite d’avoir à écrire du code personnalisé.
    </Callout>
 
    1. Passez à la vue **Modify Request Header**.
    2. Sélectionnez **Create Rule** et donnez-lui le nom de votre choix.
-   3. Sous **When incoming requests match**, sélectionnez **Custom filter expression** et définissez une expression qui limite la portée de la règle aux requêtes associées au domaine personnalisé choisi. Par exemple, utilisez une correspondance exacte sur le champ **Hostname**.
-   4. Sous **Modify request header**, sélectionnez **Set static**, puis définissez les champs suivants :
+   3. Sous **When incoming requests match**, sélectionnez **Custom filter expression** et définissez une expression qui limite la règle aux requêtes associées au domaine personnalisé choisi. Par exemple, utilisez une correspondance exacte sur le champ **Hostname**.
+   4. Sous **Modify request header**, sélectionnez **Set static**, puis définissez les champs suivants :
 
-      | Champ            | Valeur                                          |
-      | ---------------- | ----------------------------------------------- |
-      | Nom de l’en-tête | `cname-api-key`                                 |
-      | Valeur           | La valeur **cname-api-key** notée précédemment. |
-5. Assurez-vous que l’option [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/) est activée et que le [mode de chiffrement](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/) est réglé au minimum à **Full** pour le domaine personnalisé choisi.
+      | Champ       | Valeur                                      |
+      | ----------- | ------------------------------------------- |
+      | Header name | `cname-api-key`                             |
+      | Value       | La valeur **cname-api-key** notée plus tôt. |
+5. Assurez-vous que [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/) est activé et que le [mode de chiffrement](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/) est réglé au minimum sur **Full** pour le domaine personnalisé choisi.
 
 <div id="use-managed-challenges">
   ## Utiliser Managed Challenges
 </div>
 
-Les [Managed Challenges](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/#managed-challenges) de Cloudflare vous permettent de filtrer le trafic de robots avant que les requêtes n’atteignent Auth0 Universal Login. Lorsqu’une requête correspond à votre règle, Cloudflare l’intercepte et présente un défi de vérification. Comme les pages de défi renvoient du HTML, les Managed Challenges sont uniquement compatibles avec les flux basés sur le navigateur — les appliquer à des points de terminaison d’API ou à des flux sans interface utilisateur les fera échouer, puisque le client recevra une page de défi HTML au lieu de la réponse attendue.
+Les [Managed Challenges](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/#managed-challenges) de Cloudflare vous permettent de filtrer le trafic de bots avant que les requêtes n’atteignent Auth0 Universal Login. Lorsqu’une requête correspond à votre règle, Cloudflare l’intercepte et affiche un défi de vérification. Comme les pages de défi renvoient du HTML, les Managed Challenges sont seulement compatibles avec les flux effectués dans le navigateur — si vous les appliquez à des points de terminaison d’API ou à des flux sans interface, ces flux ne fonctionneront plus, car le client recevra une page de défi HTML au lieu de la réponse attendue.
 
 <div id="universal-login-browser-based-endpoints">
-  ### Points de terminaison Universal Login dans le navigateur
+  ### Points de terminaison Universal Login pour navigateur
 </div>
 
-Les points de terminaison suivants servent des pages HTML dans un navigateur et sont compatibles avec Managed Challenges :
+Les points de terminaison suivants renvoient des pages HTML à un navigateur et sont compatibles avec Managed Challenges :
 
-| Point de terminaison                                                                                                                       | Description                                                                |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `/u/email-verification`                                                                                                                   | Vérification de l’e-mail                                                   |
-| `/u/login`                                                                                                                                | Prompts d’identifiant et identifier-first                                  |
-| Points de terminaison d’organisation : <br /><ul><li>`u/organization`</li><li>`/u/organization-picker`</li><li>`/u/pre-organization-picker`</li></ul> | Prompts de sélection de l’organisation                                     |
-| `/u/login/password`                                                                                                                       | Prompt de mot de passe                                                     |
-| `/u/login-email-verification`                                                                                                             | Prompt de vérification de l’e-mail                                         |
-| `/u/signup`                                                                                                                               | Prompts d’identifiant                                                      |
-| `/u/signup/password`                                                                                                                      | Prompt de mot de passe                                                     |
-| `/u/consent`                                                                                                                              | Consent prompt                                                             |
-| `/u/customized-consent`                                                                                                                   | Customized consent prompt                                                  |
-| `/u/reset-password`                                                                                                                       | Prompts de réinitialisation du mot de passe                                |
-| `/u/reset-password/request`                                                                                                               | Prompt d’e-mail/nom d’utilisateur pour la réinitialisation du mot de passe |
-| `/u/reset-password/change`                                                                                                                | Prompt de nouveau mot de passe                                             |
-| `/u/reset-verify`                                                                                                                         | Vérification de la réinitialisation du mot de passe                        |
-| `/u/mfa-begin-enroll-options`                                                                                                             | Sélection du facteur pour l’inscription à MFA                              |
-| `/u/mfa-enroll-options`                                                                                                                   | Options d’inscription à MFA                                                |
-| `/u/mfa-otp`                                                                                                                              | Prompts de mot de passe à usage unique                                     |
-| `/u/mfa-push`                                                                                                                             | Prompts de notification push                                               |
-| `/u/mfa-webauthn`                                                                                                                         | Prompts WebAuthn et passkey                                                |
-| `/u/mfa-recovery-code`                                                                                                                    | Prompts de code de récupération                                            |
-| `/u/mfa-sms`                                                                                                                              | Prompts SMS                                                                |
-| `/u/mfa-email`                                                                                                                            | Prompts d’e-mail MFA                                                       |
-| `/u/mfa-voice`                                                                                                                            | Prompts voice de MFA                                                       |
-| `/u/passkey-enrollment`                                                                                                                   | Inscription d’une passkey                                                  |
+| Point de terminaison                                                                                                                                  | Description                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `/u/email-verification`                                                                                                                               | Vérification du courriel                                                     |
+| `/u/login`                                                                                                                                            | Écrans d’identifiant et d’identifiant en premier                             |
+| Points de terminaison d’organisation : <br /><ul><li>`u/organization`</li><li>`/u/organization-picker`</li><li>`/u/pre-organization-picker`</li></ul> | Écrans de sélection d’organisation                                           |
+| `/u/login/password`                                                                                                                                   | Écran de mot de passe                                                        |
+| `/u/login-email-verification`                                                                                                                         | Écran de vérification du courriel                                            |
+| `/u/signup`                                                                                                                                           | Écrans d’identifiant                                                         |
+| `/u/signup/password`                                                                                                                                  | Écran de mot de passe                                                        |
+| `/u/consent`                                                                                                                                          | Écran de consentement                                                        |
+| `/u/customized-consent`                                                                                                                               | Écran de consentement personnalisé                                           |
+| `/u/reset-password`                                                                                                                                   | Écrans de réinitialisation du mot de passe                                   |
+| `/u/reset-password/request`                                                                                                                           | Écran de courriel/nom d’utilisateur pour la réinitialisation du mot de passe |
+| `/u/reset-password/change`                                                                                                                            | Écran de nouveau mot de passe                                                |
+| `/u/reset-verify`                                                                                                                                     | Vérification de la réinitialisation du mot de passe                          |
+| `/u/mfa-begin-enroll-options`                                                                                                                         | Sélection du facteur pour l’inscription MFA                                  |
+| `/u/mfa-enroll-options`                                                                                                                               | Options d’inscription MFA                                                    |
+| `/u/mfa-otp`                                                                                                                                          | Écrans de mot de passe à usage unique                                        |
+| `/u/mfa-push`                                                                                                                                         | Écrans de notifications push                                                 |
+| `/u/mfa-webauthn`                                                                                                                                     | Écrans WebAuthn et passkey                                                   |
+| `/u/mfa-recovery-code`                                                                                                                                | Écrans de code de récupération                                               |
+| `/u/mfa-sms`                                                                                                                                          | Écrans SMS                                                                   |
+| `/u/mfa-email`                                                                                                                                        | Écrans MFA par courriel                                                      |
+| `/u/mfa-voice`                                                                                                                                        | Écrans MFA par appel vocal                                                   |
+| `/u/passkey-enrollment`                                                                                                                               | Inscription de passkey                                                       |
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
   Si vous utilisez Classic Universal Login, incluez aussi `/login` dans votre règle Managed Challenge.
@@ -107,26 +107,26 @@ N’appliquez pas de Managed Challenge aux points de terminaison suivants. Ils s
 | ----------------------------------- | ---------------------------------------------------------------------------------------- |
 | `/oauth/token`                      | Point de terminaison de jeton                                                            |
 | `/oauth/revoke`                     | Point de terminaison de révocation de jeton                                              |
-| `/userinfo`                         | Point de terminaison UserInfo                                                            |
-| `/.well-known/openid-configuration` | Document de découverte OIDC                                                              |
+| `/userinfo`                         | point de terminaison UserInfo                                                            |
+| `/.well-known/openid-configuration` | document de découverte OIDC                                                              |
 | `/.well-known/jwks.json`            | JSON Web Key Set ; récupéré par les serveurs de ressources pour la validation des jetons |
 | `/api/v2/*`                         | Management API                                                                           |
-| `/co/authenticate`                  | Authentification cross-origin                                                            |
-| `/dbconnections/signup`             | Connexions de base de données : inscription                                              |
-| `/dbconnections/change_password`    | Connexions de base de données : changement du mot de passe                               |
-| `/usernamepassword/login`           | Soumission du formulaire Classic Universal Login                                         |
-| `/mfa/challenge`                    | Demande de challenge                                                                     |
-| `/mfa/associate`                    | Association d’authentificateur                                                           |
+| `/co/authenticate`                  | authentification cross-origin                                                            |
+| `/dbconnections/signup`             | connexions de base de données : inscription                                              |
+| `/dbconnections/change_password`    | connexions de base de données : changement de mot de passe                               |
+| `/usernamepassword/login`           | soumission du formulaire Classic Universal Login                                         |
+| `/mfa/challenge`                    | demande de défi                                                                          |
+| `/mfa/associate`                    | association d’un authentificateur                                                        |
 | `/passwordless/start`               | Passwordless : requête d’initialisation                                                  |
-| `/samlp/*`                          | Points de terminaison du protocole SAML                                                  |
-| `/wsfed/*`                          | Points de terminaison WS-Federation                                                      |
-| `/v2/logout`                        | Peut être appelé côté serveur dans des flux de logout back-channel                      |
+| `/samlp/*`                          | points de terminaison du protocole SAML                                                  |
+| `/wsfed/*`                          | points de terminaison WS-Federation                                                      |
+| `/v2/logout`                        | Peut être appelé côté serveur dans des flux de Back-Channel Logout                       |
 
 <div id="example-rule">
   ### Exemple de règle
 </div>
 
-Pour appliquer les Managed Challenges uniquement aux flux Universal Login dans le navigateur, créez une [règle WAF personnalisée](https://developers.cloudflare.com/waf/custom-rules/) dans Cloudflare. Réglez l’action de la règle sur **Managed Challenge** et utilisez l’expression suivante, en remplaçant `YOUR_CUSTOM_DOMAIN` par votre domaine personnalisé (par exemple, `login.example.com`) :
+Pour appliquer les Managed Challenges uniquement aux flux Universal Login dans le navigateur, créez une [règle WAF personnalisée](https://developers.cloudflare.com/waf/custom-rules/) dans Cloudflare. Définissez l’action de la règle sur **Managed Challenge** et utilisez l’expression suivante en remplaçant `YOUR_CUSTOM_DOMAIN` par votre domaine personnalisé (par exemple, `login.example.com`) :
 
 ```text
 (http.host eq "YOUR_CUSTOM_DOMAIN" and (
@@ -136,20 +136,20 @@ Pour appliquer les Managed Challenges uniquement aux flux Universal Login dans l
 ))
 ```
 
-Cela limite l’application du défi aux seuls points de terminaison Universal Login avec interface utilisateur et évite de perturber le trafic API et machine-to-machine.
+Cela limite la vérification uniquement aux points de terminaison Universal Login avec interface utilisateur et évite de perturber le trafic des API et de machine à machine.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Quelques cas d&#39;utilisation peuvent se comporter différemment :
+  Quelques cas d’utilisation peuvent se comporter différemment :
 
-  * **Persistance du cookie de validation** : Une fois qu’un navigateur résout un Managed Challenge, Cloudflare émet un cookie de validation qui persiste généralement pendant la session. Selon votre configuration, limiter la règle à `/authorize` peut suffire pour couvrir l’ensemble du flux Universal Login sans l’appliquer à chaque chemin `/u/*`.
-  * **Points d’entrée non OAuth** : Les flux qui commencent à partir de points d’entrée SAML initiés par le SP ou de points d’entrée WS-Federation utilisent `/samlp/*` ou `/wsfed/*` au lieu de `/authorize`. Ces chemins figurent dans la liste d’exclusion et ne devraient pas être soumis à un Managed Challenge.
+  * **Persistance du cookie de validation** : Une fois qu’un navigateur réussit un Managed Challenge, Cloudflare émet un cookie de validation qui persiste généralement pendant la session. Selon votre configuration, limiter la règle à `/authorize` seulement peut suffire pour couvrir l’ensemble du flux Universal Login sans l’appliquer à chaque chemin `/u/*`.
+  * **Points d’entrée non OAuth** : Les flux qui commencent à partir de points d’entrée SAML initiés par le SP ou de points d’entrée WS-Federation utilisent `/samlp/*` ou `/wsfed/*` au lieu de `/authorize`. Ces chemins figurent dans la liste d’exclusion et ne devraient pas faire l’objet d’un Managed Challenge.
 </Callout>
 
 <div id="configure-auth0">
   ## Configurer Auth0
 </div>
 
-Appelez le point de terminaison [Mettre à jour la configuration du domaine personnalisé](https://auth0.com/docs/api/management/v2#!/Custom_Domains/patch_custom_domains_by_id) de l’API Auth0 <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> avec la charge utile suivante dans le corps :
+Appelez le point de terminaison [Update custom domain configuration](https://auth0.com/docs/api/management/v2#!/Custom_Domains/patch_custom_domains_by_id) de l’API Auth0 <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip> avec la charge utile suivante dans le corps de la requête :
 
 ```json lines
 {

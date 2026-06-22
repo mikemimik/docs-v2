@@ -1,72 +1,72 @@
 ---
-description: Conozca las prácticas recomendadas para el entorno de scripts de acción de Custom Database.
+description: Obtenga información sobre las prácticas recomendadas para el entorno de scripts de acción de Custom Database.
 title: Prácticas recomendadas para el entorno de scripts de acción de Custom Database
 ---
 
-Los scripts de acción se ejecutan como una serie de funciones de JavaScript invocadas dentro de una instancia de un contenedor serverless de Webtask. En este proceso, se proporciona un entorno específico, junto con una serie de elementos suministrados tanto por el contenedor de Webtask como por el propio servidor de <Tooltip tip="Servidor de autenticación: servidor que confirma o niega la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=authentication+server">autenticación</Tooltip> de Auth0 (su tenant de Auth0).
+Los scripts de acción se ejecutan como una serie de funciones Javascript invocadas dentro de una instancia de un contenedor serverless de Webtask. Como parte de este proceso, se proporciona un entorno específico, junto con una serie de artefactos suministrados tanto por el contenedor de Webtask como por el propio <Tooltip tip="Servidor de autenticación: servidor que confirma o niega la identidad de un usuario." cta="Ver glosario" href="/docs/es/glossary?term=authentication+server">servidor de autenticación</Tooltip> de Auth0 (su tenant de Auth0).
 
 <div id="npm-modules">
   ## módulos de npm
 </div>
 
-Los contenedores serverless de Webtask de Auth0 pueden utilizar una amplia variedad de módulos de [`npm`](https://www.npmjs.com/); los módulos de `npm` no solo reducen el tamaño total del código del script de acción, sino que también proporcionan acceso a una amplia gama de funcionalidades ya preparadas.
+Los contenedores serverless de Webtask de Auth0 pueden usar una amplia gama de módulos de [`npm`](https://www.npmjs.com/); los módulos de `npm` no solo reducen el tamaño total del código del script de acción, sino que también proporcionan acceso a una gran variedad de funcionalidades ya creadas.
 
-De forma predeterminada, se admite desde el inicio una amplia lista de módulos de `npm` disponibles públicamente. Esta lista se ha recopilado y revisado para detectar posibles problemas de seguridad. Para ver qué módulos de `npm` son compatibles, consulta [Can I require: Extensibilidad de Auth0](https://auth0-extensions.github.io/canirequire/).
+De forma predeterminada, se admite de inmediato una amplia lista de módulos de `npm` disponibles públicamente. Esta lista se ha recopilado y revisado para detectar posibles problemas de seguridad. Para ver qué módulos de `npm` son compatibles, consulta [Can I require: Auth0 Extensibility](https://auth0-extensions.github.io/canirequire/).
 
-Si necesitas un módulo de `npm` que no esté disponible desde el inicio, puedes hacer una solicitud a través del [portal de extensibilidad de Auth0](https://auth0-extensions.github.io/canirequire/) o mediante tu representante de Auth0. Auth0 evaluará tu solicitud para determinar si es adecuada; si necesitas escalar una solicitud no resuelta, abre un ticket de soporte a través del [portal de soporte de Auth0](https://support.auth0.com/). Actualmente, Auth0 no admite el uso de módulos de `npm` desde repositorios privados.
+Si necesitas un módulo de `npm` que no sea compatible de inmediato, puedes hacer una solicitud a través del [portal de Auth0 Extensibility](https://auth0-extensions.github.io/canirequire/) o por medio de tu representante de Auth0. Auth0 evaluará tu solicitud para determinar si es adecuada; si necesitas escalar una solicitud sin resolver, abre un ticket de soporte a través del [portal de soporte de Auth0](https://support.auth0.com/). Actualmente, Auth0 no ofrece soporte para usar módulos de `npm` desde repositorios privados.
 
 <div id="variables">
   ## Variables
 </div>
 
-Los scripts de acción de Auth0 admiten variables de entorno, a las que se accede mediante el objeto `configuration`, disponible globalmente. El objeto `configuration` debe tratarse como de solo lectura y debe usarse para almacenar información confidencial, como credenciales o claves de API para acceder a identity stores externos. Esto evita tener valores sensibles codificados directamente en un script de acción.
+Los scripts de acción de Auth0 admiten variables de entorno, a las que se accede mediante el objeto `configuration`, disponible globalmente. El objeto `configuration` debe tratarse como de solo lectura y usarse para almacenar información confidencial, como credenciales o claves API para acceder a repositorios de identidades externos. Esto evita tener valores sensibles para la seguridad codificados de forma fija en un script de acción.
 
-El objeto `configuration` también puede usarse para aplicar las estrategias de práctica recomendada del ciclo de vida de desarrollo de software (SDLC) que utilice, como [configurar varios entornos](/docs/es/get-started/auth0-overview/create-tenants/set-up-multiple-environments), ya que le permite definir variables con valores específicos para cada tenant. Esto evita incluir valores codificados directamente en un script de acción, que pueden cambiar según el tenant que lo ejecute.
+El objeto `configuration` también puede usarse para respaldar cualquier estrategia de prácticas recomendadas del ciclo de vida de desarrollo de software (SDLC) que emplees, como [configurar múltiples entornos](/docs/es/get-started/auth0-overview/create-tenants/set-up-multiple-environments), ya que te permite definir variables con valores específicos de cada tenant. Esto evita valores codificados de forma fija en un script de acción, que pueden cambiar según el tenant que lo ejecute.
 
 <div id="global-object">
   ## objeto global
 </div>
 
-Los contenedores serverless de Webtask de Auth0 se aprovisionan a partir de un grupo asociado a cada tenant de Auth0. Cada instancia de contenedor pone a disposición un objeto global al que se puede acceder desde todos los scripts de acción que se ejecutan dentro de ella (la instancia del contenedor). El objeto global actúa como una variable global única para el contenedor y puede usarse para definir información —o incluso funciones— que puedan utilizarse en todos los scripts de acción que se ejecutan en él (la instancia del contenedor).
+Los contenedores serverless de Webtask de Auth0 se aprovisionan a partir de un grupo asociado a cada tenant de Auth0. Cada instancia de contenedor pone a disposición un objeto global al que se puede acceder desde todos los scripts de acción que se ejecutan en ella (la instancia de contenedor). El objeto global actúa como una variable global única para el contenedor y puede usarse para definir información, o incluso funciones, que puedan utilizarse en todos los scripts de acción que se ejecutan en él (la instancia de contenedor).
 
-Esto significa que el objeto global puede usarse para almacenar en caché recursos costosos, siempre que esos recursos no sean específicos del usuario. Por ejemplo, podría almacenarse un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">Token de acceso</Tooltip> para una API de terceros (por ejemplo, de registro) que proporcione funcionalidad no específica del usuario. O bien, podría usarse para almacenar un Token de acceso para tu propia API no específica del usuario definida en Auth0 y obtenida mediante el flujo Client Credentials.
+Esto significa que el objeto global puede usarse para almacenar en caché recursos costosos, siempre que esos recursos no sean específicos de un usuario. Por ejemplo, se podría almacenar un <Tooltip tip="Token de acceso: credencial de autorización, en forma de cadena opaca o JWT, que se utiliza para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> para una API de terceros (por ejemplo, de logging) que proporcione funcionalidades no específicas de un usuario. También podría usarse para almacenar un token de acceso para tu propia API no específica de un usuario definida en Auth0 y obtenido mediante el flujo de credenciales de cliente.
 
 <Warning>
-  Un script de acción puede ejecutarse en cualquiera de las instancias de contenedor que ya estén en ejecución o en una instancia de contenedor recién creada (que posteriormente puede añadirse al grupo). No existe afinidad de contenedor para la ejecución de scripts de acción en Auth0. Esto significa que debes evitar almacenar cualquier información específica del usuario en el objeto global y asegurarte siempre de que cualquier declaración realizada dentro del objeto global contemple también la inicialización.
+  Un script de acción puede ejecutarse en cualquiera de las instancias de contenedor que ya estén en ejecución o en una instancia de contenedor recién creada (que posteriormente puede añadirse al grupo). En Auth0 no hay afinidad de contenedor para la ejecución de scripts de acción. Esto significa que debes evitar almacenar información específica de un usuario en el objeto global y asegurarte siempre de que cualquier declaración hecha dentro del objeto global también contemple la inicialización.
 </Warning>
 
-Cada vez que se recicla un contenedor de Webtask, o cada vez que se instancia un nuevo contenedor de Webtask, se restablece el objeto global que define. Por lo tanto, cualquier declaración de asignación dentro del objeto global asociado a un contenedor también debe incluir la inicialización correspondiente. Para ofrecer flexibilidad de rendimiento, los contenedores serverless de Webtask se aprovisionan en Auth0 de forma ad hoc y también están sujetos a diversas políticas de reciclaje. En general, recomendamos no considerar que la vida útil de un objeto global sea superior a 20 minutos.
+Cada vez que se recicla un contenedor de Webtask, o cada vez que se crea una nueva instancia de un contenedor de Webtask, el objeto global que define se restablece. Por lo tanto, cualquier declaración de asignación dentro del objeto global asociado a un contenedor también debe contemplar la inicialización. Para ofrecer flexibilidad de rendimiento, los contenedores serverless de Webtask se aprovisionan en Auth0 de forma ad hoc y también están sujetos a diversas políticas de reciclaje. En general, recomendamos no considerar que la vida útil de un objeto global sea superior a 20 minutos.
 
 <div id="custom-database-connection-environment-checklist">
   ## Lista de verificación del entorno de la conexión de base de datos personalizada
 </div>
 
-* Asegúrese de que su base de datos tenga los campos adecuados para almacenar atributos del perfil de usuario, como **id**, **nickname**, **email** y **password**. Para obtener más información sobre el esquema del perfil de usuario de Auth0 y los campos esperados, lea [Normalized User Profiles](/docs/es/manage-users/user-accounts/user-profiles/normalized-user-profiles). Para obtener información sobre cómo actualizar perfiles de usuario, lea [Update User Profiles Using Your Database](/docs/es/manage-users/user-accounts/user-profiles/update-user-profiles-using-your-database).
+* Asegúrese de que su base de datos tenga los campos adecuados para almacenar los atributos del perfil de usuario, como **id**, **nickname**, **email** y **password**. Para obtener más información sobre el esquema del perfil de usuario de Auth0 y los campos esperados, lea [Perfiles de usuario normalizados](/docs/es/manage-users/user-accounts/user-profiles/normalized-user-profiles). Para saber cómo actualizar perfiles de usuario, lea [Actualizar perfiles de usuario usando su base de datos](/docs/es/manage-users/user-accounts/user-profiles/update-user-profiles-using-your-database).
 * Puede usar los errores devueltos por su conexión de base de datos personalizada para solucionar problemas.
-* Auth0 usará la propiedad `id` (o, alternativamente, `user_id`) del perfil de usuario devuelto para identificar al usuario. Si usa varias conexiones de base de datos personalizadas, el valor de **id** **debe ser único en todas las conexiones de base de datos personalizadas** para evitar colisiones de **ID de usuario**. Le recomendamos anteponer al valor de **id** el nombre de la conexión (omitiendo cualquier espacio en blanco). Para obtener más información sobre los ID de usuario, lea [Identify Users](/docs/es/manage-users/user-accounts/identify-users).
+* Auth0 usará la propiedad `id` (o, alternativamente, `user_id`) del perfil de usuario devuelto para identificar al usuario. Si está usando varias conexiones de base de datos personalizadas, el valor de **id** **debe ser único en todas las conexiones de base de datos personalizadas** para evitar colisiones de **ID de usuario**. Nuestra recomendación es anteponer al valor de **id** el nombre de la conexión (omitiendo cualquier espacio en blanco). Para obtener más información sobre los ID de usuario, lea [Identificar usuarios](/docs/es/manage-users/user-accounts/identify-users).
 * La latencia será mayor en comparación con los repositorios de usuarios alojados en Auth0.
-* La base de datos o el servicio deben ser accesibles desde los servidores de Auth0. Tendrá que configurar conexiones entrantes si su repositorio está detrás de un firewall.
+* Debe poder accederse a la base de datos o al servicio desde los servidores de Auth0. Tendrá que configurar conexiones entrantes si su repositorio está detrás de un firewall.
 
 <div id="testing-a-specific-runtime-version">
   ## Probar una versión específica del runtime
 </div>
 
-La versión del runtime para los scripts de base de datos personalizados se define en **Dashboard &gt; Settings &gt; Advanced**, dentro de la sección **extensibilidad**.
+La versión del runtime para los scripts de Custom Database se define en **Dashboard &gt; Settings &gt; Advanced**, dentro de la sección **Extensibility**.
 
-Sigue estos pasos para probar un solo script de base de datos personalizado en una versión específica del runtime:
+Sigue estos pasos para probar un único script de base de datos personalizado con una versión específica del runtime:
 
 1. Ve a **Authentication &gt; Database.**
 2. Selecciona la conexión de base de datos en la que hayas definido un script personalizado.
-3. En la página de la conexión de base de datos seleccionada, selecciona la pestaña **Custom Database**.
-4. Desplázate hasta la sección **scripts de acción de base de datos** de la página.
-5. Selecciona el script específico que quieres verificar (p. ej., Login, Create, etc.) en la pestaña correspondiente.
-6. Selecciona **Save and Try**. Esto carga un modal con parámetros de prueba específicos y detalles de contexto de ejemplo. Actualízalos según sea necesario.
-7. Selecciona **Try** en el modal para abrir un selector desplegable de una versión específica de Node.
-8. La prueba se activará al seleccionar la versión de Node deseada y los resultados aparecerán en un mensaje en la misma pantalla.
+3. En la página de la conexión de base de datos seleccionada, elige la pestaña **Custom Database**.
+4. Desplázate hasta la sección **Database Action Scripts** de la página.
+5. Selecciona el script concreto que quieras verificar (p. ej., Login, Create, etc.) en la pestaña correspondiente.
+6. Selecciona **Save and Try**. Se abrirá una ventana modal con parámetros de prueba específicos y detalles de contexto de ejemplo. Actualízalos según sea necesario.
+7. En la ventana modal, selecciona **Try** para abrir un selector desplegable de una versión específica de Node.
+8. La prueba se ejecutará al seleccionar la versión de Node que desees y los resultados aparecerán en un mensaje en la misma pantalla.
 
 <div id="learn-more">
   ## Más información
 </div>
 
-* [Prácticas recomendadas para la ejecución de scripts de acción de conexiones de Custom Database](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution)
+* [Prácticas recomendadas para la ejecución de scripts de acción en conexiones de Custom Database](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/execution)
 * [Prácticas recomendadas de seguridad para las conexiones de Custom Database](/docs/es/authenticate/database-connections/custom-db/custom-database-connections-scripts/connection-security)

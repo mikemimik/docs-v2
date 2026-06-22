@@ -1,6 +1,6 @@
 ---
-description: Décrit comment passer des jetons d’identité aux jetons d’accès pour la liaison de comptes d’utilisateurs.
-title: Migrer vers les jetons d’accès pour la liaison de comptes
+description: Explique comment passer de l’utilisation des jetons d’identité aux jetons d’accès pour la liaison de comptes d’utilisateur.
+title: Migrer vers les jetons d’accès pour la liaison de comptes d’utilisateur
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
@@ -56,7 +56,7 @@ export const codeExample4 = `{
   }
 }`;
 
-export const codeExample5 = `// obtenir un ID token
+export const codeExample5 = `// obtenir un ID Token
 var webAuth = new auth0.WebAuth({
   clientID: '{yourClientId}',
   domain: '{yourDomain}',
@@ -70,7 +70,7 @@ var auth0Manage = new auth0.Management({
   token: '{yourIdToken}'
 });`;
 
-export const codeExample6 = `// obtenir un access token
+export const codeExample6 = `// obtenir un Access Token
   var webAuth = new auth0.WebAuth({
     clientID: '{yourClientId}',
     domain: '{yourDomain}',
@@ -118,69 +118,69 @@ export const codeExample20 = `DELETE https://{yourDomain}/api/v2/users/{primaryA
   Authorization: 'Bearer {yourMgmtApiAccessToken}'
 `;
 
-Auparavant, vous pouviez utiliser les <Tooltip tip="Jeton d’identité : information d’authentification destinée au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+tokens">jetons d’identité</Tooltip> pour associer et dissocier des comptes d’utilisateur dans certains cas d’utilisation. Auth0 met progressivement fin à cette fonctionnalité. Vous devrez désormais utiliser des <Tooltip tip="Jeton d’identité : information d’authentification destinée au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> dans tous les cas.
+Auparavant, vous pouviez utiliser les <Tooltip tip="Jeton ID : information d’authentification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+tokens">jetons ID</Tooltip> pour lier et dissocier des comptes d’utilisateur dans certains cas. Auth0 déprécie cette fonctionnalité. Vous devrez désormais utiliser des <Tooltip tip="Jeton ID : information d’authentification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=access+tokens">jetons d’accès</Tooltip> dans tous les cas.
 
 <Warning>
-  Cette dépréciation répond à une vulnérabilité potentielle en matière de sécurité. Auth0 vous recommande fortement de mettre votre code à jour dès que possible.
+  Cette dépréciation fait suite à une faille de sécurité potentielle. Auth0 recommande fortement de mettre votre code à jour dès que possible.
 </Warning>
 
 <div id="features-affected">
   ## Fonctionnalités touchées
 </div>
 
-Les changements apportés à la liaison de comptes sont les suivants :
+Les changements concernant la liaison de comptes sont les suivants :
 
-* Vous ne pouvez plus utiliser un ID token dans l’en-tête `Authorization`; vous devez plutôt utiliser un access token.
-* Si vous utilisez un access token dans l’en-tête `Authorization` avec `update:users` comme permission accordée, vous pouvez alors envoyer dans le corps de la request soit le `user_id`, soit l’ID token du compte secondaire.
-* Si vous utilisez un access token dans l’en-tête `Authorization` avec `update:current_user_metadata` comme permission accordée, vous pouvez alors envoyer uniquement l’ID token du compte secondaire dans le corps de la request.
-* Si vous envoyez l’ID token du compte secondaire dans le corps de la request (les cas d’utilisation décrits dans les deux puces précédentes), les conditions suivantes doivent être respectées :
+* Vous ne pouvez plus utiliser un jeton d’identification dans l’en-tête `Authorization`; vous devez plutôt utiliser un jeton d’accès.
+* Si vous utilisez un jeton d’accès dans l’en-tête `Authorization` avec `update:users` comme permission accordée, vous pouvez envoyer dans le corps de la requête soit le `user_id`, soit le jeton d’identification du compte secondaire.
+* Si vous utilisez un jeton d’accès dans l’en-tête `Authorization` avec `update:current_user_metadata` comme permission accordée, vous pouvez seulement envoyer le jeton d’identification du compte secondaire dans le corps de la requête.
+* Si vous envoyez le jeton d’identification du compte secondaire dans le corps de la requête (les cas d’utilisation décrits dans les deux puces précédentes), les conditions suivantes doivent être respectées :
 
-  * L’ID token doit être signé à l’aide de `RS256` (vous pouvez définir cette valeur dans **Dashboard &gt; Clients &gt; Client Settings &gt; Advanced Settings &gt; OAuth**).
-  * Le claim `aud` de l’ID token doit identifier le client et avoir la même valeur que le claim `azp` de l’access token.
-* Pour dissocier des comptes, vous ne pouvez plus utiliser d’ID token dans l’en-tête `Authorization`. Vous devez plutôt utiliser un access token.
+  * Le jeton d’identification doit être signé à l’aide de `RS256` (vous pouvez définir cette valeur dans **Dashboard &gt; Clients &gt; Client Settings &gt; Advanced Settings &gt; OAuth**.
+  * Le claim `aud` du jeton d’identification doit identifier le client et avoir la même valeur que le claim `azp` du jeton d’accès.
+* Pour dissocier des comptes, vous ne pouvez plus utiliser un jeton d’identification dans l’en-tête `Authorization`. Vous devez plutôt utiliser un jeton d’accès.
 
 Il existe plusieurs façons de lier et de dissocier des comptes. Dans la liste suivante, vous pouvez voir les cas d’utilisation et l’incidence de ces changements sur ceux-ci.
 
-| Cas d’utilisation                                                                                                                                                                                                                                            | Statut                    |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
-| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de l’API de gestion et envoyer l’ID token du compte principal dans l’en-tête `Authorization`.                                                                                                      | Touché                    |
-| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de l’API de gestion et envoyer un access token (avec la portée `update:users`) dans l’en-tête `authorization`, ainsi que le `user_id` du compte secondaire dans la charge utile.                   | Non touché                |
-| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de l’API de gestion et envoyer un access token (avec la portée `update:current_user_identities`) dans l’en-tête `Authorization`, ainsi que le `user_id` du compte secondaire dans la charge utile. | Touché                    |
-| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de l’API de gestion et envoyer un access token dans l’en-tête `Authorization`, ainsi que l’ID token du compte secondaire dans la charge utile.                                                     | Nouveau cas d’utilisation |
-| Utiliser la bibliothèque auth0.js et l’ID token du compte principal pour instancier `auth0.Management`.                                                                                                                                                      | Touché                    |
-| Utiliser la bibliothèque auth0.js et un access token (avec la portée `update:users`) pour instancier `auth0.Management`.                                                                                                                                     | Non touché                |
-| Utiliser la bibliothèque auth0.js et un access token (avec la portée `update:current_user_identities`) pour instancier `auth0.Management`.                                                                                                                   | Touché                    |
-| Utiliser le endpoint `DELETE	/api/v2/users/{id}/identities/{provider}/{user_id}` de l’API de gestion et envoyer l’ID token du compte principal dans l’en-tête `Authorization`.                                                                               | Touché                    |
-| Utiliser le endpoint `DELETE	/api/v2/users/{id}/identities/{provider}/{user_id}` de l’API de gestion et envoyer un access token dans l’en-tête `Authorization`.                                                                                              | Non touché                |
+| Cas d’utilisation                                                                                                                                                                                                                                        | Statut                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de la Management API et envoyer le jeton d’identification du compte principal dans l’en-tête `Authorization`.                                                                                  | Affecté                   |
+| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de la Management API et envoyer un jeton d’accès (avec le scope `update:users`) dans l’en-tête `authorization`, ainsi que le `user_id` du compte secondaire dans le payload.                   | Non affecté               |
+| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de la Management API et envoyer un jeton d’accès (avec le scope `update:current_user_identities`) dans l’en-tête `Authorization`, ainsi que le `user_id` du compte secondaire dans le payload. | Affecté                   |
+| Utiliser le endpoint `POST /api/v2/users/{id}/identities` de la Management API et envoyer un jeton d’accès dans l’en-tête `Authorization` et le jeton d’identification du compte secondaire dans le payload.                                             | Nouveau cas d’utilisation |
+| Utiliser la bibliothèque auth0.js et le jeton d’identification du compte principal pour instancier `auth0.Management`.                                                                                                                                   | Affecté                   |
+| Utiliser la bibliothèque auth0.js et un jeton d’accès (avec le scope `update:users`) pour instancier `auth0.Management`.                                                                                                                                 | Non affecté               |
+| Utiliser la bibliothèque auth0.js et un jeton d’accès (avec le scope `update:current_user_identities`) pour instancier `auth0.Management`.                                                                                                               | Affecté                   |
+| Utiliser le endpoint `DELETE	/api/v2/users/{id}/identities/{provider}/{user_id}` de la Management API et envoyer le jeton d’identification du compte principal dans l’en-tête `Authorization`.                                                           | Affecté                   |
+| Utiliser le endpoint `DELETE	/api/v2/users/{id}/identities/{provider}/{user_id}` de la Management API et envoyer un jeton d’accès dans l’en-tête `Authorization`.                                                                                        | Non affecté               |
 
 <div id="actions">
   ## Actions
 </div>
 
-Passez en revue tous vos appels au point de terminaison [Identities endpoint](https://auth0.com/docs/api/management/v2/#!/Users/post_identities) pour la liaison de comptes et mettez à jour ceux qui utilisent le flux vulnérable décrit ci-dessus. Vous pouvez mettre à jour vos appels de l’une des façons suivantes :
+Passez en revue tous vos appels au [point de terminaison Identities](https://auth0.com/docs/api/management/v2/#!/Users/post_identities) pour la liaison de comptes et mettez à jour ceux qui utilisent le flux vulnérable décrit ci-dessus. Vous pouvez mettre à jour vos appels de l’une des façons suivantes :
 
-* **Scénarios de liaison côté client / initiés par l’utilisateur :** Pour les scénarios de liaison côté client, effectuez l’appel au point de terminaison Identities à l’aide d’un jeton d’accès avec la portée `update:current_user_identities`, et fournissez le jeton ID du compte secondaire dans la charge utile (`link_with`). Ce jeton ID doit être obtenu au moyen d’un flux <Tooltip tip="OAuth 2.0: Cadre d’autorisation qui définit les protocoles et les workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth">OAuth</Tooltip>/OIDC conforme.
-* **Scénarios de liaison côté serveur** : Pour les scénarios de liaison côté serveur, effectuez l’appel au point de terminaison Identities à l’aide d’un jeton d’accès avec la portée `update:users` et fournissez le `user_id` du compte secondaire dans la charge utile.
+* **Scénarios de liaison côté client / initiés par l’utilisateur :** Pour les scénarios de liaison côté client, effectuez l’appel au point de terminaison Identities à l’aide d’un jeton d’accès ayant la portée `update:current_user_identities`, et fournissez l’ID token du compte secondaire dans la charge utile (`link_with`). Cet ID token doit être obtenu au moyen d’un flux <Tooltip tip="OAuth 2.0 : cadre d’autorisation qui définit les protocoles et les flux de travail d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth">OAuth</Tooltip>/OIDC conforme.
+* **Scénarios de liaison côté serveur** : Pour les scénarios de liaison côté serveur, effectuez l’appel au point de terminaison Identities à l’aide d’un jeton d’accès ayant la portée `update:users` et fournissez le `user_id` du compte secondaire dans la charge utile.
 
-Consultez [Lier des comptes utilisateur](/docs/fr-CA/manage-users/user-accounts/user-account-linking/link-user-accounts) pour en savoir plus.
+Consultez [Link User Accounts](/docs/fr-CA/manage-users/user-accounts/user-account-linking/link-user-accounts) pour en savoir plus.
 
 <div id="link-user-accounts">
   ### Lier des comptes d’utilisateur
 </div>
 
-Pour lier des comptes d’utilisateur, vous pouvez soit appeler le [point de terminaison Link a User Account](https://auth0.com/docs/api/management/v2#!/Users/post_identities) de la <Tooltip tip="Management API : Un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, soit utiliser la [bibliothèque Auth0.js](/docs/fr-CA/libraries/auth0js).
+Pour lier des comptes d’utilisateur, vous pouvez soit appeler le [Link a User Account endpoint](https://auth0.com/docs/api/management/v2#!/Users/post_identities) de la <Tooltip tip="Management API : un produit permettant aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>, soit utiliser la [bibliothèque auth0.js](/docs/fr-CA/libraries/auth0js).
 
 <div id="link-current-user-accounts-with-the-management-api">
-  #### Lier les comptes de l’utilisateur actuel avec la Management API
+  #### Lier les comptes d’utilisateur actuels avec la Management API
 </div>
 
 Un cas d’utilisation courant consiste à permettre à l’utilisateur connecté de lier ses comptes à l’aide de votre application.
 
-Avant la dépréciation, vous pouviez utiliser l’ID token ou le jeton d’accès de l’utilisateur principal (qui contenait la portée `update:current_user_identities`) pour vous authentifier auprès de la Management API et utiliser le [point de terminaison Link a User Account](https://auth0.com/docs/api/management/v2#!/Users/post_identities).
+Avant la dépréciation, vous pouviez utiliser l’ID token ou le jeton d’accès de l’utilisateur principal (qui contenait le scope `update:current_user_identities`) pour vous authentifier auprès de la Management API et utiliser le [endpoint Link a User Account](https://auth0.com/docs/api/management/v2#!/Users/post_identities).
 
-Vous devez maintenant obtenir un jeton d’accès (contenant la portée `update:current_user_identities`) et l’utiliser pour vous authentifier auprès de l’API afin d’utiliser le point de terminaison Link a User Account. La charge utile doit être l’ID token de l’utilisateur secondaire.
+Vous devez maintenant obtenir un jeton d’accès (contenant le scope `update:current_user_identities`) et l’utiliser pour vous authentifier auprès de l’API, puis utiliser l’endpoint Link a User Account. La charge utile doit être l’ID token de l’utilisateur secondaire.
 
-1. Obtenez un jeton d’accès avec la portée `update:current_user_identities`, comme illustré dans l’exemple suivant. L’exemple utilise le [flux implicite](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post), mais vous pouvez [obtenir des jetons d’accès](/docs/fr-CA/secure/tokens/access-tokens/get-access-tokens) pour n’importe quel type d’application.
+1. Obtenez un jeton d’accès avec le scope `update:current_user_identities`, comme illustré dans l’exemple suivant. L’exemple utilise le [flux implicite](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post). Toutefois, vous pouvez [obtenir des jetons d’accès](/docs/fr-CA/secure/tokens/access-tokens/get-access-tokens) pour tout type d’application.
 
 2. Avec la méthode précédente utilisant un ID token, votre code ressemblerait à ceci :
 
@@ -190,12 +190,12 @@ Vous devez maintenant obtenir un jeton d’accès (contenant la portée `update:
 
    <AuthCodeBlock children={codeExample2} language="http" />
 
-3. Pour obtenir un jeton d’accès permettant d’accéder à la Management API :
+3. Pour obtenir un jeton d’accès pouvant accéder à la Management API :
 
    1. Définissez `audience` sur `https://{yourDomain}/api/v2/`.
-   2. Demandez la `scope` `${scope}`.
-   3. Définissez `response_type` sur `id_token token` pour qu’Auth0 envoie à la fois un ID token et un jeton d’accès.
-      Si nous décodons le jeton d’accès et examinons son contenu, nous pouvons voir ce qui suit :
+   2. Demandez le `scope` `${scope}`.
+   3. Définissez `response_type` sur `id_token token` afin qu’Auth0 envoie à la fois un ID token et un jeton d’accès.
+      Si nous décodons le jeton d’accès et en examinons le contenu, nous pouvons voir ce qui suit :
 
       <AuthCodeBlock children={codeExample3} language="json" />
 
@@ -206,7 +206,7 @@ Vous devez maintenant obtenir un jeton d’accès (contenant la portée `update:
    1. L’ID token du compte secondaire doit être signé avec `RS256.`
    2. La claim `aud` dans l’ID token du compte secondaire doit identifier le client et avoir la même valeur que la claim `azp` du jeton d’accès utilisé pour effectuer la request.
 
-5. Une fois que vous avez le jeton d’accès, vous pouvez l’utiliser pour lier des comptes d’utilisateur. Cette partie reste la même : rien d’autre ne change dans la request, sauf la valeur utilisée comme jeton `Bearer`. La réponse reste également la même.
+5. Une fois que vous avez le jeton d’accès, vous pouvez l’utiliser pour lier des comptes d’utilisateur. Cette partie reste inchangée : rien d’autre ne change dans la request, sauf la valeur que vous utilisez comme jeton `Bearer`. La réponse reste également la même.
 
    <AuthCodeBlock children={codeExample4} language="json" />
 
@@ -214,29 +214,29 @@ Vous devez maintenant obtenir un jeton d’accès (contenant la portée `update:
   #### Lier les comptes de l’utilisateur actuel avec auth0.js
 </div>
 
-Si vous utilisez la [bibliothèque auth0.js](/docs/fr-CA/libraries/auth0js) pour accéder à l’API de gestion et lier des comptes, vous utilisez probablement le jeton d’ID de l’identité principale de l’utilisateur pour instancier `auth0.Management` et vous en servir pour lier des comptes.
+Si vous utilisez la [bibliothèque auth0.js](/docs/fr-CA/libraries/auth0js) pour accéder à la Management API et lier des comptes, vous utilisez probablement l’ID token de l’identité principale de l’utilisateur pour instancier `auth0.Management` et l’utiliser pour lier des comptes.
 
-1. Obtenez un jeton d’accès avec le scope `update:current_user_identities`, puis utilisez ce jeton pour instancier `auth0.Management`. L’appel final à `linkUser` reste le même.
-2. Avec l’ancienne méthode utilisant un jeton d’ID, votre code ressemblerait à ceci :
+1. Obtenez un access token avec le scope `update:current_user_identities`, puis utilisez ce token pour instancier `auth0.Management`. Le dernier appel à `linkUser` reste le même.
+2. Avec l’ancienne méthode utilisant un ID token, votre code ressemblerait à ceci :
 
    <AuthCodeBlock children={codeExample5} language="javascript" />
 
-   Avec la nouvelle méthode utilisant un jeton d’accès, votre code ressemblera à ceci :
+   Avec la nouvelle méthode utilisant un access token, votre code ressemblera à ceci :
 
    <AuthCodeBlock children={codeExample6} language="javascript" />
 
-   1. Demande à la fois un jeton d’ID et un jeton d’accès dans la réponse (`` responseType: `token id_token` ``).
-   2. Définit l’API de gestion comme audience du jeton (`` audience: `https://YOUR_DOMAIN/api/v2/` ``).
+   1. Demande à la fois un ID token et un access token dans la réponse (`` responseType: `token id_token` ``).
+   2. Définit la Management API comme audience cible du token (`` audience: `https://YOUR_DOMAIN/api/v2/` ``).
    3. Demande la permission requise (`` scope: `update:current_user_identities` ``).
-   4. S’authentifie auprès de l’API de gestion à l’aide du jeton d’accès.
+   4. S’authentifie auprès de la Management API à l’aide de l’access token.
 
 <div id="link-any-user-account-with-the-management-api">
-  #### Lier n’importe quel compte utilisateur avec la Management API
+  #### Lier n’importe quel compte d’utilisateur avec la Management API
 </div>
 
-Si vous obtenez un jeton d’accès pour la liaison de comptes qui contient la portée `update:users` et que vous envoyez le `user_id` et le `provider` du compte secondaire dans la requête, vous n’avez rien à changer.
+Si vous obtenez un access token pour la liaison de comptes qui contient la portée `update:users` et que vous envoyez le `user_id` et le `provider` du compte secondaire dans la requête, vous n’avez rien à modifier.
 
-Cependant, cette nouvelle méthode offre une autre possibilité. Vous utilisez toujours un jeton d’accès qui contient la portée `update:users` pour vous authentifier auprès de l’API, mais dans le payload de la requête, vous pouvez envoyer le jeton ID du compte secondaire (au lieu du `user_id` et du `provider`).
+Cependant, cette nouvelle méthode offre une autre possibilité. Vous utilisez toujours un access token qui contient la portée `update:users` pour vous authentifier auprès de l’API, mais dans la charge utile de la requête, vous pouvez envoyer l’ID token du compte secondaire (au lieu du `user_id` et du `provider`).
 
 <AuthCodeGroup>
   ```bash cURL lines
@@ -384,41 +384,41 @@ Cependant, cette nouvelle méthode offre une autre possibilité. Vous utilisez t
   ```
 </AuthCodeGroup>
 
-Les conditions suivantes s’appliquent :
+Les conditions suivantes doivent être respectées :
 
-* Le jeton d’ID du compte secondaire doit être signé avec `RS256`.
-* La revendication `aud` dans le jeton d’ID du compte secondaire doit identifier le client et avoir la même valeur que la revendication `azp` du jeton d’accès utilisé pour envoyer la requête.
+* Le ID token du compte secondaire doit être signé avec `RS256`.
+* La claim `aud` du ID token du compte secondaire doit identifier le client et avoir la même valeur que la claim `azp` du access token utilisé pour effectuer la requête.
 
 <div id="unlink-user-accounts">
-  ### Dissocier des comptes d’utilisateur
+  ### Dissocier des comptes d’utilisateurs
 </div>
 
-Si vous utilisez des ID tokens pour dissocier des comptes, vous devez mettre votre code à jour afin d’utiliser des jetons d’accès.
+Si vous utilisez des ID tokens pour dissocier des comptes, vous devez mettre à jour votre code pour utiliser des jetons d’accès.
 
-1. Vous devez d’abord obtenir un jeton d’accès avec la portée `update:current_user_identities`.
+1. Vous devez d’abord obtenir un jeton d’accès avec le `scope` `update:current_user_identities`.
 
-2. Avec l’ancienne méthode utilisant un ID token, votre code ressemblerait à ceci :
+2. Avec l’ancienne méthode, qui utilise un ID token, votre code ressemblerait à ceci :
 
    <AuthCodeBlock children={codeExample17} language="http" />
 
-   Avec la nouvelle méthode utilisant un jeton d’accès, votre code ressemblera à ceci :
+   Avec la nouvelle méthode, qui utilise un jeton d’accès, votre code ressemblera à ceci :
 
    <AuthCodeBlock children={codeExample18} language="http" />
 
-3. Pour obtenir un jeton d’accès qui peut accéder à la Management API :
+3. Pour obtenir un jeton d’accès pouvant appeler la Management API :
 
-   1. Définissez `audience` sur `https://{yourDomain}/api/v2/`.
-   2. Demandez la portée `${scope}`.
-   3. Définissez `response_type` sur `id_token token` afin qu’Auth0 envoie à la fois un ID token et un jeton d’accès.
-      Si nous décodons le jeton d’accès et en examinons le contenu, nous pouvons voir ce qui suit :
+   1. Définissez l’`audience` sur `https://{yourDomain}/api/v2/`.
+   2. Demandez le `scope` `${scope}`.
+   3. Définissez le `response_type` sur `id_token token` afin qu’Auth0 envoie à la fois un ID token et un jeton d’accès.
+      Si nous décodons le jeton d’accès et examinons son contenu, nous pouvons voir ce qui suit :
 
       <AuthCodeBlock children={codeExample19} language="json" />
 
-      Notez que `aud` est défini sur l’URI d’API de votre tenant, `scope` sur `update:current_user_identities` et `sub` sur le user ID de l’utilisateur connecté.
+      Notez que `aud` est défini sur l’URI de l’API de votre tenant, `scope` sur `update:current_user_identities` et `sub` sur le user ID de l’utilisateur connecté.
 
 4. Une fois que vous avez le jeton d’accès, vous pouvez appeler le [point de terminaison Unlink a user identity](https://auth0.com/docs/api/management/v2#!/Users/delete_user_identity_by_user_id) de la Management API en l’utilisant dans l’en-tête `Authorization`.
 
-5. Avec l’ancienne méthode, votre appel ressemblerait à ceci :
+5. Avec la méthode précédente, votre appel ressemblerait à ceci :
 
    ```http lines
    DELETE https://YOUR_DOMAIN/api/v2/users/{primaryAccountUserId}/identities/{secondaryAccountProvider}/{secondaryAccountUserId}
@@ -433,13 +433,13 @@ Si vous utilisez des ID tokens pour dissocier des comptes, vous devez mettre vot
   ## Considérations de sécurité
 </div>
 
-Nous avons relevé une faiblesse dans un flux précis de liaison de comptes qui pourrait être exploité à mauvais escient dans certaines circonstances. Nous n’avons trouvé aucune preuve d’exploitation malveillante, mais nous avons décidé de retirer progressivement ce flux pour éviter que cela ne se produise.
+Nous avons identifié une faiblesse dans un flux particulier de liaison de comptes qui pourrait être exploitée dans certaines circonstances. Nous n&#39;avons trouvé aucune preuve d&#39;utilisation malveillante, mais nous avons décidé de déprécier ce flux pour éviter que cela ne se produise.
 
-Par conséquent, Auth0 exige que les clients qui utilisent le flux de liaison de comptes concerné migrent vers une implémentation plus sécurisée avant le 19 octobre 2018. Des options de migration sont présentées dans ce guide et ne devraient entraîner aucune perte de fonctionnalité.
+Par conséquent, Auth0 exige que les clients qui utilisent le flux de liaison de comptes touché migrent vers une mise en œuvre plus sécurisée avant le 19 octobre 2018. Des options de migration sont présentées dans ce guide et ne devraient entraîner aucune perte de fonctionnalité.
 
-À compter du 19 octobre 2018, le flux de liaison de comptes concerné sera désactivé et vous obtiendrez des erreurs à l’exécution.
+À compter du 19 octobre 2018, le flux de liaison de comptes touché sera désactivé et vous obtiendrez des erreurs d&#39;exécution.
 
-Vous êtes concerné si vous appelez le [point de terminaison Post Identities](https://auth0.com/docs/api/management/v2#!/Users/post_identities) à l’aide d’un jeton (ID ou jeton d’accès) ayant la portée `update:current_user_identities` dans l’en-tête Authorization, et que vous incluez le `user_id` du compte secondaire dans le payload. Aucun autre cas d’usage n’est concerné.
+Vous êtes concerné si vous appelez le [point de terminaison Post Identities](https://auth0.com/docs/api/management/v2#!/Users/post_identities) à l&#39;aide d&#39;un jeton (ID ou jeton d&#39;accès) avec la portée `update:current_user_identities` dans l&#39;en-tête Authorization et que vous incluez le `user_id` du compte secondaire dans la charge utile. Aucun autre cas d&#39;utilisation n&#39;est concerné.
 
 <div id="learn-more">
   ## En savoir plus

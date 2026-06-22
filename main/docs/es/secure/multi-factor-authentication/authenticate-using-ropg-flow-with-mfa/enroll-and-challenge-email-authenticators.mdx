@@ -1,48 +1,46 @@
 ---
-description: Explica cómo crear tus propios flujos de MFA con SMS o voz como factor de autenticación.
-title: Registrar y verificar autenticadores de Email
+description: Describe cómo crear tus propios flujos de MFA usando SMS o voz como factor de autenticación.
+title: Registrar y desafiar autenticadores de correo electrónico
 ---
 
 import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
 
 import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
 
-Auth0 ofrece un flujo integrado de inscripción en <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación de usuarios que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> y autenticación con [Universal Login](/docs/es/authenticate/login/auth0-universal-login). Sin embargo, si quieres crear tu propia interfaz de usuario, puedes usar la [API de MFA](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-developer-resources/mfa-api) para hacerlo.
+Auth0 proporciona un flujo integrado de inscripción y autenticación de <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuario que utiliza un factor adicional además de username y password, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> mediante [Universal Login](/docs/es/authenticate/login/auth0-universal-login). Sin embargo, si quieres crear tu propia interfaz de usuario, puedes usar la [API de MFA](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-developer-resources/mfa-api) para hacerlo.
 
-Cuando el correo electrónico está habilitado como factor, todos los usuarios con correos electrónicos verificados podrán usarlo para completar la MFA.
+Cuando el correo electrónico está habilitado como factor, todos los usuarios con direcciones de correo electrónico verificadas podrán usarlas para completar MFA.
 
 <Card title="La disponibilidad varía según el plan de Auth0">
-  Tanto tu implementación específica de login como tu plan de Auth0 o tu acuerdo personalizado afectan la disponibilidad de esta función. Para obtener más información, consulta [Precios](https://auth0.com/pricing).
+  Tanto tu implementación específica de inicio de sesión como tu plan de Auth0 o acuerdo personalizado influyen en si esta funcionalidad está disponible. Para obtener más información, consulta [Pricing](https://auth0.com/pricing).
 </Card>
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Antes de poder usar las API de MFA, deberás habilitar el tipo de concesión MFA para tu aplicación. Ve a [Auth0 Dashboard &gt; Applications &gt; Advanced Settings &gt; Grant Types](https://manage.auth0.com/#/applications) y selecciona **MFA**.
+Antes de poder usar las API de MFA, debes habilitar el tipo de concesión de MFA para tu aplicación. Ve a [Auth0 Dashboard &gt; Applications &gt; Advanced Settings &gt; Grant Types](https://manage.auth0.com/#/applications) y selecciona **MFA**.
 
-* [Configura Email](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-email-notifications-for-mfa) como factor en el Dashboard o con la [Management API](https://auth0.com/docs/api/management/v2#!/Guardian/put_factors_by_name).
+* [Configurar Email](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-email-notifications-for-mfa) como factor en el Dashboard o mediante la [Management API](https://auth0.com/docs/api/management/v2#!/Guardian/put_factors_by_name).
 
 <div id="enroll-with-email">
-  ## Registrar correo electrónico
+  ## Registrar con Email
 </div>
 
-Para permitir que los usuarios registren direcciones de correo electrónico además del correo electrónico verificado de su identidad principal, debes completar los siguientes pasos.
+Para permitir que los usuarios registren direcciones de correo electrónico además del correo electrónico verificado de su identidad principal, debe completar los siguientes pasos.
 
-<div id="get-mfa-token">
-  ### Obtener un token de MFA
-</div>
+### Obtener token de MFA
 
-Según cuándo actives la inscripción, puedes obtener un <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip> para usar la API de MFA de diferentes maneras:
+Según cuándo inicies la inscripción, puedes obtener un <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip> para usar la API de MFA de diferentes maneras:
 
 * Si realizas la inscripción durante la autenticación, consulta [Autenticar con la concesión de contraseña del propietario del recurso y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa).
-* Si quieres permitir que el usuario inscriba un factor en cualquier momento, consulta [Administrar las inscripciones de factores de MFA](/docs/es/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api).
+* Si quieres permitir que el usuario registre un factor en cualquier momento, consulta [Gestionar inscripciones de factores de MFA](/docs/es/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api).
 
 <div id="enroll-authenticator">
   ### Registrar autenticador
 </div>
 
-Haz una solicitud `POST` al endpoint de MFA Associate para registrar el autenticador del usuario. El bearer token que requiere este endpoint es el token de MFA obtenido en el paso anterior.
+Haz una solicitud `POST` al endpoint de MFA Associate para registrar el autenticador del usuario. El bearer token que requiere este endpoint es el MFA token obtenido en el paso anterior.
 
 Usa los siguientes parámetros:
 
@@ -202,7 +200,7 @@ Usa los siguientes parámetros:
   ```
 </AuthCodeGroup>
 
-Si la operación se realiza correctamente, recibirás una respuesta como esta:
+Si la solicitud se realiza correctamente, recibirás una respuesta como esta:
 
 ```json lines
 {
@@ -214,17 +212,17 @@ Si la operación se realiza correctamente, recibirás una respuesta como esta:
   }
 ```
 
-Si obtienes un error de `User is already enrolled`, el usuario ya tiene un factor de MFA inscrito. Antes de asociar otro factor con el usuario, debes solicitarle una verificación con el factor existente.
+Si recibes un error `User is already enrolled`, el usuario ya tiene inscrito un factor de MFA. Antes de asociar otro factor con el usuario, debes desafiarlo con el factor existente.
 
-Si esta es la primera vez que el usuario asocia un autenticador, verás que la respuesta incluye `recovery_codes`. Los códigos de recuperación se usan para acceder a la cuenta del usuario en caso de que pierda el acceso a la cuenta o al dispositivo que usa para la autenticación de segundo factor. Son códigos de un solo uso y, cuando es necesario, se generan otros nuevos.
+Si es la primera vez que el usuario asocia un autenticador, verás que la respuesta incluye `recovery_codes`. Los códigos de recuperación se usan para acceder a la cuenta del usuario en caso de que pierda acceso a la cuenta o al dispositivo utilizado para la autenticación de segundo factor. Estos códigos son de un solo uso y se generan otros nuevos cuando es necesario.
 
 <div id="confirm-email-enrollment">
   ### Confirmar la inscripción por correo electrónico
 </div>
 
-El usuario debería recibir un correo electrónico con el código de 6 dígitos, que puede proporcionar a la aplicación.
+El usuario debería recibir un correo electrónico que contenga el código de 6 dígitos que luego podrá proporcionar a la aplicación.
 
-Para completar la inscripción, realiza una solicitud `POST` al endpoint [**`/oath/token`**](https://auth0.com/docs/api/authentication#get-token). Incluye el `oob_code` devuelto en la respuesta anterior y el `binding_code` con el valor incluido en el mensaje de correo electrónico.
+Para completar la inscripción, haz una solicitud `POST` al endpoint [**`/oath/token`**](https://auth0.com/docs/api/authentication#get-token). Incluye el `oob_code` devuelto en la respuesta anterior y el `binding_code` con el valor incluido en el mensaje de correo electrónico.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -363,7 +361,7 @@ Para completar la inscripción, realiza una solicitud `POST` al endpoint [**`/oa
   ```
 </AuthCodeGroup>
 
-Si la llamada se realizó correctamente, recibirás una respuesta con el siguiente formato, que incluye el token de acceso:
+Si la llamada se realizó correctamente, recibirás una respuesta en el siguiente formato que contiene el token de acceso:
 
 ```json lines
 {
@@ -375,27 +373,27 @@ Si la llamada se realizó correctamente, recibirás una respuesta con el siguien
 }
 ```
 
-En este punto, el autenticador ya está completamente asociado y listo para usarse, y ya tienes los tokens de autenticación del usuario.
+En este punto, el autenticador ya está completamente asociado y listo para usarse, y tienes los tokens de autenticación del usuario.
 
-Puedes comprobar en cualquier momento si un autenticador se ha confirmado llamando al endpoint MFA Authenticators. Si el autenticador está confirmado, el valor que devuelve `active` es `true`.
+Puedes comprobar en cualquier momento si un autenticador se ha confirmado llamando al endpoint de autenticadores de MFA. Si el autenticador está confirmado, el valor que se devuelve para `active` es `true`.
 
-Opcionalmente, puedes personalizar los correos electrónicos que reciben los usuarios. Consulta [Personalizar las plantillas de correo electrónico](/docs/es/customize/email/email-templates) para obtener más información.
+Si lo deseas, puedes personalizar los correos electrónicos que reciben los usuarios. Consulta [Personalizar plantillas de correo electrónico](/docs/es/customize/email/email-templates) para obtener más información.
 
 <div id="challenge-with-email">
-  ## Desafío por correo electrónico
+  ## Desafío con Email
 </div>
 
 <div id="get-mfa-token">
   ### Obtener un token de MFA
 </div>
 
-Obtén un token de MFA siguiendo los pasos descritos en [Autenticación con la concesión de contraseña del propietario del recurso y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa).
+Obtén un token de MFA siguiendo los pasos descritos en [Autenticarse con la concesión de contraseña del propietario del recurso y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa).
 
 <div id="retrieve-enrolled-authenticators">
-  ### Obtener autenticadores inscritos
+  ### Recuperar autenticadores registrados
 </div>
 
-Para solicitar un desafío al usuario, necesitas el `authenticator_id` del factor que quieres verificar. Puedes listar todos los autenticadores inscritos mediante el endpoint MFA Authenticators:
+Para desafiar al usuario, necesitas el `authenticator_id` del factor que quieres usar para el desafío. Puedes obtener una lista de todos los autenticadores registrados usando el endpoint de autenticadores de MFA:
 
 <AuthCodeGroup>
   ```bash cURL
@@ -533,10 +531,10 @@ Para solicitar un desafío al usuario, necesitas el `authenticator_id` del facto
 </AuthCodeGroup>
 
 <div id="challenge-user-with-otp">
-  ### Solicitar un OTP al usuario
+  ### Desafiar al usuario con OTP
 </div>
 
-Para activar un desafío por correo electrónico, envía una solicitud `POST` al endpoint MFA Desafío con el `authenticator_id` correspondiente y el `mfa_token`.
+Para iniciar un desafío por correo electrónico, haz una solicitud `POST` al endpoint de desafío MFA con el `authenticator_id` correspondiente y el `mfa_token`.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -670,10 +668,10 @@ Para activar un desafío por correo electrónico, envía una solicitud `POST` al
 </AuthCodeGroup>
 
 <div id="complete-authentication-using-received-code">
-  ### Completar la autenticación con el código recibido
+  ### Completa la autenticación con el código recibido
 </div>
 
-Si la operación se realiza correctamente, recibirás la siguiente respuesta:
+Si se realiza correctamente, recibirás la siguiente respuesta:
 
 ```json lines
 {
@@ -683,7 +681,7 @@ Si la operación se realiza correctamente, recibirás la siguiente respuesta:
 }
 ```
 
-Tu aplicación debe solicitar al usuario el código y enviarlo como parte de la solicitud en el parámetro `binding_code` en la siguiente llamada al endpoint `oauth``/token`:
+Su aplicación debe pedirle al usuario el código y enviarlo como parte de la solicitud, en el parámetro `binding_code`, en la siguiente llamada al endpoint `oauth``/token`:
 
 <AuthCodeGroup>
   ```bash cURL
@@ -834,7 +832,7 @@ Tu aplicación debe solicitar al usuario el código y enviarlo como parte de la 
   ```
 </AuthCodeGroup>
 
-Si la llamada se realizó correctamente, recibirás una respuesta con el siguiente formato que incluye el token de acceso:
+Si la llamada se realizó correctamente, recibirás una respuesta con el siguiente formato, que contiene el token de acceso:
 
 ```json lines
 {
@@ -847,16 +845,16 @@ Si la llamada se realizó correctamente, recibirás una respuesta con el siguien
 ```
 
 <div id="customize-mfa">
-  ## Personalizar MFA
+  ## Personaliza MFA
 </div>
 
 <Warning>
-  La MFA personalizable con los flujos de contraseña del propietario del recurso, Embedded o de token de actualización está en acceso anticipado. Al usar esta función, aceptas los términos aplicables del periodo de prueba gratuito del [Master Subscription Agreement](https://www.okta.com/legal/) de Okta. Para obtener más información sobre las etapas de lanzamiento de Auth0, consulta [Product Release Stages](/docs/es/troubleshoot/product-lifecycle/product-release-stages). Para participar en el acceso anticipado, ponte en contacto con el [equipo de soporte de Auth0](https://support.auth0.com/).
+  La MFA personalizable con los flujos de contraseña del propietario del recurso, Embedded o token de actualización está en acceso anticipado. Al usar esta funcionalidad, aceptas los términos aplicables de la prueba gratuita del [Master Subscription Agreement](https://www.okta.com/legal/) de Okta. Para obtener más información sobre las etapas de lanzamiento de Auth0, consulta [Product Release Stages](/docs/es/troubleshoot/product-lifecycle/product-release-stages). Para participar en el acceso anticipado, contacta al [equipo de soporte de Auth0](https://support.auth0.com/).
 </Warning>
 
-La MFA personalizable permite a los usuarios registrar y desafiar los factores de su elección que sean compatibles con tu aplicación.
+La MFA personalizable permite a los usuarios registrar y usar en desafíos los factores compatibles con tu aplicación que prefieran.
 
-Durante la autenticación en el endpoint `oauth/token`, la respuesta devuelve el error `mfa_required`, que incluye el `mfa_token` para usar la API de MFA y el parámetro `mfa_requirements` con una lista de autenticadores:
+Durante la autenticación en el endpoint `oauth/token`, la respuesta devuelve el error `mfa_required`, que incluye `mfa_token` para usar la API de MFA y el parámetro `mfa_requirements` con una lista de autenticadores:
 
 ```json
 {
@@ -869,13 +867,13 @@ Durante la autenticación en el endpoint `oauth/token`, la respuesta devuelve el
       { "type": "push-notification" },
       { "type": "phone" },
       { "type": "recovery-code" }
-      { "type": "email"} //solo puede funcionar con desafío
+      { "type": "email"} //solo puede funcionar con challenge
     ]
   }
 }
 ```
 
-Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](/docs/es/api/authentication/muti-factor-authentication/list-authenticators) y obtener una lista de todos los factores que el usuario tiene inscritos, y luego buscar el mismo tipo que admite tu aplicación. También necesitas obtener el `authenticator_type` correspondiente para emitir desafíos:
+Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](/docs/es/api/authentication/muti-factor-authentication/list-authenticators) y obtener una lista de todos los factores que el usuario tiene registrados, y compárala con el mismo tipo que admite tu aplicación.  También debes obtener el `authenticator_type` correspondiente para emitir desafíos:
 
 ```json
 [
@@ -894,9 +892,9 @@ Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](/docs/es/api/au
 ]
 ```
 
-Aplica el desafío de MFA llamando al endpoint [`request/mfa/challenge`](/docs/es/api/authentication/muti-factor-authentication/request-mfa-challenge).
+Exija el desafío MFA llamando al endpoint [`request/mfa/challenge`](/docs/es/api/authentication/muti-factor-authentication/request-mfa-challenge).
 
-Personaliza aún más tu flujo de MFA con Auth0 Actions. Para obtener más información, consulta [Triggers de Actions: post-challenge - objeto de API](/docs/es/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-api-object).
+Personalice aún más su flujo de MFA con Auth0 Actions. Para obtener más información, consulte [Actions Triggers: post-challenge - objeto de API](/docs/es/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-api-object).
 
 <div id="learn-more">
   ## Más información
@@ -906,4 +904,4 @@ Personaliza aún más tu flujo de MFA con Auth0 Actions. Para obtener más infor
 * [Desafío con códigos de recuperación](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/challenge-with-recovery-codes)
 * [Registrar y desafiar autenticadores OTP](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
 * [Registrar y desafiar autenticadores push](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-push-authenticators)
-* [Registrar y desafiar autenticadores de SMS y voz](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Registrar y desafiar autenticadores SMS y de voz](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
