@@ -1,11 +1,11 @@
 ---
-description: Describe las plantillas de scripts de acción de base de datos personalizada para la búsqueda de usuarios.
-title: Plantillas de scripts de Get User
+description: Describe las plantillas de script de acción de base de datos personalizada para la búsqueda de usuarios.
+title: Plantillas de script de Get User
 ---
 
-El script de Get User implementa la función que se ejecuta para determinar si un usuario existe en ese momento. Recomendamos llamar a esta función `getUser`.
+El script de Get User implementa la función que se ejecuta para determinar si un usuario existe actualmente. Recomendamos llamar a esta función `getUser`.
 
-Este script es obligatorio para la [migración automática](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database) y, en algunos casos, para la autenticación heredada, según las operaciones configuradas para la conexión. Auth0 recomienda establecer un `user_id` permanente en el perfil de usuario devuelto para evitar la creación de usuarios duplicados.
+Este script es obligatorio para la [migración automática](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database) y, de forma condicional, para la autenticación heredada, según las operaciones configuradas para la conexión. Auth0 recomienda establecer un `user_id` permanente en el perfil de usuario devuelto para evitar la creación de usuarios duplicados.
 
 Si la migración automática está configurada para la conexión y el perfil de usuario aún no se ha creado, el script se ejecuta cada vez que se produce una de las siguientes operaciones:
 
@@ -27,31 +27,31 @@ Si la autenticación heredada está configurada para la conexión, el script se 
 La función `getUser` debe:
 
 * Enviar el identificador del usuario a la API de la base de datos externa.
-* Devolver los datos del perfil del usuario si lo encuentra.
-* Devolver un error si se produce algún problema al determinar si el usuario existe o no.
+* Devolver los datos del perfil del usuario si este se encuentra.
+* Devolver un error si hubo una incidencia al determinar si el usuario existe o no.
 
 <div id="definition">
   ### Definición
 </div>
 
-La función `getUser` recibe dos parámetros y devuelve una función de devolución de llamada:
+La función `getUser` acepta dos parámetros y devuelve una función de devolución de llamada:
 
 ```js lines
 getUser(email, callback): function
 ```
 
-| Parámetro  | Tipo     | Descripción                                                        |
-| ---------- | -------- | ------------------------------------------------------------------ |
-| `email`    | String   | La dirección de email del usuario.                                 |
-| `callback` | Function | Se usa para pasar errores o datos del perfil a través del pipeline |
+| Parámetro  | Tipo    | Descripción                                                            |
+| ---------- | ------- | ---------------------------------------------------------------------- |
+| `email`    | String  | La dirección de correo electrónico del usuario.                        |
+| `callback` | Función | Se utiliza para pasar errores o datos del perfil a través del pipeline |
 
 ### Ejemplo
 
-Este es un ejemplo de pseudo-Javascript de cómo podrías implementar la función `getUser`. Para ver ejemplos específicos de cada idioma, consulta [Ejemplos de scripts específicos de cada idioma](#language-specific-script-examples).
+Este es un ejemplo en pseudo-Javascript de cómo podrías implementar la función `getUser`. Para ver ejemplos de scripts específicos del lenguaje, consulta [Ejemplos de scripts específicos del lenguaje](#language-specific-script-examples).
 
 ```javascript lines expandable
 function getUser(email, callback) {
-  // Enviar el identificador de usuario a la API de base de datos externa
+  // Enviar identificador de usuario a la API de base de datos externa
   let options = {
     url: "https://example.com/api/search-users",
     body: {
@@ -60,11 +60,11 @@ function getUser(email, callback) {
   };
 
   send(options, (err, profileData) => {
-    // Devolver error en la devolución de llamada si hubo un problema al encontrar al usuario
+    // Devolver error en la devolución de llamada si hubo una incidencia al buscar el usuario
     if (err) {
       return callback(new Error("Could not determine if user exists or not."));
     } else {
-      // Devolver null en la devolución de llamada si no se encontró al usuario, devolver datos del perfil en la devolución de llamada si se encontró al usuario
+      // Devolver null en la devolución de llamada si no se encontró el usuario; devolver datos del perfil en la devolución de llamada si se encontró el usuario
       if (!profileData) {
         return callback(null);
       } else {
@@ -84,13 +84,13 @@ function getUser(email, callback) {
   ## Función de devolución de llamada
 </div>
 
-La función `callback` se utiliza para pasar datos del perfil del usuario o datos de error por el pipeline.
+La función `callback` se utiliza para pasar datos del perfil de usuario o información de error a través del pipeline.
 
 <div id="definition">
   ### Definición
 </div>
 
-La función `callback` de devolución de llamada acepta hasta dos parámetros y devuelve otra función:
+La función `callback` acepta hasta dos parámetros y devuelve una función:
 
 ```js lines
 callback(error[,profile]): function
@@ -98,18 +98,18 @@ callback(error[,profile]): function
 
 | Parámetro | Tipo   | Obligatorio | Descripción                                |
 | --------- | ------ | ----------- | ------------------------------------------ |
-| `error`   | Object | Obligatorio | Contiene información del error.            |
-| `profile` | Object | Opcional    | Contiene los datos del perfil del usuario. |
+| `error`   | Objeto | Obligatorio | Contiene información del error.            |
+| `profile` | Objeto | Opcional    | Contiene los datos del perfil del usuario. |
 
 <div id="return-the-user-profile-user-found">
-  ### Devuelve el perfil del usuario (usuario encontrado)
+  ### Devuelva el perfil del usuario (usuario encontrado)
 </div>
 
 <Warning>
-  Los datos del perfil que devuelve el script Get User para un usuario deben ser coherentes con los datos del perfil que devuelve el script Login.
+  Los datos del perfil que devuelve el script Get User para un usuario deben ser coherentes con los datos del perfil que devuelve el script de inicio de sesión.
 </Warning>
 
-Si se encuentra el usuario, pasa un valor `null` al parámetro `error` y los datos del perfil del usuario al parámetro `profile` en [formato normalizado](/docs/es/manage-users/user-accounts/user-profiles/normalized-user-profile-schema). Además de los campos estándar, puedes incluir los campos `user_metadata`, `app_metadata` y `mfa_factors`.
+Si se encuentra el usuario, pase un valor `null` al parámetro `error` y los datos del perfil del usuario al parámetro `profile` en [formato normalizado](/docs/es/manage-users/user-accounts/user-profiles/normalized-user-profile-schema). Además de los campos estándar, puede incluir `user_metadata`, `app_metadata` y `mfa_factors`.
 
 <div id="example">
   #### Ejemplo
@@ -138,10 +138,10 @@ return callback(null, {
 ```
 
 <div id="return-no-user-profile-user-not-found">
-  ### No devuelvas ningún perfil de usuario (usuario no encontrado)
+  ### No devolver ningún perfil de usuario (usuario no encontrado)
 </div>
 
-Si no se encuentra el usuario, pasa el valor `null` al parámetro `error` y omite el parámetro `profile`.
+Si no se encuentra el usuario, pasa un valor `null` al parámetro `error` y omite el parámetro `profile`.
 
 <div id="example">
   #### Ejemplo
@@ -152,10 +152,10 @@ return callback(null);
 ```
 
 <div id="return-an-error">
-  ### Devolver un error
+  ### Devuelve un error
 </div>
 
-Si se produce un error, pasa los datos del error al parámetro `error` con información relevante sobre el problema. Para obtener más información, consulta [Solucionar problemas de bases de datos personalizadas](/docs/es/authenticate/database-connections/custom-db/error-handling).
+Si se produce un error, pasa los datos del error al parámetro `error` con información relevante sobre lo que salió mal. Para obtener más información, consulta [Resolución de problemas de Custom Databases](/docs/es/authenticate/database-connections/custom-db/error-handling).
 
 <div id="example">
   #### Ejemplo
@@ -166,10 +166,10 @@ return callback(new Error("My custom error message."));
 ```
 
 <div id="language-specific-script-examples">
-  ## Ejemplos de scripts para lenguajes específicos
+  ## Ejemplos de scripts por lenguaje
 </div>
 
-Auth0 proporciona scripts de ejemplo para los siguientes lenguajes/tecnologías:
+Auth0 proporciona scripts de ejemplo para usarlos con los siguientes lenguajes/tecnologías:
 
 * [JavaScript](#javascript)
 * [ASP.NET Membership Provider (MVC3 - Universal Providers)](#asp-net-membership-provider-mvc3-universal-providers-)
@@ -188,7 +188,7 @@ Auth0 proporciona scripts de ejemplo para los siguientes lenguajes/tecnologías:
 
 ```javascript lines
 function getByEmail(email, callback) {
-  // Este script debe recuperar el perfil de un usuario de su base de datos existente,
+  // Este script debe recuperar un perfil de usuario de su base de datos existente,
   // sin autenticar al usuario.
   // Se utiliza para verificar si un usuario existe antes de ejecutar flujos que no
   // requieren autenticación (registro y restablecimiento de contraseña).
@@ -199,7 +199,7 @@ function getByEmail(email, callback) {
   //     callback(null, profile);
   // 2. No se encontró ningún usuario
   //     callback(null);
-  // 3. Algo salió mal al intentar acceder a su base de datos:
+  // 3. Algo salió mal al intentar conectarse a su base de datos:
   //     callback(new Error("my error message"));
   const msg = 'Please implement the Get User script for this database connection ' +
     'at https://manage.auth0.com/#/connections/database';
@@ -223,14 +223,14 @@ function getByEmail(email, callback) {
     server: 'the server',
     options: {
       database: 'the db name',
-      encrypt: true // for Windows Azure
+      encrypt: true // para Windows Azure
     }
   });
   connection.on('debug', function(text) {
     // si tienes problemas de conexión, descomenta esto para obtener información más detallada
     //console.log(text);
   }).on('errorMessage', function(text) {
-    // esto mostrará cualquier error al conectarse a la base de datos SQL o con las sentencias SQL
+    // esto mostrará cualquier error al conectarse a la base de datos SQL o con las instrucciones SQL
     console.log(JSON.stringify(text));
   });
   connection.on('connect', function(err) {
@@ -474,10 +474,10 @@ async function getUserAsync(email, callback) {
         email: email,
       },
       {
-        timeout: 10000, //finaliza la llamada de forma controlada si la solicitud supera el tiempo de espera, para que el script pueda ejecutar la devolución de llamada necesaria
+        timeout: 10000, //finaliza la llamada correctamente si la solicitud supera el tiempo de espera, para que el script pueda ejecutar la devolución de llamada necesaria
         headers: {
           //protege la llamada a la API con la apiKey almacenada en la configuración de la conexión.
-          //es un enfoque rápido y sencillo, aunque usar tokens M2M es más seguro ya que
+          //es un enfoque rápido y sencillo, aunque usar tokens M2M es más seguro, ya que
           // un secret no debe compartirse entre el cliente y la API.
           "x-api-key": configuration.apiKey,
         },
@@ -495,8 +495,8 @@ async function getUserAsync(email, callback) {
   try {
     let user = response.data;
 
-    //si se usan múltiples conexiones de base de datos Custom en tu tenant, agrega como prefijo
-    //al user_id una clave específica de la conexión, p. ej.: "connName|" + user.user_id
+    //si usas múltiples conexiones de base de datos Custom en tu tenant, añade como prefijo al
+    //user_id una clave específica de la conexión, p. ej.: "connName|" + user.user_id
     //esto garantiza IDs de usuario únicos en todas las conexiones de base de datos
     return callback(null, {
       user_id: user.user_id,
@@ -548,9 +548,9 @@ function getByEmail(email, callback) {
   ## Más información
 </div>
 
-* [Plantillas de scripts para cambiar la contraseña](/docs/es/authenticate/database-connections/custom-db/templates/change-password)
-* [Plantillas de scripts de creación](/docs/es/authenticate/database-connections/custom-db/templates/create)
-* [Plantillas de scripts de eliminación](/docs/es/authenticate/database-connections/custom-db/templates/delete)
-* [Plantillas de scripts de inicio de sesión](/docs/es/authenticate/database-connections/custom-db/templates/login)
-* [Plantillas de scripts de verificación](/docs/es/authenticate/database-connections/custom-db/templates/verify)
-* [Plantilla de script para cambiar correo electrónico](/docs/es/authenticate/database-connections/custom-db/templates/change-email)
+* [Plantillas de script para cambiar la contraseña](/docs/es/authenticate/database-connections/custom-db/templates/change-password)
+* [Plantillas de script Create](/docs/es/authenticate/database-connections/custom-db/templates/create)
+* [Plantillas de script Delete](/docs/es/authenticate/database-connections/custom-db/templates/delete)
+* [Plantillas de script de inicio de sesión](/docs/es/authenticate/database-connections/custom-db/templates/login)
+* [Plantillas de script Verify](/docs/es/authenticate/database-connections/custom-db/templates/verify)
+* [Plantilla del script para cambiar correo electrónico](/docs/es/authenticate/database-connections/custom-db/templates/change-email)

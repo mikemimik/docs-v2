@@ -1,6 +1,6 @@
 ---
-title: "Flux Back-Channel Login - Vérification du statut"
-description: "Interrogez le point de terminaison de jeton pour vérifier le statut d’une requête Back-Channel Login en attente."
+title: "Flux de connexion par canal arrière - Vérification de l’état"
+description: "Interrogez régulièrement le point de terminaison de jeton pour vérifier l’état d’une requête de connexion par canal arrière en attente."
 ---
 
 <div id="endpoint">
@@ -9,16 +9,16 @@ description: "Interrogez le point de terminaison de jeton pour vérifier le stat
 
 `POST /oauth/token`
 
-Pour vérifier le statut d’un flux Back-Channel Login, interrogez le point de terminaison `/oauth/token` à intervalles réguliers en transmettant les éléments suivants :
+Pour vérifier l’état d’un flux de connexion par canal arrière, interrogez régulièrement le point de terminaison `/oauth/token` en transmettant les éléments suivants :
 
-* `auth_req_id` renvoyé par l’appel à `/bc-authorize`
-* le grant type `urn:openid:params:grant-type:ciba`
+* `auth_req_id` renvoyé par la requête à `/bc-authorize`
+* le type d’autorisation `urn:openid:params:grant-type:ciba`
 
 <div id="response-body">
   ### Corps de la réponse
 </div>
 
-Si l’utilisateur autorisant n’a pas encore approuvé ou rejeté la requête, vous devriez recevoir une réponse semblable à la suivante :
+Si l’utilisateur autorisant n’a pas encore approuvé ou rejeté la requête, vous devriez recevoir une réponse semblable à celle-ci :
 
 ```http
 { 
@@ -27,7 +27,7 @@ Si l’utilisateur autorisant n’a pas encore approuvé ou rejeté la requête,
 }
 ```
 
-Si l’utilisateur qui autorise rejette la requête, vous devriez recevoir une réponse comme celle-ci :
+Si l’utilisateur chargé de l’autorisation rejette la requête, vous devriez recevoir une réponse semblable à la suivante :
 
 ```http
 {
@@ -36,7 +36,7 @@ Si l’utilisateur qui autorise rejette la requête, vous devriez recevoir une r
 }
 ```
 
-Si vous interrogez le point de terminaison trop fréquemment (à un rythme plus rapide que la valeur d’intervalle renvoyée par `/bc-authorize`), vous devriez recevoir une réponse comme celle-ci :
+Si vous interrogez trop rapidement (plus vite que la valeur d’intervalle renvoyée par `/bc-authorize`), vous devriez recevoir une réponse comme celle-ci :
 
 ```http
 {
@@ -45,9 +45,9 @@ Si vous interrogez le point de terminaison trop fréquemment (à un rythme plus 
 }
 ```
 
-De plus, Auth0 ajoutera l’en-tête [Retry-After](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After) à la réponse pour indiquer combien de secondes attendre avant d’interroger à nouveau. Si vous interrogez trop souvent, le nombre de secondes à attendre augmente.
+De plus, Auth0 ajoutera l’en-tête [Retry-After](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After) à la réponse pour indiquer combien de secondes attendre avant de tenter d’interroger de nouveau le point de terminaison. Si vous interrogez trop souvent le point de terminaison de façon répétée, le nombre de secondes à attendre augmente.
 
-Si l’utilisateur qui autorise a approuvé la notification push, l’appel renvoie le jeton d’identité et le jeton d’accès (et potentiellement un jeton d’actualisation) :
+Si l’utilisateur autorisant a approuvé la notification poussée, la requête renvoie le jeton d’identité et le jeton d’accès (et potentiellement un refresh token) :
 
 ```http
 {
@@ -58,18 +58,18 @@ Si l’utilisateur qui autorise a approuvé la notification push, l’appel renv
 }
 ```
 
-Une fois qu’un `auth_req_id` a été échangé contre un jeton d’identité ou un jeton d’accès, il n’est plus valide.
+Une fois qu’un `auth_req_id` a été échangé contre un jeton d’identité ou un jeton d’accès, il ne peut plus être utilisé.
 
 <div id="remarks">
   ### Remarques
 </div>
 
-Incluez un paramètre facultatif pour l’authentification de l’application dans la requête :
+Ajoutez un paramètre facultatif pour l’authentification de l’application dans la requête :
 
-* Client Secret avec authentification HTTP Basic, auquel cas aucun paramètre n’est requis. Le `client_id` et le `client_secret` sont transmis dans un en-tête.
-* Client Secret Post, auquel cas le `client_id` et le `client_secret` sont requis.
-* Private Key JWT, pour lequel le `client_id`, le `client_assertion` et le type de `client_assertion` sont requis.
-* mTLS, pour lequel le paramètre `client_id` est requis et les en-têtes `client-certificate` et `client-certificate-ca-verified` sont obligatoires.
+* Client Secret avec l’authentification HTTP Basic, auquel cas aucun paramètre n’est requis. Les `client_id` et `client_secret` sont transmis dans un en-tête.
+* Client Secret Post, auquel cas `client_id` et `client_secret` sont requis.
+* Private Key JWT, pour lequel `client_id`, `client_assertion` et le type de `client_assertion` sont requis.
+* mTLS, pour lequel le paramètre `client_id` est requis et les en-têtes `client-certificate` et `client-certificate-ca-verified` sont requis.
 
 <div id="body-parameters">
   ## Paramètres du corps

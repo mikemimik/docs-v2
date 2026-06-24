@@ -1,14 +1,14 @@
 ---
-description: Découvrez comment utiliser les requêtes d’autorisation sécurisées par JWT (JAR) avec le flux de code d’autorisation.
+description: Apprenez à utiliser les requêtes d’autorisation sécurisées par JWT (JAR) avec le flux de code d’autorisation.
 title: Flux de code d’autorisation avec des requêtes d’autorisation sécurisées par JWT (JAR)
 validatedOn: 2026-03-03
 ---
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Pour utiliser les fonctionnalités de Highly Regulated Identity, vous devez avoir un Enterprise Plan avec le module complémentaire Highly Regulated Identity. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
+  Pour utiliser les fonctionnalités Highly Regulated Identity, vous devez avoir un plan Enterprise avec le module complémentaire Highly Regulated Identity. Consultez [Auth0 Pricing](https://auth0.com/pricing/) pour en savoir plus.
 </Callout>
 
-[JWT-Secured Authorization Request (JAR)](https://datatracker.ietf.org/doc/html/rfc9101) est une extension du protocole OAuth 2.0 qui protège l’intégrité et l’authenticité des paramètres de la requête d’autorisation. En encapsulant les paramètres dans un [JSON Web Token (JWT)](/docs/fr-CA/secure/tokens/json-web-tokens) signé, vous empêchez les intermédiaires de modifier ou d’accéder à des données de requête sensibles.
+Une [requête d’autorisation sécurisée par JWT (JAR)](https://datatracker.ietf.org/doc/html/rfc9101) est une extension du protocole OAuth 2.0 qui protège l’intégrité et l’authenticité des paramètres de requête d’autorisation. En encapsulant ces paramètres dans un [JSON Web Token (JWT)](/docs/fr-CA/secure/tokens/json-web-tokens) signé, vous empêchez les intermédiaires de modifier ou de consulter des données de requête sensibles.
 
 <div id="prerequisites">
   ## Prérequis
@@ -17,23 +17,23 @@ validatedOn: 2026-03-03
 Avant d’utiliser JAR, vous devez :
 
 1. [Générer une paire de clés RSA](/docs/fr-CA/secure/application-credentials/generate-rsa-key-pair)
-2. Enregistrer la clé publique en la téléversant dans l’Auth0 Dashboard, comme décrit dans [Configure JWT-Secured Authorization Requests](/docs/fr-CA/get-started/applications/configure-jar)
+2. Enregistrer la clé publique en la téléversant dans l’Auth0 Dashboard, comme décrit dans [Configurer les requêtes d’autorisation sécurisées par JWT](/docs/fr-CA/get-started/applications/configure-jar)
 
 <div id="how-it-works">
   ## Fonctionnement
 </div>
 
-Au lieu de transmettre des paramètres comme `scope` ou `redirect_uri` en texte brut dans une URL, l’application cliente les regroupe dans un [JSON Web Token (JWT)](/docs/fr-CA/secure/tokens/json-web-tokens) signé, sous forme d’objet de requête :
+Au lieu de transmettre des paramètres comme `scope` ou `redirect_uri` en texte brut dans une URL, l’application cliente les regroupe dans un [JSON Web Token (JWT)](/docs/fr-CA/secure/tokens/json-web-tokens) signé sous forme d’objet de requête :
 
 * Signature : l’application cliente signe le JWT à l’aide de sa clé privée.
-* Vérification : le serveur d’autorisation Auth0 reçoit le JWT et en vérifie la signature à l’aide de la clé publique que vous avez enregistrée.
-* Traitement : s’il est valide, le serveur d’autorisation Auth0 extrait les paramètres. Si un paramètre figure à la fois dans le JAR et dans la chaîne de requête, la valeur du JAR l’emporte.
+* Vérification : serveur d’autorisation Auth0 reçoit le JWT et vérifie la signature à l’aide de la clé publique que vous avez enregistrée.
+* Traitement : s’il est valide, serveur d’autorisation Auth0 extrait les paramètres. Si un paramètre est présent à la fois dans le JAR et dans la chaîne de requête, la valeur du JAR a priorité.
 
 <div id="generate-the-jar-request">
   ## Générer la requête JAR
 </div>
 
-Utilisez la [bibliothèque JWT d’Auth0](https://jwt.io/libraries) pour générer un <Tooltip tip="JSON Web Token (JWT) : format standard des ID Token (et souvent aussi des Access Token), utilisé pour représenter des claims de façon sécurisée entre deux parties." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JWT">JWT</Tooltip> dans le langage de votre choix.
+Utilisez la [bibliothèque JWT d’Auth0](https://jwt.io/libraries) pour générer un <Tooltip tip="JSON Web Token (JWT) : format standard de jeton ID (et souvent de jeton d’accès) servant à représenter des claims de manière sécurisée entre deux parties." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JWT">JWT</Tooltip> dans le langage de votre choix.
 
 <div id="header">
   ### En-tête
@@ -41,33 +41,33 @@ Utilisez la [bibliothèque JWT d’Auth0](https://jwt.io/libraries) pour génér
 
 L’en-tête du JWT indique à Auth0 quelle clé et quel algorithme utiliser pour la vérification. Il doit contenir les paramètres suivants :
 
-* `alg` : l’algorithme utilisé pour signer le JWT. Il doit s’agir de RS256, RS384 ou PS256.
-* `typ` : le type de JWT. Il doit s’agir de `jwt` ou de `oauth-authz-req+jwt`.
+* `alg` : L’algorithme utilisé pour signer le JWT. Il doit s’agir de RS256, RS384 ou PS256.
+* `typ` : Le type de JWT. Il doit s’agir de `jwt` ou de `oauth-authz-req+jwt`.
 
-L’en-tête peut également contenir un champ `kid` qui identifie la clé utilisée pour signer le JWT. Si un `kid` est présent, Auth0 recherchera une clé publique enregistrée lors de la [configuration de JAR](/docs/fr-CA/get-started/applications/configure-jar) dont l’ID de clé correspond, puis utilisera cette clé pour vérifier la signature du JWT.
+L’en-tête peut aussi contenir un champ `kid` qui identifie la clé utilisée pour signer le JWT. Si un `kid` est présent, Auth0 recherchera une clé publique enregistrée lors de la [configuration de JAR](/docs/fr-CA/get-started/applications/configure-jar) ayant un ID de clé correspondant et utilisera cette clé pour vérifier la signature du JWT.
 
 <div id="payload">
-  ### Charge utile
+  ### Payload
 </div>
 
-La charge utile contient les paramètres d’autorisation. Elle doit contenir les déclarations suivantes :
+Le payload contient les paramètres d’autorisation. Il doit contenir les claims suivants :
 
 * `iss` : doit contenir le `client_id` de votre application
-* `aud` : doit correspondre au domaine de votre tenant, avec le protocole et une barre oblique à la fin. Par exemple, `https://{YOUR_DOMAIN}.auth0.com/`
+* `aud` : doit contenir le domaine de votre tenant, avec le protocole et une barre oblique à la fin. Par exemple, `https://{YOUR_DOMAIN}.auth0.com/`
 
-Le JWT doit aussi contenir tous les paramètres obligatoires de l’appel à `/authorize`. Par exemple :
+Le JWT doit aussi contenir tous les paramètres obligatoires de la requête à `/authorize`. Par exemple :
 
 * `client_id` : doit aussi contenir le `client_id` de votre application
-* `response_type` : indique à Auth0 quel flux <Tooltip tip="OAuth 2.0 : Cadre d’autorisation qui définit les protocoles et les workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> vous voulez utiliser. Utilisez `code` pour le flux d’octroi de code d’autorisation.
+* `response_type` : indique à Auth0 quel <Tooltip tip="OAuth 2.0 : cadre d’autorisation qui définit les protocoles et les workflows d’autorisation." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OAuth+2.0">OAuth 2.0</Tooltip> flux vous voulez utiliser. Utilisez `code` pour le flux d’octroi de code d’autorisation.
 
-Le JWT peut contenir n’importe lequel des paramètres facultatifs du <Tooltip tip="Flux d’autorisation : Octroi d’autorisation (ou workflow) spécifié dans le cadre OAuth 2.0." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+flow">flux d’autorisation</Tooltip> demandé, comme `audience`, `scope`, `state`, `redirect_uri`, entre autres.
+Le JWT peut contenir n’importe lequel des paramètres facultatifs du <Tooltip tip="Flux d’autorisation : grant d’autorisation (ou workflow) spécifié dans le framework OAuth 2.0." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=authorization+flow">flux d’autorisation</Tooltip> demandé, comme `audience`, `scope`, `state`, `redirect_uri`, entre autres.
 
-En outre, le JWT peut contenir les déclarations facultatives suivantes :
+De plus, le JWT peut contenir les claims facultatifs suivants :
 
 * `iat` : doit être une date numérique.
 * `nbf` : doit être une date numérique représentant un moment dans le passé.
-* `exp` : doit être une date numérique représentant un moment dans le futur.
-* `jti` : doit être une chaîne de caractères d’au plus 64 octets.
+* `exp` : doit être une date numérique représentant un moment dans l’avenir.
+* `jti` : doit être une chaîne d’au plus 64 octets.
 
 <div id="code-sample-generate-and-sign-jar">
   ## Exemple de code : générer et signer un JAR
@@ -110,19 +110,19 @@ console.log(requestObject);
   ## Appeler le point de terminaison d’autorisation
 </div>
 
-Vous pouvez envoyer le JAR à l’Auth0 serveur d’autorisation Auth0 de l’une des façons suivantes :
+Vous pouvez envoyer le JAR au serveur d’autorisation Auth0 de la façon suivante :
 
-1. [Requête JAR standard](#standard-jar-request) : transmettez le JWT signé sous forme de chaîne encodée pour URL dans le paramètre de requête.
-2. [Pushed Authorization Request](#pushed-authorization-request) : pour une sécurité accrue et pour éviter les limites de longueur d’URL, utilisez PAR.
+1. [requête JAR standard](#standard-jar-request) : transmettez le JWT signé sous forme de chaîne encodée dans l’URL dans le paramètre de requête.
+2. [requête d’autorisation poussée](#pushed-authorization-request) : pour une sécurité accrue et pour éviter les contraintes de longueur d’URL, utilisez PAR.
 
 <div id="standard-jar-request">
   ### Requête JAR standard
 </div>
 
-Pour appeler le point de terminaison `/authorize` à l’aide d’une requête JAR standard :
+Pour appeler le point de terminaison `/authorize` au moyen d’une requête JAR standard :
 
 1. Ouvrez une nouvelle fenêtre de navigateur.
-2. Transmettez votre <Tooltip tip="ID client : valeur d’identification attribuée à votre ressource enregistrée par Auth0." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Client+ID">ID client</Tooltip> dans le paramètre `client_id`, et le JWT signé et encodé dans l’URL dans le paramètre `request`.
+2. Fournissez votre <Tooltip tip="Client ID : valeur d’identification attribuée à votre ressource enregistrée par Auth0." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Client+ID">Client ID</Tooltip> dans le paramètre `client_id`, et le JWT signé et encodé pour une URL dans le paramètre `request`.
 
 ```bash lines
 # macOS
@@ -133,13 +133,13 @@ explorer "https://{YOUR_DOMAIN}.auth0.com/authorize?client_id={YOUR_CLIENT_ID}&r
 ```
 
 <div id="pushed-authorization-request">
-  ### Pushed Authorization Request
+  ### Requête d’autorisation poussée
 </div>
 
-Pour appeler le point de terminaison `/authorize` avec une requête d’autorisation poussée :
+Pour effectuer une requête à l’endpoint `/authorize` avec une requête d’autorisation poussée :
 
-1. Envoyez le JAR au point de terminaison `/oauth/par` au moyen d’une requête `POST` en back-channel.
-2. Auth0 retournera un `request_uri`, que vous pourrez ensuite utiliser pour appeler le point de terminaison `/authorize`, comme dans un [flux PAR normal](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par).
+1. Envoyez le JAR à l’endpoint `/oauth/par` au moyen d’une requête `POST` sur le back-channel.
+2. Auth0 renverra un `request_uri`, que vous pourrez ensuite utiliser pour effectuer une requête à l’endpoint `/authorize`, comme dans un [flux PAR standard](/docs/fr-CA/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par).
 
 La requête cURL suivante utilise PAR et JAR conjointement :
 

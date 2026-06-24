@@ -3,9 +3,9 @@ title: "LoginEmailVerificationMembers"
 ---
 
 LoginEmailVerificationMembers
-description Define los miembros (propiedades y métodos) disponibles para interactuar con la pantalla de verificación de correo electrónico de inicio de sesión.
+description Define los miembros (propiedades y métodos) disponibles para interactuar con la pantalla de verificación de correo electrónico durante el inicio de sesión.
 Esta pantalla es una parte fundamental de los procesos de verificación de correo electrónico, normalmente durante el inicio de sesión, en los que el usuario debe demostrar
-que es el propietario de una dirección de correo electrónico proporcionando un código de un solo uso. El SDK facilita el envío de este código
+que es propietario de una dirección de correo electrónico proporcionando un código de un solo uso. El SDK facilita el envío de este código
 o la solicitud de uno nuevo.
 
 El `universal_login_context` para esta pantalla (`window.universal_login_context`) contendrá:
@@ -13,18 +13,18 @@ El `universal_login_context` para esta pantalla (`window.universal_login_context
 * `client`: Información sobre la aplicación de Auth0.
 * `organization` (opcional): Detalles si la autenticación es para una organización específica.
 * `prompt`: Contexto del prompt de autenticación actual (p. ej., &#39;login&#39;).
-* `screen`: Textos de la interfaz de usuario e información general de la pantalla. No se definen de forma exclusiva campos `data` específicos de esta pantalla para `login-email-verification` más allá de los estándar.
-* `transaction`: Detalles de la transacción en curso, incluido `state` y cualquier error de intentos anteriores (p. ej., &quot;invalid-code&quot;).
+* `screen`: Textos de la interfaz de usuario e información general de la pantalla. No se definen campos `data` específicos de esta pantalla para `login-email-verification` más allá de los estándar.
+* `transaction`: Detalles de la transacción en curso, incluido el `state` y cualquier error de intentos anteriores (p. ej., &quot;invalid-code&quot;).
 
 ````ts Example
 export interface LoginEmailVerificationMembers extends BaseMembers {
   /**
    * Envía el código de verificación de correo electrónico introducido por el usuario.
    * Esta acción corresponde al usuario introduciendo el código que recibió por correo electrónico y
-   * haciendo clic en un botón "Continuar" o "Verificar". El SDK enviará este código mediante POST
+   * haciendo clic en el botón "Continuar" o "Verificar". El SDK enviará entonces este código mediante POST
    * al endpoint `/u/login-email-verification` de Auth0.
    *
-   * Si el código es válido, Auth0 redirigirá al usuario al siguiente paso en el
+   * Si el código es válido, Auth0 normalmente redirigirá al usuario al siguiente paso en el
    * flujo de autenticación. Si el código no es válido, ha expirado o se produce otro error,
    * Auth0 generalmente volverá a renderizar la pantalla login-email-verification, y el
    * arreglo `transaction.errors` en el contexto del SDK se actualizará con detalles
@@ -33,20 +33,20 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
    * @param {ContinueWithCodeOptions} payload - Un objeto que contiene la cadena `code` introducida por el usuario.
    *                                            También puede incluir cualquier `CustomOptions` para extensibilidad.
    * @returns {Promise<void>} Una promesa que se resuelve cuando se inicia el envío del formulario.
-   *                          No devuelve datos directamente al resolverse, ya que el resultado habitual es
-   *                          una redirección o un re-renderizado de la página.
+   *                          No devuelve datos directamente al resolverse, ya que una redirección o
+   *                          un re-renderizado de la página es el resultado habitual.
    * @throws {Error} Lanza un error si `payload.code` no se proporciona o no es una cadena de texto,
    *                 o si el `FormHandler` encuentra un problema irrecuperable durante el envío (p. ej., error de red).
-   *                 Los errores de validación de Auth0 (como un código no válido) no se lanzan como errores de JavaScript,
+   *                 Los errores de validación de Auth0 (como un código inválido) no se lanzan como errores de JavaScript,
    *                 sino que se reflejan en `this.transaction.errors` tras la operación.
    *
    * @example
    * ```typescript
-   * // Suponiendo que 'manager' es una instancia de LoginEmailVerification
+   * // Se asume que 'manager' es una instancia de LoginEmailVerification
    * const userInputCode = "123456";
    * try {
    *   await manager.continueWithCode({ code: userInputCode });
-   *   // Si tiene éxito, la página redirige. No se necesita ninguna acción adicional del lado del cliente aquí.
+   *   // Si tiene éxito, la página redirige. No se requiere ninguna acción adicional del lado del cliente aquí.
    * } catch (error) {
    *   // Este catch es para errores inesperados, no para errores de validación de Auth0.
    *   console.error("Failed to submit the verification code:", error);
@@ -65,7 +65,7 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
 
   /**
    * Solicita que se envíe un nuevo código de verificación a la dirección de correo electrónico del usuario.
-   * Esta acción se invoca normalmente cuando el usuario hace clic en un botón "Reenviar código", quizás porque
+   * Esta acción se invoca normalmente cuando el usuario hace clic en el botón "Reenviar código", quizás porque
    * no recibió el primer correo, el código expiró o sospecha que hay algún problema.
    * El SDK enviará mediante POST al endpoint `/u/login-email-verification` de Auth0 con una acción que indica
    * una solicitud de reenvío.
@@ -74,17 +74,17 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
    * La página puede volver a renderizarse. Si hay problemas (p. ej., demasiados intentos de reenvío para el mismo correo,
    * identificados por el código de error `too-many-emails`), `transaction.errors` se actualizará.
    *
-   * @param {ResendCodeOptions} [payload] - Opcional. Un objeto para `CustomOptions` si es necesario enviar
-   *                                        parámetros adicionales con la solicitud.
+   * @param {ResendCodeOptions} [payload] - Opcional. Un objeto para `CustomOptions` si se necesita enviar
+   *                                        algún parámetro adicional con la solicitud.
    * @returns {Promise<void>} Una promesa que se resuelve cuando se inicia la solicitud de reenvío.
-   *                          Al igual que `continueWithCode`, esto generalmente produce un re-renderizado de la página o una actualización de estado,
+   *                          Al igual que `continueWithCode`, esto generalmente resulta en un re-renderizado de la página o una actualización de estado
    *                          en lugar de datos directos en la resolución de la promesa.
    * @throws {Error} Lanza un error si el `FormHandler` encuentra un problema irrecuperable (p. ej., error de red).
    *                 Los errores del lado del servidor (como los límites de frecuencia) se reflejan en `this.transaction.errors`.
    *
    * @example
    * ```typescript
-   * // Suponiendo que 'manager' es una instancia de LoginEmailVerification
+   * // Se asume que 'manager' es una instancia de LoginEmailVerification
    * try {
    *   await manager.resendCode();
    *   // Opcionalmente, actualiza la UI para informar al usuario de que se ha enviado un nuevo código.
@@ -96,7 +96,7 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
    * if (manager.transaction.errors && manager.transaction.errors.length > 0) {
    *   manager.transaction.errors.forEach(err => {
    *     if (err.code === 'too-many-emails') {
-   *       // Mostrar "Has solicitado demasiados correos. Por favor, espera unos minutos."
+   *       // Mostrar "Has solicitado demasiados correos electrónicos. Por favor, espera unos minutos."
    *     }
    *   });
    * }
@@ -139,25 +139,25 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
 </div>
 
 <ParamField body="continueWithCode" type="Promise<void>">
-  Envía el código de verificación por correo electrónico introducido por el usuario.
+  Envía el código de verificación introducido por el usuario que fue enviado por correo electrónico.
   Esta acción corresponde a cuando el usuario introduce el código que recibió por correo electrónico y
-  hace clic en un botón &quot;Continuar&quot; o &quot;Verificar&quot;. Luego, el SDK hará un POST con este código
+  hace clic en un botón &quot;Continuar&quot; o &quot;Verificar&quot;. Luego, el SDK hará un POST de este código
   al endpoint `/u/login-email-verification` de Auth0.
 
   Si el código es válido, Auth0 normalmente redirigirá al usuario al siguiente paso del
-  flujo de autenticación. Si el código no es válido, ha expirado o se produce otro error,
+  flujo de autenticación. Si el código no es válido, ha caducado o se produce otro error,
   Auth0 normalmente volverá a renderizar la pantalla login-email-verification, y el
   arreglo `transaction.errors` en el contexto del SDK se actualizará con detalles
   sobre el error (por ejemplo, el código de error `invalid-code`).
 
   Una promesa que se resuelve cuando se inicia el envío del formulario.
-  No devuelve datos directamente al resolverse, ya que una redirección o un
-  nuevo renderizado de la página es el resultado habitual.
+  No devuelve datos directamente al resolverse, ya que el resultado habitual
+  es una redirección o un nuevo renderizado de la página.
 
   #### Lanza
 
   Lanza un error si no se proporciona `payload.code` o si no es una cadena,
-  o si el `FormHandler` encuentra un problema irrecuperable durante el envío (por ejemplo, un error de red).
+  o si `FormHandler` encuentra un error irrecuperable durante el envío (por ejemplo, un error de red).
   Los errores de validación de Auth0 (como un código no válido) no se lanzan como errores de JavaScript,
   sino que se reflejan en `this.transaction.errors` después de la operación.
 
@@ -166,7 +166,7 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
   const userInputCode = "123456";
   try {
     await manager.continueWithCode({ code: userInputCode });
-    // Si se realiza correctamente, la página redirige. No se necesita ninguna otra acción del lado del cliente aquí.
+    // Si se completa correctamente, la página redirige. Aquí no se necesita ninguna otra acción del lado del cliente.
   } catch (error) {
     // Este catch es para errores inesperados, no para errores de validación de Auth0.
     console.error("No se pudo enviar el código de verificación:", error);
@@ -181,7 +181,7 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
   }
   ```
 
-  <Expandable title="Parameters">
+  <Expandable title="Parámetros">
     <ParamField body="payload" type={<span><a href="/docs/es/libraries/acul/react-sdk/API-Reference/Types/interfaces/ContinueWithCodeOptionPayload">ContinueWithCodeOptionPayload</a></span>}>
       Un objeto que contiene la cadena `code` introducida por el usuario.
       También puede incluir cualquier `CustomOptions` para extensibilidad.
@@ -189,7 +189,7 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
       **Propiedades**
 
       <ParamField body="code" type="string">
-        El código de verificación enviado al correo electrónico del usuario. Normalmente, es una cadena corta numérica
+        El código de verificación enviado al correo electrónico del usuario. Normalmente es una cadena corta numérica
         o alfanumérica que el usuario debe introducir en el formulario.
       </ParamField>
     </ParamField>
@@ -198,23 +198,23 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
 
 <ParamField body="resendCode" type="Promise<void>">
   Solicita que se envíe un nuevo código de verificación a la dirección de correo electrónico del usuario.
-  Esta acción suele invocarse cuando el usuario hace clic en un botón de &quot;Reenviar código&quot;, quizá porque
-  no recibió el primer correo, el código caducó o sospecha que hay algún problema.
-  El SDK enviará un POST al endpoint `/u/login-email-verification` de Auth0 con una acción que indica
+  Esta acción suele invocarse cuando el usuario hace clic en un botón &quot;Reenviar código&quot;, quizá porque
+  no recibió el primer correo, el código caducó o sospecha que hay alguna incidencia.
+  El SDK hará un POST al endpoint `/u/login-email-verification` de Auth0 con una acción que indica
   una solicitud de reenvío.
 
   Cuando esta solicitud se envía correctamente, Auth0 intenta enviar un nuevo correo.
   La página puede volver a renderizarse. Si hay problemas (p. ej., demasiados intentos de reenvío para el mismo correo,
-  identificados por el código de error `too-many-emails`), se actualizará `transaction.errors`.
+  identificados por el código de error `too-many-emails`), `transaction.errors` se actualizará.
 
   Una promesa que se resuelve cuando se inicia la solicitud de reenvío.
-  Al igual que `continueWithCode`, esto normalmente hace que la página vuelva a renderizarse o que se actualice el estado,
-  en lugar de devolver datos directos en la resolución de la promesa.
+  Al igual que `continueWithCode`, esto normalmente da como resultado que la página se vuelva a renderizar o una actualización del estado
+  en lugar de datos directos en la resolución de la promesa.
 
   #### Lanza
 
-  Lanza una excepción si `FormHandler` encuentra un problema irrecuperable (p. ej., un error de red).
-  Los errores del servidor (como los límites de frecuencia) se reflejan en `this.transaction.errors`.
+  Lanza un error si el `FormHandler` encuentra una incidencia irrecuperable (p. ej., un error de red).
+  Los errores del lado del servidor (como los límites de frecuencia) se reflejan en `this.transaction.errors`.
 
   ```typescript Example
   // Suponiendo que 'manager' es una instancia de LoginEmailVerification
@@ -225,11 +225,11 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
   } catch (error) {
     console.error("No se pudo solicitar un nuevo código:", error);
   }
-  // Después del await, comprueba manager.transaction.errors para ver si hay problemas del lado del servidor.
+  // Después del await, comprueba manager.transaction.errors para detectar incidencias del lado del servidor.
   if (manager.transaction.errors && manager.transaction.errors.length > 0) {
     manager.transaction.errors.forEach(err => {
       if (err.code === 'too-many-emails') {
-        // Muestra "Has solicitado demasiados correos electrónicos. Espera unos minutos."
+        // Muestra "Has solicitado demasiados correos. Espera unos minutos."
       }
     });
   }
@@ -237,8 +237,8 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
 
   <Expandable title="Parámetros">
     <ParamField body="payload?" type={<span><a href="/docs/es/libraries/acul/react-sdk/API-Reference/Types/interfaces/ResendCodeOptionsPayload">ResendCodeOptionsPayload</a></span>}>
-      Opcional. Un objeto para `CustomOptions` si
-      es necesario enviar parámetros adicionales con la solicitud.
+      Opcional. Un objeto para `CustomOptions` si es necesario
+      enviar parámetros adicionales con la solicitud.
     </ParamField>
   </Expandable>
 </ParamField>
@@ -247,8 +247,8 @@ export interface LoginEmailVerificationMembers extends BaseMembers {
   Obtiene la funcionalidad de reenvío con gestión del tiempo de espera para esta pantalla
 
   <Expandable title="Parámetros">
-    <ParamField body="options?" type={<span><a href="/docs-v2/main//docs/libraries/acul/react-sdkScreens/type-aliases/OnStatusChangeCallback">OnStatusChangeCallback</a></span>}>
-      Configuration options for resend functionality
+    <ParamField body="options?" type={<span><a href="/docs/es/libraries/acul/react-sdk/API-Reference/Types/interfaces/StartResendOptions">StartResendOptions</a></span>}>
+      Opciones de configuración para la funcionalidad de reenvío
 
       **Propiedades**
 

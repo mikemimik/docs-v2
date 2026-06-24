@@ -1,44 +1,44 @@
 ---
-description: Explica cómo crear tus propios flujos de MFA usando push como factor de autenticación.
-title: Inscribir autenticadores push y enviar desafíos
+description: Describe cómo crear tus propios flujos de MFA usando push como factor de autenticación.
+title: Registrar y desafiar autenticadores push
 ---
 
-import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeBlock} from "/snippets/es/AuthCodeBlock.jsx";
 
-import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+import {AuthCodeGroup} from "/snippets/es/AuthCodeGroup.jsx";
 
-Auth0 ofrece un flujo integrado de inscripción y autenticación con <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación de usuarios que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> mediante [Universal Login](/docs/es/authenticate/login/auth0-universal-login). Sin embargo, si quieres crear tu propia interfaz de usuario, puedes usar la [API de MFA](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-developer-resources/mfa-api) para hacerlo.
+Auth0 proporciona un flujo integrado de inscripción y autenticación de <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación de usuario que utiliza un factor además de nombre de usuario y contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> mediante [Universal Login](/docs/es/authenticate/login/auth0-universal-login). Sin embargo, si quieres crear tu propia interfaz de usuario, puedes usar la [API de MFA](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-developer-resources/mfa-api) para hacerlo.
 
-Puedes inscribir a los usuarios y enviarles desafíos mediante notificaciones push con la aplicación Guardian o el SDK usando la API de MFA.
+Puedes inscribir a los usuarios y enviarles solicitudes de desafío mediante notificaciones push con la aplicación Guardian o el SDK usando la API de MFA.
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Antes de poder usar las API de MFA, tendrás que habilitar el tipo de concesión **MFA** para tu aplicación. Ve a [Auth0 Dashboard &gt; Applications &gt; Advanced Settings &gt; Grant Types](https://manage.auth0.com/#/applications) y selecciona **MFA**.
+Antes de poder usar las API de MFA, debes habilitar el tipo de concesión de MFA para tu aplicación. Ve a [Auth0 Dashboard &gt; Applications &gt; Advanced Settings &gt; Grant Types](https://manage.auth0.com/#/applications) y selecciona **MFA**.
 
-* [Configura Push](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-push-notifications-for-mfa) como factor en el Dashboard o mediante la [Management API](https://auth0.com/docs/api/management/v2#!/Guardian/put_factors_by_name).
+* [Configurar Push](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-push-notifications-for-mfa) como factor en el Dashboard o mediante la [Management API](https://auth0.com/docs/api/management/v2#!/Guardian/put_factors_by_name).
 
 <div id="enroll-with-push">
-  ## Inscribirse con push
+  ## Registrarse con push
 </div>
 
 <div id="get-mfa-token">
   ### Obtener un token de MFA
 </div>
 
-Según cuándo inicies la inscripción, puedes obtener un <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip> para usar la API de MFA de distintas maneras:
+Según cuándo actives el registro, puedes obtener un <Tooltip tip="Token de acceso: credencial de autorización, en forma de cadena opaca o JWT, que se utiliza para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">token de acceso</Tooltip> para usar la API de MFA de diferentes maneras:
 
-* Si vas a inscribirte durante la autenticación, consulta [Autenticación con la concesión de contraseña del propietario del recurso y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa).
-* Si quieres permitir que el usuario inscriba un factor en cualquier momento, consulta [Administrar las inscripciones de factores de MFA](/docs/es/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api).
+* Si estás registrando un factor durante la autenticación, consulta [Autenticar con Resource Owner Password Grant y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa).
+* Si quieres permitir que el usuario registre un factor en cualquier momento, consulta [Gestionar registros de factores de MFA](/docs/es/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api).
 
 <div id="enroll-authenticator">
-  ### Inscribir autenticador
+  ### Registrar autenticador
 </div>
 
-Realiza una solicitud `POST` al endpoint MFA Associate para inscribir el autenticador del usuario. El bearer token requerido por este endpoint es el MFA token obtenido en el paso anterior.
+Realiza una solicitud `POST` al endpoint MFA Associate para registrar el autenticador del usuario. El bearer token que requiere este endpoint es el MFA token obtenido en el paso anterior.
 
-Para inscribir con push, establece el parámetro `authenticator_types` en `[oob]` y el parámetro `oob_channels` en `[auth0]`.
+Para registrar con `push`, establece el parámetro `authenticator_types` en `[oob]` y el parámetro `oob_channels` en `[auth0]`.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -186,7 +186,7 @@ Para inscribir con push, establece el parámetro `authenticator_types` en `[oob]
   ```
 </AuthCodeGroup>
 
-Si la solicitud se realiza correctamente, recibirás una respuesta como esta:
+Si la solicitud se completa correctamente, recibirás una respuesta como esta:
 
 ```json lines
 {
@@ -200,17 +200,17 @@ Si la solicitud se realiza correctamente, recibirás una respuesta como esta:
 }
 ```
 
-Si recibes un error `User is already enrolled`, el usuario ya tiene registrado un factor de MFA. Antes de asociar otro factor con el usuario, debes verificar al usuario con el factor existente.
+Si obtienes un error `User is already enrolled`, el usuario ya tiene un factor de MFA registrado. Antes de asociar otro factor con el usuario, debes desafiarlo con el factor existente.
 
-Si esta es la primera vez que el usuario asocia un autenticador, notarás que la respuesta incluye `recovery_codes`. Los códigos de recuperación se usan para acceder a la cuenta del usuario en caso de que pierda acceso a la cuenta o al dispositivo que utiliza para la autenticación de segundo factor. Son códigos de un solo uso, y se generan nuevos cuando es necesario.
+Si es la primera vez que el usuario asocia un autenticador, verás que la respuesta incluye `recovery_codes`. Los códigos de recuperación se usan para acceder a la cuenta del usuario en caso de que pierda acceso a la cuenta o al dispositivo utilizado para la autenticación de segundo factor. Estos códigos son de un solo uso y se generan nuevos según sea necesario.
 
 <div id="confirm-push-enrollment">
-  ### Confirmar la inscripción con push
+  ### Confirmar la inscripción de push
 </div>
 
-Para confirmar la inscripción, el usuario final deberá escanear un código QR con el `barcode_uri` en la aplicación Guardian durante los próximos 5 minutos.
+Para confirmar la inscripción, el usuario final deberá escanear un código QR con el `barcode_uri` en la aplicación Guardian en los próximos 5 minutos.
 
-Una vez hecho esto, la aplicación Guardian notificará a Auth0 que el usuario se inscribió correctamente. Para saber si eso ocurrió, consulta periódicamente el endpoint de token de Auth0 <Tooltip tip="Token Endpoint: endpoint en el servidor de autorización que se utiliza para solicitar tokens de forma programática." cta="Ver glosario" href="/docs/es/glossary?term=Token+endpoint">endpoint de token</Tooltip> con el `oob_code` devuelto por la llamada al endpoint MFA Associate.
+Una vez hecho esto, la aplicación Guardian notificará a Auth0 que el usuario se registró correctamente. Para saber si eso ocurrió, consulta el <Tooltip tip="Endpoint de token: endpoint del servidor de autorización que se usa para solicitar tokens mediante programación." cta="Ver glosario" href="/docs/es/glossary?term=Token+endpoint">endpoint de token</Tooltip> de Auth0 con el `oob_code` devuelto por la llamada al endpoint MFA Associate.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -380,7 +380,7 @@ Si el usuario no ha escaneado el código, se devolverá una respuesta `authoriza
 }
 ```
 
-Si la llamada se realizó correctamente, recibirás una respuesta con el siguiente formato que contiene el token de acceso:
+Si la solicitud se realizó correctamente, recibirás una respuesta con el siguiente formato, que contiene el token de acceso:
 
 ```json lines
 {
@@ -392,9 +392,9 @@ Si la llamada se realizó correctamente, recibirás una respuesta con el siguien
 }
 ```
 
-En este punto, el autenticador ya está completamente asociado y listo para usarse, y ya tienes los tokens de autenticación del usuario.
+En este punto, el autenticador está completamente asociado y listo para usarse, y ya tienes los tokens de autenticación del usuario.
 
-En cualquier momento puedes comprobar si un autenticador ha sido confirmado llamando al endpoint MFA Authenticators. Si el autenticador está confirmado, el valor que se devuelve para `active` es `true`.
+Puedes comprobar en cualquier momento si un autenticador se ha confirmado consultando el endpoint de autenticadores de MFA. Si el autenticador está confirmado, el valor que se devuelve para `active` es `true`.
 
 <div id="challenge-with-push">
   ## Desafío con push
@@ -404,13 +404,13 @@ En cualquier momento puedes comprobar si un autenticador ha sido confirmado llam
   ### Obtener un token de MFA
 </div>
 
-Obtén un token de MFA siguiendo los pasos descritos en [Autentícate con Resource Owner Password Grant y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa).
+Obtén un token de MFA siguiendo los pasos descritos en [Autenticarse con concesión de contraseña del propietario del recurso y MFA](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa).
 
 <div id="retrieve-enrolled-authenticators">
-  ### Obtener autenticadores inscritos
+  ### Recuperar autenticadores registrados
 </div>
 
-Para solicitar el desafío del usuario, necesitas el `authenticator_id` del factor que quieres verificar. Puedes listar todos los autenticadores inscritos mediante el endpoint MFA Authenticators:
+Para enviar el desafío al usuario, necesitas el `authenticator_id` del factor que quieres usar. Puedes listar todos los autenticadores registrados mediante el endpoint de autenticadores de MFA:
 
 <AuthCodeGroup>
   ```bash cURL
@@ -571,13 +571,13 @@ Obtendrás una lista de autenticadores con el siguiente formato:
 ]
 ```
 
-Cuando los usuarios se inscriben con push, también quedan inscritos en OTP, ya que Guardian permite el [desafío con OTP](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators) en los casos en que el usuario no tenga conectividad.
+Cuando los usuarios se registran con push, también quedan registrados en OTP, ya que Guardian permite el [desafío con OTP](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators) en los casos en que el usuario no tiene conectividad.
 
 <div id="challenge-user-with-push">
-  ### Plantear un desafío push al usuario
+  ### Desafiar al usuario con push
 </div>
 
-Para activar un desafío push, haz una solicitud `POST` al endpoint de desafío MFA con el `authenticator_id` correspondiente y el `mfa_token`.
+Para activar un desafío push, envía una solicitud `POST` al endpoint de desafío MFA con el `authenticator_id` correspondiente y el `mfa_token`.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -711,10 +711,10 @@ Para activar un desafío push, haz una solicitud `POST` al endpoint de desafío 
 </AuthCodeGroup>
 
 <div id="complete-authentication-using-received-code">
-  ### Completa la autenticación con el código recibido
+  ### Completar la autenticación con el código recibido
 </div>
 
-Si se completa correctamente, recibirás la siguiente respuesta:
+Si todo va bien, recibirás la siguiente respuesta:
 
 ```json lines
 {
@@ -723,7 +723,7 @@ Si se completa correctamente, recibirás la siguiente respuesta:
 }
 ```
 
-Su aplicación debe comenzar a hacer polling al endpoint de token de OAuth0 hasta que el usuario acepte la notificación push.
+Su aplicación debe empezar a consultar periódicamente el endpoint de token de OAuth0 hasta que el usuario acepte la notificación push.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -874,22 +874,22 @@ Su aplicación debe comenzar a hacer polling al endpoint de token de OAuth0 hast
 
 La llamada puede devolver uno de los siguientes resultados:
 
-| Resultado                        | Descripción                                                                      |
-| -------------------------------- | -------------------------------------------------------------------------------- |
-| `authorization_pending`          | Error: Si el desafío aún no se ha aceptado ni rechazado.                         |
-| `slow_down`                      | Error: Si el polling es demasiado frecuente.                                     |
-| `access_token` y `refresh_token` | Si el desafío ha sido aceptado; en este punto debe detenerse el polling.         |
-| `invalid_grant`                  | Error: Si el desafío ha sido rechazado; en este punto debe detenerse el polling. |
+| Resultado                        | Descripción                                                                                  |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| `authorization_pending`          | Error: Si el desafío aún no se ha aceptado ni rechazado.                                     |
+| `slow_down`                      | Error: Si la consulta periódica se realiza con demasiada frecuencia.                         |
+| `access_token` y `refresh_token` | Si el desafío ha sido aceptado; en este punto, debe detenerse la consulta periódica.         |
+| `invalid_grant`                  | Error: Si el desafío ha sido rechazado; en este punto, debe detenerse la consulta periódica. |
 
 <div id="customize-mfa">
   ## Personalizar MFA
 </div>
 
 <Warning>
-  La MFA personalizable con los flujos de contraseña del propietario del recurso, Embedded o de token de actualización está en acceso anticipado. Al usar esta función, aceptas los términos aplicables de la prueba gratuita del [Master Subscription Agreement](https://www.okta.com/legal/) de Okta. Para obtener más información sobre las etapas de lanzamiento de Auth0, consulta [Product Release Stages](/docs/es/troubleshoot/product-lifecycle/product-release-stages). Para participar en el acceso anticipado, contacta al [equipo de soporte de Auth0](https://support.auth0.com/).
+  La MFA personalizable con los flujos de concesión de contraseña del propietario del recurso, Embedded o token de actualización está en acceso anticipado. Al usar esta funcionalidad, aceptas los términos aplicables de la prueba gratuita del [Master Subscription Agreement](https://www.okta.com/legal/) de Okta. Para obtener más información sobre las etapas de lanzamiento de Auth0, consulta [Product Release Stages](/docs/es/troubleshoot/product-lifecycle/product-release-stages). Para participar en el acceso anticipado, ponte en contacto con el [equipo de soporte de Auth0](https://support.auth0.com/).
 </Warning>
 
-La MFA personalizable permite a los usuarios registrar y usar los factores compatibles con tu aplicación que elijan.
+La MFA personalizable permite a los usuarios registrar y usar los factores compatibles con tu aplicación que prefieran.
 
 Durante la autenticación en el endpoint `oauth/token`, la respuesta devuelve el error `mfa_required`, que incluye el `mfa_token` para usar la API de MFA y el parámetro `mfa_requirements` con una lista de autenticadores:
 
@@ -910,7 +910,7 @@ Durante la autenticación en el endpoint `oauth/token`, la respuesta devuelve el
 }
 ```
 
-Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](/docs/es/api/authentication/muti-factor-authentication/list-authenticators), obtener una lista de todos los factores que el usuario tiene inscritos y encontrar el mismo tipo que admite tu aplicación.  También debes obtener el `authenticator_type` correspondiente para emitir desafíos:
+Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](/docs/es/api/authentication/muti-factor-authentication/list-authenticators) y obtener una lista de todos los factores que el usuario ha registrado, e identifica cuál coincide con un tipo compatible con tu aplicación. También debes obtener el `authenticator_type` correspondiente para emitir desafíos:
 
 ```json
 [
@@ -929,9 +929,9 @@ Usa el `mfa_token` para llamar al endpoint [`mfa/authenticator`](/docs/es/api/au
 ]
 ```
 
-Exige el desafío MFA llamando al endpoint [`request/mfa/challenge`](/docs/es/api/authentication/muti-factor-authentication/request-mfa-challenge).
+Exija el desafío MFA llamando al endpoint [`request/mfa/challenge`](/docs/es/api/authentication/muti-factor-authentication/request-mfa-challenge).
 
-Personaliza aún más tu flujo MFA con Auth0 Actions. Para obtener más información, consulta [Actions Triggers: post-challenge - objeto de API](/docs/es/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-api-object).
+Personalice aún más su flujo de MFA con Auth0 Actions. Para obtener más información, lea [Actions Triggers: post-challenge - objeto de API](/docs/es/customize/actions/explore-triggers/password-reset-triggers/post-challenge-trigger/post-challenge-api-object).
 
 <div id="learn-more">
   ## Más información
@@ -940,6 +940,6 @@ Personaliza aún más tu flujo MFA con Auth0 Actions. Para obtener más informac
 * [Gestionar factores de autenticación con Authentication API](/docs/es/secure/multi-factor-authentication/manage-mfa-auth0-apis/manage-authenticator-factors-mfa-api)
 * [Configurar notificaciones push para MFA](/docs/es/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-push-notifications-for-mfa)
 * [Desafío con códigos de recuperación](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/challenge-with-recovery-codes)
-* [Inscribir y desafiar autenticadores de correo electrónico](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-email-authenticators)
-* [Inscribir y desafiar autenticadores OTP](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
-* [Inscribir y desafiar autenticadores de SMS y voz](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)
+* [Registrar y desafiar autenticadores de Email](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-email-authenticators)
+* [Registrar y desafiar autenticadores OTP](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-and-challenge-otp-authenticators)
+* [Registrar y desafiar autenticadores de SMS y voz](/docs/es/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators)

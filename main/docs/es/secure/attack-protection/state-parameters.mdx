@@ -1,24 +1,24 @@
 ---
 description: Describe cómo usar el parámetro `state` en las solicitudes de autenticación para ayudar a prevenir ataques CSRF y restaurar el estado
-title: Prevenir ataques y redirigir Users con parámetros `state` de OAuth 2.0
+title: Prevenir ataques y redirigir a los usuarios con parámetros `state` de OAuth 2.0
 ---
 
-Los protocolos de autorización proporcionan un parámetro `state` que te permite restaurar el estado anterior de tu aplicación. El parámetro `state` conserva algunos objetos de estado establecidos por el cliente en la solicitud de autorización y los pone a disposición del cliente en la respuesta.
+Los protocolos de autorización proporcionan un parámetro `state` que le permite restaurar el estado anterior de su aplicación. El parámetro `state` conserva ciertos objetos de estado establecidos por el cliente en la solicitud de autorización y los pone a disposición del cliente en la respuesta.
 
 <div id="csrf-attacks">
   ## Ataques CSRF
 </div>
 
-La razón principal para usar el parámetro `state` es mitigar los [ataques CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) mediante un valor único e impredecible asociado a cada solicitud de autenticación que está a punto de iniciarse. Ese valor te permite evitar el ataque al confirmar que el valor incluido en la respuesta coincide con el que enviaste.
+La razón principal para usar el parámetro `state` es mitigar los [ataques CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) mediante un valor único e imposible de adivinar asociado a cada solicitud de autenticación que está a punto de iniciarse. Ese valor te permite prevenir el ataque al confirmar que el valor que llega en la respuesta coincide con el que enviaste.
 
-El parámetro `state` es una cadena, por lo que puedes codificar en él cualquier otra información. Envías un valor aleatorio al iniciar una solicitud de autenticación y validas el valor recibido al procesar la respuesta. Almacenas algo del lado de la aplicación cliente (en cookies, la sesión o localstorage) que te permite realizar la validación. Si recibes una respuesta con un `state` que no coincide, puedes deducir que podrías ser el objetivo de un ataque, ya sea porque es una respuesta a una solicitud no solicitada o porque alguien está intentando falsificar la respuesta.
+El parámetro `state` es una cadena, por lo que puedes codificar en él cualquier otra información. Envías un valor aleatorio al iniciar una solicitud de autenticación y validas el valor recibido al procesar la respuesta. Almacenas algo del lado de la aplicación cliente (en cookies, sesión o localStorage) que te permita realizar la validación. Si recibes una respuesta con un `state` que no coincide, puedes inferir que podrías ser el objetivo de un ataque porque se trata de una respuesta a una solicitud no solicitada o de alguien que intenta falsificar la respuesta.
 
-Un ataque CSRF se dirige específicamente a solicitudes que cambian el estado para iniciar una acción, en lugar de obtener datos del usuario, porque el atacante no tiene forma de ver la respuesta a la solicitud falsificada. En los casos más básicos, el parámetro state debería ser un <Tooltip tip="Nonce: Número arbitrario emitido una sola vez en un protocolo de autenticación para detectar y prevenir ataques de repetición." cta="Ver glosario" href="/docs/es/glossary?term=nonce">nonce</Tooltip>, usado para correlacionar la solicitud con la respuesta recibida de la autenticación.
+Un ataque CSRF se dirige específicamente a solicitudes que cambian el estado para iniciar una acción, en lugar de obtener datos de usuario, porque el atacante no tiene forma de ver la respuesta a la solicitud falsificada. En los casos más básicos, el parámetro state debería ser un <Tooltip tip="Nonce: Número arbitrario emitido una sola vez en un protocolo de autenticación para detectar y prevenir ataques de repetición." cta="Ver glosario" href="/docs/es/glossary?term=nonce">nonce</Tooltip>, usado para correlacionar la solicitud con la respuesta recibida de la autenticación.
 
-La mayoría de los SDK modernos de OIDC y <Tooltip tip="OAuth 2.0: Marco de autorización que define protocolos y flujos de trabajo de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth">OAuth</Tooltip>, incluido Auth0.js en aplicaciones de una sola página, gestionan automáticamente la generación y validación del state.
+La mayoría de los SDKs modernos de OIDC y <Tooltip tip="OAuth 2.0: Framework de autorización que define protocolos y flujos de autorización." cta="Ver glosario" href="/docs/es/glossary?term=OAuth">OAuth</Tooltip>, incluido Auth0.js en aplicaciones web de página única, gestionan automáticamente la generación y validación de state.
 
 <div id="set-and-compare-state-parameter-values">
-  ### Establece y compara los valores del parámetro state
+  ### Define y compara los valores del parámetro `state`
 </div>
 
 1. Antes de redirigir una solicitud al proveedor de identidad (IdP), haz que la aplicación genere una cadena aleatoria. Por ejemplo:
@@ -27,28 +27,28 @@ La mayoría de los SDK modernos de OIDC y <Tooltip tip="OAuth 2.0: Marco de auto
    xyzABC123
    ```
 
-   La longitud permitida para state no es ilimitada. Si recibes el error `414 Request-URI Too Large`, prueba con un valor más pequeño.
+   La longitud permitida para `state` no es ilimitada. Si recibes el error `414 Request-URI Too Large`, prueba con un valor más corto.
 
-2. Guarda la cadena localmente. Por ejemplo:
+2. Almacena la cadena localmente. Por ejemplo:
 
    ```text lines
    storeStateLocally(xyzABC123)
    ```
 
-3. Añade el parámetro `state` a la solicitud (codificando la URL si es necesario). Por ejemplo:
+3. Agrega el parámetro `state` a la solicitud (codificando la URL si es necesario). Por ejemplo:
 
    ```javascript lines
    // Codifica el String   
    tenant.auth0.com/authorize?...&state=xyzABC123
    ```
 
-   Después de enviar la solicitud, Auth0 redirige al usuario de vuelta a la aplicación. El valor de `state` se incluirá en esta redirección. Ten en cuenta que, según el tipo de conexión utilizada, este valor podría estar en el cuerpo de la solicitud o en la cadena de consulta.
+   Después de enviar la solicitud, Auth0 redirige al usuario de vuelta a la aplicación. El valor de `state` se incluirá en esta redirección. Ten en cuenta que, según el tipo de conexión que se use, este valor podría estar en el cuerpo de la solicitud o en la cadena de consulta.
 
    ```text lines
    /callback?...&state=xyzABC123
    ```
 
-4. Recupera el valor de `state` devuelto y compáralo con el que guardaste antes. Si los valores coinciden, aprueba la respuesta de autenticación; de lo contrario, recházala.
+4. Recupera el valor de `state` devuelto y compáralo con el que almacenaste antes. Si los valores coinciden, acepta la respuesta de autenticación; de lo contrario, recházala.
 
    ```javascript lines
    // Decodifica el String
@@ -65,17 +65,17 @@ La mayoría de los SDK modernos de OIDC y <Tooltip tip="OAuth 2.0: Marco de auto
   ## Redirigir a los usuarios
 </div>
 
-Puede usar el parámetro `state` para codificar un estado de la aplicación que devuelva al usuario al lugar en el que estaba antes de que comenzara el proceso de autenticación. Por ejemplo, si un usuario intenta acceder a una página protegida de su aplicación y esa acción desencadena la solicitud de autenticación, puede almacenar esa URL para redirigirlo a la página que quería visitar una vez finalizada la autenticación.
+Puede usar el parámetro `state` para codificar un estado de la aplicación que haga que el usuario vuelva al lugar en el que estaba antes de que comenzara el proceso de autenticación. Por ejemplo, si un usuario intenta acceder a una página protegida de su aplicación y esa acción desencadena la solicitud de autenticación, puede almacenar esa URL para redirigirlo a la página a la que quería ir cuando finalice la autenticación.
 
-Genere y almacene un nonce localmente (en cookies, en la sesión o en `local storage`), junto con cualquier dato de estado que desee, como la URL de redirección. Use el nonce como `state` en el mensaje del protocolo. Si el `state` devuelto coincide con el nonce almacenado, acepte el mensaje de OAuth2 y recupere del almacenamiento los datos de estado correspondientes. Este es el enfoque que usamos en auth0.js.
+Genere y almacene un nonce localmente (en cookies, sesión o almacenamiento local) junto con cualquier dato de estado que desee, como la URL de redirección. Use el nonce como `state` en el mensaje del protocolo. Si el `state` devuelto coincide con el nonce almacenado, acepte el mensaje de OAuth2 y recupere del almacenamiento los datos de estado correspondientes. Este es el enfoque que usamos en auth0.js.
 
 <div id="use-the-stored-url-to-redirect-users">
-  ### Usa la URL almacenada para redirigir a los usuarios
+  ### Use la URL almacenada para redirigir a los usuarios
 </div>
 
-1. Establece el valor del parámetro `state` del nonce que usaste para mitigar ataques CSRF, como se explicó anteriormente.
+1. Establezca el valor nonce del parámetro state que utilizó para mitigar los ataques CSRF, como se explicó anteriormente.
 
-2. Almacena el nonce localmente y úsalo como clave para guardar toda la demás información sobre el estado de la aplicación, como la URL a la que el usuario quería ir. Por ejemplo:
+2. Almacene el nonce localmente y úselo como clave para guardar toda la demás información del estado de la aplicación, como la URL a la que el usuario quería ir. Por ejemplo:
 
    ```json lines
    {
@@ -86,38 +86,38 @@ Genere y almacene un nonce localmente (en cookies, en la sesión o en `local sto
    }
    ```
 
-3. Autentica al usuario [enviando el nonce generado como `state`](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/mitigate-replay-attacks-when-using-the-implicit-flow).
+3. Autentique al usuario [enviando el nonce generado en el parámetro state](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/mitigate-replay-attacks-when-using-the-implicit-flow).
 
-4. Como parte del procesamiento del callback y la validación de la respuesta, verifica que el `state` devuelto coincida con el nonce almacenado localmente. Si coincide, recupera el resto del estado de la aplicación (como `redirectUrl`).
+4. Como parte del procesamiento de la devolución de llamada y de la validación de la respuesta, verifique que el state devuelto coincida con el nonce almacenado localmente. Si coincide, recupere el resto del estado de la aplicación (como `redirectUrl`).
 
-5. Una vez que completes el procesamiento del callback, redirige al usuario a la URL almacenada previamente.
+5. Una vez completado el procesamiento de la devolución de llamada, redirija al usuario a la URL almacenada previamente.
 
 <div id="alternate-redirect-method">
   ### Método alternativo de redirección
 </div>
 
-1. Genera y almacena localmente un valor nonce.
-2. Codifica cualquier `state` que desees (como la URL de redirección) junto con el nonce en un mensaje protegido (que deberá cifrarse/firmarse para evitar manipulaciones).
-3. Al procesar la respuesta, quita la protección del mensaje para obtener el nonce y las demás propiedades almacenadas.
-4. Valida que el nonce incluido coincida con el que se almacenó localmente y, de ser así, acepta el mensaje de OAuth2.
+1. Genere y almacene localmente un valor nonce.
+2. Codifique cualquier state deseado (como la URL de redirección) junto con el nonce en un mensaje protegido (que deberá estar cifrado/firmado para evitar manipulaciones).
+3. Al procesar la respuesta, desproteja el mensaje y recupere el nonce y las demás propiedades almacenadas.
+4. Valide que el nonce incluido coincida con el que se almacenó localmente y, de ser así, acepte el mensaje OAuth2.
 
 <div id="limitations-and-considerations">
   ## Limitaciones y consideraciones
 </div>
 
-* Elige un método de almacenamiento según el tipo de aplicación.
+* Elija un método de almacenamiento según el tipo de aplicación.
 
-| Tipo de aplicación         | Recomendación de almacenamiento    |
-| -------------------------- | ---------------------------------- |
-| Aplicación web tradicional | Cookie o sesión                    |
-| SPA                        | Almacenamiento local del navegador |
-| App nativa                 | Memoria o almacenamiento local     |
+| Tipo de aplicación         | Recomendación de almacenamiento |
+| -------------------------- | ------------------------------- |
+| Aplicación web tradicional | Cookie o sesión                 |
+| SPA                        | Navegador local                 |
+| Aplicación nativa          | Memoria o almacenamiento local  |
 
-* Desde el punto de vista de la seguridad, ni la solicitud ni la respuesta están protegidas en cuanto a integridad, por lo que un usuario puede manipularlas. Esto también aplica si se agrega un parámetro a `redirect_uri`.
-* La longitud permitida del valor del parámetro state no es ilimitada. Si aparece el error `414 Request-URI Too Large`, prueba con un valor más pequeño.
-* Pasar URL en texto plano o de cualquier forma predecible no es seguro. Asegúrate de que el valor del parámetro state sea:
+* Desde el punto de vista de la seguridad, ni la request ni la response están protegidas en términos de integridad, por lo que un usuario puede manipularlas. Esto también aplica a agregar un parámetro a `redirect_uri`.
+* La longitud permitida para el valor del parámetro state no es ilimitada. Si recibe el error `414 Request-URI Too Large`, pruebe con un valor más pequeño.
+* Pasar URL en texto plano o de cualquier forma predecible no es seguro. Asegúrese de que el valor del parámetro state sea:
 
-  * Único y opaco, para garantizar que pueda usarse como protección frente a ataques de CSRF y phishing.
+  * Único y opaco para garantizar que pueda usarse como defensa contra ataques CSRF y de phishing.
   * Si se almacena en una cookie, debe estar firmado para evitar falsificaciones.
 
 <div id="learn-more">

@@ -1,20 +1,20 @@
 ---
-description: Describe cómo usar tu servidor backend para autenticar una aplicación web de página única (SPA) con cookies.
+description: Describe cómo usar tu servidor backend para autenticar una aplicación de página única (SPA) con cookies.
 title: Autenticar aplicaciones de página única con cookies
 ---
 
-import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeBlock} from "/snippets/es/AuthCodeBlock.jsx";
 
 export const codeExample = `ISSUER_BASE_URL="{yourDomain}"
 CLIENT_ID="{yourClientId}"
 BASE_URL="http://localhost:3000"
 APP_SESSION_SECRET="<YOUR SECRET VALUE>"`;
 
-Proteger una aplicación web de página única (SPA) puede ser todo un desafío. Sin embargo, si tu SPA cumple con los siguientes criterios, puedes simplificar tu implementación usando cookies para la autenticación.
+Proteger una aplicación de página única (SPA) puede ser todo un desafío. Sin embargo, si tu SPA cumple los siguientes criterios, puedes simplificar tu implementación usando cookies para autenticar.
 
 * Se sirve al cliente mediante tu propio backend.
 * Tiene el mismo dominio que tu backend.
-* Hace llamadas a la API de tu backend que requieren autenticación.
+* Hace llamadas a la API a tu backend que requieren autenticación.
 
 Aquí tienes una descripción de este enfoque, así como una implementación de ejemplo con [Node.js](https://nodejs.org/en/).
 
@@ -22,29 +22,29 @@ Aquí tienes una descripción de este enfoque, así como una implementación de 
   ## Cómo funciona
 </div>
 
-Los pasos a continuación muestran cómo se recuperan y utilizan los tokens. En este enfoque, se usa el [flujo implícito con Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post) en lugar de un [flujo de código de autorización con PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) tradicional. Esto se debe a que el modo de respuesta Form Post es una forma más sencilla de implementar el inicio de sesión cuando el recurso al que solicitas acceso es tuyo.
+Los pasos a continuación muestran cómo se recuperan y usan los tokens. En este enfoque, se usa el [flujo implícito con Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post) en lugar de un [flujo de código de autorización con Proof Key for Code Exchange](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) tradicional. Esto se debe a que el modo de respuesta Form Post es una forma más sencilla de implementar el inicio de sesión cuando solicitas acceso a un recurso propio.
 
-<Frame>![Autenticar aplicaciones de página única usando cookies: diagrama de cómo funciona, parte 1](/docs/images/cdy7uua7fh8z/7suPpG6SuHuCOFHeFmE21T/1bf0a56fd21f65460cff7fd01b4c93f4/2023-09-22_13-21-34.png)</Frame>
+<Frame>![Autenticar aplicaciones de página única con cookies: diagrama de funcionamiento, parte 1](/docs/images/cdy7uua7fh8z/7suPpG6SuHuCOFHeFmE21T/1bf0a56fd21f65460cff7fd01b4c93f4/2023-09-22_13-21-34.png)</Frame>
 
 1. El usuario accede a una ruta protegida desde el navegador o realiza alguna acción que requiere iniciar un paso de autenticación (como hacer clic en un botón de Login)
 2. El cliente del navegador redirige a una ruta `/login` en el backend, o a la ruta protegida, según lo que haya hecho el usuario
 3. El backend construye una solicitud al endpoint `/authorize` del servidor de autorización y redirige allí al cliente del navegador
-4. Se solicita al usuario que se autentique mediante el método que presente el servidor de autorización
-5. El servidor de autorización envía los tokens mediante POST a la URI de redirección como un form post codificado en URL. El backend puede recuperar esos tokens analizando los datos del cuerpo.
+4. Se le solicita al usuario que se autentique con el método que presente el servidor de autorización
+5. El servidor de autorización envía los tokens mediante POST a la Redirect URI como un form post con codificación URL. El backend puede recuperar esos tokens analizando los datos del body.
 
-En este punto, el usuario está autenticado y el backend tiene los tokens necesarios. Ahora se puede crear una cookie para representar este estado en el cliente. Luego, el navegador del cliente se redirige a una ruta que sirve la SPA y que también recibe la cookie de autenticación.
+En este punto, el usuario está autenticado y el backend tiene los tokens necesarios. Ahora puede crearse una cookie para representar este estado en el cliente. Luego, el navegador del cliente se redirige a una ruta que sirve la SPA y también recibe la cookie de autenticación.
 
-A partir de ese momento, esta cookie se intercambia entre el cliente y el backend cuando se realizan llamadas a la API mediante AJAX. En cada solicitud, el backend verifica si la cookie sigue siendo válida y, de ser así, permite que la solicitud continúe.
+A partir de ese momento, esta cookie se intercambia entre el cliente y el backend cuando se realizan llamadas a la API mediante una llamada AJAX. En cada solicitud, el backend verifica si la cookie sigue siendo válida y, de ser así, permite que la solicitud continúe.
 
-<Frame>![Autenticar aplicaciones de página única usando cookies: diagrama de cómo funciona, parte 2](/docs/images/cdy7uua7fh8z/6SCp9KwQkwJV7L26TOuxIO/d625575a43d00a00fcf17c7310ac2bc8/2023-09-22_13-21-50.png)</Frame>
+<Frame>![Autenticar aplicaciones de página única con cookies: diagrama de funcionamiento, parte 2](/docs/images/cdy7uua7fh8z/6SCp9KwQkwJV7L26TOuxIO/d625575a43d00a00fcf17c7310ac2bc8/2023-09-22_13-21-50.png)</Frame>
 
 <div id="invalid-or-missing-cookies">
-  ### Cookies no válidas o ausentes
+  ### Cookies inválidas o ausentes
 </div>
 
-Al implementar este enfoque, tendrás que manejar los casos en los que la cookie de autenticación no sea válida o falte. La llamada a la API al backend desde el cliente se realiza en segundo plano, por lo que el cliente debe gestionar cualquier respuesta del servidor que indique que el usuario debe volver a autenticarse.
+Al implementar este enfoque, tendrás que manejar los casos en los que la cookie de autenticación sea inválida o no esté presente. La llamada del cliente a la API del backend se produce en segundo plano, por lo que el cliente tiene que gestionar cualquier respuesta del servidor que indique que el usuario debe volver a autenticarse.
 
-En la siguiente aplicación de ejemplo, este caso se maneja de forma simplista, pidiéndole al usuario que vuelva a autenticarse si la llamada a la API devuelve una redirección 302. El 302 se produce porque, tras una validación fallida de la cookie, el servidor intenta redirigir al endpoint de autorización del <Tooltip tip="Servidor de autorización: servidor centralizado que ayuda a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funciones disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=authorization+server">servidor de autorización</Tooltip> y envía esta respuesta al cliente.
+En la siguiente aplicación de ejemplo, este caso se maneja de forma bastante básica: se pide al usuario que vuelva a autenticarse si la llamada a la API da como resultado un 302 Redirect. El 302 se produce porque, tras una validación fallida de la cookie, el servidor intenta redirigir al endpoint de autorización del <Tooltip tip="Servidor de autorización: Servidor centralizado que ayuda a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, tareas y funcionalidades disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=authorization+server">servidor de autorización</Tooltip> y envía esta respuesta al cliente.
 
 <div id="example">
   ## Ejemplo
@@ -53,11 +53,11 @@ En la siguiente aplicación de ejemplo, este caso se maneja de forma simplista, 
 La aplicación de ejemplo usa Node.js y Express para demostrar los conceptos explicados anteriormente.
 
 <div id="prerequisites">
-  ### Prerrequisitos
+  ### Requisitos previos
 </div>
 
-* Para seguir el tutorial, asegúrate de tener instalada la [última versión de Node](https://nodejs.org/en/download/).
-* Una vez que hayas instalado Node, [descarga o clona el código fuente](https://github.com/auth0-blog/spa-cookie-demo/) y abre la carpeta del proyecto en una ventana de terminal.
+* Para seguir este tutorial, asegúrate de tener instalada la [última versión de Node](https://nodejs.org/en/download/).
+* Una vez instalado Node, [descarga o clona el código fuente](https://github.com/auth0-blog/spa-cookie-demo/) y abre la carpeta del proyecto en una ventana de terminal.
 
   ```bash lines
   # Clona el repositorio del tutorial usando SSH
@@ -67,32 +67,32 @@ La aplicación de ejemplo usa Node.js y Express para demostrar los conceptos exp
   # Ve al directorio del proyecto
   cd spa-cookie-demo
   ```
-* La rama `master` representa el estado de la aplicación antes de añadir la autenticación. Si quieres consultar la versión final de la aplicación, cambia a la rama `with-oidc`:
+* La rama `master` representa el estado de la aplicación antes de agregar la autenticación. Si quieres consultar la versión final de la aplicación, cambia a la rama `with-oidc`:
   `git checkout with-oidc`
 
 <div id="initialize-the-nodejs-app">
   ### Inicializa la aplicación de Node.js
 </div>
 
-Instala las dependencias de la aplicación ejecutando `npm install` desde tu terminal. Para ejecutar la aplicación, usa `npm run dev`. Esto inicia el servidor Express. Ve a [http://localhost:3000](http://localhost:3000/) en tu navegador para ver la aplicación.
+Instala las dependencias de la aplicación ejecutando `npm install` desde la terminal. Para ejecutar la aplicación, usa `npm run dev`. Esto inicia el servidor Express. Ve a [http://localhost:3000](http://localhost:3000/) en tu navegador para ver la aplicación.
 
-El servidor de desarrollo usa `nodemon`, que se reinicia automáticamente cada vez que detecta cambios en algún archivo.
+El servidor de desarrollo usa `nodemon`, que reinicia automáticamente la aplicación cada vez que detecta cambios en algún archivo.
 
 <div id="explore-the-application">
   ### Explora la aplicación
 </div>
 
-Con la aplicación abierta en [http://localhost:3000](http://localhost:3000/), haz clic en el botón **Llamar a la API**. Deberías ver un mensaje en la pantalla.
+Con la aplicación abierta en [http://localhost:3000](http://localhost:3000/), haz clic en el botón **Llamar a la API**. Deberías ver un mensaje en pantalla.
 
-<Frame>![pantalla Explora la aplicación de autenticación de SPA con cookies](/docs/images/cdy7uua7fh8z/7JhdgzFLig2xcDle7ziiGp/c1db6272d20d4a291ba90a6968460109/image3.png)</Frame>
+<Frame>![Pantalla «Explora la aplicación» de autenticación SPA con cookies](/docs/images/cdy7uua7fh8z/7JhdgzFLig2xcDle7ziiGp/c1db6272d20d4a291ba90a6968460109/image3.png)</Frame>
 
-Ten en cuenta que has podido hacer la llamada a la API sin haber iniciado sesión. Vamos a solucionarlo agregando middleware que requiera que el usuario se autentique antes de poder hacer la llamada a la API.
+Ten en cuenta que pudiste hacer la llamada a la API sin haber iniciado sesión. Vamos a solucionarlo agregando `middleware` que requiera que el usuario se autentique antes de poder hacer la llamada a la API.
 
 <div id="set-up-environment">
   ### Configurar el entorno
 </div>
 
-Para que la aplicación funcione con autenticación, `express-openid-connect` requiere que haya determinadas variables de entorno definidas. En esta aplicación, esas variables pueden especificarse en un archivo `.env`. Cree un archivo `.env` en la raíz del directorio del proyecto y complételo con lo siguiente:
+Para que la aplicación funcione con autenticación, `express-openid-connect` requiere que haya algunas variables de entorno definidas. En esta aplicación, estas variables pueden especificarse en un archivo `.env`. Cree un archivo `.env` en la raíz del directorio del proyecto y rellénelo con lo siguiente:
 
 ```shell .env lines
 ISSUER_BASE_URL="<YOUR OIDC URL>"
@@ -110,9 +110,9 @@ APP_SESSION_SECRET="<YOUR SECRET VALUE>"
 3. En **Settings** de tu nueva app, agrega `http:/localhost:3000/callback` a **Allowed Callback URLs**.
 4. Agrega `http:/localhost:3000` a **Allowed Logout URLs**.
 5. Haz clic en **Save Changes**.
-6. Ve a [Dashboard &gt; Authentication &gt; Social](https://manage.auth0.com/#/connections/social) y configura algunas conexiones sociales. Habilítalas para tu app en las opciones de **Application** de la pestaña **Connections**. El ejemplo usa una base de datos de nombre de usuario/contraseña, Facebook, Google y X.
-7. En la pantalla **Settings**, toma nota de la configuración de dominio y del **ID de cliente** en la parte superior.
-8. Hay dos valores que debes configurar como parte de la aplicación. Vuelve a abrir el archivo `.env` y establece estos valores:
+6. Ve a [Dashboard &gt; Authentication &gt; Social](https://manage.auth0.com/#/connections/social) y configura algunas conexiones sociales. Habilítalas para tu app en las opciones de **Application** de la pestaña **Connections**. El ejemplo usa una base de datos con nombre de usuario y contraseña, Facebook, Google y X.
+7. En la pantalla **Settings**, toma nota del dominio y del ID de cliente que aparecen en la parte superior.
+8. Hay dos valores que debes configurar en la aplicación. Vuelve a abrir el archivo `.env` y establece estos valores:
 
    <AuthCodeBlock children={codeExample} language="shell" filename=".env" />
 
@@ -120,16 +120,16 @@ APP_SESSION_SECRET="<YOUR SECRET VALUE>"
   ### Ejecuta la aplicación
 </div>
 
-1. Con el servidor y la configuración del entorno listos, busca la ventana del navegador donde está abierta la aplicación. Si cerraste el navegador y detuviste el servidor, ejecuta lo siguiente en la terminal para reiniciar la aplicación:
+1. Con el servidor y la configuración del entorno listos, busca la ventana del navegador donde está abierta la aplicación. Si has cerrado el navegador y detenido el servidor, ejecuta lo siguiente en la terminal para reiniciar la aplicación:
    `npm run dev`
-2. Abre `http://localhost:3000` en el navegador. Desde el punto de vista de la UI, la aplicación debería verse igual; sin embargo, esta vez, al hacer clic en el botón **Llamar a la API**, deberías recibir una advertencia de que el usuario no ha iniciado sesión. Ten en cuenta también que ya no verás el mensaje &quot;Hello, World&quot; como antes, ya que la llamada a la API fue rechazada.
-3. Haz clic en **Log in now** para iniciar sesión. Una vez que te hayas autenticado, volverás a la aplicación y verás una UI actualizada que refleja tu nuevo estado de inicio de sesión. Deberías poder pulsar el botón **Llamar a la API** una vez más para hacer una llamada a la API al servidor, y ahora sí funcionará.
-4. Haz clic en el enlace **Profile** en la parte superior de la página para mostrar la información del usuario recuperada del token de identidad.
+2. Abre `http://localhost:3000` en el navegador. Desde el punto de vista de la interfaz de usuario, la aplicación debería verse igual; sin embargo, esta vez, al hacer clic en el botón **llamar a la API**, deberías recibir una advertencia de que el usuario no ha iniciado sesión. Ten en cuenta también que no verás el mensaje &quot;Hello, World&quot; como antes, ya que la llamada a la API fue rechazada.
+3. Haz clic en **Inicia sesión ahora** para iniciar sesión. Una vez que te hayas autenticado, volverás a la aplicación y verás una interfaz actualizada que refleja tu nuevo estado de sesión iniciada. Deberías poder pulsar el botón **llamar a la API** una vez más para hacer una llamada a la API al servidor, y ahora funcionará.
+4. Haz clic en el enlace **Perfil** en la parte superior de la página para mostrar la información del usuario recuperada del token de identidad.
 
 <div id="learn-more">
   ## Más información
 </div>
 
-* [Flujo implícito con envío de formulario](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post)
+* [Flujo implícito con Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post)
 * [Seguridad](/docs/es/secure)
 * [Cambios en el atributo SameSite de las cookies](/docs/es/manage-users/cookies/samesite-cookie-attribute-changes)

@@ -1,25 +1,25 @@
 ---
 title: "Referencia de la Management API"
-description: "Documentación de la Auth0 Management API"
+description: "Documentación de Auth0 Management API"
 ---
 
 <Badge>Versión: 2.0 (Actual)</Badge>
 
-**La Auth0 Management API** es un conjunto de endpoints para realizar tareas administrativas de forma programática y debe ser utilizada por servidores de back-end o partes de confianza. En términos generales, todo lo que se puede hacer a través del Auth0 Dashboard también se puede hacer mediante esta API.
+**La Auth0 Management API** es un conjunto de endpoints para realizar tareas administrativas de forma programática y debe usarse desde servidores de backend o por partes de confianza. En general, todo lo que puede hacerse desde el Auth0 Dashboard también puede hacerse mediante esta API.
 
-Esta API es independiente de la [Auth0 Authentication API de acceso público](https://auth0.com/docs/api/authentication), que está pensada para ser utilizada por front-ends y partes no confiables.
+Esta API es distinta de la [Auth0 Authentication API de acceso público](https://auth0.com/docs/api/authentication), que está pensada para ser utilizada por frontends y partes no confiables.
 
-Al utilizar los ejemplos de código incluidos en esta documentación de la API, las solicitudes deben enviarse con un Content-Type de `application/json`. Todos los endpoints aceptan un tamaño máximo de payload de 1 megabyte.
+Al usar los ejemplos de código incluidos en esta documentación de la API, las solicitudes deben enviarse con un Content-Type de `application/json`. Todos los endpoints aceptan un payload máximo de 1 megabyte.
 
-La documentación de la Auth0 Management API sigue el [schema OpenAPI v3.1 de la Auth0 Management API](https://auth0.com/docs/api/management/openapi.json). Ten en cuenta que la compatibilidad con el schema OpenAPI v3.1 se encuentra actualmente en Beta.
+La documentación de la Auth0 Management API se ajusta al [esquema OpenAPI v3.1 de Auth0 Management API](https://auth0.com/docs/api/management/openapi.json). Ten en cuenta que la compatibilidad con el esquema OpenAPI v3.1 está actualmente en Beta.
 
 <div id="authentication">
   ## Autenticación
 </div>
 
-El uso de la Auth0 Management API requiere un token de acceso de la Management API. Para saber cómo solicitar este token, consulta [Management API Access Tokens](https://auth0.com/docs/secure/tokens/access-tokens/management-api-access-tokens).
+Para usar la Auth0 Management API se requiere un token de acceso de la Management API. Para saber cómo solicitar este token, consulta [Management API Access Tokens](https://auth0.com/docs/secure/tokens/access-tokens/management-api-access-tokens).
 
-La Auth0 Management API utiliza JSON Web Tokens (JWT) para autenticar las solicitudes. El claim `scopes` del token de acceso de la Management API indica qué métodos de solicitud se pueden ejecutar al llamar a esta API. El token de ejemplo deserializado en esta página concede acceso de solo lectura a los usuarios y acceso de lectura y escritura a las conexiones. Si se intenta ejecutar cualquier método de solicitud que no esté permitido dentro del conjunto de scopes, el resultado será una respuesta **403 Forbidden**.
+La Auth0 Management API utiliza JSON Web Tokens (JWT) para autenticar las solicitudes. La claim de scopes del token de acceso de la Management API indica qué métodos de solicitud se pueden ejecutar al llamar a esta API. El token de ejemplo deserializado de esta página concede acceso de solo lectura a los usuarios y acceso de lectura y escritura a las conexiones. Si se intenta ejecutar cualquier método de solicitud que no esté permitido dentro de los scopes establecidos, el resultado será una respuesta **403 Forbidden**.
 
 ```bash lines
 {
@@ -34,7 +34,7 @@ La Auth0 Management API utiliza JSON Web Tokens (JWT) para autenticar las solici
 }
 ```
 
-Para realizar llamadas a la API, envía el token de la API en el encabezado HTTP Authorization mediante el [esquema de autenticación Bearer](https://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20#section-2.1).
+Para hacer llamadas a la API, envía el token de la API en el encabezado HTTP Authorization mediante el [esquema de autenticación Bearer](https://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20#section-2.1).
 
 ```bash lines
 curl -H "Authorization: Bearer eyJhb..." https://@@TENANT@@/api/v2/users
@@ -44,15 +44,15 @@ curl -H "Authorization: Bearer eyJhb..." https://@@TENANT@@/api/v2/users
   ## Correlación de solicitudes
 </div>
 
-Un ID de correlación es un identificador único (de hasta 64 caracteres) de una única operación de la Management API y permite rastrear esas operaciones en los logs del tenant. Para obtener más información, consulta [Logs](https://auth0.com/docs/deploy-monitor/logs).
+Un ID de correlación es un identificador único (de hasta 64 caracteres) de una única operación de la Management API y permite rastrear esas operaciones en los registros del tenant. Para obtener más información, consulta [Logs](https://auth0.com/docs/deploy-monitor/logs).
 
-La API acepta un ID de correlación proporcionado por el cliente si se envía en el encabezado HTTP `X-Correlation-ID` en solicitudes con los métodos `POST`, `PUT`, `PATCH` y `DELETE`.
+La API acepta un ID de correlación proporcionado por el cliente si se envía en el encabezado HTTP `X-Correlation-ID` con los métodos `POST`, `PUT`, `PATCH` y `DELETE`.
 
 ```bash lines
 curl -H "Authorization: Bearer eyJhb..." -H "x-correlation-id: client1_xyz" https://@@TENANT@@/api/v2/users
 ```
 
-Si se proporciona un valor del encabezado `X-Correlation-ID` de más de 64 caracteres, solo se mostrarán los primeros 64 caracteres en los registros.
+Si se proporciona un valor para el encabezado `X-Correlation-ID` de más de 64 caracteres, solo se mostrarán los primeros 64 caracteres en los logs.
 
 ```bash lines
 "references": {
@@ -64,18 +64,18 @@ Si se proporciona un valor del encabezado `X-Correlation-ID` de más de 64 carac
   ## Paginación
 </div>
 
-La paginación es una técnica que usan las API para dividir grandes conjuntos de datos en páginas manejables, lo que reduce la cantidad de datos que se devuelve en cada respuesta. En las API, son comunes dos tipos principales de paginación: la **basada en offset** y la **basada en checkpoints**. Cada una tiene ventajas y casos de uso distintos según el tamaño del conjunto de datos y los requisitos de recuperación.
+La paginación es una técnica que utilizan las API para dividir conjuntos de datos grandes en páginas manejables, lo que reduce la cantidad de datos que se devuelven en cada respuesta. En las API, son comunes dos tipos principales de paginación: la paginación **por offset** y la paginación **basada en checkpoint**. Cada una tiene ventajas y casos de uso distintos según el tamaño del conjunto de datos y los requisitos de recuperación.
 
-La Auth0 Management API admite ambos tipos de paginación en muchos endpoints, como `GET /api/v2/clients` y `GET /api/v2/logs`. Cuando ambas opciones están disponibles, se recomienda la **paginación basada en checkpoints** por su mayor eficiencia y estabilidad con conjuntos de datos grandes.
+La Auth0 Management API admite ambos tipos de paginación en muchos endpoints, como `GET /api/v2/clients` y `GET /api/v2/logs`. Cuando ambas opciones están disponibles, se recomienda la **paginación basada en checkpoint** por su mayor eficiencia y estabilidad al trabajar con conjuntos de datos grandes.
 
 <div id="offset-based-pagination">
   ### Paginación basada en offset
 </div>
 
-La paginación basada en offset es un método simple y muy utilizado para paginar conjuntos de datos de hasta aproximadamente 1.000 elementos. Este enfoque utiliza los parámetros `page` y `per_page` para definir el punto de inicio y la cantidad de elementos de cada página.
+La paginación basada en offset es un método sencillo y muy utilizado para paginar conjuntos de datos de hasta aproximadamente 1.000 elementos. Este enfoque utiliza los parámetros `page` y `per_page` para definir el punto de inicio y la cantidad de elementos de cada página.
 
 * **Parámetros:**
-  * `page`: El número de página, con índice desde cero, que se debe recuperar. Si no se especifica, el valor predeterminado es `0`.
+  * `page`: El número de página, con índice de base cero, que se quiere recuperar. El valor predeterminado es `0` si no se especifica.
   * `per_page`: La cantidad de elementos que se devolverán por página. Para los tenants de Public Cloud, [el máximo es `50`](https://auth0.com/docs/troubleshoot/product-lifecycle/past-migrations/migrate-to-paginated-queries); para Private Cloud, el máximo es `100`. Si no se especifica, el valor predeterminado es la mitad del máximo.
 
 **Ejemplo de solicitud de paginación basada en offset:**
@@ -89,19 +89,19 @@ curl -L "https://@@TENANT@@/api/v2/clients?per_page=10&page=2" \
 En la paginación por offset:
 
 * Si `page * per_page` supera el número total de resultados, se devuelve un arreglo vacío.
-* Cada solicitud de página recalcula el offset, lo que puede afectar el rendimiento en conjuntos de datos grandes. La paginación por offset suele ser más adecuada para colecciones que probablemente no superen los 1.000 elementos.
+* Cada solicitud de página recalcula el offset, lo que puede afectar el rendimiento con conjuntos de datos de mayor tamaño. Por lo general, la paginación por offset es más adecuada para colecciones que probablemente no superen los 1.000 elementos.
 
 <div id="checkpoint-based-pagination">
   ### Paginación basada en checkpoints
 </div>
 
-La paginación basada en checkpoints, también conocida como paginación basada en cursores o en tokens, está optimizada para grandes conjuntos de datos. Este método utiliza un ID de checkpoint `next` proporcionado por el servidor para recuperar las páginas siguientes en una secuencia solo hacia adelante. El ID de checkpoint `next` se incluye en la respuesta cuando hay resultados adicionales disponibles.
+La paginación basada en checkpoints, también conocida como paginación basada en cursores o en tokens, está optimizada para conjuntos de datos grandes. Este método utiliza un ID de checkpoint `next` proporcionado por el servidor para recuperar las páginas siguientes en una secuencia solo hacia delante. El ID de checkpoint `next` se incluye en la respuesta cuando hay más resultados disponibles.
 
-Para continuar con la paginación, use el ID de checkpoint `next` en el parámetro de consulta `from` de la solicitud siguiente. Este ID es opaco y debe pasarse sin modificar.
+Para continuar con la paginación, usa el ID de checkpoint `next` en el parámetro de consulta `from` de la siguiente solicitud. Este ID es opaco y debe pasarse sin modificar.
 
 * **Parámetros:**
   * `from`: El siguiente ID de checkpoint de la respuesta anterior, que se usa para recuperar la siguiente página de resultados.
-  * `take`: El número de elementos que se devolverán por página. Para tenants de Public Cloud, [el máximo es `50`](https://auth0.com/docs/troubleshoot/product-lifecycle/past-migrations/migrate-to-paginated-queries); para Private Cloud, el máximo es `100`. Si no se proporciona, el valor predeterminado es la mitad del máximo.
+  * `take`: El número de elementos que se devolverán por página. Para los tenants de Public Cloud, [el máximo es `50`](https://auth0.com/docs/troubleshoot/product-lifecycle/past-migrations/migrate-to-paginated-queries); para Private Cloud, el máximo es `100`. Si no se proporciona, el valor predeterminado es la mitad del máximo.
 
 **Ejemplo de solicitud de paginación basada en checkpoints:**
 
@@ -115,40 +115,40 @@ curl -L "https://@@TENANT@@/api/v2/clients?take=10&from=Cg1HRUY3NEszUERFME40GgAi
   #### Vencimiento del ID de checkpoint
 </div>
 
-Al usar la paginación basada en checkpoints, es importante tener en cuenta la duración de cada ID de checkpoint `next`. El ID de checkpoint está diseñado para usarse de forma secuencial, y cada ID es válido durante un tiempo limitado para garantizar la coherencia de los datos.
+Al usar la paginación basada en checkpoints, es importante tener en cuenta el tiempo de validez de cada ID de checkpoint `next`. El ID de checkpoint está diseñado para usarse de forma secuencial, y cada ID solo es válido durante un período limitado para garantizar la coherencia de los datos.
 
 <Note>
   <p class="uppercase font-bold">Nota</p>
 
-  El ID de checkpoint `next` es válido durante **24 horas** desde su emisión. Si vence, se requiere una nueva solicitud para reiniciar desde el principio del conjunto de datos. Considera almacenar en caché los resultados si puede transcurrir un periodo prolongado entre solicitudes.
+  El ID de checkpoint `next` es válido durante **24 horas** desde su emisión. Si vence, será necesario hacer una nueva solicitud para reiniciar desde el principio del conjunto de datos. Considera almacenar en caché los resultados si puede transcurrir un período prolongado entre solicitudes.
 </Note>
 
 <div id="forward-only-constraints">
-  #### Restricciones de solo avance
+  #### Restricciones de avance únicamente
 </div>
 
-La paginación basada en checkpoints solo avanza hacia adelante. Evita usar el ID de checkpoint para navegar hacia atrás o hacer solicitudes fuera de secuencia, ya que esto puede provocar errores. Usa siempre el ID de checkpoint `next` de la respuesta anterior.
+La paginación basada en checkpoints solo permite avanzar. Evita usar el ID del checkpoint para retroceder o para solicitudes fuera de secuencia, ya que esto puede provocar errores. Usa siempre el ID del checkpoint `next` de la respuesta anterior.
 
 <div id="choosing-between-offset-and-checkpoint-pagination">
-  ### Cómo elegir entre la paginación basada en offset y la paginación basada en checkpoints
+  ### Cómo elegir entre la paginación por offset y la paginación por checkpoint
 </div>
 
-Cuando están disponibles ambos tipos de paginación:
+Cuando se admiten ambos tipos de paginación:
 
-* **Usa la paginación basada en checkpoints** para gestionar grandes conjuntos de datos de forma eficiente.
-* Usa la paginación basada en offset para conjuntos de datos más pequeños (normalmente de menos de 1.000 elementos), ya que es más sencilla de implementar, pero menos eficiente para colecciones grandes.
+* **Usa la paginación por checkpoint** para gestionar grandes volúmenes de datos de forma eficiente.
+* Usa la paginación por offset para conjuntos de datos más pequeños (normalmente de menos de 1.000 elementos), ya que es más sencilla de implementar, pero menos eficiente para colecciones grandes.
 
 <div id="best-practices-for-handling-pagination">
   ### Prácticas recomendadas para gestionar la paginación
 </div>
 
-* **Consistencia de los datos:** Cada solicitud paginada refleja el estado de los datos en el momento en que se realiza. Si los datos se actualizan o eliminan, puede que se omitan o repitan elementos. La paginación basada en checkpoints puede ayudar a que la paginación sea más fluida en conjuntos de datos dinámicos.
-* **Almacenamiento de checkpoints:** Para recuperar grandes volúmenes de datos, considera almacenar checkpoints después de cada página para poder reanudar el proceso desde el último checkpoint si se interrumpe.
+* **Consistencia de los datos:** Cada solicitud paginada refleja los datos en el momento de la solicitud. Si los datos se actualizan o eliminan, puede haber elementos omitidos o repetidos. La paginación basada en checkpoints puede ayudar a que la paginación sea más fluida en conjuntos de datos dinámicos.
+* **Almacenamiento de checkpoints:** Para recuperar grandes volúmenes de datos, considera almacenar checkpoints después de cada página para poder reanudar desde el último checkpoint en caso de interrupción.
 
-Este enfoque permite recuperar datos de forma eficiente y estable en conjuntos de datos grandes, en consonancia con las opciones de paginación de Auth0 Management API.
+Este enfoque proporciona una recuperación de datos eficiente y estable para grandes conjuntos de datos, en consonancia con las opciones de paginación de Auth0 Management API.
 
 <div id="test-with-an-access-token">
   ### Prueba con un token de acceso
 </div>
 
-Puedes obtener un token de acceso para hacer pruebas. Para obtener más información, consulta [Obtener tokens de acceso de la Management API para pruebas](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-testing).
+Puedes obtener un token de acceso para realizar pruebas. Para obtener más información, consulta [Get Management API Access Tokens for testing](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-testing).

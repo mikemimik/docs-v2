@@ -1,42 +1,42 @@
 ---
-description: Guía práctica para usar la funcionalidad de monitoreo de Bot Detection de Auth0 en el Security Center
-title: Guía práctica de Bot Detection
+description: Playbook para usar la funcionalidad de monitoreo de Bot Detection de Auth0 en Security Center
+title: Playbook de Bot Detection
 ---
 
-<Card title="Antes de comenzar">
-  Debes habilitar [Bot Detection](/docs/es/secure/attack-protection/bot-detection) y configurar un [proveedor de CAPTCHA](/docs/es/secure/attack-protection/bot-detection/configure-captcha).
+<Card title="Antes de empezar">
+  Debe habilitar [Bot Detection](/docs/es/secure/attack-protection/bot-detection) y configurar un [proveedor de CAPTCHA](/docs/es/secure/attack-protection/bot-detection/configure-captcha).
 </Card>
 
-La [funcionalidad de monitoreo de Bot Detection](/docs/es/secure/security-center#bot-detection) de Auth0 es un sistema de alerta temprana para detectar botnets y ataques. A continuación, encontrarás orientación para identificar bots que intentan iniciar sesión en tu tenant.
+La funcionalidad de monitoreo de [Bot Detection](/docs/es/secure/security-center#bot-detection) de Auth0 es un sistema de alerta temprana para detectar botnets y ataques. A continuación, se ofrece orientación para identificar bots que intentan acceder a su tenant.
 
 <div id="find-log-events-of-interest">
-  #### Encontrar eventos de registro de interés
+  #### Encuentre eventos de log de interés
 </div>
 
-Al definir una respuesta, primero revise los mensajes de registro del posible ataque. Para un análisis avanzado, habilite [log streaming](/docs/es/customize/log-streams) y conéctelo a la herramienta externa que prefiera.
+Al definir una respuesta, primero revise los mensajes de log del posible ataque. Para un análisis más avanzado, habilite la [transmisión de logs](/docs/es/customize/log-streams) y conéctela a la herramienta externa que prefiera.
 
-Los siguientes [tipos de eventos de registro](/docs/es/deploy-monitor/logs/log-event-type-codes) son relevantes al investigar un aumento en la actividad de bots.
+Los siguientes [tipos de eventos de log](/docs/es/deploy-monitor/logs/log-event-type-codes) son relevantes al investigar un aumento de la actividad de bots.
 
-| Tipo de evento de registro | Descripción                                                                                                                                                                                                      |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pla`                      | Se genera antes del inicio de sesión y de la supervisión de detección de bots, incluso si la detección de bots está solo en modo de supervisión y no usa CAPTCHAs para identificar bots.                         |
-| `fu`                       | Eventos fallidos de inicio de sesión por nombre de usuario no válido, lo que puede indicar intentos de enumeración de nombres de usuario o apropiación de cuentas.                                               |
-| `fp`                       | Eventos fallidos de inicio de sesión por contraseña no válida, lo que puede indicar intentos de ataques de credential stuffing.                                                                                  |
-| `pwd_leak`                 | Eventos de intento de inicio de sesión con una contraseña filtrada, lo que puede indicar intentos de ataques de credential stuffing.                                                                             |
-| `limit_wc`                 | Eventos de bloqueo de IP por &gt;10 intentos fallidos de inicio de sesión en una sola cuenta, lo que indica que es probable que la dirección IP pertenezca a un bot.                                             |
-| `limit_sul`                | Eventos de bloqueo de usuario por &gt;20 intentos de inicio de sesión por minuto desde la misma dirección IP, lo que indica una probable actividad de bots.                                                      |
-| `limit_mu`                 | Eventos de bloqueo de IP por &gt;100 intentos fallidos de inicio de sesión o &gt;50 intentos de registro desde la misma dirección IP, lo que indica una probable actividad de bots.                              |
-| `fcoa`                     | Eventos fallidos de autenticación entre orígenes, lo que indica que los atacantes usan automatización para apropiarse de cuentas.                                                                                |
-| `scoa`                     | Eventos exitosos de autenticación entre orígenes, lo que indica que los atacantes usan automatización para apropiarse de cuentas cuando provienen de un número reducido de direcciones IP en múltiples usuarios. |
+| Tipo de evento de log | Descripción                                                                                                                                                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pla`                 | Se genera antes del inicio de sesión y monitorea la detección de bots, incluso si la detección de bots está solo en modo de monitoreo y no usa CAPTCHA para identificarlos.                                             |
+| `fu`                  | Eventos de inicio de sesión fallido del usuario debido a un nombre de usuario no válido, lo que puede indicar intentos de enumeración de nombres de usuario o de toma de control de cuentas.                            |
+| `fp`                  | Eventos de inicio de sesión fallido del usuario debido a una contraseña no válida, lo que puede indicar intentos de ataques de credential stuffing.                                                                     |
+| `pwd_leak`            | Eventos de intentos de inicio de sesión con una contraseña filtrada, lo que puede indicar intentos de ataques de credential stuffing.                                                                                   |
+| `limit_wc`            | Eventos de bloqueo de IP por &gt;10 intentos de inicio de sesión fallidos en una sola cuenta, lo que indica que es probable que la dirección IP pertenezca a un bot.                                                    |
+| `limit_sul`           | Eventos de bloqueo de usuario por &gt;20 intentos de inicio de sesión por minuto desde la misma dirección IP, lo que indica una probable actividad de bots.                                                             |
+| `limit_mu`            | Eventos de bloqueo de IP por &gt;100 intentos de inicio de sesión fallidos o &gt;50 intentos de registro desde la misma dirección IP, lo que indica una probable actividad de bots.                                     |
+| `fcoa`                | Eventos fallidos de autenticación de origen cruzado, lo que indica que atacantes usan automatización para tomar el control de cuentas.                                                                                  |
+| `scoa`                | Eventos exitosos de autenticación de origen cruzado, lo que indica que atacantes usan automatización para tomar el control de cuentas cuando provienen de una pequeña cantidad de direcciones IP en múltiples usuarios. |
 
 <div id="attack-response">
-  #### Respuesta ante el ataque
+  #### Respuesta ante ataques
 </div>
 
-Aunque establecer el nivel de <Tooltip tip="Bot Detection: Forma de protección contra ataques en la que Auth0 bloquea el tráfico sospechoso de bots al habilitar un CAPTCHA durante el proceso de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=Bot+Detection">Bot Detection</Tooltip> en Alto mitiga el ataque de inmediato, una estrategia integral equilibra la tolerancia al riesgo y las capacidades técnicas de su empresa con la experiencia que tendrán sus usuarios al iniciar sesión. Al responder, considere dos factores principales:
+Aunque configurar el nivel de <Tooltip tip="Bot Detection: Forma de protección contra ataques en la que Auth0 bloquea el tráfico de bots sospechosos habilitando un CAPTCHA durante el proceso de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=Bot+Detection">Bot Detection</Tooltip> en Alto mitiga el ataque de inmediato, una estrategia integral equilibra la tolerancia al riesgo y las capacidades técnicas de su empresa con la experiencia que tendrán sus usuarios al iniciar sesión. Al responder, tenga en cuenta dos factores principales:
 
-* **Fricción para el usuario**: evalúe el impacto de las medidas de mitigación (p. ej., la frecuencia de los CAPTCHA) en la experiencia del usuario.
-* **Capacidad técnica**: evalúe su capacidad para implementar el bloqueo de IP, reglas de WAF y la exigencia de <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación del usuario que utiliza un factor adicional al nombre de usuario y la contraseña, como un código enviado por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip>.
+* **Fricción para el usuario**: evalúe el impacto de las medidas de mitigación (p. ej., la frecuencia del CAPTCHA) en la experiencia del usuario.
+* **Capacidad técnica**: evalúe su capacidad para implementar el bloqueo de IP, reglas de WAF y exigir <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuario que utiliza un factor además de nombre de usuario y contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip>.
 
 Auth0 recomienda un enfoque de seguridad por capas que combine varias técnicas de mitigación para lograr una protección óptima.
 
@@ -44,13 +44,13 @@ Auth0 recomienda un enfoque de seguridad por capas que combine varias técnicas 
   #### Estrategias de mitigación
 </div>
 
-Para una protección óptima contra ataques, ten en cuenta las siguientes estrategias:
+Para lograr una protección óptima contra los ataques, ten en cuenta las siguientes estrategias:
 
-* Activa CAPTCHA para uno o varios flujos y aumenta su frecuencia según sea necesario, pero recuerda que CAPTCHA es un elemento disuasorio, no una solución.
-* Cambia de proveedor de CAPTCHA si los atacantes logran eludir el que usas actualmente, o considera migrar a Auth Challenge de Auth0 o a otro [proveedor compatible](/docs/es/secure/attack-protection/bot-detection/configure-captcha).
-* Si sospechas de una campaña de fraude en los registros, impide temporalmente que se registren nuevos usuarios en tu aplicación desde endpoints públicos no autenticados.
-* Modifica las reglas de tu firewall de aplicaciones web con un proveedor perimetral o usa [listas de control de acceso del tenant](/docs/es/secure/tenant-access-control-list) para bloquear IP maliciosas, números de sistema autónomo, ubicaciones geográficas, [clientes TLS](/docs/es/customize/custom-domains/self-managed-certificates/tls-ssl) o elementos de encabezados HTTP, como cadenas `user-agent`, y considera implementar un [proxy inverso.](/docs/es/customize/custom-domains/self-managed-certificates#configure-reverse-proxy)
-* Ajusta los umbrales de [Brute Force](/docs/es/secure/attack-protection/brute-force-protection) y [Suspicious IP](/docs/es/secure/attack-protection/suspicious-ip-throttling) para reducir los límites de conexiones permitidas y mitigar ataques de fuerza bruta. Para obtener más información sobre este tipo de ataques, consulta la [guía de Brute Force](/docs/es/secure/attack-protection/playbooks/brute-force-protection-playbook).
-* Deshabilita los endpoints que no uses modificando la configuración de [Cross-Origin Authentication](/docs/es/authenticate/login/cross-origin-authentication). Si sospechas de ataques con contraseñas comprometidas, consulta la [guía de Breached Password](/docs/es/secure/attack-protection/playbooks/breached-password-playbook).
-* Aplica [step-up MFA](/docs/es/secure/multi-factor-authentication/step-up-authentication) a las cuentas comprometidas, incluso exigiendo MFA para las cuentas potencialmente comprometidas.
-* Migra a opciones de MFA más seguras para mitigar ataques de SMS pumping o fraude telefónico, sustituyendo el MFA basado en SMS o voz por OTP o Webauthn.
+* Activa CAPTCHA para uno o más flujos y aumenta su frecuencia según sea necesario, pero recuerda que CAPTCHA es un elemento disuasorio, no una solución.
+* Cambia de proveedor de CAPTCHA si los atacantes logran eludir el que usas actualmente, o considera migrar a Auth0&#39;s Auth Challenge o a otro [proveedor compatible](/docs/es/secure/attack-protection/bot-detection/configure-captcha).
+* Si sospechas que hay una campaña de fraude en el registro, impide temporalmente que nuevos usuarios se registren en tu aplicación desde endpoints públicos no autenticados.
+* Modifica las reglas de tu firewall de aplicaciones web con un proveedor perimetral o usa [listas de control de acceso del tenant](/docs/es/secure/tenant-access-control-list) para bloquear IP abusivas, números de sistema autónomo, ubicaciones geográficas, [clientes TLS](/docs/es/customize/custom-domains/self-managed-certificates/tls-ssl) o elementos de encabezado HTTP, como las cadenas `user-agent`, y considera usar un [proxy inverso.](/docs/es/customize/custom-domains/self-managed-certificates#configure-reverse-proxy)
+* Ajusta los umbrales de [Brute Force](/docs/es/secure/attack-protection/brute-force-protection) y [IP sospechosa](/docs/es/secure/attack-protection/suspicious-ip-throttling) para reducir los límites de conexión permitidos y mitigar ataques de brute force. Para obtener más información sobre los ataques de brute force, consulta el [Playbook de Brute Force](/docs/es/secure/attack-protection/playbooks/brute-force-protection-playbook).
+* Deshabilita los endpoints que no uses modificando la configuración de [autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication). Si sospechas ataques con contraseñas comprometidas, consulta el [Breached Password playbook](/docs/es/secure/attack-protection/playbooks/breached-password-playbook).
+* Exige [step-up MFA](/docs/es/secure/multi-factor-authentication/step-up-authentication) para cuentas comprometidas, incluso requiriendo MFA para cuentas potencialmente comprometidas.
+* Migra a opciones de MFA más seguras para mitigar ataques de SMS pumping o toll fraud, sustituyendo MFA basada en SMS o voz por OTP o Webauthn.

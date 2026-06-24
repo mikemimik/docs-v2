@@ -1,78 +1,78 @@
 ---
-description: Describe cómo usar enlaces universales en lugar de esquemas de URL personalizados para verificar la legitimidad de los datos de autenticación.
+description: Describe cómo usar Universal Links en lugar de esquemas de URL personalizados para verificar la legitimidad de los datos de autenticación.
 title: Medidas contra la suplantación de aplicaciones
 validatedOn: 2026-02-10
 ---
 
-Las aplicaciones nativas usan el [flujo de código de autorización con PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) y emplean un `redirect_uri` para devolver el control a la aplicación después del inicio de sesión. Una vez que la URI se carga en el navegador del dispositivo, la aplicación normalmente se abre automáticamente para que el usuario pueda continuar con el proceso.
+Las aplicaciones nativas usan el [flujo de código de autorización con PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce) y emplean un `redirect_uri` para devolver el control a la aplicación después del inicio de sesión. Después de que el URI se carga en el navegador del dispositivo, la aplicación normalmente se abre automáticamente para que el usuario pueda continuar.
 
-Históricamente, las aplicaciones móviles usaban [esquemas de URI personalizados](https://developers.google.com/identity/protocols/oauth2/native-app#installed_app_redirect_methods) (p. ej., `com.mycompany.myapp://oauth2redirect`). Sin embargo, los esquemas de URI personalizados plantean un riesgo, ya que más de una aplicación en el dispositivo puede registrar el mismo esquema. Los sistemas operativos móviles no incluyen mecanismos integrados para garantizar que la aplicación que recibe la redirección sea la correcta. En este escenario, las aplicaciones maliciosas suplantan a las legítimas y reciben la respuesta de autorización (incluidos los tokens) sin que el usuario lo sepa, especialmente si el inicio de sesión único (SSO) está activo debido a la existencia de una sesión legítima previa, caso en el que no se requiere interacción adicional del usuario. PKCE en realidad no ayuda mucho en estos casos, ya que la aplicación maliciosa puede iniciar el flujo de inicio de sesión y esperar a recibir la devolución de llamada sin interacción del usuario.
+Históricamente, las aplicaciones móviles usaban [esquemas de URI personalizados](https://developers.google.com/identity/protocols/oauth2/native-app#installed_app_redirect_methods) (por ejemplo, `com.mycompany.myapp://oauth2redirect`). Sin embargo, los esquemas de URI personalizados suponen un riesgo, ya que más de una aplicación en el dispositivo puede registrar el mismo esquema. Los sistemas operativos móviles no incluyen mecanismos integrados para garantizar que la aplicación que recibe la redirección sea la correcta. En este escenario, las aplicaciones maliciosas suplantan a las legítimas y reciben la respuesta de autorización (incluidos los tokens) sin que el usuario lo advierta, especialmente si el inicio de sesión único (SSO) está activo debido a la existencia de una sesión legítima previa, en cuyo caso no se requiere interacción adicional del usuario. PKCE realmente no ayuda en estos casos, ya que la aplicación maliciosa puede iniciar el flujo de inicio de sesión y esperar a recibir la devolución de llamada sin interacción del usuario.
 
-Las aplicaciones que se ejecutan en una máquina local (p. ej., aplicaciones de escritorio, CLI) usan la interfaz de loopback para las devoluciones de llamada (p. ej., http://127.0.0.1:51089/callback o http://localhost:61024/callback) y están expuestas a un riesgo similar. En este caso, otra aplicación en la misma máquina podría escuchar en el mismo puerto para interceptar la respuesta.
+Las aplicaciones que se ejecutan en una máquina local (por ejemplo, aplicaciones de escritorio o CLI) usan la interfaz de loopback para las devoluciones de llamada (por ejemplo, http://127.0.0.1:51089/callback o http://localhost:61024/callback) y están expuestas a un riesgo similar. En este caso, otra aplicación en la misma máquina podría escuchar en el mismo puerto para interceptar la respuesta.
 
-Nos referimos tanto a los esquemas de URI personalizados como a las URI de loopback como URI de devolución de llamada no verificables, porque el servidor de autorización no puede verificar la aplicación receptora en ninguno de los dos escenarios.
+Nos referimos tanto a los esquemas de URI personalizados como a los URI de loopback como URI de devolución de llamada no verificables, porque el servidor de autorización no puede verificar la aplicación receptora en ninguno de los dos casos.
 
 <div id="recommended-mitigations-for-mobile-applications">
-  ## Medidas de mitigación recomendadas para aplicaciones móviles
+  ## Mitigaciones recomendadas para aplicaciones móviles
 </div>
 
 <div id="claimed-https-uris-universal-links-app-links">
   ### URI HTTPS declaradas (Universal Links / App Links)
 </div>
 
-Los sistemas operativos móviles modernos admiten **URI HTTPS declaradas**, que te permiten asociar un dominio web que controlas con tu aplicación móvil. Las URI HTTPS declaradas se conocen como:
+Los sistemas operativos móviles modernos admiten las **URI HTTPS declaradas**, lo que te permite asociar un dominio web que controlas con tu aplicación móvil. Las URI HTTPS declaradas se conocen como:
 
 * Universal Links en iOS
 * App Links en Android
 
-Las URI HTTPS declaradas garantizan que solo tu aplicación gestione la URL de devolución de llamada asociada y protegen contra el acceso no autorizado a datos confidenciales de autenticación.
+Las URI HTTPS declaradas garantizan que solo tu aplicación gestione la URL de devolución de llamada asociada y protegen frente al acceso no autorizado a datos confidenciales de autenticación.
 
 <Note>
   Auth0 **recomienda encarecidamente** usar URI HTTPS declaradas como URI de redirección para todas las aplicaciones nativas.
 
-  * Para iOS: consulta [Support Universal Links](https://developer.apple.com/documentation/xcode/allowing-apps-and-websites-to-link-to-your-content/#Support-universal-links).
-  * Para Android: consulta [Android App Links](https://developer.android.com/training/app-links).
+  * Para iOS: Consulta [Support Universal Links](https://developer.apple.com/documentation/xcode/allowing-apps-and-websites-to-link-to-your-content/#Support-universal-links).
+  * Para Android: Consulta [Android App Links](https://developer.android.com/training/app-links).
 </Note>
 
 <div id="recommended-mitigations-for-all-application">
-  ## Medidas de mitigación recomendadas para todas las aplicaciones
+  ## Mitigaciones recomendadas para todas las aplicaciones
 </div>
 
 Auth0 no puede verificar la legitimidad de la aplicación que recibe los resultados de la transacción de autenticación si:
 
 * Tu aplicación no puede admitir URI HTTPS declaradas debido a la compatibilidad necesaria con versiones anteriores de sistemas operativos móviles
-* Tu aplicación es una aplicación de escritorio o de CLI
+* Tu aplicación es una aplicación de escritorio o una CLI
 
-Como se define en la especificación [OAuth2 for Native Apps](https://datatracker.ietf.org/doc/html/rfc8252#section-8.6), Auth0 proporciona un mecanismo para mostrar un prompt de confirmación al usuario. Los usuarios confirman que la aplicación que recibe el resultado de la autenticación es la que querían usar. Cuando se utiliza un URI de devolución de llamada no verificable, se pide al usuario que verifique la aplicación en cada transacción de autenticación.
+Como se define en la especificación [OAuth2 for Native Apps](https://datatracker.ietf.org/doc/html/rfc8252#section-8.6), Auth0 proporciona un mecanismo para mostrar un prompt de confirmación al usuario. Los usuarios confirman que la aplicación que recibe el resultado de la autenticación es la que pretendían usar. Cuando se utiliza una URI de devolución de llamada no verificable, se solicita al usuario que verifique la aplicación en cada transacción de autenticación.
 
 La pantalla de confirmación se muestra cuando:
 
-1. El `redirect_uri` presente en la solicitud utiliza un URI no verificable (es decir, un esquema de URI personalizado o un loopback URI).
-2. No se le ha mostrado al usuario ninguna otra pantalla en la transacción de inicio de sesión actual (por ejemplo, cuando se muestra una [pantalla de consentimiento](/docs/es/get-started/applications/third-party-applications/user-consent-and-third-party-applications) para aplicaciones de terceros, o cuando se requiere MFA).
+1. El `redirect_uri` presente en la solicitud usa una URI no verificable (es decir, un esquema de URI personalizado o una loopback URI).
+2. No se ha mostrado al usuario ninguna otra pantalla en la transacción de inicio de sesión actual (por ejemplo, cuando se muestra una [pantalla de consentimiento](/docs/es/get-started/applications/third-party-applications/user-consent-and-third-party-applications) para aplicaciones de terceros, o cuando se requiere MFA).
 
 En estos casos, la aplicación presenta al usuario final un prompt de confirmación.
 
-<Frame>![Medidas contra la suplantación de aplicaciones - Prompt de confirmación](/docs/images/cdy7uua7fh8z/consent-pompt-uris.png)</Frame>
+<Frame>![Medidas contra la suplantación de aplicaciones: prompt de confirmación](/docs/images/cdy7uua7fh8z/consent-pompt-uris.png)</Frame>
 
-El prompt de confirmación no se muestra en flujos heredados no conformes con OIDC. Para saber cómo puedes aplicar una mayor protección a tus tenants y aplicaciones, consulta [Adopt OIDC-Conformant Authentication](/docs/es/authenticate/login/oidc-conformant-authentication).
+El prompt de confirmación no se muestra en flujos Legacy no conformes con OIDC. Para saber cómo aplicar una mayor protección a tus tenants y aplicaciones, consulta [Adopt OIDC-Conformant Authentication](/docs/es/authenticate/login/oidc-conformant-authentication).
 
 <div id="prompt-customization">
   #### Personalización del prompt
 </div>
 
-El prompt de confirmación usa tu identidad de marca personalizada y la configuración que definiste para las pantallas de consentimiento existentes de aplicaciones de terceros. Para obtener más información, consulta la sección Prompts de [Personalizar las plantillas de la página de Universal Login](/docs/es/customize/login-pages/universal-login/customize-templates).
+El prompt de confirmación utiliza tu branding personalizado y la configuración definida para las pantallas de consentimiento existentes que se usan con aplicaciones de terceros. Para obtener más información, consulta la sección Prompts de [Personalizar las plantillas de página de Universal Login](/docs/es/customize/login-pages/universal-login/customize-templates).
 
 <Warning>
-  Auth0 **recomienda encarecidamente** no desactivar esta protección en producción. Las aplicaciones maliciosas del dispositivo podrían solicitar `id_tokens` y `access_tokens` sin ninguna interacción del usuario ni ninguna otra señal de que haya ocurrido algo.
+  Auth0 **recomienda encarecidamente** no desactivar esta protección en producción. Las aplicaciones maliciosas del dispositivo podrían solicitar `id_tokens` y `access_tokens` sin ninguna interacción del usuario ni ninguna otra indicación de que algo ha sucedido.
 </Warning>
 
-Puedes configurar el prompt de confirmación como una configuración global del tenant o a nivel de aplicación. La configuración a nivel de aplicación tiene prioridad sobre la configuración global del tenant.
+Puedes configurar el prompt de confirmación como una configuración global del tenant o a nivel de la aplicación. La configuración a nivel de la aplicación tiene prioridad sobre la configuración global a nivel del tenant.
 
-**A nivel de aplicación**
+**A nivel de la aplicación**
 
 1. [Ve a Auth0 Dashboard &gt; Applications &gt; Application Settings &gt; Advanced &gt; OAuth](https://manage.auth0.com/#/applications/settings).
 2. Desplázate hasta la configuración **Non-Verifiable Callback URI End-User Confirmation**.
-3. Activa el interruptor para activar el prompt o desactívalo para desactivar el prompt.
+3. Activa el toggle para activar el prompt o desactívalo para desactivar el prompt.
 
 <Frame>![Auth0 Dashboard>Settings>Advanced](/docs/images/cdy7uua7fh8z/custom-uri-override.png)</Frame>
 
@@ -80,6 +80,6 @@ Puedes configurar el prompt de confirmación como una configuración global del 
 
 1. Ve a [Auth0 Dashboard &gt; Settings &gt; Advanced](https://manage.auth0.com/#/tenant/advanced).
 2. Busca la configuración **Non-Verifiable Callback URI End-User Confirmation**.
-3. Activa el interruptor para activar el prompt.
+3. Activa el toggle para activar el prompt.
 
-<Frame>![Auth0 Dashboard>Tenant Settings>Advanced>Skip Custom URI toggle](/docs/images/cdy7uua7fh8z/enable-non-verifiable-callback.png)</Frame>
+<Frame>![Auth0 Dashboard>Configuración del tenant>Advanced>toggle de omitir URI personalizada](/docs/images/cdy7uua7fh8z/enable-non-verifiable-callback.png)</Frame>

@@ -1,10 +1,10 @@
 ---
-description: Étape 5 du didacticiel Amazon API Gateway
-title: Didacticiel AWS API Gateway étape 5
+description: Étape 5 du tutoriel Amazon API Gateway
+title: Tutoriel AWS API Gateway, étape 5
 ---
 
 <Warning>
-  Cette fonctionnalité utilise la délégation. Par défaut, la délégation est désactivée pour les tenants qui n’utilisaient pas de module complémentaire en date du 8 juin 2017. Les tenants Legacy qui utilisent actuellement un module complémentaire nécessitant la délégation peuvent continuer à utiliser cette fonctionnalité. Si la fonctionnalité de délégation devait être modifiée ou retirée du service, les clients qui l’utilisent actuellement en seraient avisés à l’avance et disposeraient de suffisamment de temps pour migrer. De plus, veuillez noter que la délégation ne prend pas en charge l’utilisation de domaines personnalisés; par conséquent, toute fonctionnalité qui en dépend pourrait ne pas être entièrement fonctionnelle avec un domaine personnalisé.
+  Cette fonctionnalité utilise Delegation. Par défaut, Delegation est désactivée pour les tenants qui n’utilisaient pas d’add-on au 8 juin 2017. Les tenants Legacy qui utilisent actuellement un add-on nécessitant Delegation peuvent continuer à utiliser cette fonctionnalité. Si la fonctionnalité Delegation est modifiée ou retirée du service un jour, les clients qui l’utilisent actuellement en seront avisés à l’avance et disposeront de suffisamment de temps pour migrer. De plus, notez que Delegation ne prend pas en charge l’utilisation de domaines personnalisés; par conséquent, toute fonctionnalité qui en dépend pourrait ne pas être entièrement fonctionnelle avec un domaine personnalisé.
 </Warning>
 
 <div id="step-5-use-identity-tokens-to-flow-identity">
@@ -13,36 +13,36 @@ title: Didacticiel AWS API Gateway étape 5
 
 Dans cette dernière étape, vous allez :
 
-* transmettre l’identité au service en lui envoyant votre <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OpenID">OpenID</Tooltip> <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker leurs renseignements de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JSON+Web+Token">JSON Web Token</Tooltip> (JWT) ;
-* valider le jeton ;
-* extraire les renseignements du profil pour associer un acheteur à un animal de compagnie.
+* Transmettre l’identité au service en lui passant votre <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker les renseignements de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=OpenID">OpenID</Tooltip> <Tooltip tip="OpenID : norme ouverte d’authentification qui permet aux applications de vérifier l’identité des utilisateurs sans recueillir ni stocker les renseignements de connexion." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JSON+Web+Token">JSON Web Token</Tooltip> (JWT) ;
+* Valider le jeton ;
+* Extraire les renseignements du profil pour associer un acheteur à un animal de compagnie.
 
 <div id="use-an-identity-token">
   ## Utiliser un jeton d’identité
 </div>
 
-Vous pouvez utiliser votre fonction Lambda pour traiter et obtenir des renseignements sur l’utilisateur. Par exemple, pendant une transaction d’achat, vous avez récupéré le nom d’utilisateur dans le profil renvoyé avec le <Tooltip tip="ID Token : informations d’identification destinées au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+token">jeton d’identité</Tooltip>. Cependant, vous pouvez aussi choisir d’intégrer directement les renseignements de l’utilisateur au jeton lui-même, qui est un JSON Web Token (JWT).
+Vous pouvez utiliser votre fonction Lambda pour traiter des renseignements sur l’utilisateur et en obtenir. Par exemple, au cours d’une transaction d’achat, vous avez récupéré le username dans le profil renvoyé avec le <Tooltip tip="ID Token : informations d’identification destinées au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+token">jeton d’identité</Tooltip>. Toutefois, vous pouvez aussi choisir d’intégrer les renseignements de l’utilisateur directement à l’identité elle-même, qui est un JSON Web Token (JWT).
 
-Les avantages de l’utilisation des JWT sont les suivants :
+Les avantages d’utiliser des JWT sont les suivants :
 
 1. Vérifier l’authenticité du JWT;
-2. Avoir la certitude que l’utilisateur appelant est authentifié (au lieu de s’appuyer sur un paramètre en texte brut qui pourrait avoir été falsifié).
+2. Vous assurer que l’utilisateur appelant est authentifié (au lieu de vous fier à un paramètre en texte brut qui pourrait avoir été altéré).
 
-De plus, vous pouvez utiliser le JWT pour l’autorisation, ce qui vous permet de contourner l’intégration IAM avec Amazon API Gateway. Veuillez toutefois noter que l’utilisation d’API Gateway pour l’autorisation vous permet d’interrompre l’appel d’API avant l’invocation de votre fonction Lambda.
+De plus, vous pouvez utiliser le JWT pour l’autorisation, ce qui vous permet de contourner l’intégration IAM avec Amazon API Gateway. Veuillez toutefois noter que l’utilisation de l’API Gateway pour l’autorisation vous permet d’interrompre l’appel d’API avant l’invocation de votre fonction Lambda.
 
 <div id="add-information-to-the-jwt">
-  ### Ajouter de l’information au JWT
+  ### Ajouter des informations au JWT
 </div>
 
-Il existe plusieurs façons d’ajouter des renseignements sur l’utilisateur au JWT. L’exemple suivant ajoute l’adresse courriel de l’utilisateur au JWT, mais les mêmes principes s’appliquent à d’autres données utilisateur.
+Il existe plusieurs façons d&#39;ajouter des informations sur un utilisateur au JWT. L&#39;exemple suivant ajoute l&#39;adresse courriel de l&#39;utilisateur au JWT, mais les mêmes principes s&#39;appliquent à d&#39;autres données utilisateur.
 
 <div id="use-rules">
-  #### Utiliser les Rules
+  #### Utiliser des règles Auth0
 </div>
 
-Une façon d’ajouter l’adresse courriel d’un utilisateur au JWT est d’utiliser une [Rule](/docs/fr-CA/customize/rules). C’est une bonne façon de s’assurer que cette valeur est toujours présente dans le JWT lorsqu’un utilisateur s’authentifie.
+Une façon d’ajouter l’adresse courriel d’un utilisateur au JWT consiste à utiliser une [règle Auth0](/docs/fr-CA/customize/rules). C’est une bonne approche si vous voulez vous assurer que cette valeur est toujours présente dans le JWT pour un utilisateur en cours d’authentification.
 
-Dans `login.js`, vous pouvez voir ce scope parmi les paramètres transmis à `auth.signin` :
+Dans `login.js`, vous pouvez voir ce scope indiqué dans les Parameters transmis à `auth.signin` :
 
 ```js lines
 $scope.login = function() {
@@ -58,17 +58,17 @@ $scope.login = function() {
   }
 ```
 
-Bien que vous puissiez inclure le profil complet de l’utilisateur dans le JWT, il est préférable de n’y inclure que ce qui est nécessaire, puisque le JWT est généralement transmis avec chaque request.
+Bien que vous puissiez inclure le profil complet de l’utilisateur dans le JWT, il est préférable de n’y mettre que ce qui est nécessaire, puisque le JWT est généralement transmis avec chaque requête.
 
 <div id="validate-the-jwt-token">
-  ## Valider le token JWT
+  ## Valider le jeton JWT
 </div>
 
-Comme la console AWS Lambda n’a accès qu’à un nombre limité de modules Node pouvant être utilisés lorsque vous saisissez votre code Node.js dans la console du navigateur, vous devrez inclure des modules supplémentaires et téléverser la fonction Lambda sous forme de package pour traiter le jeton d’identité.
+Comme la console AWS Lambda ne donne accès qu’à un nombre limité de modules Node.js lorsque vous saisissez votre code Node.js dans la console du navigateur, vous devrez inclure des modules supplémentaires et téléverser la fonction Lambda sous forme de package afin de traiter le jeton d’identité.
 
-Pour plus de détails, consultez [Création de packages de déploiement avec Node.js](http://docs.aws.amazon.com/lambda/latest/dg/nodejs-create-deployment-pkg.html) et [Téléversement de packages de déploiement et tests](http://docs.aws.amazon.com/lambda/latest/dg/walkthrough-s3-events-adminuser-create-test-function-upload-zip-test.html).
+Pour plus de détails, consultez [Creating Deployment Packages using Node.js](http://docs.aws.amazon.com/lambda/latest/dg/nodejs-create-deployment-pkg.html) et [Uploading Deployment Packages and Testing](http://docs.aws.amazon.com/lambda/latest/dg/walkthrough-s3-events-adminuser-create-test-function-upload-zip-test.html).
 
-Le projet de départ suivant contient le code dont vous aurez besoin pour votre fonction AWS Lambda mise à jour.
+Le projet de départ suivant contient le code dont vous aurez besoin pour mettre à jour votre fonction AWS Lambda.
 
 ```js wrap lines
 <%= include('../../../_includes/_package', { org: 'auth0', repo: 'auth0-aws', path: 'examples/api-gateway/lambda' }) %>
@@ -76,16 +76,16 @@ Le projet de départ suivant contient le code dont vous aurez besoin pour votre 
 
 Vous verrez deux fichiers JavaScript personnalisés dans le projet de départ :
 
-* `index.js` : contient votre code principal ;
+* `index.js` : contient votre code principal;
 * `auth0-variables` : contient le code que vous devez mettre à jour.
 
-En plus des fichiers personnalisés, il y a un fichier Node.js `package.json` standard.
+En plus des fichiers personnalisés, on trouve aussi un fichier Node.js `package.json` standard.
 
-Le code ajoute la fonctionnalité nécessaire pour extraire des informations du JWT et le valider. Par défaut, Auth0 utilise une clé symétrique pour signer le JWT, mais vous pouvez aussi choisir d’utiliser des clés asymétriques (si vous devez permettre à un tiers de valider votre token, vous devriez utiliser une clé asymétrique et ne partager que votre clé publique).
+Le code ajoute la fonctionnalité nécessaire pour extraire des renseignements du JWT et le valider. Par défaut, Auth0 utilise une clé symétrique pour signer le JWT, mais vous pouvez choisir d’utiliser des clés asymétriques (si vous devez permettre à un tiers de valider votre jeton, vous devriez utiliser une clé asymétrique et ne partager que votre clé publique).
 
-Pour en savoir plus sur la vérification des tokens, consultez [Identity Protocols Supported by Auth0](/docs/fr-CA/authenticate/protocols).
+Pour en savoir plus sur la vérification des jetons, consultez [les protocoles d’identité pris en charge par Auth0](/docs/fr-CA/authenticate/protocols).
 
-Mettez à jour `auth0-variables.js` avec votre clé secrète, que vous trouverez dans l’onglet Settings de votre Application dans l’<Tooltip tip="Auth0 Dashboard : principal produit d’Auth0 pour configurer vos services." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> :
+Mettez à jour `auth0-variables.js` avec votre clé secrète, que vous trouverez dans l’onglet Settings de votre Application dans le <Tooltip tip="Auth0 Dashboard: principal produit d’Auth0 pour configurer vos services." cta="Consulter le glossaire" href="/docs/fr-CA/glossary?term=Auth0+Dashboard">Auth0 Dashboard</Tooltip> :
 
 ```javascript lines
 var env={};
@@ -93,9 +93,9 @@ env.AUTH0_SECRET='{yourAuth0Secret}';
 module.exports = env;
 ```
 
-Exécutez **npm install** dans le répertoire où se trouvent vos fichiers, compressez le contenu dans un fichier ZIP (`index.js` doit se trouver à la racine du fichier ZIP), puis téléversez-le pour qu’il soit utilisé par la fonction Lambda `PurchasePet`. Si vous faites le test, vous devriez voir une erreur d’autorisation, puisque le JWT ne se trouve pas dans le corps du message.
+Exécutez **npm install** dans le répertoire où se trouvent vos fichiers, compressez le contenu en fichier zip (`index.js` doit se trouver à la racine du zip), puis téléversez-le pour qu’il soit utilisé par la fonction Lambda `PurchasePet`. Si vous faites un Test, vous devriez voir un échec d’autorisation, puisque le JWT ne se trouve pas dans le corps du message.
 
-Jetez un coup d’œil à la logique dans `index.js`. Vers la ligne 60, vous verrez le code qui valide le token et extrait les informations décodées contenant les renseignements d’identité utilisés par la logique d’achat :
+Jetez un coup d’œil à la logique de `index.js`. Vous verrez, vers la ligne 60, une logique qui valide le token et extrait les informations décodées contenant les renseignements d’identité utilisés par la logique d’achat :
 
 ```js lines
 if(event.authToken) {
@@ -124,18 +124,18 @@ if(event.authToken) {
   ### Extraire les informations du profil pour attribuer un acheteur
 </div>
 
-La dernière étape consiste à transmettre le JWT à la méthode utilisée par le client du navigateur.
+La dernière étape consiste à transmettre le JWT à la méthode utilisée par le client navigateur.
 
-La méthode standard utilise un en-tête `Authorization` avec un bearer token, et vous pouvez utiliser cette méthode en désactivant l’autorisation IAM et en vous fiant uniquement au jeton OpenID pour l’autorisation (vous devrez aussi faire le mapping de l’en-tête `Authorization` dans les données d’événement transmises à la fonction AWS Lambda).
+La méthode standard inclut un en-tête `Authorization` sous la forme d’un bearer token, et vous pouvez l’utiliser en désactivant l’autorisation IAM et en vous appuyant uniquement sur le jeton OpenID pour l’autorisation (vous devrez aussi mapper l’en-tête `Authorization` dans les données d’événement transmises à la fonction AWS Lambda).
 
-Toutefois, si vous utilisez IAM, API Gateway utilise l’en-tête `Authorization` pour contenir la signature du message, et vous compromettrez l’authentification en insérant le JWT dans cet en-tête. Pour ce faire, vous pouvez soit :
+Si, toutefois, vous utilisez IAM, AWS API Gateway se sert de l’en-tête `Authorization` pour contenir la signature du message, et vous compromettrez l’authentification en y insérant le JWT. Pour ce faire, vous pouvez :
 
-* Ajouter un en-tête personnalisé pour le JWT ;
-* Mettre l’en-tête personnalisé dans le corps du message.
+* Ajouter un en-tête personnalisé pour le JWT;
+* Placer l’en-tête personnalisé dans le corps du message.
 
-Si vous choisissez d’utiliser un en-tête personnalisé, vous devrez aussi effectuer du mapping pour la requête d’intégration de la méthode POST pour `pets/purchase`.
+Si vous choisissez d’utiliser un en-tête personnalisé, vous devrez aussi faire du mapping pour la requête d’intégration de la méthode POST pour `pets/purchase`.
 
-Pour garder le processus de validation simple, transmettez le JWT dans le corps de la requête POST à la fonction AWS Lambda. Pour ce faire, mettez à jour la méthode `buyPet` dans `home.js` en retirant le `userName` du corps et en ajoutant `authToken` comme suit :
+Pour simplifier le processus de validation, transmettez le JWT dans le corps de la requête POST à la fonction AWS Lambda. Pour ce faire, mettez à jour la méthode `buyPet` dans `home.js` en supprimant `userName` du corps et en ajoutant `authToken` comme suit :
 
 ```javascript lines
 function buyPet(user, id) {
@@ -157,19 +157,19 @@ function buyPet(user, id) {
 }
 ```
 
-Téléversez votre code dans votre bucket S3 et essayez d’acheter un animal de compagnie. Vous verrez le courriel de l’acheteur dans le message qui s’affiche.
+Téléversez votre code dans votre S3 bucket et essayez d’acheter un animal. Vous verrez l’e-mail de l’acheteur dans le message obtenu.
 
-Si vous obtenez des erreurs, vérifiez de nouveau que vous avez correctement configuré votre clé secrète. Un outil utile pour vérifier les problèmes de décodage de votre token est [jwt.io](http://jwt.io/).
+Si des erreurs s’affichent, assurez-vous que votre clé secrète est correctement configurée. Un outil utile pour vérifier les problèmes de décodage de votre token est [jwt.io](http://jwt.io/).
 
 <div id="summary">
-  ## Résumé
+  ## Sommaire
 </div>
 
 Dans ce tutoriel, vous avez :
 
-* Créé une API à l’aide d’AWS API Gateway comprenant des méthodes qui utilisent des fonctions AWS Lambda ;
-* Sécurisé l’accès à votre API à l’aide de rôles IAM ;
-* Intégré un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SAML">SAML</Tooltip> <Tooltip tip="Security Assertion Markup Language (SAML) : protocole normalisé permettant à deux parties d’échanger des renseignements d’authentification sans mot de passe." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> à IAM pour lier l’accès à l’API à votre base d’utilisateurs ;
-* Accordé différents niveaux d’accès selon qu’un utilisateur s’est authentifié au moyen de la connexion Database ou de la connexion Social Connection ;
-* Utilisé une Rule Auth0 pour imposer l’attribution des rôles ;
-* Utilisé un JWT pour fournir un contexte d’autorisation supplémentaire et transmettre les renseignements d’identité à la fonction Lambda appropriée.
+* créé une API à l’aide d’AWS API Gateway qui comprend des méthodes utilisant des fonctions AWS Lambda ;
+* sécurisé l’accès à votre API à l’aide de rôles IAM ;
+* intégré un <Tooltip tip="Fournisseur d’identité (IdP) : service qui stocke et gère les identités numériques." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=SAML">SAML</Tooltip> <Tooltip tip="Security Assertion Markup Language (SAML) : protocole normalisé permettant à deux parties d’échanger des renseignements d’authentification sans mot de passe." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=identity+provider">fournisseur d’identité</Tooltip> à IAM pour lier l’accès à l’API à votre base d’utilisateurs ;
+* offert différents niveaux d’accès selon qu’un utilisateur s’est authentifié au moyen de la connexion Database ou de Social Connection ;
+* utilisé une règle Auth0 pour imposer l’attribution des rôles ;
+* utilisé un JWT pour fournir un contexte d’autorisation supplémentaire et transmettre l’information d’identité à la fonction Lambda appropriée.

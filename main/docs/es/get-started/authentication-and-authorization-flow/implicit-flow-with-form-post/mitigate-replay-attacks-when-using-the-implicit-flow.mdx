@@ -1,23 +1,23 @@
 ---
-description: Aprende a generar y validar de forma segura un nonce criptográfico para utilizarlo con el flujo implícito con envío de formulario.
+description: Aprende a generar y validar de forma segura un nonce criptográfico para usarlo con flujo implícito con Form Post.
 title: Mitiga los ataques de repetición al usar el flujo implícito
 ---
 
-Para mitigar los ataques de repetición al usar el [flujo implícito con envío de formulario](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post), se debe enviar un <Tooltip tip="Nonce: Número arbitrario emitido una sola vez en un protocolo de autenticación para detectar y prevenir ataques de repetición." cta="Ver glosario" href="/docs/es/glossary?term=nonce">nonce</Tooltip> en las solicitudes de autenticación, [tal como exige la especificación OpenID Connect (OIDC)](https://openid.net/specs/openid-connect-core-1_0.html#ImplicitAuthRequest).
+Para mitigar los ataques de repetición al usar [flujo implícito con Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post), se debe enviar un <Tooltip tip="Nonce: Número arbitrario emitido una sola vez en un protocolo de autenticación para detectar y prevenir ataques de repetición." cta="Ver glosario" href="/docs/es/glossary?term=nonce">nonce</Tooltip> en las solicitudes de autenticación, [tal como lo exige la especificación de OpenID Connect (OIDC)](https://openid.net/specs/openid-connect-core-1_0.html#ImplicitAuthRequest).
 
-La aplicación genera el nonce, lo envía como parámetro `nonce` de la cadena de consulta en la solicitud de autenticación y lo incluye Auth0 en la respuesta del <Tooltip tip="ID Token: Credencial destinada al propio cliente y no al acceso a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">token de identidad</Tooltip>. Esto permite que las aplicaciones correlacionen la respuesta del token de identidad de Auth0 con la solicitud de autenticación inicial.
+La aplicación genera el nonce, lo envía como parámetro `nonce` de la cadena de consulta en la solicitud de autenticación y se incluye en la respuesta del <Tooltip tip="ID Token: Credencial destinada al propio cliente, en lugar de usarse para acceder a un recurso." cta="Ver glosario" href="/docs/es/glossary?term=ID+Token">token de ID</Tooltip> de Auth0. Esto permite a las aplicaciones correlacionar la respuesta del token de ID de Auth0 con la solicitud de autenticación inicial.
 
-Para obtener más información sobre dónde incluir el nonce, consulta [Agregar el login mediante el flujo implícito con envío de formulario](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/add-login-using-the-implicit-flow-with-form-post).
+Para obtener más información sobre dónde incluir el nonce, consulta [Add Login Using the Implicit Flow with Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/add-login-using-the-implicit-flow-with-form-post).
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  [Auth0.js](/docs/es/libraries/auth0js) administra los parámetros `state` y `nonce` por ti cuando usas la [autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication).
+  [Auth0.js](/docs/es/libraries/auth0js) administra los parámetros `state` y `nonce` por ti cuando usas [autenticación de origen cruzado](/docs/es/authenticate/login/cross-origin-authentication).
 </Callout>
 
 <div id="generate-a-cryptographically-random-nonce">
   ## Genera un nonce criptográficamente aleatorio
 </div>
 
-Una forma de generar un nonce criptográficamente aleatorio es utilizar una herramienta como [Nano ID](https://github.com/ai/nanoid) o similar. Sin embargo, esto requiere incluir la herramienta en tu código JavaScript. Si eso no es posible, puedes aprovechar que los [navegadores modernos](http://caniuse.com/#feat=cryptography) pueden usar la [API web de criptografía](https://www.w3.org/TR/WebCryptoAPI/) para generar cadenas aleatorias criptográficamente seguras y usarlas como nonces.
+Una forma de generar un nonce criptográficamente aleatorio es usar una herramienta como [Nano ID](https://github.com/ai/nanoid) o similar. Sin embargo, esto sí requiere empaquetar la herramienta con tu código JavaScript. Si eso no es posible, puedes aprovechar que los [navegadores modernos](http://caniuse.com/#feat=cryptography) pueden usar la [API de Web Crypto](https://www.w3.org/TR/WebCryptoAPI/) para generar cadenas aleatorias criptográficamente seguras que sirvan como nonces.
 
 ```javascript lines
 function randomString(length) {
@@ -43,13 +43,13 @@ function randomString(length) {
 ```
 
 <div id="persist-nonces-across-requests">
-  ## Persistir nonces entre solicitudes
+  ## Persistir los nonce entre solicitudes
 </div>
 
-El nonce generado debe conservarse en tu aplicación web mediante cualquiera de los siguientes métodos:
+El nonce generado debe persistirse en su aplicación web mediante cualquiera de los siguientes métodos:
 
 * `HttpOnly` <Tooltip tip="Cookie de sesión: Entidad que, cuando está presente, permite considerar al usuario autenticado." cta="Ver glosario" href="/docs/es/glossary?term=session+cookie">cookie de sesión</Tooltip>
-* Valor en el almacenamiento local de HTML5
+* Un valor en el almacenamiento local de HTML5
 
 Por ejemplo:
 
@@ -61,8 +61,8 @@ window.localStorage.setItem('nonce', randomString(16));
   ## Validar token de identidad
 </div>
 
-Una vez que Auth0 responde con un [token de ID](/docs/es/secure/tokens/id-tokens), este token debe [validarse y decodificarse](/docs/es/secure/tokens/id-tokens/validate-id-tokens) como de costumbre.
-Su claim `nonce` debe contener exactamente el mismo valor que se envió en la solicitud.
+Una vez que Auth0 devuelve un [token de ID](/docs/es/secure/tokens/id-tokens), este token debe [validarse y decodificarse](/docs/es/secure/tokens/id-tokens/validate-id-tokens) como es habitual.
+El claim `nonce` debe contener exactamente el mismo valor que se envió en la solicitud.
 De lo contrario, la aplicación debe rechazar la autenticación.
 
 ```javascript lines
@@ -70,7 +70,7 @@ var jwt = '...'; // cuerpo del token de ID validado y decodificado
 if (jwt.nonce === window.localStorage.getItem('nonce')) {
     // El nonce es correcto
 } else {
-    // ¡El nonce no es correcto! Podría estar en curso un ataque de repetición de token
+    // ¡El nonce no es correcto! Es posible que haya un ataque de repetición de token en curso
 }
 ```
 
@@ -78,6 +78,6 @@ if (jwt.nonce === window.localStorage.getItem('nonce')) {
   ## Más información
 </div>
 
-* [flujo implícito con envío de formulario](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post)
-* [Agregar inicio de sesión con el flujo implícito con envío de formulario](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/add-login-using-the-implicit-flow-with-form-post)
+* [Flujo implícito con Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post)
+* [Agregar el inicio de sesión mediante el flujo implícito con Form Post](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post/add-login-using-the-implicit-flow-with-form-post)
 * [Flujo implícito con OIDC](/docs/es/authenticate/login/oidc-conformant-authentication/oidc-adoption-implicit-flow)

@@ -3,34 +3,34 @@ title: Gestionar tokens de actualización con Actions
 description: Aprende a gestionar tokens de actualización con Actions
 ---
 
-Usar <Tooltip tip="Token de actualización: token usado para obtener un token de acceso renovado sin obligar a los usuarios a iniciar sesión de nuevo." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+tokens">tokens de actualización</Tooltip> con [Actions](/docs/es/customize/actions) te permite configurar capacidades de detección y respuesta ante riesgos posteriores a la autenticación para proteger tus aplicaciones y usuarios frente a tokens de actualización comprometidos. También puedes personalizar dinámicamente las [expiraciones de los tokens de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration).
+Usar <Tooltip tip="Token de actualización: Token utilizado para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+tokens">tokens de actualización</Tooltip> con [Actions](/docs/es/customize/actions) te permite configurar capacidades de detección y respuesta ante riesgos posteriores a la autenticación para proteger tus aplicaciones y usuarios frente a tokens de actualización comprometidos. También puedes personalizar dinámicamente la [expiración del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration).
 
-Para ello, las Actions de Post Login cuentan con dos objetos clave:
+Para ello, las Actions de Post Login incluyen dos objetos clave:
 
-* **event.refresh&#95;token**: Proporciona información relevante sobre los `refresh_tokens` existentes, incluidos `id`, `created_at`, `expires_at`, `idle_expires_at`, `clients_id`, información del `device`, como `ASN`, `IP` y `User_agent`, y, en los flujos basados en navegador, `session_id`. Este objeto se completa en los flujos de [intercambio de token de actualización](/docs/es/secure/tokens/refresh-tokens/use-refresh-token-rotation).
-* **api.refreshToken**: Te permite gestionar tokens de actualización existentes revocando sesiones o cambiando las fechas de vencimiento.
+* **event.refresh&#95;token**: Proporciona información relevante sobre los refresh&#95;tokens existentes, incluidos `id`, `created_at`, `expires_at`, `idle_expires_at`, `clients_id`, información de `device`, como `ASN`, `IP` y `User_agent`, y, en los flujos basados en navegador, `session_id`. Este objeto se completa en los flujos de [intercambio de token de actualización](/docs/es/secure/tokens/refresh-tokens/use-refresh-token-rotation).
+* **api.refreshToken**: Te permite gestionar tokens de actualización existentes revocando sesiones o cambiando las fechas de expiración.
 
 Puedes usar el objeto `event.refresh_token` para revisar la propiedad `last_exchange_at` y evaluar los riesgos asociados a las transacciones actuales. También puedes combinar el objeto `event.refresh_token` con otros objetos de evento, como `event.authentication`.
 
-Luego, puedes usar el objeto `api.refreshToken` para establecer fechas de vencimiento del token de actualización o revocar el token de actualización.
+Después, puedes usar el objeto `api.refreshToken` para establecer fechas de expiración del token de actualización o revocar el token de actualización.
 
 Para obtener más información sobre estos objetos, consulta:
 
-* [Objeto Event](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object): Obtén información sobre el objeto Event del token de actualización y sus propiedades.
-* [Objeto API](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object): Obtén información sobre el objeto API del token de actualización y sus métodos.
+* [Event object](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object): Obtén información sobre el objeto Event del token de actualización y sus propiedades.
+* [API object](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object): Obtén información sobre el objeto de API del token de actualización y sus métodos.
 
 <div id="revoke-refresh-tokens-with-actions">
   ## Revocar tokens de actualización con Actions
 </div>
 
-El método **api.refreshToken.revoke(reason)** de Post Login te permite reaccionar ante riesgos asociados a una transacción. Al revocar el token de actualización, se invalida ese token, se devuelve un código de estado HTTP 403 para denegar la transacción actual y se registra un evento de revocación de token de actualización en los [logs del tenant](/docs/es/deploy-monitor/logs/log-event-type-codes) (`srrt`).
+El método **api.refreshToken.revoke(reason)** de Post Login le permite reaccionar ante riesgos asociados a una transacción. Al revocar el token de actualización, este se invalida, se devuelve un código de estado HTTP 403 para denegar la transacción actual y se registra un evento de revocación de token de actualización en los [logs del tenant](/docs/es/deploy-monitor/logs/log-event-type-codes) (`srrt`).
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Si quieres usar el método `api.refreshToken.revoke(reason)`, asegúrate de que exista el objeto `event.refresh_token`.
+  Si quiere usar el método `api.refreshToken.revoke(reason)`, asegúrese de que exista el objeto `event.refresh_token`.
 </Callout>
 
 <div id="monitor-revoke-log-events">
-  ### Supervisar eventos de log de revocación
+  ### Supervisa los eventos de log de la revocación
 </div>
 
 La operación de revocación agrega el siguiente evento de log en los [logs del tenant](/docs/es/deploy-monitor/logs):
@@ -40,55 +40,55 @@ Un código de evento `srrt` que indica que se revocó un token de actualización
 Si el token de actualización está vinculado a una sesión autenticada anteriormente, el registro incluirá una referencia a esa sesión autenticada en el atributo `session_id`.
 
 <div id="change-refresh-tokens-expiry-dates-with-actions">
-  ## Cambiar las fechas de expiración de los tokens de actualización con Actions
+  ## Cambiar la fecha de expiración de los tokens de actualización con Actions
 </div>
 
-Puedes modificar las fechas de expiración de los tokens de actualización con los siguientes métodos de Post Login:
+Puede modificar la fecha de expiración de los tokens de actualización con los siguientes métodos de Post Login:
 
-* **api.refreshToken.setExpiresAt(absolute)** te permite definir una nueva fecha de expiración absoluta para un token de actualización específico.
-* **api.refreshToken.setIdleExpiresAt(idle)** te permite establecer una nueva fecha de expiración por inactividad para un token de actualización específico.
+* **api.refreshToken.setExpiresAt(absolute)** le permite definir una nueva fecha de expiración absoluta para un token de actualización específico.
+* **api.refreshToken.setIdleExpiresAt(idle)** le permite establecer una nueva fecha de expiración por inactividad para un token de actualización específico.
 
-Puedes usar estos métodos para personalizar dinámicamente la duración y las políticas de inactividad del token de actualización en función de:
+Puede usar estos métodos para personalizar dinámicamente la duración del token de actualización y las políticas de inactividad en función de:
 
 * La organización de un usuario
 * La Conexión de Auth0 de un usuario
-* La pertenencia de un usuario específico a un grupo o su perfil
+* La pertenencia a grupos o el perfil de un usuario específico
 * La evaluación de riesgos
 * Cualquier otro criterio dinámico disponible durante la ejecución de la Action
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Los métodos `api.refreshToken.setExpiresAt(absolute)` y `api.refreshToken.setIdleExpiresAt(idle)` permiten definir la expiración de un token de actualización antes de su emisión, o modificar la expiración de un token de actualización existente durante un flujo de [intercambio de token de actualización](/docs/es/secure/tokens/refresh-tokens/use-refresh-tokens).
+  Los métodos `api.refreshToken.setExpiresAt(absolute)` y `api.refreshToken.setIdleExpiresAt(idle)` permiten definir la expiración de un token de actualización antes de que se emita o modificar la expiración de un token de actualización existente durante un flujo de [intercambio de token de actualización](/docs/es/secure/tokens/refresh-tokens/use-refresh-tokens).
 
-  Los métodos `api.refreshToken.setExpiresAt(absolute)` y `api.refreshToken.setIdleExpiresAt(idle)` convertirán los tokens de actualización sin expiración en tokens de actualización con expiración usando la configuración predeterminada de [expiración del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration) como valores máximos.
+  Los métodos `api.refreshToken.setExpiresAt(absolute)` y `api.refreshToken.setIdleExpiresAt(idle)` convertirán los tokens de actualización sin expiración en tokens de actualización con expiración, usando la configuración predeterminada de [expiración del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration) como valores máximos.
 
-  El método `api.refreshToken.setIdleExpiresAt(idle)` establece el tiempo de inactividad de los tokens de actualización. Si no se llama a este método en cada intercambio exitoso, el tiempo de inactividad se sobrescribirá usando la configuración de duración del token de actualización de la aplicación.
+  El método `api.refreshToken.setIdleExpiresAt(idle)` establece el tiempo de espera por inactividad de los tokens de actualización. Si no se llama al método en cada intercambio exitoso, el tiempo de espera por inactividad se sobrescribirá con la configuración de la aplicación para la duración del token de actualización.
 </Callout>
 
 <div id="limitations">
   ## Limitaciones
 </div>
 
-* Los tokens de actualización emitidos el 21-09-2023 o después de esa fecha (el 22-02-2024 para tenants de la región US-3) contienen la propiedad de ID de sesión (`session_id`) con el valor correspondiente. Los tokens de actualización emitidos antes de esa fecha contienen esta propiedad con un valor `null`.
+* Los tokens de actualización emitidos a partir del 21-09-2023 (22-02-2024 para tenants en la región US-3) contienen la propiedad de ID de sesión (`session_id`) con el valor correspondiente. Los tokens de actualización emitidos antes de esa fecha contienen esta propiedad con un valor `null`.
 
 * Los tokens de actualización emitidos antes del lanzamiento del método de API de Post Login `api.refreshToken.revoke(reason)` no contendrán información de `event.refresh_token.device`.
 
-* Los tokens de actualización sin vencimiento o que no se hayan intercambiado no contendrán la propiedad `event.refresh_token.last_exchanged_at`.
+* Los tokens de actualización sin expiración o que no se hayan intercambiado no contendrán la propiedad `event.refresh_token.last_exchanged_at`.
 
-* Por motivos de seguridad, los tiempos de espera por inactividad y los tiempos de espera absolutos no pueden configurarse por encima de los ajustes del token de actualización de la aplicación definidos en [expiraciones del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration). Si intentas establecer una fecha posterior a los ajustes de expiración, los métodos de API actualizarán el valor hasta las [expiraciones del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration) y registrarán un evento de advertencia (`w`) en los logs del tenant.
+* Por motivos de seguridad, los tiempos de espera por inactividad y absolutos no pueden establecerse por encima de la configuración del token de actualización de la aplicación definida en [expiración del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration). Si intenta establecer una fecha por encima de la configuración de expiración, los métodos de API se actualizarán hasta la [expiración del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-expiration) y registrarán un evento de advertencia (`w`) en los logs del tenant.
 
-* Tanto `api.refreshToken.setExpiresAt()` como `api.refreshToken.setIdleExpiresAt()` solo pueden acortar sus respectivos periodos de validez a partir de los valores actuales. No pueden ampliarlos ni aumentarlos.
+* Tanto `api.refreshToken.setExpiresAt()` como `api.refreshToken.setIdleExpiresAt()` solo pueden acortar sus tiempos de vida respectivos a partir de los valores actuales. No pueden ampliarlos ni aumentarlos.
 
 <div id="use-cases-revoke-a-refresh-token">
   ## Casos de uso: Revocar un token de actualización
 </div>
 
-Puedes usar [Actions](/docs/es/customize/actions) para configurar detecciones de riesgos y revocar tokens de actualización mediante el método `api.refreshToken.revoke(reason)` y los objetos de evento.
+Puede utilizar [Actions](/docs/es/customize/actions) para configurar las detecciones de riesgo y revocar tokens de actualización con el método `api.refreshToken.revoke(reason)` y los objetos de evento.
 
 <div id="revoke-refresh-tokens-due-to-impossibletravel">
   ### Revocar tokens de actualización debido a ImpossibleTravel
 </div>
 
-Puedes usar el <Tooltip tip="Adaptive Multi-factor Authentication: autenticación multifactor (MFA) que solo se activa para los usuarios cuando se determina que un intento de inicio de sesión es de baja confianza." cta="Ver glosario" href="/docs/es/glossary?term=Adaptive+MFA">Adaptive MFA</Tooltip> objeto [assessments](/docs/es/secure/multi-factor-authentication/adaptive-mfa/customize-adaptive-mfa#assessments-object) para determinar si un usuario está iniciando sesión desde una ubicación que indica ImpossibleTravel y revocar el token de actualización actual asociado con la transacción.
+Puedes usar el objeto [assessments](/docs/es/secure/multi-factor-authentication/adaptive-mfa/customize-adaptive-mfa#assessments-object) de <Tooltip tip="MFA adaptativo: autenticación multifactor (MFA) que solo se activa para los usuarios cuando se determina que un intento de inicio de sesión tiene un nivel de confianza bajo." cta="Ver glosario" href="/docs/es/glossary?term=Adaptive+MFA">MFA adaptativo</Tooltip> para determinar si un usuario está iniciando sesión desde una ubicación que podría indicar ImpossibleTravel y revocar el token de actualización actual asociado a la transacción.
 
 ```js lines
 exports.onExecutePostLogin = async (event, api) => {
@@ -104,18 +104,18 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-En este ejemplo, se realiza una comprobación al inicio de la Action para verificar que `event.authentication.ImpossibleTravel.code` sea igual a la propiedad `impossible_travel_from_last_login`. Si es `true`, la Action llama a `api.refreshToken.revoke()` para:
+En este ejemplo, se realiza una comprobación al inicio de la Action para verificar que `event.authentication.ImpossibleTravel.code` sea igual a la `propiedad impossible_travel_from_last_login`. Si es `true`, la Action llama a `api.refreshToken.revoke()` para:
 
 * Denegar la transacción
 * Revocar el token de actualización
-* Devolver una respuesta de error 403 access&#95;denied
-* Generar el error “Token de actualización revocado debido a un viaje imposible”
+* Devolver un error `access&#95;denied` con respuesta 403
+* Emitir el error “Token de actualización revocado debido a un viaje imposible”
 
 <div id="revoke-refresh-tokens-due-to-ip-binding">
-  ### Revocar tokens de actualización debido a la vinculación a la IP
+  ### Revocar tokens de actualización por vinculación de IP
 </div>
 
-Si utiliza las propiedades del objeto Post Login `event.refresh_token.device.initial_ip` y `event.request.ip` para garantizar que una transacción de token de actualización permanezca asociada a la misma dirección IP durante toda su vigencia. En este escenario, cualquier cambio de IP se considera un riesgo y requiere un nuevo token de actualización.
+Si usa las propiedades del objeto Post Login `event.refresh_token.device.initial_ip` y `event.request.ip` para garantizar que una transacción de token de actualización permanezca asociada a la misma dirección IP durante toda su vigencia. En este escenario, cualquier cambio de IP se considera un riesgo y requiere un nuevo token de actualización.
 
 ```js lines
 exports.onExecutePostLogin = async (event, api) => {
@@ -133,30 +133,30 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-En este ejemplo, se realiza una comprobación al inicio de la Action para hacer un seguimiento de las direcciones IP mediante las propiedades `event.refresh_token.device.initial_ip` y `event.request.ip`. La Action determina si la dirección IP de la transacción ha cambiado. Si es `true`, la Action llama a `api.refreshToken.revoke()` para:
+En este ejemplo, se realiza una comprobación al inicio de la Action para hacer un seguimiento de las direcciones IP con las propiedades `event.refresh_token.device.initial_ip` y `event.request.ip`. La Action determina si la dirección IP de la transacción ha cambiado. Si es `true`, la Action llama a `api.refreshToken.revoke()` para:
 
 * Denegar la transacción
 * Revocar el token de actualización
 * Devolver una respuesta `403` con el error `access_denied`
 * Generar el error “`Invalid IP change`”
 
-Como alternativa, si quieres una Action menos restrictiva, puedes hacer un seguimiento de las propiedades event.`request.asn` y `event.refresh_token.device.initial_asn` para supervisar cambios de ASN en lugar de cambios de IP.
+Como alternativa, para una Action menos restrictiva, puedes hacer un seguimiento de las propiedades event.`request.asn` y `event.refresh_token.device.initial_asn` para supervisar cambios de ASN en lugar de cambios de IP.
 
 <div id="use-cases-customize-refresh-token-expiry-dates">
   ## Casos de uso: Personalizar las fechas de expiración del token de actualización
 </div>
 
-Puedes usar [Actions](/docs/es/customize/actions) para personalizar la vigencia y las fechas de inactividad del token de actualización. En concreto, puedes configurar las fechas de expiración absoluta y por inactividad del token de actualización para una transacción concreta mediante los métodos de Post Login `api.refreshToken.setExpiresAt(absolute)` y `api.refreshToken.setIdleExpiresAt(idle)`.
+Puede usar [Actions](/docs/es/customize/actions) para personalizar la duración del token de actualización y sus fechas de inactividad. En concreto, puede configurar las fechas de expiración absoluta y por inactividad del token de actualización para una transacción concreta mediante los métodos `api.refreshToken.setExpiresAt(absolute)` y `api.refreshToken.setIdleExpiresAt(idle)` en Post Login.
 
 <div id="customize-absolute-refresh-token-expiration-date-based-on-organization">
-  ### Personaliza la fecha de expiración absoluta del token de actualización según la organización
+  ### Personaliza la fecha de expiración absoluta del token de actualización en función de la organización
 </div>
 
 Puedes usar una Action de Post Login para definir la duración del token de actualización para cada organización. En el siguiente ejemplo, se usan los metadatos `refresh_token_timeout` de la organización para establecer el tiempo de expiración del token de actualización.
 
 ```js lines
 exports.onExecutePostLogin = async (event, api) => {
-  // Metadatos del tiempo de espera del token de actualización (en milisegundos) configurados en Organizations
+  // Tiempo de espera del token de actualización (en milisegundos) configurado en los metadatos de Organizations
   const organization_refresh_token_lifetime =
     event.organization?.metadata?.refresh_token_timeout;
 
@@ -182,18 +182,18 @@ exports.onExecutePostLogin = async (event, api) => {
 
 En este ejemplo, si hay un tiempo de expiración absoluto específico definido para una organización, la Action establece el tiempo de expiración absoluto del token de actualización para que sea igual a:
 
-* Tokens emitidos recientemente: `current_time` más `organization_refresh_token_lifetime`
+* Tokens recién emitidos: `current_time` más `organization_refresh_token_lifetime`
 * Tokens existentes: `event.refresh_token.created_at` más `organization_refresh_token_lifetime`
 
 <div id="customize-refresh-token-inactivity-timeout-based-on-membership-role">
-  ### Personalizar el tiempo de espera por inactividad del token de actualización según el rol de membresía
+  ### Personaliza el tiempo de inactividad del token de actualización según el rol de pertenencia
 </div>
 
-Puede usar una Action de Post Login para definir un tiempo de espera por inactividad del token de actualización mediante los [metadatos de la aplicación](/docs/es/get-started/applications/configure-application-metadata) y los [metadatos del usuario](/docs/es/manage-users/user-accounts/metadata). El siguiente ejemplo usa los roles de los metadatos del usuario para definir el rol de membresía del usuario, y los metadatos de la aplicación para definir el tiempo de espera por inactividad esperado del token de actualización.
+Puedes usar una Action de Post Login para definir el tiempo de inactividad de un token de actualización mediante la [aplicación](/docs/es/get-started/applications/configure-application-metadata) y los [metadatos del usuario](/docs/es/manage-users/user-accounts/metadata). En el siguiente ejemplo, se usan los roles de los metadatos del usuario para definir el rol de pertenencia del usuario, y los metadatos de la aplicación para definir el tiempo de inactividad esperado del token de actualización.
 
 ```js lines
 exports.onExecutePostLogin = async (event, api) => {
-  // los administradores están configurados con un tiempo de inactividad más corto para los tokens de actualización, en los metadatos de la aplicación
+  // los administradores están configurados con un idle timeout más corto para los tokens de actualización, en los metadatos de la aplicación
   const max_idle_lifetime =
     event.client.metadata?.admin_refresh_token_idle_timeout;
 
@@ -202,7 +202,7 @@ exports.onExecutePostLogin = async (event, api) => {
     (role) => role === "admin",
   );
 
-  // Si la aplicación tiene un tiempo de inactividad específico definido, establecer el tiempo de espera
+  // Si la aplicación tiene un idle timeout específico definido, establecer el timeout
   if (max_idle_lifetime && isAdmin) {
     const current_time = new Date().getTime();
 
@@ -211,4 +211,4 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-En este ejemplo, si hay un tiempo de inactividad máximo específico definido para la Application y el usuario es administrador, la Action establece el tiempo de inactividad máximo del token de actualización para que sea igual a `current_time` más `refresh_token_idle_timeout`. Ten en cuenta que estamos cambiando este tiempo tanto para los tokens emitidos recientemente como para los ya existentes durante el intercambio de token de actualización.
+En este ejemplo, si hay un tiempo de inactividad específico definido para la aplicación y el usuario es un Admin, la Action establece el tiempo de inactividad del token de actualización para que sea igual a `current_time` más `refresh_token_idle_timeout`. Ten en cuenta que estamos cambiando este tiempo de espera tanto para los tokens recién emitidos como para los ya existentes durante el intercambio de token de actualización.

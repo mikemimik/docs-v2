@@ -1,31 +1,31 @@
 ---
 description: Aprende a proteger las conexiones empresariales de OIDC y Okta con vinculación criptográfica de tokens.
-title: Configurar conexiones empresariales con Demonstrating Proof-of-Possession (DPoP)
+title: Configurar conexiones empresariales con DPoP (Demonstrating Proof-of-Possession)
 ---
 
-Demonstrating Proof-of-Possession (DPoP) es una [extensión del framework OAuth 2.0](https://datatracker.ietf.org/doc/draft-ietf-oauth-dpop/). Para obtener más información sobre el protocolo DPoP y cómo se usa para vincular tokens al remitente, consulta [Demonstrating Proof-of-Possession (DPoP)](/docs/es/secure/sender-constraining). Si usas Okta u OpenID Connect (OIDC) como proveedor de identidad (IdP) y los has configurado como una conexión empresarial en Auth0, puedes habilitar y configurar DPoP para vincular los tokens de acceso de tu IdP a claves criptográficas. El uso de DPoP evita ataques de repetición de tokens y ayuda a cumplir requisitos normativos, como [Interoperability Profiling for Secure Identity in the Enterprise (IPSIE) OIDC](https://openid.net/specs/ipsie-openid-connect-sl1-profile-1_0.html) Security Level 1 o [Financial-grade API (FAPI) 2.0](https://openid.net/specs/fapi-security-profile-2_0-final.html).
+Demonstrating Proof-of-Possession (DPoP) es una [extensión del framework OAuth 2.0](https://datatracker.ietf.org/doc/draft-ietf-oauth-dpop/). Para obtener más información sobre el protocolo DPoP y cómo se usa para aplicar Sender Constraining a los tokens, consulta [Demonstrating Proof-of-Possession (DPoP)](/docs/es/secure/sender-constraining). Si usas Okta u OpenID Connect (OIDC) como tu proveedor de identidad (IdP) y has configurado alguno de ellos como una conexión empresarial en Auth0, puedes habilitar y configurar DPoP para vincular los tokens de acceso de tu IdP a claves criptográficas. El uso de DPoP evita ataques de repetición de tokens y ayuda a cumplir requisitos normativos, como [Interoperability Profiling for Secure Identity in the Enterprise (IPSIE) OIDC](https://openid.net/specs/ipsie-openid-connect-sl1-profile-1_0.html) Security Level 1 o [Financial-grade API (FAPI) 2.0](https://openid.net/specs/fapi-security-profile-2_0-final.html).
 
-<Card title="Antes de empezar">
+<Card title="Antes de comenzar">
   Antes de habilitar DPoP en Auth0:
 
   * Tu proveedor de identidad de origen debe admitir DPoP de acuerdo con la especificación [RFC-9449](https://www.rfc-editor.org/rfc/rfc9449.html).
-  * Debes tener una conexión empresarial de OIDC u Okta existente, o poder crear una. Para obtener información sobre cómo crear una conexión empresarial en Auth0, consulta [Enterprise Connections](/docs/es/authenticate/enterprise-connections).
+  * Debes tener una conexión OIDC o una conexión empresarial de Okta existente, o poder crear una. Para saber cómo crear una conexión empresarial en Auth0, consulta [Enterprise Connections](/docs/es/authenticate/enterprise-connections).
   * La conexión no debe estar configurada para usar [Token Vault](/docs/es/secure/call-apis-on-users-behalf/token-vault/configure-token-vault).
-  * La conexión debería usar el flujo Proof Key for Code Exchange (PKCE) [flujo de código de autorización con PKCE](docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce#authorization-code-flow-with-proof-key-for-code-exchange-pkce), habilitado en origen si tu proveedor de identidad admite PKCE.
+  * La conexión debe usar Proof Key for Code Exchange (PKCE) [flujo de código de autorización + PKCE](docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce#authorization-code-flow-with-proof-key-for-code-exchange-pkce), que se habilita en upstream si tu proveedor de identidad admite PKCE.
   * La conexión debe ser de tipo `back_channel`.
 </Card>
 
 <div id="verify-upstream-idp-support">
-  ## Verifica la compatibilidad del IdP ascendente
+  ## Verifica la compatibilidad del IdP de origen
 </div>
 
-Examina el documento de descubrimiento de OIDC de tu IdP para determinar la compatibilidad con DPoP:
+Examina el documento de descubrimiento de OIDC de tu IdP para determinar si admite DPoP:
 
 ```curl
 curl https://YOUR_IDP_DOMAIN/.well-known/openid-configuration
 ```
 
-En la respuesta, busca el valor `dpop_signing_alg_values_supported` compatible con DPoP.
+En la respuesta, busca el valor de compatibilidad con DPoP `dpop_signing_alg_values_supported`.
 
 **Ejemplo**
 
@@ -39,14 +39,14 @@ En la respuesta, busca el valor `dpop_signing_alg_values_supported` compatible c
   ## Elige un algoritmo de firma
 </div>
 
-Antes de configurar DPoP, elige uno de los [algoritmos de firma](/docs/es/get-started/applications/signing-algorithms) compatibles:
+Antes de configurar DPoP, elige un [algoritmo de firma](/docs/es/get-started/applications/signing-algorithms) compatible de entre las siguientes opciones:
 
-| **Algoritmo** | **Descripción**                 | **Cuándo usarlo**                                                      |
-| ------------- | ------------------------------- | ---------------------------------------------------------------------- |
-| ES256         | ECDSA con curva P-256 y SHA-256 | Tu proveedor de identidad admite ES256.                                |
-| ES384         | ECDSA con curva P-384 y SHA-384 | Tu proveedor de identidad requiere ES384.                              |
-| ES512         | ECDSA con curva P-521 y SHA-512 | Tu proveedor de identidad requiere ES512.                              |
-| Ed25519       | EdDSA con Curve25519            | Tu proveedor de identidad requiere Ed25519 por cumplimiento normativo. |
+| **Algoritmo** | **Descripción**                 | **Cuándo usarlo**                                                                 |
+| ------------- | ------------------------------- | --------------------------------------------------------------------------------- |
+| ES256         | ECDSA con curva P-256 y SHA-256 | Tu proveedor de identidad admite ES256.                                           |
+| ES384         | ECDSA con curva P-384 y SHA-384 | Tu proveedor de identidad requiere ES384.                                         |
+| ES512         | ECDSA con curva P-521 y SHA-512 | Tu proveedor de identidad requiere ES512.                                         |
+| Ed25519       | EdDSA con Curve25519            | Tu proveedor de identidad requiere Ed25519 por motivos de cumplimiento normativo. |
 
 Elige ES256, a menos que tu proveedor de identidad requiera específicamente otro algoritmo.
 
@@ -54,22 +54,22 @@ Elige ES256, a menos que tu proveedor de identidad requiera específicamente otr
   ## Habilitar DPoP
 </div>
 
-Para habilitar DPoP y elegir un algoritmo, usa Auth0 Dashboard o la Management API.
+Para habilitar DPoP y elegir un algoritmo, usa el Auth0 Dashboard o la Management API.
 
 <Tabs>
   <Tab title="Auth0 Dashboard">
     En Auth0 Dashboard:
 
-    1. Ve a **[empresarial](https://manage.auth0.com/dashboard/#/connections/enterprise/)**. Selecciona la conexión que quieres configurar.
+    1. Ve a **[Authentication &gt; empresarial](https://manage.auth0.com/dashboard/#/connections/enterprise/)**. Selecciona la conexión que quieres configurar.
     2. Selecciona la pestaña **Credentials**.
-    3. Marca la casilla **Habilitar demostración de posesión (DPoP)**.
-    4. En el menú **Signing Algorithms for DPoP**, elige tu algoritmo.
+    3. Marca la casilla **Enable Demonstrating Proof of Possession (DPoP)**.
+    4. En el menú de Signing Algorithms for DPoP, elige tu algoritmo.
        <Frame>![Habilitar DPoP y seleccionar un algoritmo](/docs/images/cdy7uua7fh8z/enable-dpop-dashboard.png)</Frame>
     5. Selecciona **Save**.
   </Tab>
 
   <Tab title="Management API">
-    Para usar la Management API, necesitas obtener un [token de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens).
+    Para usar la Management API, debes obtener un [token de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens).
 
     Haz una solicitud `PATCH` al endpoint [actualizar una conexión](https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id) con `dpop_signing_alg_values_supported` en el objeto `options`:
 
@@ -86,7 +86,7 @@ Para habilitar DPoP y elegir un algoritmo, usa Auth0 Dashboard o la Management A
     ```
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Si haces `PATCH` del parámetro `options`, se sobrescribirá todo el objeto `options`. Para evitar datos parciales u otros problemas, asegúrate de incluir todas las propiedad deseadas al hacer `PATCH` de `options`.
+      Si haces `PATCH` en el parámetro `options`, se sobrescribirá todo el objeto `options`. Para evitar datos parciales u otros problemas, asegúrate de que todas las propiedades necesarias estén presentes al hacer `PATCH` en `options`.
     </Callout>
 
     Reemplaza los valores de marcador de posición:
@@ -101,43 +101,30 @@ Para habilitar DPoP y elegir un algoritmo, usa Auth0 Dashboard o la Management A
   ## Probar DPoP
 </div>
 
-Después de habilitar DPoP, pruebe la configuración iniciando un flujo de inicio de sesión:
+Después de habilitar DPoP, prueba la configuración iniciando un flujo de inicio de sesión:
 
-1. Vaya a su aplicación.
-2. Inicie el flujo de inicio de sesión con la conexión empresarial que configuró.
-3. Complete el inicio de sesión con su proveedor de identidad de origen.
-4. [Consulte los registros de Auth0](/docs/es/deploy-monitor/logs#logs) y vaya a [**Auth0 Dashboard &gt; monitoreo &gt; Logs**](https://manage.auth0.com/#/logs) para confirmarlo.
+1. Ve a tu aplicación.
+2. Inicia el flujo de inicio de sesión con la conexión empresarial que configuraste.
+3. Completa el inicio de sesión con tu proveedor de identidad de origen.
+4. [Consulta los registros de Auth0](/docs/es/deploy-monitor/logs#logs) y ve a [**Auth0 Dashboard &gt; monitoreo &gt; Logs**](https://manage.auth0.com/#/logs) para confirmarlo.
 
-Una transacción correcta en una entrada de registro debería verse así:
+Una transacción exitosa en una entrada de registro debería verse así:
 
-```
-{
-  "type": "s",
-  "description": "Success Login",
-  "details": {
-    "dpop_signing_alg": "ES256",
-    "idp_token_type": "dpop",
-    "upstream_userinfo_fetch": {
-      "status": "SUCCESS",
-      "dpop_bound": true
-    }
-   }
-}
-```
+`\n{\n  \"type\": \"s\",\n  \"description\": \"Success Login\",\n  \"details\": {\n    \"dpop_signing_alg\": \"ES256\",\n    \"idp_token_type\": \"dpop\",\n    \"upstream_userinfo_fetch\": {\n      \"status\": \"SUCCESS\",\n      \"dpop_bound\": true\n    }\n   }\n}\n`
 
-Los valores `dpop_signing_alg` y `idp_token_type: "dpop"` confirman que Auth0 envió una prueba DPoP con el algoritmo configurado y que tu IdP emitió tokens vinculados a DPoP. El objeto `upstream_userinfo_fetch` solo está presente si se llama al endpoint [User Information](https://auth0.com/docs/api/authentication/user-profile/get-user-info). El campo `dpop_bound` solo está presente si la solicitud `GET` al endpoint `/userinfo` queda correctamente vinculada a DPoP.
+Los valores `dpop_signing_alg` e `idp_token_type: "dpop"` confirman que Auth0 envió una prueba DPoP con el algoritmo configurado y que tu IdP emitió tokens vinculados a DPoP. El objeto `upstream_userinfo_fetch` solo está presente si se llama al endpoint de [Información del usuario](https://auth0.com/docs/api/authentication/user-profile/get-user-info). El campo `dpop_bound` solo está presente si la solicitud `GET` al endpoint `/userinfo` queda correctamente vinculada a DPoP.
 
 <div id="disable-dpop">
   ## Deshabilitar DPoP
 </div>
 
-Puedes deshabilitar DPoP mediante Auth0 Dashboard o la Management API.
+Puedes deshabilitar DPoP desde el Auth0 Dashboard o la Management API.
 
 <Tabs>
   <Tab title="Auth0 Dashboard">
-    1. Ve a [**empresarial**](https://manage.auth0.com/dashboard/#/connections/enterprise/). Selecciona la conexión que quieres configurar.
-    2. Selecciona la pestaña **Credenciales**.
-    3. Desmarca la casilla **Habilitar demostración de posesión (DPoP)**.
+    1. Ve a [**Authentication &gt; empresarial**](https://manage.auth0.com/dashboard/#/connections/enterprise/). Selecciona la conexión que quieres configurar.
+    2. Selecciona la pestaña **Credentials**.
+    3. Desmarca la casilla **Enable Demonstrating Proof of Possession (DPoP)**.
     4. Selecciona **Guardar**.
   </Tab>
 
@@ -157,7 +144,7 @@ Puedes deshabilitar DPoP mediante Auth0 Dashboard o la Management API.
     ```
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Si haces `PATCH` del parámetro `options`, se sobrescribirá todo el objeto `options`. Para evitar datos parciales u otros problemas, asegúrate de que todas las propiedades necesarias estén presentes al hacer `PATCH` de `options`.
+      Si aplicas `PATCH` al parámetro `options`, se sobrescribirá todo el objeto `options`. Para evitar datos parciales u otras incidencias, asegúrate de que todas las propiedades necesarias estén presentes cuando apliques `PATCH` a `options`.
     </Callout>
   </Tab>
 </Tabs>
@@ -166,46 +153,46 @@ Puedes deshabilitar DPoP mediante Auth0 Dashboard o la Management API.
   ## Solución de problemas
 </div>
 
-Usa las siguientes recomendaciones para diagnosticar y resolver problemas con la configuración de DPoP para OIDC y las conexiones empresariales de Okta.
+Sigue las siguientes recomendaciones para diagnosticar y resolver problemas con la configuración de DPoP para OIDC y las conexiones empresariales de Okta.
 
 <div id="check-auth0-configuration">
-  ### Verifica la configuración de Auth0
+  ### Verifique la configuración de Auth0
 </div>
 
-Antes de empezar a solucionar problemas, verifica la configuración de DPoP en Auth0:
+Antes de empezar a solucionar el problema, verifique la configuración de DPoP en Auth0:
 
-1. Ve a [**Auth0 Dashboard &gt; empresarial**](https://manage.auth0.com/#/connections/enterprise).
-2. Selecciona tu conexión de Okta u OIDC.
-3. Verifica que la conexión **no** esté configurada con Token Vault; para ello, ve a **Configuración avanzada &gt; Tipos de concesión**. Asegúrate de que Token Vault no esté seleccionado.
-4. Usa el endpoint [actualizar una conexión](https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id) de Management API para comprobar la configuración `dpop_signing_alg`:
+1. Vaya a [**Auth0 Dashboard &gt; Autenticación &gt; Empresarial**](https://manage.auth0.com/#/connections/enterprise).
+2. Seleccione su conexión de Okta u OIDC.
+3. Verifique que la conexión **no** esté configurada con Token Vault; para ello, vaya a **Advanced Settings &gt; Tipos de concesión**. Asegúrese de que Token Vault no esté seleccionado.
+4. Use el endpoint [actualizar una conexión](https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id) de la Management API para comprobar la configuración `dpop_signing_alg`:
 
 ```curl
 GET https://YOUR_DOMAIN/api/v2/connections/YOUR_CONNECTION_ID
 Authorization: Bearer YOUR_MANAGEMENT_API_TOKEN
 ```
 
-En la respuesta de `dpop_signing_alg`, comprueba lo siguiente:
+En la respuesta `dpop_signing_alg`, compruebe lo siguiente:
 
-* Verifica que el algoritmo sea uno de los valores admitidos: **ES256**, **ES384**, **ES512** o **Ed25519**.
-* Verifica que la conexión use el intercambio de tokens por back-channel con el [flujo de código de autorización con PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce). DPoP no es compatible con las comunicaciones por front-channel, como en el [flujo implícito](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post), y se desactiva silenciosamente cuando la conexión usa el front-channel.
+* Verifique que el algoritmo sea uno de los valores compatibles: **ES256**, **ES384**, **ES512** o **Ed25519**.
+* Verifique que la conexión utilice intercambio de tokens por back-channel mediante el [flujo de código de autorización + PKCE](/docs/es/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce). DPoP no es compatible con las comunicaciones por front-channel, como en el [flujo implícito](/docs/es/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post), y se desactiva de forma silenciosa cuando la conexión utiliza el front-channel.
 
 <div id="dpop-fields-missing-in-tenant-logs">
-  #### Faltan campos de DPoP en los registros del tenant
+  #### Campos de DPoP ausentes en el registro del tenant
 </div>
 
-Si los registros de éxito (`s`) o de error (`f`) de Auth0 para la conexión empresarial no contienen los campos `dpop_signing_alg` o `idp_token_type`, podría deberse a una de las siguientes causas:
+Si los logs de éxito (`s`) o fallo (`f`) de Auth0 para la conexión empresarial no contienen los campos `dpop_signing_alg` o `idp_token_type`, puede deberse a una de las siguientes causas:
 
-* DPoP no está configurado. Verifique que `dpop_signing_alg` esté establecido en el objeto `options` de la conexión mediante el endpoint [actualizar una conexión](https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id) de la Management API, como se describió anteriormente.
-* Algoritmo no compatible. Auth0 admite ES256, ES384, ES512 y Ed25519. Si `dpop_signing_alg` está establecido en un valor no compatible (por ejemplo, RS256), DPoP se desactiva silenciosamente. No se registra ningún error. Actualice la conexión para usar ES256, ES384, ES512 o Ed25519.
-* Conexión de front-channel. DPoP requiere un tipo de conexión `back_channel` para intercambio de tokens. Es posible que deba [actualizar el tipo de concesión](/docs/es/get-started/applications/update-grant-types#update-grant-types) a un flujo de back-channel, como Flujo de Código de Autorización o flujo de código de autorización con PKCE.
+* DPoP no está configurado. Verifica que `dpop_signing_alg` esté definido en el objeto `options` de la conexión mediante el endpoint de la Management API [actualizar una conexión](https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id), como se describió anteriormente.
+* Algoritmo no compatible. Auth0 admite ES256, ES384, ES512 y Ed25519. Si `dpop_signing_alg` está definido con un valor no compatible (por ejemplo, RS256), DPoP se desactiva silenciosamente. No se registra ningún error. Actualiza la conexión para usar ES256, ES384, ES512 o Ed25519.
+* Conexión de front-channel. DPoP requiere un tipo de conexión de intercambio de tokens `back_channel`. Es posible que debas [actualizar el tipo de concesión](/docs/es/get-started/applications/update-grant-types#update-grant-types) a un flujo de back-channel, como Authorization Code Flow o flujo de código de autorización + PKCE.
 
 <div id="authentication-fails-after-enabling-dpop">
   ### La autenticación falla después de habilitar DPoP
 </div>
 
-Consulta las siguientes técnicas de solución de problemas si tus usuarios no pueden completar la autenticación después de habilitar DPoP en tu conexión empresarial de Okta u OIDC.
+Revisa las siguientes técnicas de solución de problemas si tus usuarios no pueden completar la autenticación después de habilitar DPoP en tu conexión empresarial de Okta u OIDC.
 
-Los registros del tenant deberían mostrar un evento de error (`f`) con `dpop_signing_alg`, similar a:
+Los registros del tenant deberían mostrar un evento de error (`f`) con `dpop_signing_alg` similar a:
 
 ```bash
 {
@@ -217,56 +204,56 @@ Los registros del tenant deberían mostrar un evento de error (`f`) con `dpop_si
 }
 ```
 
-Ten en cuenta que el fallo no incluye `idp_token_type` porque Auth0 no recibió ningún token de tu IdP.
+Ten en cuenta que el error no incluye `idp_token_type` porque Auth0 no recibió ningún token de tu IdP.
 
 <div id="identity-provider-rejects-dpop-proof">
   #### El proveedor de identidad rechaza la prueba DPoP
 </div>
 
-El IdP puede rechazar activamente la prueba DPoP que Auth0 envía durante el intercambio de tokens. El IdP puede devolver un error `invalid_dpop_proof`, lo que provoca que falle la autenticación.
+Es posible que el IdP rechace activamente la prueba DPoP que Auth0 envía durante el intercambio de tokens. El IdP puede devolver un error `invalid_dpop_proof`, lo que provoca un fallo en la autenticación.
 
-Comprueba que el IdP admita DPoP y que el algoritmo configurado (ES256, ES384, ES512 o Ed25519) figure en la lista de algoritmos admitidos. Puedes comprobarlo accediendo al documento de descubrimiento de OpenID Connect del IdP:
+Comprueba que el IdP sea compatible con DPoP y que el algoritmo configurado (ES256, ES384, ES512 o Ed25519) figure en la lista de compatibles. Puedes comprobarlo accediendo al documento de descubrimiento de OpenID Connect del IdP:
 
 ```curl
 curl https://YOUR_IDP_DOMAIN/.well-known/openid-configuration
 ```
 
-En la respuesta del IdP, busca `dpop_signing_alg_values_supported`. Si falta este campo, es posible que el IdP no sea compatible con DPoP. Si el campo enumera solo algoritmos que Auth0 no admite (por ejemplo, solo RS256), no se puede usar DPoP con esta conexión. Debes deshabilitar DPoP para esta conexión o ponerte en contacto con tu IdP para habilitar la compatibilidad con ES256, ES384, ES512 o Ed25519.
+En la respuesta del IdP, busque `dpop_signing_alg_values_supported`. Si falta este campo, es posible que el IdP no admita DPoP. Si el campo enumera únicamente algoritmos que Auth0 no admite (por ejemplo, solo RS256), no se podrá usar DPoP con esta conexión. Debe deshabilitar DPoP para esta conexión o ponerse en contacto con su IdP para habilitar la compatibilidad con ES256, ES384, ES512 o Ed25519.
 
 <div id="token-exchange-fails-for-a-non-dpop-reason">
   #### El intercambio de tokens falla por un motivo no relacionado con DPoP
 </div>
 
-Si encuentra un registro de error con `dpop_signing_alg` presente, esto no significa necesariamente que DPoP haya causado el fallo. Auth0 adjunta metadatos de DPoP a todos los registros de error cuando DPoP está configurado, incluso si la causa raíz no está relacionada. Por ejemplo, la autenticación podría fallar debido a un código de autorización vencido o a credenciales de cliente no válidas.
+Si encuentra un registro de error con `dpop_signing_alg` presente, eso no significa necesariamente que DPoP haya causado el error. Auth0 adjunta metadatos de DPoP a todos los registros de error cuando DPoP está configurado, aunque la causa raíz no esté relacionada. Por ejemplo, la authentication podría fallar debido a un código de autorización caducado o a credenciales de cliente no válidas.
 
-Examine la descripción del error en el registro de error para determinar la causa real. Entre los errores comunes no relacionados con DPoP se incluyen: `invalid_grant`, `invalid_client` y errores de verificación de la firma del token de identidad.
+Revise la descripción del error en el registro de error para determinar la causa real. Algunos errores comunes no relacionados con DPoP incluyen: `invalid_grant`, `invalid_client` y errores de verificación de la firma del token de identidad.
 
 <div id="dpop-key-generation-fails">
-  #### La generación de claves DPoP falla
+  #### Error al generar la clave DPoP
 </div>
 
-Auth0 genera un par de claves efímeras para cada prueba DPoP. Si la generación de claves falla, la autenticación falla antes de que se envíe la solicitud de token. Se trata de un problema transitorio del servidor. Pídele al usuario que vuelva a intentar la autenticación.
+Auth0 genera un par de claves efímero para cada prueba DPoP. Si la generación de la clave falla, la autenticación falla antes de que se envíe la solicitud de token. Se trata de un problema transitorio del servidor. Pídele al usuario que vuelva a intentar la autenticación.
 
 <div id="idp-token-binding">
   #### Vinculación de tokens del IdP
 </div>
 
-Si la autenticación del usuario se realiza correctamente, pero los registros del tenant de Auth0 muestran `"idp_token_type": "bearer"`, es posible que tu IdP no vincule tokens con DPoP incluso cuando Auth0 envía pruebas DPoP. Según la RFC 9449, este es un comportamiento compatible. El IdP tiene control total sobre si emite tokens vinculados a DPoP y puede no vincularlos por los siguientes motivos:
+Si la autenticación de usuario se realiza correctamente, pero los registros del tenant de Auth0 muestran `"idp_token_type": "bearer"`, es posible que tu IdP no vincule los tokens con DPoP incluso cuando Auth0 envía pruebas de DPoP. Según la RFC 9449, este es un comportamiento conforme. El IdP tiene pleno control sobre si emite tokens vinculados a DPoP y puede no vincularlos por alguno de estos motivos:
 
-* La política del IdP no requiere DPoP para el recurso o la aplicación solicitados.
-* El IdP no admite DPoP a pesar de aceptar la prueba sin error.
-* El IdP encontró un problema interno al procesar la prueba DPoP.
+* La política del IdP no exige DPoP para el recurso o la aplicación solicitados.
+* El IdP no admite DPoP, aunque acepta la prueba sin errores.
+* El IdP tuvo una incidencia interna al procesar la prueba de DPoP.
 
-Auth0 registra esto como un evento de &quot;degradación&quot;. La autenticación se completa correctamente con tokens Bearer estándar.
+Auth0 registra esto como un evento de &quot;downgrade&quot;. La autenticación se completa correctamente con tokens Bearer estándar.
 
-Si necesitas tokens vinculados a DPoP por motivos de cumplimiento normativo, te recomendamos que te pongas en contacto con tu IdP para entender por qué no se están vinculando los tokens. Auth0 no puede imponer la vinculación de DPoP en la respuesta de token del proveedor de identidad.
+Si necesitas tokens vinculados a DPoP por motivos de cumplimiento, te recomendamos que contactes con tu IdP para entender por qué no se están vinculando los tokens. Auth0 no puede forzar la vinculación de DPoP en la respuesta de token del proveedor de identidad.
 
 <div id="dpop-nonce-handling">
   #### Manejo del nonce de DPoP
 </div>
 
-Algunos IdP requieren un `nonce` en la [prueba DPoP según §8](https://www.rfc-editor.org/rfc/rfc9449.html#name-authorization-server-provid). Cuando tu IdP devuelve un HTTP `400` con el encabezado de respuesta `DPoP-Nonce`, Auth0 reintenta automáticamente la solicitud de token con el nonce proporcionado. Esto se gestiona de forma transparente y no aparece como un fallo en los registros del tenant.
+Algunos IdP requieren un `nonce` en la [prueba DPoP según la §8](https://www.rfc-editor.org/rfc/rfc9449.html#name-authorization-server-provid). Cuando tu IdP devuelve un HTTP `400` con el encabezado de respuesta `DPoP-Nonce`, Auth0 vuelve a intentar automáticamente la solicitud de token con el nonce proporcionado. Esto se gestiona de forma transparente y no aparece como un fallo en los registros del tenant.
 
 El código de error `use_dpop_nonce` es una señal interna del protocolo entre Auth0 y el IdP. No indica ningún problema. No deberías ver `use_dpop_nonce` como motivo de una entrada de registro de error. Si el reintento con el nonce también falla (por ejemplo, si el proveedor de identidad devuelve `invalid_dpop_proof` en el segundo intento), el error final es el que aparece en el registro de error.
 
-Si observas fallos de autenticación repetidos en una conexión en la que el proveedor de identidad requiere nonces, comprueba la conectividad de red entre Auth0 y el proveedor de identidad. El intercambio de nonce requiere dos idas y vueltas al endpoint de token, lo que aumenta la sensibilidad a los tiempos de espera de red.
+Si observas fallos repetidos de autenticación en una conexión en la que el proveedor de identidad requiere nonces, verifica la conectividad de red entre Auth0 y el proveedor de identidad. El intercambio de nonce requiere dos idas y vueltas al endpoint de token, lo que aumenta la sensibilidad a los tiempos de espera de red.

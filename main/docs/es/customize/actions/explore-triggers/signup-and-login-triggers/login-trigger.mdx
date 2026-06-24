@@ -1,5 +1,5 @@
 ---
-description: Conozca el flujo de Login de Actions y el trigger de Action Post Login, que se ejecuta después de que un usuario inicia sesión y cuando se solicita un token de actualización.
+description: Aprende sobre el flujo de Login de Actions y el trigger de Action de Post Login, que se ejecuta después de que un usuario inicia sesión o cuando se solicita un token de actualización.
 sidebarTitle: Información general
 title: Trigger de Login
 ---
@@ -8,7 +8,7 @@ El trigger de Login se ejecuta cuando un usuario se autentica correctamente en u
 
 <Frame>![Diagrama que muestra el flujo de Login de Actions.](/docs/images/cdy7uua7fh8z/2SkfIOm4fFOJ8N0GNJwam8/77230cdb4411b2383751b037fb56fe29/2024-09-30_10-01-42.png)</Frame>
 
-Las Actions en este trigger son bloqueantes (sincrónicas), lo que significa que se ejecutan como parte del proceso del trigger e impiden que el resto del pipeline de Auth0 se ejecute hasta que la Action se complete.
+Las Actions de este trigger son bloqueantes (sincrónicas), lo que significa que se ejecutan como parte del proceso del trigger e impiden que el resto del pipeline de Auth0 se ejecute hasta que la Action se complete.
 
 <div id="triggers">
   ## Triggers
@@ -18,24 +18,24 @@ Las Actions en este trigger son bloqueantes (sincrónicas), lo que significa que
   ### Login / Post Login
 </div>
 
-El `post-login` trigger es una función que se ejecuta después de que un usuario inicia sesión y cuando se intercambia un <Tooltip tip="Token de actualización: token que se utiliza para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+Token">token de actualización</Tooltip>.
+El trigger `Post Login` es una función que se ejecuta después de que un usuario inicia sesión y también cuando se intercambia un <Tooltip tip="Token de actualización: token que se utiliza para obtener un nuevo token de acceso sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+Token">token de actualización</Tooltip>.
 
 <div id="references">
   #### Referencias
 </div>
 
-* [Objeto de evento](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object): Proporciona información contextual sobre un usuario que inicia sesión a través de Auth0.
-* [Objeto de API](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object): Proporciona métodos para cambiar el comportamiento del flujo.
+* [Objeto de evento](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object): Proporciona información contextual sobre un usuario que inicia sesión en Auth0.
+* [objeto de API](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object): Proporciona métodos para modificar el comportamiento del flujo.
 
 <div id="common-use-cases">
-  ## Casos de uso comunes
+  ## Casos de uso habituales
 </div>
 
 <div id="access-control">
   ### Control de acceso
 </div>
 
-Una Action de Post Login puede utilizarse para implementar lógica personalizada que deniegue el acceso a un usuario que intenta acceder a una aplicación:
+Una Action de Post Login se puede usar para implementar lógica personalizada que deniegue el acceso a un usuario que intenta acceder a una aplicación:
 
 ```javascript lines
 /**
@@ -72,15 +72,15 @@ Si tienes una aplicación y quieres asegurarte de que solo se pueda acceder a el
 ```
 
 <div id="deny-access-to-anyone-calling-an-api">
-  ### Denegar el acceso a cualquiera que llame a una API
+  ### Denegar el acceso a quienes llamen a una API
 </div>
 
-Supongamos que quieres denegar el acceso a todos los usuarios que llamen a una API. Esto significa que debes denegar el acceso en función del valor de la <Tooltip tip="Audiencia: identificador único de la audiencia de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audiencia</Tooltip> de tu API, que puedes encontrar en el campo **API Audience** de tu API en [Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis). Para ello, crearías la siguiente Action:
+Supongamos que quieres denegar el acceso a todos los usuarios que llamen a una API. Esto significa que debes denegar el acceso en función del valor de la <Tooltip tip="Audiencia: identificador único de la audiencia de un token emitido. Se llama aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (identificador de API) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=audience">audiencia</Tooltip> de tu API, que puedes encontrar en el campo **API Audience** de tu API en [Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis). Para ello, crearías la siguiente Action:
 
 ```javascript lines
 /**
  * @param {Event} event - Detalles sobre el usuario y el contexto en el que está iniciando sesión.
- * @param {PostLoginAPI} api - Interfaz cuyos métodos pueden usarse para cambiar el comportamiento del login.
+ * @param {PostLoginAPI} api - Interfaz cuyos métodos pueden usarse para cambiar el comportamiento del inicio de sesión.
  */
  exports.onExecutePostLogin = async (event, api) => {
   // En Actions, una API se denomina Resource Server.
@@ -91,10 +91,10 @@ Supongamos que quieres denegar el acceso a todos los usuarios que llamen a una A
 ```
 
 <div id="add-user-roles-to-id-and-access-tokens">
-  ### Agregar roles de usuario a los tokens de ID y de acceso
+  ### Añade roles de usuario a los tokens de ID y de acceso
 </div>
 
-Para agregar roles de usuario a los tokens emitidos por Auth0, use el objeto `event.authorization` junto con los métodos `api.idToken.setCustomClaim` y `api.accessToken.setCustomClaim`:
+Para añadir roles de usuario a los tokens emitidos por Auth0, usa el objeto `event.authorization` junto con los métodos `api.idToken.setCustomClaim` y `api.accessToken.setCustomClaim`:
 
 ```javascript lines
 /**
@@ -110,14 +110,14 @@ exports.onExecutePostLogin = async (event, api) => {
 }
 ```
 
-* Un claim personalizado no puede incluir ciertos términos, y recomendamos encarecidamente usar un claim con espacio de nombres en forma de URI. Consulta [nuestra documentación sobre claims personalizados](/docs/es/secure/tokens/json-web-tokens/create-custom-claims) para obtener más información.
-* El <Tooltip tip="JSON Web Token (JWT): formato estándar de token de ID (y, a menudo, de token de acceso) que se utiliza para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> que se devuelve a la aplicación solicitante se crea y firma al final del procesamiento del trigger. No es posible acceder al JWT final firmado desde una Action.
+* Un claim personalizado no puede incluir ciertos términos, y recomendamos encarecidamente usar un claim con espacio de nombres con formato de URI. Consulta [nuestra documentación sobre claims personalizados](/docs/es/secure/tokens/json-web-tokens/create-custom-claims) para obtener más información.
+* El <Tooltip tip="JSON Web Token (JWT): Formato estándar del token de ID (y, a menudo, del access token) utilizado para representar claims de forma segura entre dos partes." cta="Ver glosario" href="/docs/es/glossary?term=JWT">JWT</Tooltip> que se devuelve a la aplicación solicitante se genera y firma al final del procesamiento del trigger. No se puede acceder al JWT final firmado desde una Action.
 
 <div id="enrich-the-user-profile">
-  ### Enriquece el perfil del usuario
+  ### Enriquecer el perfil del usuario
 </div>
 
-Auth0 proporciona un sistema para almacenar metadatos en un [perfil del usuario](/docs/es/manage-users/user-accounts/user-profiles/normalized-user-profiles). Para establecer `user_metadata` o `app_metadata` en el perfil de un usuario durante el inicio de sesión, usa las funciones `api.user.setUserMetadata` o `api.user.setAppMetadata`.
+Auth0 proporciona un sistema para almacenar metadatos en un [perfil de usuario](/docs/es/manage-users/user-accounts/user-profiles/normalized-user-profiles). Para establecer `user_metadata` o `app_metadata` en el perfil de un usuario durante el inicio de sesión, use las funciones `api.user.setUserMetadata` o `api.user.setAppMetadata`.
 
 ```javascript lines
 /**
@@ -129,13 +129,13 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-Una vez que se hayan ejecutado todas las Actions de Post Login, Actions actualizará el perfil del usuario en una sola operación. Esta operación está sujeta al &quot;límite de frecuencia&quot; de [Write Users](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy/management-api-endpoint-rate-limits).
+Una vez ejecutadas todas las acciones de Post Login, Actions actualizará el perfil del usuario en una sola operación. Esta operación está sujeta al [límite de frecuencia](/docs/es/troubleshoot/customer-support/operational-policies/rate-limit-policy/management-api-endpoint-rate-limits) de &quot;Write Users&quot;.
 
 <div id="enforce-custom-mfa-policy">
-  ### Aplicar una política de MFA personalizada
+  ### Aplicar una política personalizada de MFA
 </div>
 
-Se puede usar una Action de Post Login para exigir dinámicamente <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuarios que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> a un usuario según las necesidades de tu aplicación.
+Se puede usar una Action de Post Login para exigir dinámicamente <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación de usuario que utiliza un factor adicional al nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> a un usuario según las necesidades de tu aplicación.
 
 ```javascript lines
 /**
@@ -150,7 +150,7 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-Se debe configurar un proveedor de MFA para habilitar MFA durante el inicio de sesión. Para obtener más información, lee [Autenticación multifactor](/docs/es/secure/multi-factor-authentication).
+Es necesario configurar un Provider de MFA para habilitar MFA durante el inicio de sesión. Para obtener más información, consulta [Autenticación multifactor](/docs/es/secure/multi-factor-authentication).
 
 <div id="reduce-friction-with-passkeys">
   ### Reduce la fricción con claves de acceso
@@ -166,7 +166,7 @@ Se puede usar una Action de Post Login para reducir la fricción al omitir diná
 * @param {PostLoginAPI} api - Interfaz cuyos métodos pueden usarse para cambiar el comportamiento del inicio de sesión.
 */
 exports.onExecutePostLogin = async (event, api) => {
- // Verificar si se usó una clave de acceso para autenticarse
+ // Verificar si se usó una clave de acceso para autenticar
  const skipMFA = event.authentication?.methods.some(
    (method) => method.name === "passkey"
  );
@@ -178,13 +178,13 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-La conexión debe tener habilitadas las claves de acceso y MFA. Para obtener más información, consulta [Claves de acceso](/docs/es/authenticate/database-connections/passkeys) y [Autenticación multifactor](/docs/es/secure/multi-factor-authentication).
+La conexión debe tener activadas las claves de acceso y MFA. Para obtener más información, consulta [Claves de acceso](/docs/es/authenticate/database-connections/passkeys) y [Autenticación multifactor](/docs/es/secure/multi-factor-authentication).
 
 <div id="redirect-the-user-to-an-external-site">
   ### Redirigir al usuario a un sitio externo
 </div>
 
-Al igual que con las [Redirect Rules](/docs/es/customize/rules/redirect-users), se puede usar una Action de Post Login para enviar al usuario a un sitio externo. Una vez completado ese paso, se puede redirigir al usuario de nuevo a Auth0 para continuar con su flujo de inicio de sesión. En el ejemplo siguiente, se usa una Redirect Action para pedirle al usuario que indique su color favorito.
+Al igual que con [Redirect Rules](/docs/es/customize/rules/redirect-users), una Action de Post Login puede usarse para enviar al usuario a un sitio externo. Una vez completado, se puede redirigir al usuario de vuelta a Auth0 para que continúe con su flujo de inicio de sesión. En el ejemplo siguiente, se usa una Action de redirección para pedirle al usuario que indique su color favorito.
 
 ```javascript lines expandable
 /**
@@ -227,18 +227,18 @@ exports.onContinuePostLogin = async (event, api) => {
 };
 ```
 
-El pipeline de Actions se suspenderá mientras el usuario es redirigido. Una vez que el usuario continúe su proceso de inicio de sesión de Auth0, el pipeline de Actions se reanudará en el punto en que se suspendió. Las Actions que se ejecutaron antes del Redirect no se volverán a ejecutar.
+El pipeline de Actions se suspenderá mientras el usuario es redirigido. Una vez que el usuario continúe con su proceso de inicio de sesión de Auth0, el pipeline de Actions se reanudará en el punto en que se suspendió. Las Actions que se ejecutaron antes de la redirección no se volverán a ejecutar.
 
 Para obtener más información sobre Redirect Actions, consulta [Redirect with Actions](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/redirect-with-actions).
 
 <div id="modify-scopes-on-an-access-token">
-  ### Modificar scopes de un access token
+  ### Modificar los scopes de un access token
 </div>
 
-Al modificar los scopes asociados a un <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">access token</Tooltip>, asegúrate de seguir las prácticas recomendadas sobre la especificación de audience.
+Al modificar los scopes asociados a un <Tooltip tip="Access Token: Credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+token">access token</Tooltip>, asegúrate de seguir las prácticas recomendadas sobre la especificación de la audience.
 
-* Comprueba siempre la audience esperada antes de agregar scopes.
-* Evita usar entradas no confiables al agregar scopes.
+* Comprueba siempre la audience esperada antes de añadir scopes.
+* Evita usar datos de entrada no confiables al añadir scopes.
 
 ```javascript lines
 /**
@@ -256,7 +256,7 @@ exports.onExecutePostLogin = async (event, api) => {
   ### Denegar el acceso a huellas digitales JA3/JA4 específicas
 </div>
 
-El objeto `event.security_context` contiene los valores de las huellas digitales JA3/JA4 de la transacción actual.
+El objeto `event.security_context` contiene los valores de huella digital JA3/JA4 de la transacción actual.
 
 ```js lines
 exports.onExecutePreUserRegistration = async (event, api) => {
@@ -273,6 +273,6 @@ exports.onExecutePreUserRegistration = async (event, api) => {
   ## Más información
 </div>
 
-* [Gestiona los metadatos de usuario con el trigger de Action de Post Login](/docs/es/manage-users/user-accounts/metadata/manage-user-metadata)
-* [Redirige con Actions](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/redirect-with-actions)
-* [Comprende cómo funcionan los metadatos en los perfiles de usuario](/docs/es/manage-users/user-accounts/metadata)
+* [Gestionar los metadatos de usuario con el trigger de Action de Post Login](/docs/es/manage-users/user-accounts/metadata/manage-user-metadata)
+* [Redirigir con Actions](/docs/es/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/redirect-with-actions)
+* [Entender cómo funcionan los metadatos en los perfiles de usuario](/docs/es/manage-users/user-accounts/metadata)

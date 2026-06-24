@@ -1,19 +1,19 @@
 ---
-description: Gardez une base de données externe ou un entrepôt de données synchronisés avec les changements apportés aux données d’identité dans Auth0 à l’aide d’Event Streams.
+description: Gardez une base de données externe ou un entrepôt de données synchronisé avec les changements d’identité dans Auth0 à l’aide d’Event Streams.
 title: Synchroniser les données entre les systèmes
 ---
 
-Avec Event Streams, vous pouvez conserver une copie de vos données d’identité Auth0 dans un système externe, comme une base de données relationnelle, un entrepôt de données ou un index de recherche. Lorsqu’un profil utilisateur est créé, mis à jour ou supprimé dans Auth0, un événement est envoyé à la destination configurée pour votre stream afin que votre système externe puisse appliquer la même modification.
+Avec Event Streams, vous pouvez conserver une copie de vos données d’identité d’Auth0 dans un système externe, comme une base de données relationnelle, un entrepôt de données ou un index de recherche. Lorsqu’un profil utilisateur est créé, mis à jour ou supprimé dans Auth0, un événement est envoyé à la destination de votre stream afin que votre système externe puisse apporter la même modification.
 
 <div id="why-synchronize-identity-data">
   ## Pourquoi synchroniser les données d’identité
 </div>
 
-Il est utile de conserver une copie locale des données d’identité lorsque vous devez :
+Conserver une copie locale des données d’identité est utile lorsque vous devez :
 
-* Effectuer des analyses, produire des rapports ou exécuter des requêtes de conformité sans appeler la Management API.
+* Exécuter des analyses, produire des rapports ou effectuer des requêtes de conformité sans appeler la Management API.
 * Offrir des fonctions de recherche qui nécessitent des recherches à faible latence dans les attributs des utilisateurs.
-* Alimenter des pipelines de données qui combinent des enregistrements d’identité avec d’autres données d’affaires.
+* Alimenter des pipelines de données qui croisent des enregistrements d’identité avec d’autres données d’affaires.
 * Conserver une sauvegarde de l’état du profil utilisateur pour la reprise après sinistre.
 
 <div id="how-it-works">
@@ -38,21 +38,21 @@ Les types d’événements suivants sont pertinents pour la synchronisation des 
 
 Avant de commencer, assurez-vous d’avoir :
 
-* Un tenant Auth0 où Events est activé. Pour en savoir plus sur les forfaits offerts, consultez [Créer un Event Stream](/docs/fr-CA/customize/events/create-an-event-stream).
+* Un tenant Auth0 où Events est activé. Pour en savoir plus sur la disponibilité selon le forfait, consultez [Créer un Event Stream](/docs/fr-CA/customize/events/create-an-event-stream).
 * Un Event Stream actif abonné à `user.created`, `user.updated` et `user.deleted`. Pour en savoir plus, consultez [Créer un Event Stream](/docs/fr-CA/customize/events/create-an-event-stream).
-* Un stockage de données externe (par exemple, PostgreSQL, MySQL ou un entrepôt de données) dans lequel votre gestionnaire peut écrire.
+* Un stockage de données externe (par exemple, PostgreSQL, MySQL ou un entrepôt de données) dans lequel votre handler peut écrire.
 
 <div id="implement-data-synchronization">
-  ## Implement la synchronisation des données
+  ## Synchronisation des données avec Implement
 </div>
 
-Les sections ci-dessous montrent comment traiter chaque type d’événement. Les fonctions de gestionnaire sont les mêmes, quelle que soit la destination de votre Event Stream. La section [Acheminer les événements selon le type](#route-events-by-type) montre comment acheminer les événements vers des destinations webhook et Auth0 Action.
+Les sections ci-dessous montrent comment traiter chaque type d’événement. Les fonctions handler sont les mêmes, quelle que soit la destination de votre Event Stream. La section [Acheminer les événements par type](#route-events-by-type) montre comment acheminer les événements pour les destinations webhook et Auth0 Action.
 
 <div id="handle-usercreated">
   ### Traiter user.created
 </div>
 
-Lorsqu’Auth0 publie un événement `user.created`, insérez une nouvelle ligne dans votre base de données.
+Lorsqu’Auth0 publie un événement `user.created`, insérez un nouvel enregistrement dans votre base de données.
 
 ```javascript wrap lines
 async function handleUserCreated(user, time) {
@@ -72,7 +72,7 @@ async function handleUserCreated(user, time) {
   ### Traiter user.updated
 </div>
 
-Lorsque Auth0 publie un événement `user.updated`, mettez à jour la ligne correspondante. Comparez l’horodatage de l’événement avec la colonne `last_event_processed` pour éviter d’écraser des données obsolètes.
+Lorsque Auth0 émet un événement `user.updated`, mettez à jour la ligne correspondante. Comparez l’horodatage de l’événement avec la colonne `last_event_processed` pour éviter d’écraser des données obsolètes.
 
 ```javascript wrap lines
 async function handleUserUpdated(user, time) {
@@ -90,14 +90,14 @@ async function handleUserUpdated(user, time) {
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Les Events peuvent être reçus dans le désordre. Comparez toujours les horodatages avant d’appliquer les mises à jour afin d’éviter que des données périmées n’écrasent des enregistrements plus récents. Pour en savoir plus, consultez [Events Best Practices](/docs/fr-CA/customize/events/events-best-practices).
+  Les Events peuvent ne pas arriver dans l’ordre. Comparez toujours les horodatages avant d’appliquer les mises à jour afin d’éviter que des données périmées n’écrasent des enregistrements plus récents. Pour en savoir plus, consultez [Events Best Practices](/docs/fr-CA/customize/events/events-best-practices).
 </Callout>
 
 <div id="handle-userdeleted">
   ### Traiter user.deleted
 </div>
 
-Quand Auth0 publie un événement `user.deleted`, supprimez la ligne correspondante ou marquez-la comme supprimée.
+Quand Auth0 publie un événement `user.deleted`, supprimez la ligne correspondante ou effectuez une suppression logique.
 
 ```javascript wrap lines
 async function handleUserDeleted(user) {
@@ -110,10 +110,10 @@ async function handleUserDeleted(user) {
 ```
 
 <div id="route-events-by-type">
-  ### Acheminez les événements selon leur type
+  ### Acheminer les événements par type
 </div>
 
-Utilisez un routeur de niveau supérieur pour diriger chaque événement vers le bon gestionnaire. Les exemples ci-dessous montrent comment acheminer les événements vers des destinations webhook et Auth0 Action.
+Utilisez un routeur principal pour acheminer chaque événement vers le handler approprié. Les exemples ci-dessous montrent comment acheminer les événements vers des destinations webhook et Auth0 Action.
 
 <Tabs>
   <Tab title="Webhook">
@@ -146,7 +146,7 @@ Utilisez un routeur de niveau supérieur pour diriger chaque événement vers le
     ```
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Renvoyez une réponse HTTP `2XX` le plus rapidement possible. Si votre gestionnaire doit effectuer des opérations lentes, placez l’événement dans une file d’attente interne et traitez-le de manière asynchrone. Pour en savoir plus, consultez [Events Best Practices](/docs/fr-CA/customize/events/events-best-practices).
+      Retournez une réponse HTTP `2XX` le plus rapidement possible. Si votre handler doit effectuer des opérations lentes, placez l’événement dans une file d’attente interne et traitez-le de façon asynchrone. Pour en savoir plus, consultez [Events Best Practices](/docs/fr-CA/customize/events/events-best-practices).
     </Callout>
   </Tab>
 
@@ -176,14 +176,14 @@ Utilisez un routeur de niveau supérieur pour diriger chaque événement vers le
 </Tabs>
 
 <div id="guard-against-duplicates-and-ordering-issues">
-  ## Prémunissez-vous contre les doublons et les problèmes d’ordre
+  ## Se prémunir contre les doublons et les problèmes d’ordre
 </div>
 
-Les Event Streams assurent une livraison au moins une fois, ce qui signifie que votre gestionnaire peut recevoir le même événement plus d’une fois. Pour gérer cela en toute sécurité :
+Event Streams offrent une livraison au moins une fois, ce qui signifie que votre handler peut recevoir le même événement plus d’une fois. Pour gérer cela de façon sécuritaire :
 
-* **Suivez les ID des événements.** Stockez le `id` de chaque événement traité et ignorez tout événement que vous avez déjà traité.
-* **Comparez les horodatages.** Le payload de chaque événement comprend les champs `created_at` et `updated_at` dans `data.object`. Utilisez ces champs pour déterminer si un événement entrant est plus récent que celui que votre système a déjà enregistré.
-* **Utilisez des écritures idempotentes.** Structurez vos opérations de base de données de sorte que l’application du même événement à deux reprises produise le même résultat. Par exemple, utilisez `INSERT ... ON CONFLICT DO UPDATE` dans PostgreSQL.
+* **Faites le suivi des ID d’événement.** Stockez l’`id` de chaque événement traité et ignorez tout événement que vous avez déjà traité.
+* **Comparez les horodatages.** Chaque payload d’événement comprend les champs `created_at` et `updated_at` dans `data.object`. Utilisez ces champs pour déterminer si un événement entrant est plus récent que ce que votre système a déjà enregistré.
+* **Utilisez des écritures idempotentes.** Structurez vos opérations de base de données de sorte que l’application du même événement deux fois produise le même résultat. Par exemple, utilisez `INSERT ... ON CONFLICT DO UPDATE` dans PostgreSQL.
 
 ```sql wrap lines
 INSERT INTO users (user_id, email, name, nickname, created_at, updated_at, last_event_processed)
@@ -198,16 +198,16 @@ WHERE users.last_event_processed < EXCLUDED.last_event_processed;
 ```
 
 <div id="verify-synchronization">
-  ## Vérifier la synchronisation
+  ## Vérifiez la synchronisation
 </div>
 
-Après avoir déployé votre gestionnaire, créez un utilisateur test dans Auth0 et confirmez ce qui suit :
+Après avoir déployé votre handler, créez un utilisateur test dans Auth0 et confirmez ce qui suit :
 
-1. Une nouvelle ligne apparaît dans votre base de données externe avec les données de profil appropriées.
-2. Mettez à jour le nom ou l’adresse courriel de l’utilisateur dans Auth0. Confirmez que la ligne de la base de données tient compte du changement.
-3. Supprimez l’utilisateur dans Auth0. Confirmez que la ligne est supprimée (ou marquée comme supprimée) dans votre base de données.
+1. Un nouvel enregistrement apparaît dans votre base de données externe avec les bonnes données de profil.
+2. Mettez à jour le nom ou l’adresse courriel de l’utilisateur dans Auth0. Confirmez que l’enregistrement dans la base de données reflète ce changement.
+3. Supprimez l’utilisateur dans Auth0. Confirmez que l’enregistrement est supprimé (ou marqué comme supprimé) dans votre base de données.
 
-Pour en savoir plus sur la mise à l’essai d’Event Streams, consultez [Event Testing, Observability, and Failure Recovery](/docs/fr-CA/customize/events/event-testing-observability-and-failure-recovery).
+Pour en savoir plus sur la mise à l’essai des Event Streams, consultez [Tests des événements, observabilité et reprise après échec](/docs/fr-CA/customize/events/event-testing-observability-and-failure-recovery).
 
 <div id="learn-more">
   ## En savoir plus
@@ -215,4 +215,4 @@ Pour en savoir plus sur la mise à l’essai d’Event Streams, consultez [Event
 
 * [Types d’événements](/docs/fr-CA/customize/events/event-types)
 * [Créer un Event Stream](/docs/fr-CA/customize/events/create-an-event-stream)
-* [Bonnes pratiques relatives à Events](/docs/fr-CA/customize/events/events-best-practices)
+* [Bonnes pratiques relatives aux événements](/docs/fr-CA/customize/events/events-best-practices)
