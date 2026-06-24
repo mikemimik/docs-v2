@@ -1,21 +1,21 @@
 ---
-title: Ajouter la connexion à votre application ASP.NET OWIN
-description: Ce guide explique comment intégrer Auth0 à n’importe quelle application ASP.NET OWIN, nouvelle ou existante, à l’aide du package NuGet Microsoft.Owin.Security.OpenIdConnect.
+title: Ajouter la fonctionnalité de connexion à votre application ASP.NET OWIN
+description: Ce guide montre comment intégrer Auth0 à une application ASP.NET OWIN, nouvelle ou existante, à l’aide du package NuGet Microsoft.Owin.Security.OpenIdConnect.
 sidebarTitle: ASP.NET OWIN
 ---
 
-import {HowToSchema} from "/snippets/HowToSchema.jsx";
+import {HowToSchema} from "/snippets/fr-CA/HowToSchema.jsx";
 
 <HowToSchema />
 
-Auth0 vous permet d’ajouter l’authentication à votre application ASP.NET OWIN en quelques minutes. Ce guide vous montre comment ajouter la connexion, le logout et l’affichage du profil utilisateur à une application ASP.NET OWIN classique.
+Auth0 vous permet d’ajouter l’authentication à votre application ASP.NET OWIN en quelques minutes. Ce guide vous explique comment ajouter la connexion, le logout et l’affichage du profil utilisateur à une application ASP.NET OWIN classique.
 
-À la fin de ce guide, votre application pourra :
+À la fin de ce guide, votre application pourra :
 
 * Rediriger les utilisateurs vers Auth0 Universal Login lorsqu’ils se connectent
-* Gérer le callback et stocker la session dans un cookie
+* Traiter le callback et stocker la session dans un cookie
 * Afficher le nom, l’adresse courriel et la photo de profil de l’utilisateur authentifié
-* Déconnecter les utilisateurs de votre application et d’Auth0
+* Déconnecter les utilisateurs à la fois de votre application et d’Auth0
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
   Ce guide s’adresse aux applications **ASP.NET classiques (.NET Framework)** qui utilisent OWIN. Si votre application fonctionne déjà avec **ASP.NET Core**, utilisez plutôt le SDK [`Auth0.AspNetCore.Authentication`](https://auth0.com/docs/quickstart/webapp/aspnet-core).
@@ -36,14 +36,14 @@ Avant de commencer :
 </div>
 
 <Steps>
-  <Step title="Configurez votre application Auth0">
-    Toute application qui utilise Auth0 doit être enregistrée dans le Auth0 Dashboard. Auth0 génère un **Client ID** et un **Domain** que votre application utilise pour communiquer avec Auth0.
+  <Step title="Configurer votre application Auth0">
+    Toute application qui utilise Auth0 doit être enregistrée dans le Auth0 Dashboard. Auth0 fournit un **Client ID** et un **Domain** que votre application utilise pour communiquer avec Auth0.
 
     Vous pouvez créer et configurer l&#39;application Auth0 automatiquement à l&#39;aide de l&#39;Auth0 CLI, ou manuellement via le Dashboard :
 
     <Tabs>
       <Tab title="CLI">
-        Exécutez la commande suivante depuis le répertoire racine de votre projet. Elle crée une application Auth0 et génère un extrait `Web.config` prêt à coller, avec vos identifiants déjà renseignés :
+        Exécutez la commande suivante depuis le répertoire racine de votre projet. Elle crée une application Auth0 et génère un extrait de `Web.config` prêt à être collé, avec vos identifiants déjà renseignés :
 
         <Tabs>
           <Tab title="Mac/Linux">
@@ -93,7 +93,7 @@ Avant de commencer :
           </Tab>
         </Tabs>
 
-        Copiez les deux lignes `<add>` de la sortie dans la section `<appSettings>` de votre fichier `Web.config` :
+        Copiez les deux lignes `<add>` du résultat dans la section `<appSettings>` de votre `Web.config` :
 
         ```xml Web.config
         <?xml version="1.0" encoding="utf-8"?>
@@ -108,7 +108,7 @@ Avant de commencer :
       <Tab title="Dashboard">
         1. Accédez à [Auth0 Dashboard → Applications](https://manage.auth0.com/#/applications).
         2. Cliquez sur **Create Application**.
-        3. Saisissez un nom pour votre application (par exemple, `My OWIN App`).
+        3. Entrez un nom pour votre application (par exemple, `My OWIN App`).
         4. Sélectionnez **Regular Web Application** comme type d’application, puis cliquez sur **Create**.
         5. Accédez à l’onglet **Settings** et configurez les URL suivantes :
 
@@ -119,7 +119,7 @@ Avant de commencer :
         | **Allowed Web Origins**   | `http://localhost:3000`          |
 
         6. Cliquez sur **Save Changes**.
-        7. Copiez votre **Domain** et votre **Client ID** depuis la section **Basic Information**, puis ajoutez-les à `Web.config` :
+        7. Copiez les valeurs de **Domain** et de **Client ID** dans la section **Basic Information**, puis ajoutez-les à `Web.config` :
 
         ```xml Web.config
         <?xml version="1.0" encoding="utf-8"?>
@@ -134,21 +134,21 @@ Avant de commencer :
     </Tabs>
 
     <Info>
-      Si votre application s’exécute sur un autre port, remplacez `3000` par votre numéro de port dans chacune des URL ci-dessus.
+      Si votre application fonctionne sur un autre port, remplacez `3000` par votre numéro de port dans chaque URL ci-dessus.
     </Info>
   </Step>
 
   <Step title="Installer des packages NuGet">
-    Ajoutez à votre projet les deux packages de middleware OWIN requis :
+    Ajoutez à votre projet les deux packages middleware OWIN requis :
 
-    | Package                                 | Utilité                                                                                |
+    | Package                                 | Objectif                                                                               |
     | --------------------------------------- | -------------------------------------------------------------------------------------- |
     | `Microsoft.Owin.Security.OpenIdConnect` | Gère le flux d’authentification OpenID Connect (OIDC) avec Auth0                       |
     | `Microsoft.Owin.Security.Cookies`       | Enregistre la session de l’utilisateur dans un cookie du navigateur après la connexion |
 
     <Tabs>
-      <Tab title="Package Manager Console">
-        Dans Visual Studio, ouvrez la **Package Manager Console** (`Tools → NuGet Package Manager → Package Manager Console`) et exécutez :
+      <Tab title="Console du gestionnaire de package">
+        Dans Visual Studio, ouvrez la **Console du gestionnaire de package** (`Tools → NuGet Package Manager → Package Manager Console`) et exécutez :
 
         ```powershell
         Install-Package Microsoft.Owin.Security.OpenIdConnect
@@ -157,7 +157,7 @@ Avant de commencer :
       </Tab>
 
       <Tab title="dotnet CLI">
-        À partir du répertoire de votre projet, exécutez :
+        Depuis le répertoire de votre projet, exécutez :
 
         ```bash
         dotnet add package Microsoft.Owin.Security.OpenIdConnect
@@ -167,17 +167,17 @@ Avant de commencer :
     </Tabs>
 
     <Info>
-      L’utilisation simultanée du middleware de cookies OWIN et des cookies `System.Web` peut causer des problèmes. Si vous rencontrez des problèmes de cookies en double, consultez la documentation sur [System.Web cookie integration issues](https://github.com/aspnet/AspNetKatana/wiki/System.Web-response-cookie-integration-issues).
+      L’utilisation simultanée du middleware de cookies OWIN et des cookies `System.Web` peut entraîner des problèmes. Si vous rencontrez des problèmes de double cookie, consultez les directives sur les [problèmes d’intégration des cookies System.Web](https://github.com/aspnet/AspNetKatana/wiki/System.Web-response-cookie-integration-issues).
     </Info>
   </Step>
 
   <Step title="Configurer le middleware OWIN">
-    Le middleware OWIN est enregistré dans une classe de démarrage. Si votre projet a déjà une classe de démarrage OWIN (généralement `App_Start/Startup.Auth.cs`), mettez à jour sa méthode `ConfigureAuth`. Sinon, créez le fichier maintenant.
+    Le middleware OWIN est enregistré dans une classe de démarrage. Si votre projet possède déjà une classe de démarrage OWIN (généralement `App_Start/Startup.Auth.cs`), mettez à jour sa méthode `ConfigureAuth`. Sinon, créez ce fichier maintenant.
 
-    Le **cookie middleware** et le **middleware OpenID Connect** sont tous deux requis, et ils doivent être enregistrés dans cet ordre précis :
+    Le **cookie middleware** et le **middleware OpenID Connect** sont tous deux nécessaires, et ils doivent être enregistrés exactement dans cet ordre :
 
-    1. Cookie middleware - stocke la session de l’utilisateur authentifié
-    2. Middleware OpenID Connect - gère le flux de connexion et de déconnexion Auth0
+    1. Cookie middleware - stocke la session authentifiée de l’utilisateur
+    2. Middleware OpenID Connect - gère la connexion avec Auth0 et le processus de déconnexion
 
     ```csharp App_Start/Startup.Auth.cs
     using System;
@@ -197,7 +197,7 @@ Avant de commencer :
             var domain = ConfigurationManager.AppSettings["auth0:Domain"];
             var clientId = ConfigurationManager.AppSettings["auth0:ClientId"];
 
-            // Le cookie middleware doit être enregistré en premier
+            // Le middleware de cookie doit être enregistré en premier
             app.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
 
             app.UseCookieAuthentication(new CookieAuthenticationOptions
@@ -254,11 +254,11 @@ Avant de commencer :
     ```
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      `AuthenticationType` est défini à `"Auth0"`. Cette chaîne est utilisée à l’étape suivante pour déclencher le défi de connexion. La notification `RedirectToIdentityProvider` intercepte les requêtes de déconnexion et construit l’URL de déconnexion Auth0 appropriée.
+      `AuthenticationType` est défini sur `"Auth0"`. Cette chaîne est utilisée à l’étape suivante, au moment de déclencher le défi de connexion. La notification `RedirectToIdentityProvider` intercepte les requêtes de logout et construit l’URL de logout Auth0 appropriée.
     </Callout>
   </Step>
 
-  <Step title="Ajouter des actions de connexion, de déconnexion et de profil">
+  <Step title="Ajouter des actions de connexion, de logout et de profil">
     Créez `Controllers/AccountController.cs` avec trois actions : `Login`, `Logout` et `UserProfile`.
 
     ```csharp Controllers/AccountController.cs
@@ -307,9 +307,9 @@ Avant de commencer :
 
     * **`Login`** - appelle `Challenge` avec le schéma `"Auth0"`. Le middleware OIDC l’intercepte et redirige l’utilisateur vers Auth0 Universal Login. Après une connexion réussie, l’utilisateur est redirigé vers `returnUrl`.
     * **`UserProfile`** - lit les claims de l’utilisateur authentifié à partir de `ClaimsIdentity` et les transmet à la vue via `UserProfileViewModel`. L’attribut `[Authorize]` garantit que les utilisateurs non authentifiés sont d’abord redirigés vers la page de connexion.
-    * **`Logout`** - appelle `SignOut` deux fois : une fois pour effacer le cookie de session local, et une fois pour déconnecter l’utilisateur d’Auth0 (ce qui met aussi fin à toute session SSO active).
+    * **`Logout`** - appelle `SignOut` deux fois : une fois pour effacer le cookie de session local, et une autre pour déconnecter l’utilisateur d’Auth0 (ce qui met aussi fin à toute session SSO active).
 
-    Créez `Models/UserProfileViewModel.cs` pour stocker les données de profil :
+    Créez `Models/UserProfileViewModel.cs` pour stocker les données du profil :
 
     ```csharp Models/UserProfileViewModel.cs
     public class UserProfileViewModel
@@ -321,9 +321,9 @@ Avant de commencer :
     ```
 
     <Note>
-      ##### Point de contrôle
+      ##### Vérification
 
-      Exécutez votre application et accédez à `/Account/Login`. Vous devriez être redirigé vers la page Auth0 Universal Login. Après la connexion, vous devriez être redirigé vers la page d’accueil de votre application. Si vous voyez une erreur de Redirect URI, vérifiez que l’URL de rappel dans les paramètres de votre application Auth0 correspond exactement à l’URL où votre application s’exécute.
+      Exécutez votre application et accédez à `/Account/Login`. Vous devriez être redirigé vers la page Auth0 Universal Login. Après vous être connecté, vous devriez être redirigé vers la page d’accueil de votre application. Si vous voyez une erreur de Redirect URI, vérifiez que l’URL de rappel dans les paramètres de votre application Auth0 correspond exactement à l’URL sur laquelle votre application s’exécute.
     </Note>
   </Step>
 
@@ -350,17 +350,17 @@ Avant de commencer :
     </ul>
     ```
 
-    La vue reçoit un `UserProfileViewModel` alimenté par les claims que le middleware OIDC extrait lorsqu’Auth0 renvoie l’ID token.
+    La vue reçoit un `UserProfileViewModel` alimenté par les claims extraits par le middleware OIDC lorsqu’Auth0 renvoie l’ID token.
 
     <Note>
-      ##### Point de contrôle
+      ##### Vérification
 
-      Après vous être connecté, accédez à `/Account/UserProfile`. Vous devriez voir votre nom, votre adresse courriel et votre photo de profil. Si le nom ou l’adresse courriel semble vide, vérifiez que le `Scope` dans votre `OpenIdConnectAuthenticationOptions` inclut `"openid profile email"`.
+      Après vous être connecté, accédez à `/Account/UserProfile`. Vous devriez voir votre nom, votre courriel et votre photo de profil. Si le nom ou le courriel est vide, vérifiez que le `Scope` dans votre `OpenIdConnectAuthenticationOptions` comprend `"openid profile email"`.
     </Note>
   </Step>
 
   <Step title="Ajoutez des liens de connexion et de déconnexion à votre layout">
-    Mettez à jour `Views/Shared/_Layout.cshtml` pour afficher des liens de connexion et de déconnexion selon l’état d’authentification de l’utilisateur :
+    Mettez à jour `Views/Shared/_Layout.cshtml` pour afficher les liens de connexion et de déconnexion en fonction de l’état d’authentification de l’utilisateur :
 
     ```cshtml Views/Shared/_Layout.cshtml
     @if (User.Identity.IsAuthenticated)
@@ -374,18 +374,18 @@ Avant de commencer :
     }
     ```
 
-    Ajoutez ceci à l’intérieur de l’élément `<nav>`, là où vos liens de navigation apparaissent dans la mise en page.
+    Ajoutez ceci à l’intérieur de l’élément `<nav>`, à l’endroit où vos liens de navigation apparaissent dans la mise en page.
 
     <Note>
       ##### Checkpoint
 
-      Lancez votre application. Vous devriez voir un lien **Se connecter** dans la navigation. Après vous être connecté, il devrait être remplacé par votre nom (avec un lien vers votre profil), ainsi qu’un lien **Se déconnecter**. En cliquant sur **Se déconnecter**, vous devriez être déconnecté et redirigé vers la page d’accueil.
+      Exécutez votre application. Vous devriez voir un lien **Se connecter** dans la navigation. Après la connexion, il devrait être remplacé par votre nom (avec un lien vers votre profil) ainsi qu’un lien **Se déconnecter**. En cliquant sur **Se déconnecter**, vous devriez être déconnecté et redirigé vers la page d’accueil.
     </Note>
   </Step>
 </Steps>
 
 <Check>
-  Vous avez maintenant une intégration Auth0 fonctionnelle dans votre application ASP.NET OWIN. Les utilisateurs peuvent se connecter avec Auth0 Universal Login, consulter leur profil et se déconnecter.
+  Vous avez maintenant une intégration Auth0 fonctionnelle dans votre application ASP.NET OWIN. Les utilisateurs peuvent se connecter au moyen d’Auth0 Universal Login, consulter leur profil et se déconnecter.
 </Check>
 
 <div id="common-issues">
@@ -393,16 +393,16 @@ Avant de commencer :
 </div>
 
 <AccordionGroup>
-  <Accordion title="Incompatibilité de l’URI de redirection après la connexion">
+  <Accordion title="Incompatibilité de Redirect URI après la connexion">
     **Problème :** Auth0 affiche une erreur « redirect&#95;uri mismatch » ou « callback URL mismatch » après la connexion de l’utilisateur.
 
-    **Solution :** L’URI de redirection que votre application envoie à Auth0 doit correspondre exactement à l’une des **Allowed Callback URLs** dans les paramètres de votre application Auth0. Vérifiez les différences de protocole (`http` vs `https`), de numéro de port, de chemin et de barre oblique finale.
+    **Solution :** La Redirect URI que votre app envoie à Auth0 doit correspondre exactement à l’une des **Allowed Callback URLs** dans les paramètres de votre application Auth0. Vérifiez toute différence dans le protocole (`http` vs `https`), le numéro de port, le chemin et les barres obliques finales.
   </Accordion>
 
-  <Accordion title="Boucle de connexion — l’application redirige constamment vers Auth0">
-    **Problème :** Après une connexion réussie, l’application redirige immédiatement vers Auth0 au lieu d’afficher la page authentifiée.
+  <Accordion title="Boucle de connexion — l’app continue de rediriger vers Auth0">
+    **Problème :** Après une connexion réussie, l’app redirige immédiatement vers Auth0 au lieu d’afficher la page authentifiée.
 
-    **Solution :** Assurez-vous que le middleware est enregistré dans le bon ordre et que le pipeline OWIN est initialisé :
+    **Solution :** Assurez-vous que le middleware est enregistré dans le bon ordre et que le pipeline OWIN est bien initialisé :
 
     * Le cookie middleware doit être enregistré **avant** le middleware OpenID Connect dans `ConfigureAuth`.
     * `app.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType)` doit être le premier appel dans `ConfigureAuth`.
@@ -417,9 +417,9 @@ Avant de commencer :
   </Accordion>
 
   <Accordion title="L’utilisateur n’est pas redirigé après le logout">
-    **Problème :** En cliquant sur **Log out**, l’utilisateur est déconnecté d’Auth0, mais n’est pas redirigé vers votre application.
+    **Problème :** Cliquer sur **Log out** déconnecte l’utilisateur d’Auth0, mais ne le redirige pas vers votre application.
 
-    **Solution :** Ajoutez un paramètre de requête `returnTo` à l’URL de logout Auth0 dans la notification `RedirectToIdentityProvider`. L’URL de retour doit aussi figurer dans **Allowed Logout URLs** dans les paramètres de votre application Auth0 :
+    **Solution :** Ajoutez un query parameter `returnTo` à la logout URL d’Auth0 dans la notification `RedirectToIdentityProvider`. L’URL de retour doit aussi figurer dans **Allowed Logout URLs** dans les paramètres de votre application Auth0 :
 
     ```csharp App_Start/Startup.Auth.cs
     var logoutUri = $"https://{domain}/v2/logout?client_id={clientId}&returnTo={Uri.EscapeDataString("http://localhost:3000/")}";
@@ -427,9 +427,9 @@ Avant de commencer :
   </Accordion>
 
   <Accordion title="La photo de profil ou l’adresse courriel est vide">
-    **Problème :** `Model.ProfileImage` ou `Model.EmailAddress` est nul après la connexion.
+    **Problème :** `Model.ProfileImage` ou `Model.EmailAddress` est null après la connexion.
 
-    **Solution :** Vérifiez que `Scope` dans `OpenIdConnectAuthenticationOptions` inclut `"openid profile email"`. Le scope `profile` fournit le nom et l’image de profil; le scope `email` fournit l’adresse courriel.
+    **Solution :** Vérifiez que `Scope` dans `OpenIdConnectAuthenticationOptions` inclut `"openid profile email"`. La portée `profile` fournit le nom et l’image; la portée `email` fournit l’adresse courriel.
 
     ```csharp App_Start/Startup.Auth.cs
     app.UseOpenIdConnectAuthentication(new OpenIdConnectAuthenticationOptions
@@ -440,10 +440,10 @@ Avant de commencer :
     ```
   </Accordion>
 
-  <Accordion title="Les valeurs de Domain ou de Client ID sont nulles au démarrage">
-    **Problème :** L’application génère une exception de référence nulle ou une exception de configuration au démarrage.
+  <Accordion title="Les valeurs Domain ou Client ID sont null au démarrage">
+    **Problème :** L’application génère une exception de référence null ou de configuration au démarrage.
 
-    **Solution :** Vérifiez que `auth0:Domain` et `auth0:ClientId` sont bien présents dans `<appSettings>` dans `Web.config`, et que vous exécutez la bonne configuration de build (Debug/Release), celle qui charge la bonne transformation `Web.config`.
+    **Solution :** Assurez-vous que `auth0:Domain` et `auth0:ClientId` sont tous deux présents dans `<appSettings>` de `Web.config`, et que vous exécutez la bonne configuration de build (Debug/Release) pour charger la bonne transformation `Web.config`.
 
     ```xml Web.config
     <configuration>
@@ -468,10 +468,10 @@ Avant de commencer :
   {
       if (notification.ProtocolMessage.RequestType == OpenIdConnectRequestType.Authentication)
       {
-          // Afficher l’écran d’inscription au lieu de l’écran de connexion
+          // Afficher l’écran d’inscription plutôt que celui de connexion
           notification.ProtocolMessage.SetParameter("screen_hint", "signup");
 
-          // Définir une locale d’interface précise
+          // Définir une langue d’interface précise
           notification.ProtocolMessage.SetParameter("ui_locales", "es");
       }
 
@@ -481,7 +481,7 @@ Avant de commencer :
 </Accordion>
 
 <Accordion title="Appeler une API au nom de l’utilisateur">
-  Pour appeler une API avec un jeton d’accès, demandez une `audience` et les scopes d’API requis pendant la redirection OIDC :
+  Pour appeler une API avec un jeton d’accès, demandez une `audience` et les portées d’API requises lors de la redirection OIDC :
 
   ```csharp App_Start/Startup.Auth.cs
   RedirectToIdentityProvider = notification =>
@@ -510,7 +510,7 @@ Avant de commencer :
           new AuthenticationHeaderValue("Bearer", accessToken);
 
       var response = await client.GetAsync("https://your-api.example.com/data");
-      // traiter la réponse...
+      // gérer la réponse...
   }
   ```
 </Accordion>
@@ -527,10 +527,10 @@ Avant de commencer :
   </Card>
 
   <Card title="Documentation Katana / OWIN" icon="book" href="https://learn.microsoft.com/en-us/aspnet/aspnet/overview/owin-and-katana/">
-    Documentation de référence officielle de Microsoft sur OWIN/Katana
+    Référence officielle de Microsoft sur OWIN/Katana
   </Card>
 
-  <Card title="Forum de la communauté Auth0" icon="comments" href="https://community.auth0.com/">
+  <Card title="Forum de la communauté" icon="comments" href="https://community.auth0.com/">
     Obtenez de l’aide auprès de la communauté Auth0
   </Card>
 </CardGroup>

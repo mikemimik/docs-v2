@@ -1,25 +1,25 @@
 ---
 description: Aprende a crear flujos de eventos con AWS EventBridge o webhooks.
-title: Crear un flujo de eventos
+title: Crear un Event Stream
 ---
 
 Al suscribirte a eventos y enviarlos al destino que elijas mediante flujos de eventos, puedes habilitar varios casos de uso relacionados, entre ellos:
 
-* Enviar correos electrónicos a nuevos clientes para darles la bienvenida o pedirles que verifiquen su dirección de correo electrónico.
-* Supervisar los cambios en el ciclo de vida de los usuarios para poder actualizar los sistemas de CRM (gestión de relaciones con clientes) o de facturación.
+* Enviar correos electrónicos a clientes nuevos para darles la bienvenida o pedirles que verifiquen su dirección de correo electrónico.
+* Realizar el monitoreo de los cambios en el ciclo de vida de los usuarios para poder actualizar sistemas de CRM (customer relationship management) o de facturación.
 
-Puedes crear un flujo de eventos con AWS EventBridge o webhooks. En las secciones siguientes se describe el proceso de configuración para ambas opciones.
+Puedes crear un flujo de eventos con AWS EventBridge o webhooks. Las secciones a continuación describen el proceso de Setup para ambas opciones.
 
 <div id="access-management-api-optional">
-  ## Acceso a la Management API (opcional)
+  ## Management API de gestión del acceso (opcional)
 </div>
 
-Los flujos de eventos pueden aprovisionarse mediante el <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+dashboard">Auth0 Dashboard</Tooltip> o la [Auth0 Management API](https://auth0.com/docs/api/management/v2). Si usas la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>, antes de poder configurar un flujo de eventos, debes crear una aplicación de máquina a máquina (M2M) y autenticarte con un token de la Management API. Para obtener más información, consulta [Management API Access Tokens](/docs/es/secure/tokens/access-tokens/management-api-access-tokens).
+Los flujos de eventos pueden aprovisionarse mediante el <Tooltip tip="Auth0 Dashboard: El producto principal de Auth0 para configurar tus servicios." cta="Ver glosario" href="/docs/es/glossary?term=Auth0+dashboard">Auth0 Dashboard</Tooltip> o la [Auth0 Management API](https://auth0.com/docs/api/management/v2). Si usas la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>, antes de poder configurar un flujo de eventos, debes crear una aplicación de máquina a máquina (M2M) y autenticarte con un token de la Management API. Para obtener más información, consulta [Tokens de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens).
 
 1. Ve a [Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) y selecciona **Create Application**.
 2. Introduce un nombre descriptivo para tu aplicación y elige **Machine to Machine Applications**. Luego, selecciona **Create**.
 3. Selecciona la API a la que quieres llamar desde tu aplicación. En este caso, usa la **Auth0 Management API**.
-4. Elige los permisos que quieres que se emitan como parte del token de acceso de tu aplicación y, a continuación, selecciona **Authorize**. Para fines de prueba, selecciona:
+4. Elige los permisos que quieres que se emitan como parte del token de acceso de tu aplicación y, a continuación, selecciona **Authorize**. Para hacer pruebas, selecciona:
 
    * `read:event_streams`
    * `create:event_streams`
@@ -29,13 +29,13 @@ Los flujos de eventos pueden aprovisionarse mediante el <Tooltip tip="Auth0 Dash
    * `update:event_deliveries`
    * `create:users`
 5. Ve a la pestaña **Settings** para obtener tu **Client ID**, **Client Secret** y **Domain**.
-6. Consulta [Get Management API Access Tokens](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production) para obtener y almacenar tu token de acceso.
+6. Consulta [Obtener tokens de acceso de la Management API](/docs/es/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production) para recuperar y almacenar tu token de acceso.
 
 <div id="aws-eventbridge">
   ## AWS EventBridge
 </div>
 
-A continuación, se describe cómo crear y habilitar un flujo de eventos con AWS EventBridge.
+La información siguiente explica cómo crear y habilitar un flujo de eventos con AWS EventBridge.
 
 <div id="eventbridge-prerequisites">
   ### Requisitos previos de EventBridge
@@ -46,9 +46,9 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
 * Cuenta de AWS
 
   * Tu cuenta de AWS debe tener permisos para usar EventBridge. Si no tienes una cuenta, regístrate en https://aws.amazon.com/eventbridge/.
-* Permisos de IAM de AWS
-* Bus de eventos de EventBridge de AWS
-* ID de cuenta y región de AWS
+* Permisos de AWS IAM
+* Bus de eventos de AWS EventBridge
+* ID y región de la cuenta de AWS
 
 <div id="create-an-event-stream-eventbridge">
   ### Crear un flujo de eventos (EventBridge)
@@ -56,17 +56,17 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
 
 <Tabs>
   <Tab title="Management API">
-    Los flujos de eventos te permiten capturar cambios en tiempo real en tu tenant de Auth0 y enviarlos a un sistema externo para su procesamiento.
+    Los flujos de eventos le permiten capturar cambios en tiempo real en su tenant de Auth0 y enviarlos a un sistema externo para procesarlos.
 
-    Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos](/docs/es/customize/events/event-types) que quieres supervisar. Luego, usarás el ID y la región de tu cuenta de AWS para configurar tu flujo de eventos, como se muestra a continuación.
+    Antes de configurar un flujo de eventos, debe identificar los [tipos de eventos](/docs/es/customize/events/event-types) que desea supervisar. Luego, usará el ID de su cuenta de AWS y la región para configurar su flujo de eventos, como se muestra a continuación.
 
-    Este ejemplo usa la CLI de Auth0 para crear un flujo de eventos que se suscribe al evento `user.created`, el cual se activa cada vez que se registra un usuario nuevo en tu tenant.
+    Este ejemplo usa la Auth0 CLI para crear un flujo de eventos que se suscribe al evento `user.created`, que se activa cada vez que se registra un nuevo usuario en su tenant.
 
     ```bash wrap lines
     auth0 events create --name ng-demo-eventbridge --type eventbridge --subscriptions "user.created" --configuration '{"aws_account_id":"<your-aws-account-id>","aws_region":"<your-aws-region>"}'
     ```
 
-    Si la llamada se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos se habilitan de forma predeterminada.
+    Si la solicitud se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos están habilitados de forma predeterminada.
 
     ```json lines
     {
@@ -92,27 +92,27 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
     ```
   </Tab>
 
-  <Tab title="Panel de control">
+  <Tab title="Dashboard">
     Para crear un flujo de eventos en el Auth0 Dashboard con AWS EventBridge:
 
-    1. Ve a **Auth0 Dashboard** &gt; **Event Streams (Early)**.
-    2. Selecciona **+Create Event Stream**.
-    3. En la lista de tipos de flujo, selecciona **AWS EventBridge**. Esto abrirá el formulario de configuración de tu nuevo flujo de EventBridge.
-    4. **Configura los detalles del flujo:** En el formulario de configuración, deberás proporcionar la siguiente información:
+    1. Vaya a **Auth0 Dashboard** &gt; **Event Streams (Early)**.
+    2. Seleccione **+Create Event Stream**.
+    3. En la lista de tipos de flujo, seleccione **AWS EventBridge**. Se abrirá el formulario de configuración de su nuevo flujo de EventBridge.
+    4. **Configure Stream Details:** En el formulario de configuración, deberá proporcionar la siguiente información:
 
-       * **Nombre del flujo:**
+       * **Stream Name:**
 
-         Introduce un nombre descriptivo para tu flujo de eventos. Esto te ayudará a identificarlo dentro del Auth0 Dashboard.
-       * **ID de cuenta de AWS:**
+         Introduzca un nombre descriptivo para su flujo de eventos. Esto le ayudará a identificarlo dentro del Auth0 Dashboard.
+       * **AWS Account ID:**
 
-         Introduce el ID de 12 dígitos de la cuenta de AWS a la que quieres enviar los eventos de Auth0.
-       * **Región de AWS:**
+         Introduzca el ID de 12 dígitos de la cuenta de AWS a la que desea enviar los eventos de Auth0.
+       * **AWS Region:**
 
-         Selecciona la región de AWS específica donde se encuentra tu bus de eventos de EventBridge.
-    5. **Selecciona los tipos de eventos:** En la sección **Select Event Types**, elige los tipos de eventos de Auth0 específicos que quieres incluir en este flujo. Puedes seleccionar varios tipos de eventos según tus necesidades (por ejemplo, `user.created`, `user.updated`, `user.deleted`).
-    6. **Guarda los cambios:** Una vez que hayas configurado el nombre del flujo, los detalles de AWS y seleccionado los tipos de eventos que deseas, haz clic en **Save Changes**.
+         Seleccione la región específica de AWS donde se encuentra su bus de eventos de EventBridge.
+    5. **Select Event Types:** En la sección **Select Event Types**, elija los tipos de eventos de Auth0 concretos que desea incluir en este flujo. Puede seleccionar varios tipos de eventos según sus necesidades (por ejemplo, `user.created`, `user.updated`, `user.deleted`).
+    6. **Save Changes:** Una vez que haya configurado el nombre del flujo, los datos de AWS y seleccionado los tipos de eventos deseados, haga clic en el botón **Save Changes**.
 
-    Tu nuevo flujo de eventos ya está creado y Auth0 puede empezar a publicar los tipos de eventos seleccionados en el bus de eventos de AWS EventBridge especificado. Puedes supervisar su estado y gestionar tu flujo de eventos desde la página **Event Streams (Early)** en el Auth0 Dashboard.
+    Su nuevo flujo de eventos ya está creado y Auth0 puede empezar a publicar los tipos de eventos seleccionados en el bus de eventos de AWS EventBridge especificado. Puede supervisar el estado y administrar su flujo de eventos desde la página Event Streams (Early) del Auth0 Dashboard.
   </Tab>
 
   <Tab title="Terraform">
@@ -120,19 +120,19 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
       Antes de empezar a usar Terraform, necesitas:
 
       * Instalar la CLI de Terraform
-      * Instalar la CLI de Auth0 e iniciar sesión con `auth0 login`
-      * Tener a mano el ID de tu cuenta de AWS y la región de AWS para configurar un flujo de EventBridge
+      * Instalar Auth0 CLI y autenticarte con `auth0 login`
+      * Tener el ID de tu cuenta de AWS y tu región de AWS para configurar un flujo de EventBridge
     </Note>
 
     ### Configuración de archivos
 
-    Para aprovisionar tu flujo de eventos con Terraform, necesitas una estructura de directorios de proyecto. A continuación, se muestra un ejemplo de configuración para una primera implementación:
+    Para aprovisionar tu flujo de eventos con Terraform, necesitas un directorio de proyecto bien estructurado. A continuación, se muestra un ejemplo de configuración para hacerlo por primera vez:
 
     ```bash
 
     auth0-event-streams/
-    ├── main.tf             # Configuración principal: define los proveedores y el recurso 'auth0_event_stream'.
-    ├── variables.tf        # Declaración de variables: define entradas como 'aws_account_id' y 'aws_region'.
+    ├── main.tf             # Core configuration: define los providers y el recurso 'auth0_event_stream'.
+    ├── variables.tf        # Declaración de variables: define las entradas como 'aws_account_id' y 'aws_region'.
     └── terraform.tfvars    # Valores de variables: contiene los valores de configuración reales (p. ej., "123456789012").
 
     ```
@@ -155,7 +155,7 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
 
     ### Establece los valores de las variables
 
-    En tu archivo `terraform.tfvars`, proporciona los valores correspondientes a tu entorno específico:
+    En el archivo `terraform.tfvars`, proporciona los valores reales de tu entorno específico:
 
     ```bash
     aws_account_id = "<your-aws-account-id>" # p. ej., "123456789012"
@@ -164,7 +164,7 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
 
     ### Configura las variables de entorno
 
-    En tu terminal, configura las tres variables de entorno necesarias con las credenciales que copiaste antes en Access Management API (opcional).
+    En la terminal, configura las tres variables de entorno obligatorias con las credenciales que copiaste antes en Access Management API (opcional).
 
     ```bash
     export AUTH0_DOMAIN="your-tenant-name.auth0.com"
@@ -174,7 +174,7 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
 
     ## Crear un flujo de eventos
 
-    En este ejemplo, se utiliza el recurso `auth0_event_stream` para crear un flujo de eventos que se suscribe al evento `user.created`, el cual se activa cada vez que se registra un nuevo usuario en tu tenant. Usa el siguiente ejemplo en tu archivo `main.tf`:
+    Este ejemplo utiliza el recurso `auth0_event_stream` para crear un flujo de eventos que se suscribe al evento `user.created`, que se activa cada vez que se registra un usuario nuevo en tu tenant. Usa el siguiente ejemplo en tu archivo `main.tf`:
 
     ```hcl
     terraform {
@@ -200,9 +200,9 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
     }
     ```
 
-    Si la llamada se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los flujos de eventos nuevos están habilitados de forma predeterminada.
+    Si esta llamada se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos están habilitados de forma predeterminada.
 
-    Una vez que hayas creado y guardado los tres archivos anteriores, ya puedes crear tu flujo.
+    Después de crear y guardar los tres archivos anteriores, estarás listo para crear tu flujo.
 
     1. Inicializa el proveedor
 
@@ -210,7 +210,7 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
     terraform init
     ```
 
-    2. Revisa tus cambios:
+    2. Revisa los cambios:
 
     ```bash
     terraform plan
@@ -228,7 +228,7 @@ Para usar AWS EventBridge con flujos de eventos, necesitarás lo siguiente:
   ## Webhooks
 </div>
 
-Como alternativa a AWS EventBridge, puedes usar webhooks para gestionar flujos de eventos.
+Como alternativa a AWS EventBridge, puedes usar webhooks para habilitar los flujos de eventos.
 
 Para empezar, primero configura un controlador de webhook para recibir notificaciones en tiempo real cuando se produzca un evento específico. Luego, podrás crear tu flujo de eventos.
 
@@ -243,7 +243,7 @@ Si decides usar un servicio existente, puedes continuar con [Crear un flujo de e
   ### Requisitos previos del webhook
 </div>
 
-Asegúrate de tener instalado lo siguiente para escribir correctamente el controlador de tu webhook:
+Asegúrate de tener instaladas las siguientes herramientas para poder escribir correctamente tu controlador de webhook:
 
 * `node.js`
 * `jq`
@@ -251,20 +251,20 @@ Asegúrate de tener instalado lo siguiente para escribir correctamente el contro
 * `ngrok`
 
 <div id="write-the-webhook-handler">
-  ### Escribe el controlador del webhook
+  ### Escribe el controlador de webhook
 </div>
 
-1. Instala `express` en la carpeta `node_modules` y añádelo a las dependencias de tu `package.json`.
+1. Instala `express` en tu carpeta `node_modules` y en las dependencias de tu `package.json`.
 
-2. Instala `dotenv` en el directorio raíz para usar un archivo `.env` donde almacenar variables de entorno.
+2. Instala `dotenv` en tu directorio raíz para usar un archivo `.env` donde almacenar variables de entorno.
 
-3. Crea un archivo `webhook.js` para recibir el evento `user.created` y guardarlo en una base de datos.
+3. Crea un archivo `webhook.js` para recibir el evento `user.created` y almacenarlo en una base de datos.
 
    ```javascript lines expandable
    const express = require('express');
    const app = express();
 
-   // Middleware de autorización
+   // middleware de autorización
    app.use((req, res, next) => {
      const token = req.headers["authorization"];
      if (token !== `Bearer ${API_TOKEN}`) {
@@ -273,7 +273,7 @@ Asegúrate de tener instalado lo siguiente para escribir correctamente el contro
      next();
    });
 
-   // Endpoint del webhook
+   // endpoint de webhook
    app.post("/webhook", async (req, res) => {
      console.log("Webhook received:", JSON.stringify(req.body, null, 2));
 
@@ -304,7 +304,7 @@ Asegúrate de tener instalado lo siguiente para escribir correctamente el contro
      }
    });
 
-   // Función específica para gestionar el evento de creación de usuario
+   // Función específica para procesar el evento de creación de usuario
    // En este ejemplo, nos aseguramos de que los usuarios también se creen en nuestra propia base de datos
    async function handleUserCreated(user, time) {
      const { user_id, email, name, nickname, created_at, updated_at } = user;
@@ -350,29 +350,29 @@ Asegúrate de tener instalado lo siguiente para escribir correctamente el contro
    node webhook.js
    ```
 
-6. Para probar el webhook, expón su controlador con una herramienta como ngrok:
+6. Para probar el webhook, expón tu controlador de webhook con una herramienta como ngrok:
 
    ```bash lines
    ngrok http 3000
    ```
 
-   Esto te proporcionará una URL pública para tu controlador local del webhook, por ejemplo:
+   Esto proporciona una URL pública para tu controlador de webhook local, por ejemplo:
 
    ```bash lines
    http://localhost:3000
    ```
 
 <div id="create-an-event-stream-webhooks">
-  ### Crear un flujo de eventos (webhooks)
+  ### Crear un Event Stream (webhooks)
 </div>
 
-Los flujos de eventos te permiten capturar cambios en tiempo real dentro de tu tenant de Auth0 y enviarlos a un sistema externo para que los procese.
+Los flujos de eventos te permiten capturar cambios en tiempo real dentro de tu tenant de Auth0 y enviarlos a un sistema externo para procesarlos.
 
-Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos](/docs/es/customize/events/event-types) que quieres supervisar. Luego, usarás el controlador de webhook para crear un flujo de eventos, como se muestra a continuación.
+Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos](/docs/es/customize/events/event-types) que quieres supervisar. Luego usarás tu controlador de webhook para crear un flujo de eventos, como se muestra a continuación.
 
 <Tabs>
   <Tab title="Management API">
-    Este ejemplo usa la CLI de Auth0 para crear un flujo de eventos que se suscribe al evento `user.created`, que se activa cada vez que se registra un usuario nuevo en tu tenant. Luego, los datos del evento se envían a un endpoint de webhook para su posterior procesamiento.
+    Este ejemplo usa Auth0 CLI para crear un flujo de eventos que se suscribe al evento `user.created`, que se activa cada vez que se registra un usuario nuevo en tu tenant. Después, los datos del evento se reenvían a un endpoint de webhook para su posterior procesamiento.
 
     ```bash lines
     source .env # Asegúrate de estar en el directorio del webhook donde creaste tu archivo .env
@@ -381,7 +381,7 @@ Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos
     auth0 events create -n my-event1 -t webhook -s "user.created" -c '{"webhook_endpoint":"'"${WEBHOOK_URL}"'","webhook_authorization":{"method":"bearer","token":'"${API_TOKEN}"'"}}'
     ```
 
-    Si la operación se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos están habilitados de forma predeterminada.
+    Si la operación se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos están habilitados por defecto.
 
     ```hcl
     {
@@ -416,58 +416,58 @@ Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos
     ```
   </Tab>
 
-  <Tab title="Panel de control">
-    Para crear un flujo de eventos en el Auth0 Dashboard con AWS EventBridge:
+  <Tab title="Dashboard">
+    Para crear un flujo de eventos en el Auth0 Dashboard mediante AWS EventBridge:
 
-    1. Ve a **Auth0 Dashboard** &gt; **Event Streams (Early)**.
-    2. Selecciona **+Create Event Stream**.
-    3. En la lista de tipos de flujo, selecciona **Webhook**. Se abrirá el formulario de configuración de tu nuevo flujo de webhook.
-    4. **Configurar los detalles del flujo:** En el formulario de configuración, deberás proporcionar la siguiente información:
+    1. Vaya a **Auth0 Dashboard** &gt; **Event Streams (Early)**.
+    2. Seleccione **+Create Event Stream**.
+    3. En la lista de tipos de flujos, seleccione **Webhook**. Esto abrirá el formulario de configuración de su nuevo webhook.
+    4. **Configurar los detalles del flujo:** En el formulario de configuración, deberá proporcionar la siguiente información:
 
        * **Nombre del flujo:**
 
-         Introduce un nombre descriptivo para tu flujo de eventos. Esto te ayudará a identificarlo dentro del Auth0 Dashboard.
-       * **Endpoint:** Introduce la URL completa del endpoint HTTP al que quieres que Auth0 envíe los eventos. Este será el servicio que reciba y procese los datos de los eventos.
-       * **Método de autenticación:** Elige el método de autenticación que requiera tu endpoint.
-       * **Token de autorización:** Si seleccionaste **Bearer Token** como método de autenticación, introduce aquí el token de autorización requerido.
-    5. **Seleccionar tipos de eventos:** En la sección **Select Event Types**, elige los tipos de eventos específicos de Auth0 que quieres incluir en este flujo. Puedes seleccionar varios tipos de eventos según tus necesidades (por ejemplo, `user.created`, `user.updated`, `user.deleted`).
-    6. **Guardar cambios:** Una vez que hayas configurado el nombre del flujo, los detalles de AWS y seleccionado los tipos de eventos que deseas, haz clic en el botón **Save Changes**.
+         Introduzca un nombre descriptivo para su flujo de eventos. Esto le ayudará a identificarlo en el Auth0 Dashboard.
+       * **Endpoint:** Introduzca la URL completa del endpoint HTTP al que desea que Auth0 envíe los eventos. Este es el servicio que recibirá y procesará los datos del evento.
+       * **Método de autenticación:** Elija el método de autenticación que requiere su endpoint.
+       * **Token de autorización:** Si seleccionó **Bearer Token** como método de autenticación, introduzca aquí el token de autorización requerido.
+    5. **Seleccionar tipos de eventos:** En la sección **Seleccionar tipos de eventos**, elija los tipos de eventos específicos de Auth0 que desea incluir en este flujo. Puede seleccionar varios tipos de eventos según sus necesidades (p. ej., `user.created`, `user.updated`, `user.deleted`).
+    6. **Guardar cambios:** Una vez que haya configurado el nombre del flujo, los detalles de AWS y seleccionado los tipos de eventos deseados, haga clic en el botón **Guardar cambios**.
 
-    Tu nuevo flujo de eventos ya se ha creado y Auth0 puede empezar a publicar los tipos de eventos seleccionados en el webhook especificado. Puedes supervisar su estado y administrar tu flujo de eventos desde la página Event Streams (Early) del Auth0 Dashboard.
+    Su nuevo flujo de eventos ya se habrá creado y Auth0 podrá empezar a publicar los tipos de eventos seleccionados en el webhook especificado. Puede supervisar el estado y administrar su flujo de eventos desde la página Event Streams (Early) en el Auth0 Dashboard.
   </Tab>
 
   <Tab title="Terraform">
-    ### Configuración del archivo
+    ### Configuración de archivos
 
-    Para aprovisionar tu flujo de eventos con Terraform, necesitarás una estructura de directorios de proyecto. A continuación, puedes ver un ejemplo de configuración para hacerlo por primera vez:
+    Para aprovisionar tu flujo de eventos con Terraform, necesitarás un directorio de proyecto bien estructurado. A continuación, se muestra un ejemplo de configuración para la primera vez que lo configures:
 
     ```bash
     auth0-event-streams/
-    ├── main.tf             # Configuración principal: define los proveedores y el recurso 'auth0_event_stream'.
-    ├── variables.tf        # Declaración de variables: define entradas como 'aws_account_id' y 'aws_region'.
+    ├── main.tf             # Core configuration: define los providers y el recurso 'auth0_event_stream'.
+    ├── variables.tf        # Declaración de variables: define las entradas como 'aws_account_id' y 'aws_region'.
     └── terraform.tfvars    # Valores de variables: contiene los valores de configuración reales (p. ej., "123456789012").
     ```
 
     ### Definir variables
 
-    En el archivo `variables.tf`, declara las variables de entrada necesarias para la configuración de tu flujo:
+    En tu archivo `variables.tf`, declara las variables de entrada necesarias para la configuración de tu flujo:
 
     ```bash
     variable "api_token" {
-      description = "The secret token used for Webhook Bearer Authorization."
+      description = "El token secreto utilizado para la autorización Bearer de Webhook."
       type        = string
       sensitive   = true 
     }
 
     variable "webhook_endpoint_url" {
-      description = "The public HTTPS URL for the webhook handler (e.g., your ngrok URL)."
+      description = "La URL HTTPS pública para el controlador de webhook (p. ej., tu URL de ngrok)."
       type        = string
     }
     ```
 
     ### Configuración del entorno
 
-    Usa el token de API generado anteriormente para establecer de forma segura la variable de entorno en tu terminal con el prefijo `TF_VAR_`:
+    Usando el token de API generado anteriormente, configura de forma segura la variable de entorno en tu terminal con el prefijo `TF_VAR_`:
 
     ```bash wrap lines
     export AUTH0_DOMAIN="your-tenant-name.auth0.com"
@@ -475,7 +475,7 @@ Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos
     export AUTH0_CLIENT_SECRET="your_m2m_client_secret"
     ```
 
-    Si la operación se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos están habilitados de forma predeterminada.
+    Si se realiza correctamente, se devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos están habilitados de forma predeterminada.
 
     ```bash
     export TF_VAR_api_token="${API_TOKEN}"
@@ -487,9 +487,9 @@ Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos
 
     ## Crear un flujo de eventos
 
-    En este ejemplo, se usa el recurso `auth0_event_stream` para crear un flujo de eventos que se suscribe al evento `user.created`, el cual se activa cada vez que se registra un nuevo usuario en tu tenant. Usa el siguiente ejemplo en tu archivo `main.tf`:
+    Este ejemplo usa el recurso `auth0_event_stream` para crear un flujo de eventos que se suscribe al evento `user.created`, que se activa cada vez que se registra un usuario nuevo en tu tenant. Usa el siguiente ejemplo en tu archivo `main.tf`:
 
-    Si la llamada se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los flujos de eventos nuevos están habilitados de forma predeterminada.
+    Si la operación se realiza correctamente, esta solicitud devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los flujos de eventos nuevos están habilitados de forma predeterminada.
 
     ```hcl
     terraform {
@@ -519,7 +519,7 @@ Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos
     }
     ```
 
-    Después de crear y guardar los tres archivos anteriores, ya estás listo para crear tu stream.
+    Una vez que hayas creado y guardado los tres archivos anteriores, ya puedes crear tu flujo.
 
     1. Inicializa el proveedor
 
@@ -542,13 +542,13 @@ Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos
   </Tab>
 </Tabs>
 
-Una vez que el flujo esté activo, puedes probar el flujo de eventos. Para más información, consulta [**Pruebas de eventos, observabilidad y recuperación ante fallos**](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
+Una vez que el flujo esté activo, puedes probar el flujo de eventos. Para obtener más información, consulta [**Event Testing, Observability, and Failure Recovery**](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
 
 <div id="auth0-actions">
   ## Auth0 Actions
 </div>
 
-A continuación, se describe cómo crear y habilitar un flujo de eventos con Auth0 Actions.
+La información que aparece a continuación describe cómo crear y habilitar un flujo de eventos con Auth0 Actions.
 
 <div id="create-an-event-stream-actions">
   ### Crear un flujo de eventos (Actions)
@@ -556,9 +556,9 @@ A continuación, se describe cómo crear y habilitar un flujo de eventos con Aut
 
 <Tabs>
   <Tab title="Management API">
-    Los flujos de eventos te permiten capturar cambios en tiempo real dentro de tu tenant de Auth0 y enviarlos a un sistema externo para procesarlos.
+    Los flujos de eventos te permiten capturar cambios en tiempo real dentro de tu tenant de Auth0 y enviarlos a un sistema externo para su procesamiento.
 
-    Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos](/docs/es/customize/events/event-types) que quieres supervisar. En este ejemplo se usa Auth0 CLI para crear un flujo de eventos que se suscribe al evento `user.created`, que se activa cada vez que tu tenant registra un usuario nuevo.
+    Antes de configurar un flujo de eventos, debes identificar los [tipos de eventos](/docs/es/customize/events/event-types) que quieres supervisar. Este ejemplo usa Auth0 CLI para crear un flujo de eventos que se suscribe al evento `user.created`, que se activa cada vez que tu tenant registra un usuario nuevo.
 
     ```bash wrap lines
     auth0 event-streams create \
@@ -568,7 +568,7 @@ A continuación, se describe cómo crear y habilitar un flujo de eventos con Aut
       --configuration '{"action_id":"385db79f-28a4-43d9-909d-6f5511dd6632"}'
     ```
 
-    Si la operación se realiza correctamente, esta llamada devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los flujos de eventos nuevos se habilitan de forma predeterminada.
+    Si la llamada se realiza correctamente, devuelve el siguiente JSON con el `id` de tu flujo de eventos. Los nuevos flujos de eventos se habilitan de forma predeterminada.
 
     ```json lines
     {
@@ -585,25 +585,25 @@ A continuación, se describe cómo crear y habilitar un flujo de eventos con Aut
 
     1. Ve a **Auth0 Dashboard** &gt; **Event Streams (Early)**.
 
-    2. Selecciona **+Create Event Stream**.
+    2. Selecciona **+Create Event Stream**.                .
 
-    3. En la lista de tipos de flujo, selecciona **+Auth0 Actions**. Se abrirá el formulario de configuración de tu nuevo flujo de Auth0 Actions.
+    3. En la lista de tipos de flujo, selecciona **+Auth0 Actions**. Esto abre el formulario de configuración de tu nuevo flujo de Auth0 Actions.
 
-    4. **Configura los detalles del flujo:** En el formulario de configuración, debes proporcionar la siguiente información:
+    4. **Configure Stream Details:** En el formulario de configuración, debes proporcionar la siguiente información:
 
-       * **Nombre del flujo:**
+       * **Stream Name:**
 
          Introduce un nombre descriptivo para tu flujo de eventos. Esto te ayudará a identificarlo dentro del Auth0 Dashboard.
 
-    5. **Selecciona los tipos de eventos:** En la sección **Select Event Types**, elige los tipos de eventos de Auth0 específicos que quieres incluir en este flujo. Puedes seleccionar varios tipos de eventos según tus necesidades (por ejemplo, `Created`, `Updated`, `Deleted`).
+    5. **Select Event Types:** En la sección **Select Event Types**, elige los tipos de eventos de Auth0 concretos que quieres incluir en este flujo. Puedes seleccionar varios tipos de eventos según tus necesidades (por ejemplo, `Created`, `Updated`, `Deleted`).
 
-    6. En el **Action Editor**, escribe el código de tu controlador. El sistema requiere la función `onExecuteEventStream`. Puedes usar el objeto `api` para gestionar los estados de éxito o error.
+    6. En el **Action Editor**, escribe el código de tu controlador. El sistema requiere la función `onExecuteEventStream`. Puedes usar el objeto `api` para gestionar estados de éxito o error.
 
     ```javascript
     /**
-     * Controlador que se llamará durante la ejecución de un flujo de eventos.
+     * Controlador que se llamará durante la ejecución de un Event Stream.
      * @param {Event} event - Detalles sobre el Cloud Event.
-     * @param {EventStreamAPI} api - Interfaz cuyos métodos se pueden usar para gestionar el evento.
+     * @param {EventStreamAPI} api - Interfaz cuyos métodos pueden usarse para gestionar el evento.
      */
     exports.onExecuteEventStream = async (event, api) => {
       const eventType = event.message.type;
@@ -614,7 +614,7 @@ A continuación, se describe cómo crear y habilitar un flujo de eventos con Aut
       // Lógica personalizada: p. ej., enviar datos a una API externa
       // await axios.post('https://my-crm.com/ingest', eventData);
 
-      // MANEJO DE ERRORES:
+      // MANEJO DE FALLOS:
       // Para activar un reintento, lanza un error o usa api.message.fail()
       if (!eventData) {
          // api.message.fail('No data received');
@@ -626,9 +626,9 @@ A continuación, se describe cómo crear y habilitar un flujo de eventos con Aut
     };
     ```
 
-    7. **Guarda los cambios:** Una vez que hayas configurado el nombre del flujo y el controlador de la Action, el sistema crea automáticamente la Action, la vincula a un flujo y la habilita.
+    7. **Save Changes:** Una vez que hayas configurado el nombre del flujo y el controlador de la Action, el sistema crea automáticamente la Action, la vincula a un flujo y la habilita.
 
-    Tu nuevo flujo de eventos ya está creado, y Auth0 puede empezar a publicar los tipos de eventos seleccionados en la Auth0 Action especificada. Puedes supervisar el estado y administrar tu flujo de eventos desde la página Event Streams (Early) del Auth0 Dashboard.
+    Tu nuevo flujo de eventos ya se ha creado, y Auth0 puede empezar a publicar los tipos de eventos seleccionados en la Auth0 Action especificada. Puedes supervisar el estado y gestionar tu flujo de eventos desde la página Event Streams (Early) del Auth0 Dashboard.
   </Tab>
 </Tabs>
 
@@ -638,4 +638,4 @@ A continuación, se describe cómo crear y habilitar un flujo de eventos con Aut
 
 * [Tipos de eventos](/docs/es/customize/events/event-types)
 * [Pruebas de eventos, observabilidad y recuperación ante fallos](/docs/es/customize/events/event-testing-observability-and-failure-recovery)
-* [Prácticas recomendadas para eventos](/docs/es/customize/events/events-best-practices)
+* [Prácticas recomendadas para Events](/docs/es/customize/events/events-best-practices)

@@ -1,33 +1,33 @@
 ---
-description: Configure TLS mutuo entre Auth0 Conector AD/LDAP y Auth0 emitiendo un certificado de cliente que el Conector presenta en cada conexión saliente.
-title: Configurar la autenticación de Conector AD/LDAP con certificados de cliente
+description: Configura TLS mutuo entre el Conector AD/LDAP de Auth0 y Auth0 emitiendo un certificado de cliente que el Conector presenta en todas las conexiones salientes.
+title: Configurar la autenticación del Conector AD/LDAP con certificados de cliente
 ---
 
-El Conector AD/LDAP también permite que los usuarios se autentiquen con un certificado instalado en su equipo o dispositivo.
+El Conector AD/LDAP también permite a los usuarios autenticarse con un certificado instalado en su equipo o dispositivo.
 
 <div id="enable-client-certificates">
   ## Habilitar certificados de cliente
 </div>
 
-1. Ve a [Auth0 Dashboard &gt; Authentication &gt; Enterprise &gt; Active Directory/LDAP](https://manage.auth0.com/#/connections/enterprise/ad) y selecciona la conexión que quieres configurar.
-2. Activa la opción **Use client SSL certificate authentication** en la configuración.
-3. Introduce los rangos de direcciones IP en el campo **IP Ranges**. Solo se pedirá a los usuarios que provengan de los rangos de IP indicados que se autentiquen mediante certificados de cliente. A los usuarios que provengan de otros rangos de IP se les pedirá que inicien sesión con el formulario de nombre de usuario y contraseña.
+1. Vaya a [Auth0 Dashboard &gt; Autenticación &gt; empresarial &gt; Active Directory/LDAP](https://manage.auth0.com/#/connections/enterprise/ad) y seleccione la conexión que desea configurar.
+2. Active la opción **Usar autenticación con certificado SSL de cliente** en la configuración.
+3. Indique los rangos de direcciones IP en el campo **Rangos de IP**. Solo se pedirá a los usuarios que provengan de los rangos de IP indicados que se autentiquen mediante certificados de cliente. A los usuarios que provengan de otros rangos de IP se les pedirá que inicien sesión con el formulario de acceso con nombre de usuario y contraseña.
 
 <div id="configure-certificates">
   ## Configurar certificados
 </div>
 
-Una vez configurada la conexión AD/LDAP en Auth0, tendrás que configurar los certificados en el Conector AD/LDAP. Para admitir certificados de cliente, se requiere lo siguiente:
+Una vez que se haya configurado la conexión AD/LDAP en Auth0, deberá configurar los certificados en el Conector AD/LDAP. Para admitir certificados de cliente, se requiere lo siguiente:
 
-* Un certificado SSL para la URL pública, ya que la interacción entre el usuario final y el Conector deberá realizarse mediante HTTPS.
+* Un certificado SSL para la URL pública, ya que la interacción entre el usuario final y el Conector deberá realizarse a través de HTTPS.
 * Uno o más certificados de CA.
-* Un certificado de cliente firmado por la CA para cada usuario que deba autenticarse con certificados de cliente.
+* Un certificado de cliente firmado por la CA para cada usuario que necesite autenticarse mediante certificados de cliente.
 
-1. Antes de cargar los certificados en el Conector AD/LDAP, convierte los certificados X.509 a Base64. Usa Base64 o Certutil en Windows Server. Para obtener más información, consulta [Base64 Decode](https://www.base64decode.org/) en Base64decode o [Certutil.exe](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/certutil#BKMK_encode) en la documentación de Microsoft.
-2. Carga los certificados SSL y de CA en el Conector AD/LDAP:
+1. Antes de cargar certificados en el Conector AD/LDAP, convierta los certificados X.509 a Base64. Use Base64 o Certutil en Windows Server. Para obtener más información, consulte [Base64 Decode](https://www.base64decode.org/) en Base64decode o [Certutil.exe](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/certutil#BKMK_encode) en la documentación de Microsoft.
+2. Cargue los certificados SSL y CA en el Conector AD/LDAP:
 
-   <Frame>![Pantalla de configuración de autenticación del Conector AD/LDAP con certificados de cliente](/docs/images/cdy7uua7fh8z/2zRux90ZHATIBFWyHlodue/c426e5a475ff528a467db6409980de12/connector-client-cert-config.png)</Frame>
-3. Para hacer una prueba, genera una CA autofirmada y certificados de cliente con **makecert.exe** en Windows, que forma parte del SDK de Windows:
+   <Frame>![Pantalla de Setup para configurar la autenticación del Conector AD/LDAP con certificados de cliente](/docs/images/cdy7uua7fh8z/2zRux90ZHATIBFWyHlodue/c426e5a475ff528a467db6409980de12/connector-client-cert-config.png)</Frame>
+3. Para probarlo, genere una CA autofirmada y certificados de cliente con **makecert.exe** en Windows, que forma parte del SDK de Windows:
 
    ```bash lines
    SET ClientCertificateName=jon
@@ -36,7 +36,7 @@ Una vez configurada la conexión AD/LDAP en Auth0, tendrás que configurar los c
        "C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\makecert.exe" -n "CN=%ClientCertificateName%" -pe -sky exchange -m 96 -ss My -in "%RootCertificateName%" -is my -a sha1
    ```
 
-   Es importante que el subject del certificado de cliente tenga el formato `CN=AD_USERNAME`; por ejemplo, `CN=jon`.
+   Es importante que el subject del certificado de cliente tenga el formato `CN=AD_USERNAME`, por ejemplo `CN=jon`.
 
 En una aplicación, cuando un usuario inicia el flujo de inicio de sesión mediante una conexión AD/LDAP:
 
@@ -48,10 +48,10 @@ auth.signin({
      }, onLoginSuccess, onLoginFailed);
 ```
 
-Si la dirección IP del usuario está dentro del rango de IP configurado, se le pedirá que se autentique con un certificado de cliente:
+Si la dirección IP del usuario está dentro del rango de IP configurado, se le pedirá que se autentique mediante un certificado de cliente:
 
-<Frame>![Configurar la autenticación del conector AD/LDAP con certificados de cliente Seleccionar certificado de cliente](/docs/images/cdy7uua7fh8z/1loz5lrd2NkHs2gKgbIJKF/11a373d520eaae08c20055cb68613972/connector-client-cert-choose.png)</Frame>
+<Frame>![Configurar la autenticación del Conector AD/LDAP con certificados de cliente: elegir certificado de cliente](/docs/images/cdy7uua7fh8z/1loz5lrd2NkHs2gKgbIJKF/11a373d520eaae08c20055cb68613972/connector-client-cert-choose.png)</Frame>
 
-Después de seleccionar el certificado, el conector AD/LDAP lo validará y el usuario iniciará sesión:
+Después de elegir el certificado, el Conector AD/LDAP lo validará y el usuario iniciará sesión:
 
-<Frame>![Configurar la autenticación del conector AD/LDAP con certificados de cliente Usuario con sesión iniciada](/docs/images/cdy7uua7fh8z/2Lr78NWYfzD3Hw3JIDPQmb/3790acd68fa283ca79c1263f97fa29c4/connector-client-cert-loggedin.png)</Frame>
+<Frame>![Configurar la autenticación del Conector AD/LDAP con certificados de cliente: usuario con sesión iniciada](/docs/images/cdy7uua7fh8z/2Lr78NWYfzD3Hw3JIDPQmb/3790acd68fa283ca79c1263f97fa29c4/connector-client-cert-loggedin.png)</Frame>

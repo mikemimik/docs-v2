@@ -4,48 +4,48 @@ title: Demonstrating Proof-of-Possession (DPoP)
 validatedOn: 2026-05-28
 ---
 
-Demonstrating Proof-of-Possession (DPoP) es una [extensión del framework OAuth 2.0](https://datatracker.ietf.org/doc/draft-ietf-oauth-dpop/) que vincula o [Sender Constraining](/docs/es/secure/sender-constraining) los <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> mediante criptografía asimétrica y <Tooltip tip="Token de acceso: Credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=JSON+Web+Tokens">JSON Web Tokens</Tooltip> (JWT) en la capa de aplicación. DPoP garantiza que solo la aplicación cliente que solicitó el token de acceso y posee la clave privada pueda usarlo. Esto evita el uso indebido de tokens robados.
+Demonstrating Proof-of-Possession (DPoP) es una [extensión de OAuth 2.0](https://datatracker.ietf.org/doc/draft-ietf-oauth-dpop/) que vincula o [aplica Sender Constraining a](/docs/es/secure/sender-constraining) <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=access+tokens">tokens de acceso</Tooltip> mediante criptografía asimétrica y <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=JSON+Web+Tokens">JSON Web Tokens</Tooltip> (JWT) en la capa de aplicación. DPoP garantiza que solo la aplicación cliente que solicitó el token de acceso y posee la clave privada pueda usarlo. Esto evita el uso indebido de tokens robados.
 
-DPoP usa una clave pública/privada para crear una prueba DPoP como un JSON Web Token (JWT) firmado. La prueba DPoP contiene:
+DPoP usa un par de claves pública/privada para crear una prueba DPoP como un JSON Web Token (JWT) firmado. La prueba DPoP contiene:
 
 * La clave pública del cliente (`jwk`).
-* El payload que hace referencia a la solicitud del token de acceso, incluido el método (`htm`) y el URI (`htu`).
+* El payload que hace referencia a la solicitud de token de acceso, incluido el método (`htm`) y la URI (`htu`).
 * Una firma creada con la clave privada del cliente.
 * Un ID único (`jti`) para evitar ataques de repetición.
 * Para cada solicitud a la API, un hash SHA-256 del token de acceso codificado en base64url (`ath`).
-* Opcional: Para <Tooltip tip="Cliente público: Cliente (aplicación) que no puede almacenar credenciales de forma segura. Algunos ejemplos incluyen una aplicación nativa de escritorio o móvil y una aplicación web client-side basada en JavaScript (como una aplicación de página única (SPA))." cta="Ver glosario" href="/docs/es/glossary?term=public+clients">clientes públicos</Tooltip>, una claim `nonce` para garantizar que la aplicación cliente generó recientemente el JWT de prueba DPoP.
+* Opcional: Para <Tooltip tip="Cliente público: cliente (aplicación) que no puede mantener las credenciales de forma segura. Algunos ejemplos incluyen una aplicación nativa de escritorio o móvil y una aplicación web del lado del cliente basada en JavaScript (como una aplicación web de página única (SPA))." cta="Ver glosario" href="/docs/es/glossary?term=public+clients">clientes públicos</Tooltip>, un claim `nonce` para garantizar que la aplicación cliente generó recientemente el JWT de prueba DPoP.
 
-La aplicación cliente envía el JWT de prueba DPoP en una solicitud de token de acceso al <Tooltip tip="Servidor de autorización: Servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, tareas y funciones disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Authorization+Server">servidor de autorización</Tooltip> de Auth0. Después de que el servidor de autorización de Auth0 valide el JWT de prueba DPoP, vincula el token de acceso emitido a la clave pública del cliente.
+La aplicación cliente envía el JWT de prueba DPoP en una solicitud de token de acceso al <Tooltip tip="Servidor de autorización: servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, las tareas y las funcionalidades disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Authorization+Server">servidor de autorización</Tooltip> de Auth0. Después de que el servidor de autorización de Auth0 valide el JWT de prueba DPoP, vincula el token de acceso emitido con la clave pública del cliente.
 
 <div id="common-use-cases">
   ## Casos de uso comunes
 </div>
 
-Conozca algunos casos de uso comunes de DPoP:
+Conoce algunos casos de uso comunes de DPoP:
 
-* **Aplicaciones de una sola página (SPA) y aplicaciones móviles:** Como clientes públicos, las SPA y las aplicaciones móviles no cuentan con un entorno confidencial y de confianza, como un servidor backend, para almacenar de forma segura los <Tooltip tip="Secreto de cliente: secreto utilizado por un cliente (aplicación) para autenticarse con el servidor de autorización; solo el cliente y el servidor de autorización deben conocerlo, y debe ser lo suficientemente aleatorio como para que sea imposible de adivinar." cta="Ver glosario" href="/docs/es/glossary?term=client+secrets">secretos de cliente</Tooltip>, lo que las hace vulnerables al robo de tokens. DPoP soluciona esta vulnerabilidad de seguridad al vincular los tokens de acceso a la clave pública de la aplicación cliente, creando un JWT de prueba DPoP. La aplicación cliente firma el JWT de prueba DPoP con su clave privada y lo envía en una solicitud de autorización. El servidor de autorización de Auth0 valida el JWT de prueba DPoP y, si es válido, vincula el token de acceso emitido a la clave pública del cliente.
-* **Integraciones con API de terceros:** Si un agente de IA integrado con su aplicación cliente llama a una API de terceros en nombre del usuario mediante un JWT de prueba DPoP, entonces el <Tooltip tip="Servidor de recursos: servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip> puede validar criptográficamente que la solicitud proviene del agente de IA y no de un tercero no autorizado.
+* **Aplicaciones web de página única (SPA) y aplicaciones móviles:** Como clientes públicos, las SPA y las aplicaciones móviles no cuentan con un entorno confiable y confidencial, como un servidor backend, para almacenar de forma segura los <Tooltip tip="secreto de cliente: Secret utilizado por un cliente (aplicación) para autenticarse con el servidor de autorización; solo deberían conocerlo el cliente y el servidor de autorización, y debe ser lo suficientemente aleatorio como para que no pueda adivinarse." cta="Ver glosario" href="/docs/es/glossary?term=client+secrets">secretos de cliente</Tooltip>, lo que las hace vulnerables al robo de tokens. DPoP aborda esta vulnerabilidad de seguridad vinculando los tokens de acceso a la clave pública de la aplicación cliente y creando un JWT de prueba DPoP. La aplicación cliente firma el JWT de prueba DPoP con su clave privada y lo envía en una solicitud de autorización. El servidor de autorización de Auth0 valida el JWT de prueba DPoP y, si es válido, vincula el token de acceso emitido a la clave pública del cliente.
+* **Integraciones con API de terceros:** Si un agente de IA integrado con tu aplicación cliente llama a una API de terceros en nombre del usuario mediante un JWT de prueba DPoP, entonces el <Tooltip tip="Servidor de recursos: servidor que aloja recursos protegidos. Los servidores de recursos aceptan y responden a solicitudes de recursos protegidos." cta="Ver glosario" href="/docs/es/glossary?term=resource+server">servidor de recursos</Tooltip> puede validar criptográficamente que la solicitud proviene del agente de IA y no de un tercero no autorizado.
 
 <div id="supported-application-grant-types">
-  ## Tipos de concesión de aplicación compatibles
+  ## Tipos de concesión de aplicaciones compatibles
 </div>
 
-Auth0 admite los siguientes [tipos de concesión de aplicación](/docs/es/get-started/applications/application-grant-types) para Sender Constraining con DPoP:
+Auth0 admite los siguientes [tipos de concesión de aplicaciones](/docs/es/get-started/applications/application-grant-types) para Sender Constraining con DPoP:
 
-| Tipo de concesión                                     | Descripción                                                                                                                                      |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `authorization_code`                                  | Concesión Authorization Code                                                                                                                     |
-| `client_credentials`                                  | Concesión de credenciales de cliente                                                                                                             |
-| `password`                                            | Concesión de contraseña del propietario del recurso                                                                                              |
-| `refresh_token`                                       | Concesión de token de actualización                                                                                                              |
-| `urn:ietf:params:oauth:grant-type:device_code`        | Concesión de autorización de dispositivo                                                                                                         |
-| `http://auth0.com/oauth/grant-type/password-realm`    | Usa una concesión de extensión similar a la concesión de contraseña del propietario del recurso, con la capacidad de indicar un realm específico |
-| `http://auth0.com/oauth/grant-type/passwordless/otp`  | Solicitud de concesión Passwordless                                                                                                              |
-| `http://auth0.com/oauth/grant-type/mfa-oob`           | Solicitud de concesión OOB de autenticación multifactor                                                                                          |
-| `http://auth0.com/oauth/grant-type/mfa-otp`           | Solicitud de concesión OTP de autenticación multifactor                                                                                          |
-| `http://auth0.com/oauth/grant-type/mfa-recovery-code` | Solicitud de concesión de recuperación para autenticación multifactor                                                                            |
-| `urn:ietf:params:oauth:grant-type:token-exchange`     | Solicitud de concesión de Custom Token Exchange                                                                                                  |
-| `urn:okta:params:oauth:grant-type:webauthn`           | Solicitud de concesión de WebAuthn                                                                                                               |
+| Tipo de concesión                                     | Descripción                                                                                                                                             |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorization_code`                                  | Concesión Authorization Code                                                                                                                            |
+| `client_credentials`                                  | Concesión de credenciales de cliente                                                                                                                    |
+| `password`                                            | Concesión de contraseña del propietario del recurso                                                                                                     |
+| `refresh_token`                                       | Concesión de token de actualización                                                                                                                     |
+| `urn:ietf:params:oauth:grant-type:device_code`        | Concesión de autorización de dispositivo                                                                                                                |
+| `http://auth0.com/oauth/grant-type/password-realm`    | Usa una concesión de extensión similar a la concesión de contraseña del propietario del recurso que incluye la capacidad de indicar un realm específico |
+| `http://auth0.com/oauth/grant-type/passwordless/otp`  | Solicitud de concesión passwordless                                                                                                                     |
+| `http://auth0.com/oauth/grant-type/mfa-oob`           | Solicitud de concesión OOB de autenticación multifactor                                                                                                 |
+| `http://auth0.com/oauth/grant-type/mfa-otp`           | Solicitud de concesión OTP de autenticación multifactor                                                                                                 |
+| `http://auth0.com/oauth/grant-type/mfa-recovery-code` | Solicitud de concesión de recuperación para autenticación multifactor                                                                                   |
+| `urn:ietf:params:oauth:grant-type:token-exchange`     | Solicitud de concesión de Custom Token Exchange                                                                                                         |
+| `urn:okta:params:oauth:grant-type:webauthn`           | Solicitud de concesión de WebAuthn                                                                                                                      |
 
 <div id="how-it-works">
   ## Cómo funciona
@@ -56,34 +56,34 @@ El siguiente diagrama de secuencia ilustra, a grandes rasgos, los pasos del fluj
 <Frame>![](/docs/images/cdy7uua7fh8z/XoEV4y12QtnGwBPCiFbep/6744ab830ab2119664463f8c52fe6b02/Screenshot_2025-07-28_at_11.15.42_AM.png)</Frame>
 
 1. Al solicitar un token de acceso al servidor de autorización de Auth0, la aplicación cliente genera un par de claves criptográficas único y usa la clave pública para demostrar que posee la clave privada.
-2. La aplicación cliente genera el JWT de prueba de DPoP y la envía al endpoint /token del servidor de autorización de Auth0.
-3. El servidor de autorización de Auth0 verifica el JWT de prueba de DPoP y, si es válida, emite el token de acceso y lo vincula a la clave pública del cliente.
-4. Antes de llamar a la Customer API, la aplicación cliente genera un nuevo JWT de prueba de DPoP para demostrar que posee la clave privada asociada al token. La aplicación cliente envía el JWT de prueba de DPoP y el token de acceso vinculado al remitente al servidor de recursos.
-5. El servidor de recursos verifica el JWT de prueba de DPoP, lo que garantiza que solo el propietario legítimo del token, o la aplicación cliente original, pueda usarlo correctamente para acceder a recursos protegidos. Para solicitar un token de acceso a partir de un token de actualización, la aplicación cliente genera un nuevo JWT de prueba de DPoP, lo que garantiza que el token de actualización quede vinculado a la clave pública del cliente.
+2. La aplicación cliente genera el JWT de prueba DPoP y lo envía al endpoint /token del servidor de autorización de Auth0.
+3. El servidor de autorización de Auth0 verifica el JWT de prueba DPoP y, si es válido, emite el token de acceso y lo vincula a la clave pública del cliente.
+4. Antes de llamar a la Customer API, la aplicación cliente genera un nuevo JWT de prueba DPoP para demostrar que posee la clave privada asociada al token. La aplicación cliente envía el JWT de prueba DPoP y el token de acceso vinculado al remitente al servidor de recursos.
+5. El servidor de recursos verifica el JWT de prueba DPoP, lo que garantiza que solo el propietario legítimo del token, o la aplicación cliente original, pueda usarlo correctamente para acceder a recursos protegidos. Para solicitar un token de acceso a partir de un token de actualización, la aplicación cliente genera un nuevo JWT de prueba DPoP, lo que garantiza que el token de actualización quede vinculado a la clave pública del cliente.
 
 <div id="sender-constrain-tokens-using-dpop-in-auth0">
-  ## Vincula tokens con Sender Constraining usando DPoP en Auth0
+  ## Protege los tokens con Sender Constraining mediante DPoP en Auth0
 </div>
 
-El siguiente diagrama muestra el flujo integral para vincular tokens con Sender Constraining usando DPoP en Auth0:
+El siguiente diagrama muestra el flujo de extremo a extremo de Sender Constraining de tokens con DPoP en Auth0:
 
 <Frame>![](/docs/images/cdy7uua7fh8z/7sonusMpvBMP0fDS6OkXSA/7cd0d50ffc44167f52f7e29d7f723d4a/Screenshot_2025-07-28_at_11.17.43_AM.png)</Frame>
 
-Las siguientes secciones te guían paso a paso por el flujo de DPoP en Auth0 con ejemplos de código para su implementación:
+Las siguientes secciones le guían paso a paso por el flujo de DPoP en Auth0 con ejemplos de código para su implementación:
 
 * [Requisitos previos](#prerequisites)
 * [Paso 1: La aplicación cliente genera un par de claves DPoP](#step-1-client-application-generates-a-dpop-key-pair)
-* [Paso 2: La aplicación cliente crea un JWT de prueba de DPoP](#step-2-client-application-creates-a-dpop-proof-jwt)
+* [Paso 2: La aplicación cliente crea un JWT de prueba DPoP](#step-2-client-application-creates-a-dpop-proof-jwt)
 * [Paso 3: La aplicación cliente solicita un token vinculado a DPoP](#step-3-client-application-requests-a-dpop-bound-token)
-* [Paso 4: El servidor de autorización de Auth0 valida el JWT de prueba de DPoP](#step-4-auth0-authorization-server-validates-the-dpop-proof-jwt)
-* [Paso 5: La aplicación cliente llama a la API con el token vinculado a DPoP y el JWT de prueba de DPoP](#step-5-client-application-calls-api-with-the-dpop-bound-token-and-dpop-proof-jwt)
+* [Paso 4: El servidor de autorización de Auth0 valida el JWT de prueba DPoP](#step-4-auth0-authorization-server-validates-the-dpop-proof-jwt)
+* [Paso 5: La aplicación cliente llama a la API con el token vinculado a DPoP y el JWT de prueba DPoP](#step-5-client-application-calls-api-with-the-dpop-bound-token-and-dpop-proof-jwt)
 * [Paso 6: Gestiona la renovación del token con DPoP](#step-6-handle-token-refresh-with-dpop)
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Antes de comenzar, asegúrate de haber hecho lo siguiente:
+Antes de comenzar, asegúrate de lo siguiente:
 
 * [Configurar Sender Constraining](/docs/es/secure/sender-constraining/configure-sender-constraining) para tu aplicación cliente y servidor de recursos.
 
@@ -91,44 +91,44 @@ Antes de comenzar, asegúrate de haber hecho lo siguiente:
   ## Paso 1: La aplicación cliente genera un par de claves DPoP
 </div>
 
-Para DPoP, la aplicación cliente debe generar un par de claves criptográficas asimétricas. Auth0 admite el uso de criptografía de curva elíptica, por ejemplo, con claves ES256. Este par de claves es exclusivo de tu aplicación cliente y debe almacenarse de forma segura, por ejemplo, en un almacén de claves respaldado por hardware.
+Para DPoP, la aplicación cliente debe generar un par de claves criptográficas asimétricas. Auth0 admite el uso de curvas elípticas, como las claves ES256. Este par de claves es único de tu aplicación cliente y debe almacenarse de forma segura, por ejemplo, en un almacén de claves protegido por hardware.
 
-La aplicación cliente mantiene en secreto la clave privada e incluye la clave pública en el DPoP Proof JSON Web Token (JWT), que sirve como “prueba de posesión” en el [Paso 2](#step-2-client-application-creates-a-dpop-proof-jwt).
+La aplicación cliente mantiene la clave privada en secreto e incluye la clave pública en el JSON Web Token (JWT) de prueba DPoP, que sirve como “prueba de posesión” en el [Paso 2](#step-2-client-application-creates-a-dpop-proof-jwt).
 
 <div id="step-2-client-application-creates-a-dpop-proof-jwt">
-  ## Paso 2: La aplicación cliente crea un JWT de prueba de DPoP
+  ## Paso 2: La aplicación cliente crea un JWT de prueba DPoP
 </div>
 
-Antes de solicitar un token de acceso vinculado a DPoP en el endpoint `/token` del servidor de autorización de Auth0, su aplicación cliente debe crear un JWT de prueba de DPoP. Un JWT de prueba de DPoP es un JSON Web Token (JWT) firmado con la clave privada de su cliente que sirve como “prueba de posesión”.
+Antes de solicitar un token de acceso vinculado a DPoP en el endpoint `/token` del servidor de autorización de Auth0, tu aplicación cliente debe crear un JWT de prueba DPoP. Un JWT de prueba DPoP es un JSON Web Token (JWT) firmado con la clave privada de tu cliente que sirve como “prueba de posesión”.
 
-El JWT de prueba de DPoP consta de un encabezado y un payload de JWT que contienen [claims](/docs/es/secure/tokens/json-web-tokens/json-web-token-claims) vinculados a la solicitud del token:
+El JWT de prueba DPoP consta de un encabezado JWT y un payload que contiene [claims](/docs/es/secure/tokens/json-web-tokens/json-web-token-claims) relacionados con la solicitud de token:
 
 <div id="jwt-header-claims">
   ### Claims del encabezado del JWT
 </div>
 
-| Claim del JWT de prueba de DPoP | Descripción                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| `typ`                           | Se establece como `dpop+jwt`.                                                  |
-| `alg`                           | El algoritmo de firma asimétrica utilizado, como `RS256` o `ES256`.            |
-| `jwk`                           | Una representación de la JSON Web Key (JWK) de la clave pública de tu cliente. |
+| Claim del JWT de prueba DPoP | Descripción                                                              |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| `typ`                        | Se establece en `dpop+jwt`.                                              |
+| `alg`                        | El algoritmo de firma asimétrica utilizado, como `RS256` o `ES256`.      |
+| `jwk`                        | Una representación JWK (JSON Web Key) de la clave pública de tu cliente. |
 
 <div id="jwt-payload-claims">
-  ### Claims del payload del JWT
+  ### Claims del payload de JWT
 </div>
 
-| DPoP Proof JWT Claim | Descripción                                                                                                                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `jti`                | Un identificador único del JWT para evitar ataques de repetición.                                                                                                                                                                    |
-| `htm`                | El método HTTP de la solicitud a la que corresponde la prueba DPoP, como `POST` para solicitudes de token y `GET` para llamadas a la API.                                                                                            |
-| `htu`                | El URI HTTP de la solicitud a la que corresponde el JWT de prueba de DPoP, sin el fragmento ni los parámetros de consulta. Por ejemplo: `https://api.example.com/data?param=1#section1` se convierte en `https://api.example.com/data`. |
-| `iat`                | La marca de tiempo de creación del JWT.                                                                                                                                                                                              |
-| `ath`                | Para llamadas a la API con un token de acceso, un hash SHA-256 del token de acceso codificado en base64url.                                                                                                                          |
-| `nonce`              | Para clientes públicos que requieren un `nonce`, un valor `nonce` proporcionado por el servidor.                                                                                                                                     |
+| Claim del JWT de prueba DPoP | Descripción                                                                                                                                                                                                                        |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jti`                        | Un identificador único del JWT para evitar ataques de repetición.                                                                                                                                                                  |
+| `htm`                        | El método HTTP de la solicitud para la que se usa la prueba DPoP, como `POST` para solicitudes de token y `GET` para llamadas a la API.                                                                                            |
+| `htu`                        | El URI HTTP de la solicitud para la que se usa el JWT de prueba DPoP, sin el fragmento ni los parámetros de consulta. Por ejemplo, `https://api.example.com/data?param=1#section1` se convierte en `https://api.example.com/data`. |
+| `iat`                        | La marca de tiempo de creación del JWT.                                                                                                                                                                                            |
+| `ath`                        | Para llamadas a la API con un token de acceso, un hash SHA-256 del token de acceso codificado en base64url.                                                                                                                        |
+| `nonce`                      | Para clientes públicos que requieren un `nonce`, un valor `nonce` proporcionado por el servidor.                                                                                                                                   |
 
-Una vez que la aplicación cliente crea el JWT de prueba de DPoP, lo firma con la clave privada generada en [Paso 1](#step-1-client-application-generates-a-dpop-key-pair).
+Una vez que la aplicación cliente crea el JWT de prueba DPoP, lo firma con la clave privada generada en el [Paso 1](#step-1-client-application-generates-a-dpop-key-pair).
 
-El siguiente ejemplo de código muestra cómo crear y firmar un JWT de prueba de DPoP en tu aplicación cliente:
+El siguiente ejemplo de código muestra cómo crear y firmar un JWT de prueba DPoP en tu aplicación cliente:
 
 ```jsx lines
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
@@ -162,13 +162,13 @@ const dpopHeader = jwt.sign({
   ## Paso 3: La aplicación cliente solicita un token vinculado a DPoP
 </div>
 
-Cuando tu aplicación cliente solicita un token de acceso al `endpoint` `/token` del servidor de autorización de Auth0, incluye el JWT de prueba de DPoP en el encabezado HTTP de la solicitud:
+Cuando tu aplicación cliente solicita un token de acceso al endpoint `/token` del servidor de autorización de Auth0, incluye el JWT de prueba DPoP en el encabezado HTTP de la solicitud:
 
 ```http lines
 DPoP: {DPoP_proof_JWT_value}
 ```
 
-A continuación se muestra un ejemplo de solicitud de token de acceso que incluye el encabezado HTTP DPoP con un JWT de prueba de DPoP:
+A continuación se muestra un ejemplo de solicitud de token de acceso que incluye el encabezado HTTP DPoP con un JWT de prueba DPoP:
 
 ```http lines
 POST /oauth/token HTTP/1.1
@@ -180,25 +180,25 @@ Cache-Control: no-cache
 grant_type=client_credentials&client_id=client123
 ```
 
-Para implementar la forma de solicitar un token de acceso vinculado a DPoP en su aplicación cliente, use el siguiente ejemplo de código, que hace lo siguiente:
+Para implementar cómo solicitar un token de acceso vinculado a DPoP en tu aplicación cliente, usa el siguiente ejemplo de código, que hace lo siguiente:
 
-1. Rellena el encabezado HTTP DPoP con un JWT de prueba de DPoP firmado.
-2. Envía el encabezado HTTP DPoP con un JWT de prueba de DPoP firmado en una solicitud de token de acceso al endpoint `/token`.
+1. Completa el encabezado HTTP DPoP con un JWT de prueba DPoP firmado.
+2. Envía el encabezado HTTP DPoP con un JWT de prueba DPoP firmado en una solicitud de token de acceso al endpoint `/token`.
 3. Procesa la respuesta del servidor de autorización de Auth0.
 
 ```javascript lines
 // Realiza la solicitud al endpoint /oauth/token
-// Reemplaza [...] con tu grant_type, client_id y URL de tenant reales
+// Reemplaza [...] con tu grant_type, client_id y URL del tenant reales
 const response = await fetch('https://[TENANT]/oauth/token', {
     method: 'POST',
     body: new URLSearchParams({
       grant_type: '...',
       client_id: '...',
-      // Otros parámetros del cuerpo aquí
+      // Otros parámetros del body aquí
     }),
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      // Agrega el encabezado DPoP
+      // Agrega el header DPoP
       dpop: dpopHeader
     }
   });
@@ -212,9 +212,9 @@ console.log('Initial token request result:', result);
   ### Clientes públicos
 </div>
 
-Si un cliente público, como una aplicación de una sola página (SPA) o una aplicación móvil, solicita un token de acceso vinculado a DPoP, no tendrá un secreto de cliente ni otros parámetros de autenticación del cliente. En este caso, y de acuerdo con la [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449#section-8), Auth0 requiere que el encabezado HTTP de DPoP incluya un valor <Tooltip tip="Nonce: Número arbitrario emitido una sola vez en un protocolo de autenticación para detectar y prevenir ataques de repetición." cta="Ver glosario" href="/docs/es/glossary?term=nonce">nonce</Tooltip> para garantizar que la aplicación cliente haya generado recientemente el JWT de prueba de DPoP. Este es el comportamiento esperado, ya que permite al servidor de autorización asegurarse de que la prueba de DPoP sea reciente y limita el tiempo durante el cual puede usarse una prueba.
+Si un cliente público, como una aplicación de página única (SPA) o una aplicación móvil, solicita un token de acceso vinculado a DPoP, no tendrá un secreto de cliente ni otros parámetros de autenticación del cliente. En este caso, y de acuerdo con la [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449#section-8), Auth0 requiere que el encabezado HTTP DPoP incluya un valor <Tooltip tip="Nonce: Número arbitrario emitido una vez en un protocolo de autenticación para detectar y prevenir ataques de repetición." cta="Ver glosario" href="/docs/es/glossary?term=nonce">nonce</Tooltip> para garantizar que la aplicación cliente haya generado recientemente el JWT de prueba DPoP. Este es el comportamiento esperado, ya que permite al servidor de autorización comprobar que la prueba DPoP es reciente y limita el tiempo durante el cual puede usarse una prueba.
 
-Si un cliente público realiza una solicitud a `/token` y no incluye un valor `nonce` en el encabezado HTTP de DPoP, Auth0 responde con un código `HTTP 400` y un mensaje de error como el siguiente:
+Si un cliente público realiza una solicitud a `/token` y no incluye un valor `nonce` en el encabezado HTTP DPoP, Auth0 responde con un código `HTTP 400` y un mensaje de error como el siguiente:
 
 ```js lines
 {
@@ -223,9 +223,9 @@ Si un cliente público realiza una solicitud a `/token` y no incluye un valor `n
 }
 ```
 
-Auth0 incluye un encabezado `DPoP-Nonce` en los encabezados de la respuesta. Esto sigue el flujo estándar de «desafío-respuesta» definido en la [especificación de DPoP](https://datatracker.ietf.org/doc/html/rfc9449). Debes usar el valor del encabezado `DPoP-Nonce` y regenerar la prueba de DPoP (como en el [Paso 2](#step-2-client-application-creates-a-dpop-proof-jwt)), incluir un claim `nonce` con ese valor y volver a enviar la solicitud al endpoint `/token`.
+Auth0 incluye un encabezado `DPoP-Nonce` en los encabezados de respuesta. Esto sigue el flujo estándar de &quot;challenge-response&quot; definido en la [especificación de DPoP](https://datatracker.ietf.org/doc/html/rfc9449). Debes usar el valor del encabezado `DPoP-Nonce` y regenerar la prueba DPoP (como en el [Paso 2](#step-2-client-application-creates-a-dpop-proof-jwt)), incluir un claim `nonce` con ese valor y volver a enviar la solicitud al endpoint `/token`.
 
-El siguiente ejemplo de código muestra el flujo completo al hacer y luego reintentar una solicitud a `/token` con un claim `nonce` desde un cliente público:
+El siguiente ejemplo de código muestra el flujo de extremo a extremo al realizar y luego reintentar una solicitud a `/token` con un claim `nonce` desde un cliente público:
 
 ```jsx lines expandable
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
@@ -300,63 +300,63 @@ if (response.status === 400 && result.error === 'use_dpop_nonce') {
 ```
 
 <div id="step-4-auth0-authorization-server-validates-the-dpop-proof-jwt">
-  ## Paso 4: El servidor de autorización de Auth0 valida el JWT de prueba de DPoP
+  ## Paso 4: El servidor de autorización de Auth0 valida el JWT de prueba DPoP
 </div>
 
 Cuando el servidor de autorización de Auth0 recibe la solicitud de token, hace lo siguiente:
 
-* Extrae el JWT de prueba de DPoP, su clave pública y la firma.
+* Extrae el JWT de prueba DPoP, su clave pública y la firma.
 * Verifica la firma con la clave pública proporcionada.
-* Valida las claims `htm`, `htu`, `jti,` e `iat`.
-* Si es válido, emite un token de acceso. El servidor de autorización de Auth0 incluye una claim de confirmación, `cnf`, en el token de acceso. La claim `cnf` contiene la huella digital (hash) de la clave pública tomada del JWT de prueba de DPoP. Al incluirla en el token de acceso, el servidor de autorización de Auth0 vincula el token de acceso a esa clave pública específica, o lo “restringe al remitente”.
-* Establece `token_type` en el encabezado `Authorization` como `DPoP` en lugar de `Bearer` en la respuesta del token. Tradicionalmente, cuando el token de acceso se pasa en el encabezado `Authorization`, se establece como `Bearer`. Sin embargo, como estamos pasando un token de acceso vinculado a una clave pública mediante DPoP, se establece como `DPoP`.
-* Luego, el servidor de autorización de Auth0 emite el token de acceso restringido al remitente mediante DPoP a tu aplicación cliente.
+* Valida los claims `htm`, `htu`, `jti,` e `iat`.
+* Si es válido, emite un token de acceso. El servidor de autorización de Auth0 incluye un claim de confirmación, `cnf`, en el token de acceso. El claim `cnf` contiene la huella digital (hash) de la clave pública extraída del JWT de prueba DPoP. Al incluirla en el token de acceso, el servidor de autorización de Auth0 vincula el token de acceso a esa clave pública específica, o lo “vincula al remitente”.
+* Establece `token_type` en el encabezado `Authorization` como `DPoP` en lugar de `Bearer` en la respuesta del token. Tradicionalmente, cuando el token de acceso se pasa en el encabezado `Authorization`, se establece como `Bearer`. Sin embargo, como en este caso estamos pasando mediante DPoP un token de acceso vinculado a una clave pública, se establece como `DPoP`.
+* Luego, el servidor de autorización de Auth0 emite a tu aplicación cliente el token de acceso DPoP vinculado al remitente.
 
 <div id="step-5-client-application-calls-api-with-the-dpop-bound-token-and-dpop-proof-jwt">
-  ## Paso 5: La aplicación cliente llama a la API con el token vinculado a DPoP y el JWT de prueba de DPoP
+  ## Paso 5: La aplicación cliente llama a la API con el token de acceso vinculado a DPoP y el JWT de prueba DPoP
 </div>
 
-Para cada llamada a la API a un servidor de recursos que aplica DPoP, tu aplicación cliente debe presentar tanto el token de acceso vinculado a DPoP como un nuevo JWT de prueba de DPoP.
+En cada llamada a la API a un servidor de recursos que aplique DPoP, tu aplicación cliente debe presentar tanto el token de acceso vinculado a DPoP como un nuevo JWT de prueba DPoP.
 
-Al exigir un JWT de prueba de DPoP con cada solicitud a la API, DPoP garantiza que solo la aplicación cliente que posee la clave privada pueda usar el token de acceso.
+Al exigir un JWT de prueba DPoP en cada solicitud a la API, DPoP garantiza que solo la aplicación cliente que posee la clave privada pueda usar el token de acceso.
 
 Para una nueva solicitud a la API, la aplicación cliente:
 
-1. Genera un nuevo JWT de prueba de DPoP con los siguientes claims:
+1. Genera un nuevo JWT de prueba DPoP con los siguientes claims:
 
 * El claim `htm` es el método `HTTP` de la solicitud a la API, como `GET` o `POST`.
 * El claim `htu` es el URI de la solicitud a la API.
 * El claim `ath` es el hash SHA-256 codificado en base64url del token de acceso vinculado a DPoP que recibiste en el [Paso 3](#step-3-client-application-requests-a-dpop-bound-token).
 
-2. Firma criptográficamente el nuevo JWT de prueba de DPoP con la clave privada del cliente.
+2. Firma criptográficamente el nuevo JWT de prueba DPoP con la clave privada del cliente.
 
-3. Incluye el token de acceso vinculado a DPoP en el encabezado `Authorization` con el esquema de authentication `DPoP`:
+3. Incluye el token de acceso vinculado a DPoP en el encabezado `Authorization` mediante el esquema de autenticación `DPoP`:
 
 ```javascript lines
 // El esquema DPoP coincide con el token_type recibido del servidor de autorización
 Authorization: DPoP {access_token}
 ```
 
-4. Incluye el JWT de prueba de DPoP recién generado en el encabezado HTTP `DPoP`:
+4. Incluye en el encabezado HTTP `DPoP` el JWT de prueba DPoP recién generado:
 
 ```http lines
 DPoP: {new_dpop_proof_jwt}
 ```
 
-El encabezado HTTP `DPoP` debe incluir un claim `ath` adicional. El claim `ath` es un hash SHA256 del token de acceso emitido, codificado en base64url.
+El encabezado HTTP `DPoP` debe incluir un `claim` `ath` adicional. El `claim` `ath` es un hash SHA256 del token de acceso emitido, codificado en base64url.
 
 El servidor de recursos:
 
-* Recibe la solicitud de la API y extrae el token de acceso, la prueba JWT de DPoP, la clave pública y la firma.
-* Verifica la firma de la prueba JWT de DPoP con la clave pública de su encabezado `jwk`.
-* Valida los claims `htm`, `htu`, `jti`, `iat` y `ath`.
-* Verifica que la clave pública indicada en la prueba JWT de DPoP mediante su encabezado `jwk` coincida con la clave pública vinculada al token de acceso mediante el claim `cnf.jkt` del token de acceso.
+* Recibe la solicitud de API y extrae el token de acceso, el JWT de prueba DPoP, la clave pública y la firma.
+* Verifica la firma del JWT de prueba DPoP con la clave pública de su encabezado `jwk`.
+* Valida los `claims` `htm`, `htu`, `jti`, `iat` y `ath`.
+* Verifica que la clave pública indicada en el JWT de prueba DPoP mediante su encabezado `jwk` coincida con la clave pública vinculada al token de acceso mediante el `claim` `cnf.jkt` del token de acceso.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  El servidor de recursos es responsable de implementar la protección contra repetición de `jti`; no todos los SDK de Auth0 la aplican de forma predeterminada.
+  El servidor de recursos es responsable de implementar la protección contra la repetición de `jti`; no todos los SDKs de Auth0 aplican esta protección de forma predeterminada.
 </Callout>
 
-Si todas las comprobaciones se superan, el servidor de recursos autoriza la solicitud. De lo contrario, rechaza la solicitud y se deniega el acceso.
+Si todas las comprobaciones son correctas, el servidor de recursos autoriza la solicitud. Si no, rechaza la solicitud y se deniega el acceso.
 
 El siguiente ejemplo de código solicita un token de acceso a Auth0 mediante DPoP y luego llama al endpoint `/userinfo` con un token de acceso vinculado a DPoP:
 
@@ -401,7 +401,7 @@ async function getTokens(nonce) {
       body: new URLSearchParams({
         grant_type: '...',
         client_id: '...',
-        // Otros parámetros del cuerpo aquí
+        // Otros parámetros del body aquí
       }),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -424,14 +424,14 @@ if (response.status === 400 && result.error === 'use_dpop_nonce') {
   console.log('Tokens received:', result);
 }
 
-// Llamar a /userinfo con DPoP
+// Ahora llamar a /userinfo con DPoP
 const userInfoResponse = await fetch('https://[TENANT]/userinfo', {
   method: 'GET',
   headers: {
     // Enviar el token de acceso usando el esquema de autorización DPoP
     Authorization: `DPoP ${result.access_token}`,
 
-    // Incluir un encabezado DPoP, esta vez con el hash del token de acceso
+    // Incluir un header DPoP, esta vez con el hash del token de acceso
     dpop: generateDPoPHeader('GET', 'https://[TENANT]/userinfo', nonce, result.access_token),
   },
 });
@@ -444,34 +444,34 @@ console.log('User info result:', await userInfoResponse.json());
   ## Paso 6: Gestiona la actualización de tokens con DPoP
 </div>
 
-Cuando caduque tu token de acceso vinculado a DPoP, puedes usar un <Tooltip tip="Token de actualización: token usado para obtener un token de acceso renovado sin obligar a los usuarios a iniciar sesión de nuevo." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token">token de actualización</Tooltip> para obtener uno nuevo. Una solicitud de token de actualización requiere un JWT de prueba de DPoP generado con el mismo par de claves usado en la solicitud original del token.
+Cuando tu token de acceso vinculado a DPoP caduque, puedes usar un <Tooltip tip="Token de actualización: Token utilizado para obtener un nuevo token de acceso sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token">token de actualización</Tooltip> para obtener uno nuevo. Una solicitud de token de actualización requiere un JWT de prueba DPoP generado con el mismo par de claves utilizado en la solicitud de token original.
 
-A continuación, se describe el flujo de token de actualización con DPoP en Auth0:
+A continuación, se describe el flujo de actualización de tokens con DPoP en Auth0:
 
 La aplicación cliente:
 
 * Hace una solicitud de token de actualización al endpoint `/token` del servidor de autorización de Auth0.
-* Genera un JWT de prueba de DPoP para la solicitud de token de actualización (similar al [Paso 2](#step-2-client-application-creates-a-dpop-proof-jwt), con `htm` como `POST` y `htu` como el URI del <Tooltip tip="Endpoint de token: endpoint del servidor de autorización que se usa para solicitar tokens de manera programática." cta="Ver glosario" href="/docs/es/glossary?term=token+endpoint">endpoint de token</Tooltip>).
-* Incluye el JWT de prueba de DPoP en el header HTTP `DPoP`.
+* Genera un JWT de prueba DPoP para la solicitud de token de actualización (similar al [Paso 2](#step-2-client-application-creates-a-dpop-proof-jwt), con `htm` como `POST` y `htu` como el URI del <Tooltip tip="Endpoint de token: Endpoint en el servidor de autorización que se utiliza para solicitar tokens de forma programática." cta="Ver glosario" href="/docs/es/glossary?term=token+endpoint">endpoint de token</Tooltip>).
+* Incluye el JWT de prueba DPoP en el encabezado HTTP `DPoP`.
 
 El servidor de autorización de Auth0:
 
-* Valida el JWT de prueba de DPoP (como en el [Paso 4](#step-4-auth0-authorization-server-validates-the-dpop-proof-jwt)) y emite un nuevo token de acceso vinculado a DPoP.
+* Valida el JWT de prueba DPoP (como en el [Paso 4](#step-4-auth0-authorization-server-validates-the-dpop-proof-jwt)) y emite un nuevo token de acceso vinculado a DPoP.
 
 <div id="important-considerations">
   ## Consideraciones importantes
 </div>
 
-Al implementar DPoP en tus aplicaciones cliente, ten en cuenta lo siguiente:
+Al implementar DPoP en sus aplicaciones cliente, tenga en cuenta lo siguiente:
 
-* **Seguridad de la clave privada:** La seguridad de tu implementación de DPoP depende de la seguridad de la clave privada de tu cliente, por lo que debes protegerla frente a accesos no autorizados. Las claves privadas deben generarse y almacenarse en un medio con respaldo de hardware y marcarse como no exportables.
-* **Protección contra ataques de repetición (**`jti`** y **`dpop-nonce`**):** El claim `jti` del JWT de prueba DPoP ayuda a evitar ataques de repetición en recursos protegidos, como el endpoint [`/userinfo`](https://auth0.com/docs/api/authentication/user-profile/get-user-info). El servidor de autorización de Auth0 emite un encabezado HTTP `DPoP-Nonce` en su respuesta, que los clientes públicos deben incluir como claim `nonce` en los JWT de prueba DPoP posteriores para reforzar la protección contra ataques de repetición.
-* **Límites de frecuencia:** Como el flujo de desafío-respuesta de DPoP a veces puede requerir una solicitud inicial seguida de un reintento con el nonce proporcionado por el servidor, cada intercambio cuenta en la práctica como dos solicitudes para los [límites de frecuencia de tu tenant de Auth0](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy). Asegúrate de que el volumen de solicitudes de tu aplicación tenga en cuenta esta sobrecarga.
-* **Manejo de errores:** Eres responsable de implementar la lógica necesaria para manejar errores específicos de DPoP del servidor de autorización de Auth0 o del servidor de recursos, como `invalid_dpop_proof` o `use_dpop_nonce`.
-* **Tipos de cliente:** Usa DPoP para clientes públicos, como Single Page Applications (SPAs) o aplicaciones móviles que no pueden almacenar de forma segura un secreto de cliente. Para <Tooltip tip="Cliente confidencial: Un cliente (aplicación) que puede mantener credenciales de forma segura mediante el uso de un servidor backend de confianza. Algunos ejemplos son una aplicación web con un backend seguro y una aplicación de máquina a máquina (M2M)." cta="Ver glosario" href="/docs/es/glossary?term=confidential+clients">clientes confidenciales</Tooltip>, como servicios de backend con secretos de cliente, DPoP añade una capa adicional de seguridad, pero ya cuentan con otros mecanismos para restringir el uso al emisor.
-* **Rendimiento:** Como generar y firmar JWT de prueba DPoP para cada llamada a la API añade una pequeña sobrecarga, asegúrate de que las operaciones criptográficas de tu aplicación cliente sean eficientes.
-* **Rotación de claves:** Implementa una estrategia para la rotación de tus pares de claves DPoP con el fin de reforzar la seguridad. Asegúrate de usar el mismo par de claves para la misma sesión.
-* **Persistencia:** Para las aplicaciones cliente que necesitan mantener una sesión y reutilizar access tokens vinculados a DPoP, como las SPA de larga duración, conserva y recupera de forma segura el par de claves original entre recargas de la aplicación. Si se genera un nuevo par de claves o se usa uno distinto, el access token vinculado a DPoP deja de ser válido, ya que está vinculado criptográficamente a la clave pública del par original. Puedes conservar el par de claves, por ejemplo, en la `IndexedDB` de un navegador o en el almacenamiento seguro de una aplicación móvil.
+* **Seguridad de la clave privada:** La seguridad de su implementación de DPoP depende de la seguridad de la clave privada de su cliente, por lo que debe protegerla del acceso no autorizado. Las claves privadas deben generarse y almacenarse en un medio respaldado por hardware y marcarse como no exportables.
+* **Protección contra ataques de repetición (**`jti`** y **`dpop-nonce`**):** El `claim` `jti` en el JWT de prueba DPoP ayuda a evitar ataques de repetición en recursos protegidos, como el endpoint [`/userinfo`](https://auth0.com/docs/api/authentication/user-profile/get-user-info). El servidor de autorización de Auth0 emite un encabezado HTTP `DPoP-Nonce` en su respuesta, que los clientes públicos deben incluir como `claim` `nonce` en los JWT de prueba DPoP posteriores para reforzar la protección contra ataques de repetición.
+* **Límites de frecuencia:** Como el flujo de desafío-respuesta de DPoP a veces puede requerir una solicitud inicial seguida de un reintento con el nonce proporcionado por el servidor, en la práctica cada intercambio cuenta como dos solicitudes para los [límites de frecuencia de su tenant de Auth0](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy). Asegúrese de que el volumen de solicitudes de su aplicación tenga en cuenta esta sobrecarga.
+* **Manejo de errores:** Usted es responsable de implementar la lógica necesaria para manejar errores específicos de DPoP del servidor de autorización de Auth0 o del servidor de recursos, como `invalid_dpop_proof` o `use_dpop_nonce`.
+* **Tipos de cliente:** Use DPoP para clientes públicos, como aplicaciones web de página única (SPA) o aplicaciones móviles que no pueden almacenar de forma segura un secreto de cliente. Para <Tooltip tip="Cliente confidencial: un cliente (aplicación) que puede almacenar credenciales de forma segura mediante un backend confiable. Algunos ejemplos incluyen una aplicación web con un backend seguro y una aplicación de máquina a máquina (M2M)." cta="Ver glosario" href="/docs/es/glossary?term=confidential+clients">clientes confidenciales</Tooltip>, como servicios de backend con secretos de cliente, DPoP añade una capa adicional de seguridad, pero ya cuentan con otros mecanismos de restricción del remitente.
+* **Rendimiento:** Dado que generar y firmar JWT de prueba DPoP para cada llamada a la API añade una pequeña sobrecarga, asegúrese de que las operaciones criptográficas de su aplicación cliente sean eficientes.
+* **Rotación de claves:** Implemente una estrategia para rotar sus pares de claves DPoP y reforzar la seguridad. Asegúrese de usar el mismo par de claves para la misma sesión.
+* **Persistencia:** En el caso de las aplicaciones cliente que necesitan mantener una sesión y reutilizar tokens de acceso vinculados a DPoP, como las SPA de larga duración, conserve y recupere de forma segura el par de claves generado originalmente entre recargas de la aplicación. Si se genera un nuevo par de claves o se usa un par de claves diferente, el token de acceso vinculado a DPoP deja de ser válido, ya que está vinculado criptográficamente a la clave pública del par original. Puede conservar el par de claves, por ejemplo, en `IndexedDB` del navegador o en el almacenamiento seguro de una aplicación móvil.
 
 <div id="learn-more">
   ## Más información

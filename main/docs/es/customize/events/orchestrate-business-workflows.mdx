@@ -1,106 +1,106 @@
 ---
-description: Activa flujos de trabajo empresariales en varios sistemas cuando se producen cambios de identidad en Auth0.
+description: Activa flujos de trabajo empresariales en varios sistemas cuando se produzcan cambios de identidad en Auth0.
 title: Orquestar flujos de trabajo empresariales
 ---
 
-Con Event Streams y Auth0 Actions, puedes convertir los cambios en el ciclo de vida de la identidad en flujos de trabajo empresariales automatizados que abarcan varios sistemas. Cuando un usuario se crea, actualiza o elimina en Auth0, una Action ejecuta código del lado del servidor que llama a API externas en paralelo, por lo que puedes crear flujos completos sin tener que implementar tu propio middleware.
+Con Event Streams y Auth0 Actions, puedes convertir los cambios en el ciclo de vida de la identidad en flujos de trabajo empresariales automatizados que abarcan varios sistemas. Cuando un usuario se crea, actualiza o elimina en Auth0, una Action ejecuta código del lado del servidor que llama a API externas en paralelo, lo que te permite crear pipelines completos sin tener que implementar tu propio middleware.
 
-Esta guía presenta un ejemplo integral de principio a fin: aprovisionar usuarios desde un proveedor de identidades corporativo (IdP) mediante Auth0 Inbound SCIM y propagar esos cambios a una plataforma de CRM y a un canal de notificaciones del equipo con una sola Event Stream Action.
+Esta guía recorre un ejemplo de extremo a extremo: aprovisionar usuarios desde un proveedor de identidad (IdP) corporativo mediante Auth0 Inbound SCIM y propagar esos cambios a una plataforma de CRM y a un canal de notificaciones del equipo con una sola Event Stream Action.
 
 <div id="why-automate-identity-workflows">
   ## Por qué automatizar los flujos de trabajo de identidad
 </div>
 
-Automatizar los flujos de trabajo basados en la identidad es útil cuando necesitas:
+Automatizar los flujos de trabajo basados en la identidad resulta útil cuando necesitas:
 
-* Incorporar a nuevos empleados en múltiples aplicaciones empresariales en cuanto se aprovisionen en tu IdP.
+* Incorporar a nuevos empleados a varias aplicaciones empresariales en cuanto se aprovisionan en tu IdP.
 * Propagar cambios de identidad a varios sistemas de destino en un solo paso.
-* Revocar el acceso en todos los sistemas de destino cuando se elimina a un usuario.
+* Retirar el acceso en los sistemas de destino cuando se elimina a un usuario.
 * Eliminar pasos manuales de los procesos que dependen de eventos del ciclo de vida de la identidad.
 
 <div id="architecture-overview">
-  ## Descripción general de la arquitectura
+  ## Información general de la arquitectura
 </div>
 
-El flujo de esta guía utiliza cuatro componentes:
+El pipeline de esta guía usa cuatro componentes:
 
-1. **IdP corporativo (por ejemplo, Okta)** — la fuente de referencia de las identidades de los empleados.
+1. **IdP corporativo (por ejemplo, Okta)** — la fuente de referencia para las identidades de los empleados.
 2. **Auth0 Inbound SCIM** — recibe eventos de aprovisionamiento del IdP y crea o actualiza usuarios en Auth0.
-3. **Event Stream con una Action de Auth0** — escucha eventos del ciclo de vida de los usuarios y ejecuta código del lado del servidor.
-4. **Varios sistemas externos** — los destinos que reciben los datos transformados. Este ejemplo usa como destino un CRM (HubSpot) y un canal de notificaciones de equipo (Slack).
+3. **Event Stream con una Auth0 Action** — escucha eventos del ciclo de vida del usuario y ejecuta código del lado del servidor.
+4. **Varios sistemas externos** — los destinos que reciben los datos transformados. Este ejemplo envía datos a un CRM (HubSpot) y a un canal de notificaciones del equipo (Slack).
 
 El flujo funciona de la siguiente manera:
 
 1. Un administrador asigna un usuario a una aplicación en el IdP corporativo.
-2. El IdP envía el cambio a Auth0 a través de SCIM.
+2. El IdP envía el cambio a Auth0 mediante SCIM.
 3. Auth0 crea o actualiza el perfil del usuario y publica un evento.
-4. Event Stream activa una Action que llama a varias API externas.
+4. El Event Stream activa una Action que llama a varias API externas.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  La diferencia entre la orquestación y la [correlación](/docs/es/customize/events/correlate-identity-changes) está en la cantidad de sistemas de destino. La correlación asigna un evento a un único registro externo. La orquestación distribuye un mismo evento a varios sistemas como parte de un flujo de trabajo más amplio.
+  La diferencia entre la orquestación y la [correlación](/docs/es/customize/events/correlate-identity-changes) es el número de sistemas de destino. La correlación asigna un evento a un único registro externo. La orquestación distribuye un mismo evento a varios sistemas como parte de un workflow más amplio.
 </Callout>
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Antes de comenzar, asegúrate de contar con lo siguiente:
+Antes de comenzar, asegúrate de tener lo siguiente:
 
-* Un tenant de Auth0 con Events habilitado. Para obtener más información sobre la disponibilidad según el plan, consulta [Create an Event Stream](/docs/es/customize/events/create-an-event-stream).
+* Un tenant de Auth0 con Events habilitado. Para obtener más información sobre la disponibilidad del plan, consulta [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream).
 * Un IdP corporativo que admita aprovisionamiento SCIM (por ejemplo, Okta o Microsoft Entra ID).
 * Auth0 Inbound SCIM configurado para la conexión correspondiente. Para obtener más información, consulta [Inbound SCIM](/docs/es/authenticate/protocols/scim/configure-inbound-scim).
 * Credenciales de API para cada sistema externo. Este ejemplo requiere:
-  * Un token de acceso de una aplicación privada de HubSpot con scope de escritura de Contacts.
-  * Una URL de Incoming Webhook de Slack para el canal de destino.
+  * Un token de acceso de una aplicación privada de HubSpot con el scope Contacts write.
+  * Una URL del webhook entrante de Slack para el canal de destino.
 
 <div id="set-up-scim-provisioning">
-  ## Configura el aprovisionamiento de SCIM
+  ## Configura el aprovisionamiento SCIM
 </div>
 
 Si todavía no has configurado Inbound SCIM, sigue estos pasos para conectar tu IdP a Auth0.
 
 <Tabs>
   <Tab title="Okta">
-    1. En el Auth0 Dashboard, ve a **Authentication &gt; Enterprise** y selecciona tu conexión empresarial de SAML u OIDC.
-    2. Selecciona la pestaña **Provisioning** y habilita **Inbound SCIM**.
+    1. En el Auth0 Dashboard, ve a **Authentication &gt; Enterprise** y selecciona tu conexión empresarial SAML u OIDC.
+    2. Selecciona la pestaña **Aprovisionamiento** y habilita **Inbound SCIM**.
     3. Genera un token de SCIM y cópialo.
     4. En Okta, abre la aplicación que usas para federarte con Auth0.
-    5. Selecciona la pestaña **Provisioning** y, a continuación, selecciona **Configure API Integration**.
-    6. Habilita la integración, pega la URL del endpoint de SCIM de Auth0 y el token, y selecciona **Save**.
-    7. En **To App**, habilita **Create Users**, **Update User Attributes** y **Deactivate Users**.
+    5. Selecciona la pestaña **Aprovisionamiento** y, después, selecciona **Configurar integración de API**.
+    6. Habilita la integración, pega la URL del endpoint de SCIM de Auth0 y el token, y selecciona **Guardar**.
+    7. En **To App**, habilita **Crear usuarios**, **Actualizar atributos de usuario** y **Desactivar usuarios**.
   </Tab>
 
-  <Tab title="Other IdPs">
-    Consulta la documentación de tu IdP para configurar el aprovisionamiento saliente de SCIM. Necesitarás lo siguiente:
+  <Tab title="Otros IdPs">
+    Consulta la documentación de tu IdP para configurar el aprovisionamiento SCIM saliente. Necesitarás:
 
-    * La URL del endpoint de SCIM de Auth0 desde la pestaña **Provisioning** de tu conexión empresarial.
+    * La URL del endpoint de SCIM de Auth0 en la pestaña **Aprovisionamiento** de tu conexión empresarial.
     * Un token de SCIM generado en el Auth0 Dashboard.
   </Tab>
 </Tabs>
 
-Después de guardar la configuración, asigna un usuario de prueba a la aplicación en tu IdP. Confirma que el usuario aparezca en Auth0, en **User Management &gt; Users**.
+Después de guardar la configuración, asigna un usuario de prueba a la aplicación en tu IdP. Confirma que el usuario aparece en Auth0 en **User Management &gt; Users**.
 
 <div id="create-the-event-stream-action">
-  ## Crear la Action de Event Stream
+  ## Crear la Event Stream Action
 </div>
 
-Con el aprovisionamiento SCIM activo, Auth0 publica los eventos `user.created`, `user.updated` y `user.deleted`. A continuación, crea un Event Stream con una Action de Auth0 que distribuya estos eventos a varios sistemas de destino.
+Con el aprovisionamiento SCIM activo, Auth0 publica los eventos `user.created`, `user.updated` y `user.deleted`. A continuación, crea un Event Stream con una Auth0 Action que reenvía estos eventos a varios sistemas de destino.
 
 <div id="create-the-event-stream">
   ### Crear el Event Stream
 </div>
 
-1. Ve a **Auth0 Dashboard &gt; Event Streams**.
-2. Selecciona **Create Event Stream**.
-3. Selecciona **Auth0 Actions** como tipo de flujo.
-4. Introduce un nombre descriptivo (por ejemplo, `Onboarding Workflow`).
-5. Suscríbete a `user.created`, `user.updated` y `user.deleted`.
+1. Vaya a **Auth0 Dashboard &gt; Event Streams**.
+2. Seleccione **Create Event Stream**.
+3. Seleccione **Auth0 Actions** como tipo de flujo.
+4. Introduzca un nombre descriptivo (por ejemplo, `Flujo de trabajo de incorporación`).
+5. Suscríbase a `user.created`, `user.updated` y `user.deleted`.
 
 <div id="write-the-action-handler">
   ### Escribe el controlador de la Action
 </div>
 
-En el editor de Action, escribe un controlador que asigne cada tipo de evento a llamadas a la API en tus sistemas externos. El ejemplo siguiente crea un contacto en HubSpot CRM y envía una notificación a Slack cuando se aprovisiona un usuario nuevo.
+En el editor de Actions, escribe un controlador que asocie cada tipo de evento con llamadas a la API en tus sistemas externos. El siguiente ejemplo crea un contacto en HubSpot CRM y publica una notificación en Slack cuando se aprovisiona un usuario nuevo.
 
 ```javascript wrap lines
 exports.onExecuteEventStream = async (event, api) => {
@@ -249,22 +249,22 @@ async function notifySlack(webhookUrl, payload) {
 ```
 
 <div id="handle-partial-failures">
-  ### Manejo de fallos parciales
+  ### Gestionar fallos parciales
 </div>
 
 Cuando tu Action llama a varios sistemas externos, es posible que una llamada tenga éxito mientras otra falle. Considera las siguientes estrategias:
 
-* **Registrar y continuar.** Envuelve cada llamada externa en un bloque try-catch para que un fallo en un sistema no impida que los demás terminen. Registra el error para hacer un seguimiento manual.
-* **Reintentar con operaciones idempotentes.** Si la Action genera un error, Auth0 vuelve a intentar el evento. Asegúrate de que cada llamada externa sea idempotente para que los reintentos no creen registros duplicados.
-* **Usar disyuntores.** Si un sistema externo falla de forma constante, considera interrumpir las llamadas a ese sistema para evitar retrasos en cascada.
+* **Registrar y continuar.** Envuelve cada llamada externa en un bloque try-catch para que un fallo en un sistema no impida que los demás terminen de ejecutarse. Registra el error para hacer un seguimiento manual.
+* **Reintentar con operaciones idempotentes.** Si la Action lanza un error, Auth0 reintenta el evento. Asegúrate de que cada llamada externa sea idempotente para que los reintentos no creen registros duplicados.
+* **Usar circuit breakers.** Si un sistema externo falla de forma constante, considera omitir las llamadas a ese sistema para evitar retrasos en cascada.
 
 <div id="store-api-keys-as-secrets">
-  ### Almacena las claves de API como secretos
+  ### Almacena claves API como secretos
 </div>
 
-1. En el editor de Action, selecciona **Secrets** (el icono de llave).
+1. En el editor de Actions, selecciona **Secrets** (el icono de llave).
 2. Agrega un secreto llamado `HUBSPOT_TOKEN` con el valor del token de acceso de tu aplicación privada de HubSpot.
-3. Agrega un secreto llamado `SLACK_WEBHOOK_URL` con el valor de la URL del webhook entrante de Slack.
+3. Agrega un secreto llamado `SLACK_WEBHOOK_URL` con el valor de tu URL del webhook entrante de Slack.
 
 El uso de secretos evita que las credenciales queden en el código fuente de tu Action. Para obtener más información, consulta [Action Secrets](/docs/es/customize/actions/write-your-first-action#add-a-secret).
 
@@ -272,37 +272,37 @@ El uso de secretos evita que las credenciales queden en el código fuente de tu 
   ### Guardar y desplegar
 </div>
 
-Selecciona **Guardar borrador** y luego **Desplegar**. La Action ahora está vinculada a tu Event Stream y se ejecuta cada vez que se desencadena uno de los eventos suscritos.
+Selecciona **Save Draft** y luego **Deploy**. La Action ahora está vinculada a tu Event Stream y se ejecuta cada vez que se desencadena uno de los eventos suscritos.
 
 <div id="verify-the-pipeline">
-  ## Verifica el flujo
+  ## Verifica el pipeline
 </div>
 
 1. En tu IdP corporativo, asigna un usuario de prueba a la aplicación conectada a Auth0.
-2. Confirma que el usuario aparezca en Auth0, en **User Management &gt; Users**.
-3. Confirma que se cree el contacto correspondiente en HubSpot y que se publique una notificación en Slack.
+2. Confirma que el usuario aparezca en Auth0 en **User Management &gt; Users**.
+3. Confirma que se cree un contacto correspondiente en HubSpot y que se publique una notificación en Slack.
 4. Actualiza el nombre del usuario en el IdP y verifica que el cambio se propague tanto a Auth0 como a HubSpot.
-5. Quita la asignación del usuario a la aplicación en el IdP. Confirma que el usuario se desaprovisione en Auth0, que se elimine el contacto de HubSpot y que se publique una notificación en Slack.
+5. Quita la asignación del usuario a la aplicación en el IdP. Confirma que se dé de baja al usuario en Auth0, que se elimine el contacto de HubSpot y que se publique una notificación en Slack.
 
-Si los eventos no llegan, revisa los logs de entrega del Event Stream en el Auth0 Dashboard. Para obtener más información, consulta [Pruebas de eventos, observabilidad y recuperación ante fallos](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
+Si los eventos no llegan, revisa los logs de entrega del Event Stream en el Auth0 Dashboard. Para obtener más información, lee [Pruebas de eventos, observabilidad y recuperación ante fallos](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
 
 <div id="extend-the-pattern">
-  ## Extiende el patrón
+  ## Amplía el patrón
 </div>
 
-La arquitectura de esta guía no se limita a HubSpot y Slack. Puedes aplicar el mismo patrón de fan-out a cualquier combinación de sistemas con API REST:
+La arquitectura de esta guía no es exclusiva de HubSpot y Slack. Puedes aplicar el mismo patrón de distribución a cualquier combinación de sistemas con API REST:
 
-* **CRM + ticketing** — crea un contacto en Salesforce y abre un ticket de incorporación en Jira.
-* **CRM + analytics** — actualiza un contacto en HubSpot y envía una llamada `identify` a Segment.
-* **Provisioning + notifications** — llama a un servicio interno de aprovisionamiento y publica un mensaje en Microsoft Teams.
+* **CRM + tickets** — crea un contacto en Salesforce y abre un ticket de incorporación en Jira.
+* **CRM + analítica** — actualiza un contacto en HubSpot y envía una solicitud `identify` a Segment.
+* **Aprovisionamiento + notificaciones** — llama a un servicio interno de aprovisionamiento y publica un mensaje en Microsoft Teams.
 
-Para usar distintos sistemas de destino, actualiza el controlador de Action con los endpoints de la API y los métodos de autenticación adecuados.
+Para trabajar con distintos sistemas, actualiza el controlador de Action con los endpoints de API y los métodos de autenticación adecuados.
 
 <div id="learn-more">
   ## Más información
 </div>
 
-* [Relacionar cambios de identidad con sistemas externos](/docs/es/customize/events/correlate-identity-changes)
+* [Correlacionar cambios de identidad con sistemas externos](/docs/es/customize/events/correlate-identity-changes)
 * [Tipos de eventos](/docs/es/customize/events/event-types)
 * [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream)
-* [Prácticas recomendadas para eventos](/docs/es/customize/events/events-best-practices)
+* [Prácticas recomendadas para Events](/docs/es/customize/events/events-best-practices)

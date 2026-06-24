@@ -1,25 +1,25 @@
 ---
-description: Découvrez comment utiliser le Custom Domain Hook avec la Delegated Administration Extension.
+description: Apprenez à utiliser le Custom Domain Hook avec la Delegated Administration Extension.
 title: 'Delegated Administration : Custom Domain Hook'
 ---
 
-Lorsque vous utilisez [Multiple Custom Domains](/docs/fr-CA/customize/custom-domains/multiple-custom-domains) avec la Delegated Administration Extension, le **Custom Domain Hook** vous permet de définir quel domaine personnalisé doit être utilisé pour les opérations sur les utilisateurs, comme la création d’utilisateurs, la réinitialisation de mots de passe, la vérification des courriels et le blocage d’utilisateurs.
+Lorsque vous utilisez [Multiple Custom Domains](/docs/fr-CA/customize/custom-domains/multiple-custom-domains) avec la Delegated Administration Extension, le **Custom Domain Hook** vous permet de préciser quel domaine personnalisé doit être utilisé pour des opérations sur les utilisateurs comme la création d’utilisateurs, la réinitialisation de mots de passe, la vérification des courriels et le blocage d’utilisateurs.
 
 <div id="hook-contract">
   ## Contrat du Hook
 </div>
 
 * **ctx** : Objet de contexte contenant des renseignements sur la requête en cours.
-  * **method** : L’opération en cours (p. ex., `create`, `reset_password`, `verify_email`, `block_user`).
+  * **method** : L’opération effectuée (p. ex., `create`, `reset_password`, `verify_email`, `block_user`).
   * **payload** : Données liées à l’opération (pour la méthode `create`, contient des renseignements sur l’utilisateur, comme l’adresse courriel).
   * **request** : Contient des renseignements sur la requête.
     * **originalUser** : L’utilisateur visé par l’opération (pour les méthodes autres que `create`).
 * **callback(error, result)** : Fonction de rappel servant à renvoyer la configuration du domaine personnalisé.
-  * **error** : Objet d’erreur si une erreur s’est produite; sinon, `null`.
+  * **error** : Objet d’erreur si un problème s’est produit, sinon `null`.
   * **result** : Objet qui définit le comportement du domaine personnalisé :
-    * **customDomain** (chaîne de caractères) : Le domaine personnalisé à utiliser (p. ex., `'customone.example.com'`).
+    * **customDomain** (chaîne) : Le domaine personnalisé à utiliser (p. ex., `'customone.example.com'`).
     * **useCanonicalDomain** (booléen) : Définissez cette valeur à `true` pour utiliser le domaine canonique du tenant au lieu d’un domaine personnalisé.
-    * Retournez un objet vide `{}` pour vous en remettre au [domaine par défaut](/docs/fr-CA/customize/custom-domains/multiple-custom-domains) du tenant.
+    * Retournez un objet vide `{}` pour déléguer au [domaine par défaut](/docs/fr-CA/customize/custom-domains/multiple-custom-domains) du tenant.
 
 <div id="supported-methods">
   ## Méthodes prises en charge
@@ -27,20 +27,20 @@ Lorsque vous utilisez [Multiple Custom Domains](/docs/fr-CA/customize/custom-dom
 
 Le Custom Domain Hook est invoqué pour les opérations utilisateur suivantes :
 
-* **create** : Lors de la création d’un nouvel utilisateur
-* **reset&#95;password** : Lors de l’envoi d’un courriel de réinitialisation de mot de passe
-* **verify&#95;email** : Lors de l’envoi d’un lien de vérification de l’adresse courriel
-* **block&#95;user** : Lors du blocage d’un utilisateur
+* **create** : lors de la création d’un nouvel utilisateur
+* **reset&#95;password** : lors de l’envoi d’un courriel de réinitialisation du mot de passe
+* **verify&#95;email** : lors de l’envoi d’un lien de vérification par courriel
+* **block&#95;user** : lors du blocage d’un utilisateur
 
 <div id="sample-use">
   ## Exemple d’utilisation
 </div>
 
-Dans cet exemple, les utilisateurs ayant des adresses courriel de différents domaines sont acheminés vers différents domaines personnalisés. Les utilisateurs d’un domaine d’entreprise utilisent le domaine canonique du tenant, tandis que tous les autres utilisent le domaine par défaut du tenant.
+Dans cet exemple, les utilisateurs ayant différents domaines de courriel sont acheminés vers différents domaines personnalisés. Les utilisateurs ayant un domaine d’entreprise utilisent le domaine canonique du tenant, tandis que tous les autres utilisent le domaine par défaut du tenant.
 
 ```javascript lines
 function(ctx, callback) {
-  // Associer les domaines de courriel aux domaines personnalisés
+  // Mapper les domaines de courriel aux domaines personnalisés
   const emailToDomain = {
     'customone.com': 'customone.example.com',
     'customtwo.com': 'customtwo.example.com',
@@ -97,9 +97,9 @@ function(ctx, callback) {
 </div>
 
 * Si ce hook n’est pas configuré, la Delegated Administration Extension utilisera le domaine personnalisé par défaut du tenant s’il est configuré; sinon, elle utilisera le domaine canonique.
-* Le domaine personnalisé renvoyé doit être un domaine personnalisé vérifié configuré dans votre tenant. Si vous indiquez un domaine non valide ou non vérifié, l’opération échouera.
-* Lorsque vous utilisez `useCanonicalDomain: true`, les courriels et les liens utiliseront le domaine canonique de votre tenant Auth0 (par exemple, `YOUR_TENANT.auth0.com` ou `YOUR_TENANT.REGION.auth0.com`).
-* Le fait de renvoyer un objet vide `{}` délègue la sélection du domaine à la configuration du [domaine personnalisé par défaut](/docs/fr-CA/customize/custom-domains/multiple-custom-domains) du tenant.
+* Le domaine personnalisé renvoyé doit être un domaine personnalisé vérifié configuré dans votre tenant. Si vous indiquez un domaine invalide ou non vérifié, l’opération échouera.
+* Si vous utilisez `useCanonicalDomain: true`, les courriels et les liens utiliseront le domaine canonique de votre tenant Auth0 (par ex., `YOUR_TENANT.auth0.com` ou `YOUR_TENANT.REGION.auth0.com`).
+* Le renvoi d’un objet vide `{}` délègue la sélection du domaine à la configuration du [domaine personnalisé par défaut](/docs/fr-CA/customize/custom-domains/multiple-custom-domains) du tenant.
 
 <div id="learn-more">
   ## En savoir plus

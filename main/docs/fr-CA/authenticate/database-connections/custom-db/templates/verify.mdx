@@ -1,42 +1,42 @@
 ---
-description: Décrit les modèles de scripts d’action pour base de données personnalisée servant à la vérification de l’adresse courriel de l’utilisateur.
-title: Modèles de scripts Verify
+description: Décrit les modèles de scripts d’action de base de données personnalisée pour la vérification de l’adresse courriel de l’utilisateur.
+title: Modèles de script Verify
 ---
 
-Le script Verify implémente la fonction exécutée pour définir l’état de vérification de l’adresse courriel d’un utilisateur dans une base de données externe. Nous recommandons de nommer cette fonction `verify`.
+Le script Verify implémente la fonction exécutée pour marquer l’état de vérification de l’adresse courriel d’un utilisateur dans une base de données externe. Nous recommandons de nommer cette fonction `verify`.
 
-Ce script est utilisé uniquement dans les scénarios d’authentification héritée et il est requis pour prendre en charge la vérification de l’adresse courriel de l’utilisateur. Une adresse courriel vérifiée est essentielle à plusieurs scénarios de workflow dans Auth0, et l’implémentation de ce script les prendra en charge d’emblée.
+Ce script est utilisé uniquement dans les scénarios d’authentification héritée et est requis pour assurer le soutien de la vérification de l’adresse courriel de l’utilisateur. Une adresse courriel vérifiée est essentielle à un certain nombre de scénarios de flux de travail dans Auth0, et l’implémentation de ce script offrira ce soutien d’emblée.
 
-S’il est activé, ce script est exécuté lorsqu’un utilisateur clique sur le lien dans le courriel de vérification envoyé par Auth0.
+S’il est activé, ce script est exécuté lorsqu’un utilisateur clique sur le lien contenu dans le courriel de vérification envoyé par Auth0.
 
 <div id="verify-function">
   ## Fonction Verify
 </div>
 
-La fonction `verify` doit :
+La fonction `verify` doit :
 
-* Mettre à jour l’attribut `email_verified` (ou son équivalent) dans le profil de l’utilisateur de la base de données externe.
-* Retourner `true` si la mise à jour a réussi.
-* Retourner une erreur si la mise à jour a échoué.
+* Mettre à jour l’attribut `email_verified` (ou l’attribut équivalent) dans le profil de l’utilisateur stocké dans la base de données externe.
+* Retourner `true` si l’action de mise à jour a réussi.
+* Retourner une erreur si l’action de mise à jour a échoué.
 
 <div id="definition">
   ### Définition
 </div>
 
-La fonction `verify` accepte deux paramètres et renvoie une fonction `callback` :
+La fonction `verify` prend deux paramètres et renvoie une fonction `callback` :
 
 ```js lines
 verify(email, callback): function
 ```
 
-| Paramètre  | Type     | Description                                                                 |
-| ---------- | -------- | --------------------------------------------------------------------------- |
-| `email`    | String   | Adresse courriel de l’utilisateur.                                          |
-| `callback` | Fonction | Permet de transmettre une erreur ou des données de profil dans le pipeline. |
+| Paramètre  | Type     | Description                                                              |
+| ---------- | -------- | ------------------------------------------------------------------------ |
+| `email`    | String   | Adresse courriel de l&#39;utilisateur.                                   |
+| `callback` | Function | Sert à transmettre une erreur ou des données de profil dans le pipeline. |
 
 ### Exemple
 
-Voici un exemple en pseudo-JavaScript montrant comment vous pourriez implémenter la fonction `login`. Pour des exemples de scripts propres au langage, consultez [Exemples de scripts propres au langage](/docs/fr-CA/authenticate/database-connections/custom-db/templates/verify#language-specific-script-examples).
+Voici un exemple en pseudo-JavaScript montrant comment vous pourriez implémenter la fonction `login`. Pour des exemples de scripts propres au langage, consultez [exemple de script par langage](/docs/fr-CA/authenticate/database-connections/custom-db/templates/verify#language-specific-script-examples).
 
 ```javascript lines
 function verify(email, callback) {
@@ -61,36 +61,36 @@ function verify(email, callback) {
 ```
 
 <div id="callback-function">
-  ## Fonction callback
+  ## Fonction de rappel
 </div>
 
-La fonction `callback` sert à transmettre des données du profil utilisateur ou des données d’erreur au sein du pipeline.
+La fonction `callback` sert à transmettre les données du profil utilisateur ou les données d’erreur au sein du pipeline.
 
 <div id="definition">
   ### Définition
 </div>
 
-La fonction `callback` accepte jusqu’à deux paramètres et renvoie une fonction :
+La fonction `callback` accepte jusqu’à deux paramètres et retourne une fonction :
 
 ```js lines
 callback(error, [verified]): function
 ```
 
-| Paramètre  | Type    | Obligatoire | Description                                                                                                                                                                     |
-| ---------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `error`    | Objet   | Obligatoire | Contient les données d’erreur.                                                                                                                                                  |
-| `verified` | Booléen | Facultatif  | Contient une valeur qui indique le statut de vérification de l’utilisateur dans la base de données externe (`true` ou `false`). Obligatoire uniquement si la valeur est `true`. |
+| Paramètre  | Type    | Obligatoire | Description                                                                                                                                                               |
+| ---------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `error`    | objet   | Obligatoire | Contient les données d’erreur.                                                                                                                                            |
+| `verified` | Boolean | Facultatif  | Contient une valeur indiquant l’état de vérification de l’utilisateur dans la base de données externe (`true` ou `false`). Obligatoire seulement si la valeur est `true`. |
 
 <div id="return-a-success">
   ### Renvoyer un succès
 </div>
 
-Si le statut de vérification de l’utilisateur a été mis à jour avec succès dans la base de données externe, transmettez une valeur `null` pour le paramètre `error` et une valeur `true` pour le paramètre `verified`.
+Si le statut de vérification de l&#39;utilisateur a été mis à jour avec succès dans la base de données externe, passez la valeur `null` pour le paramètre `error` et la valeur `true` pour le paramètre `verified`.
 
 <Warning>
-  Le script Verify ne modifie pas la valeur de l’attribut `email_verified` dans le profil Auth0 de l’utilisateur, quelle que soit la valeur renvoyée par la fonction `callback`.
+  Le script Verify ne modifie pas la valeur de l&#39;attribut `email_verified` dans le profil Auth0 de l&#39;utilisateur, quelle que soit la valeur renvoyée dans la fonction `callback`.
 
-  Pour mettre à jour l’attribut `email_verified` dans le profil Auth0 de l’utilisateur, vous devez inclure l’attribut `email_verified` et sa valeur dans l’objet de profil utilisateur renvoyé par les scripts [Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login) et [Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user).
+  Pour mettre à jour l&#39;attribut `email_verified` dans le profil Auth0 de l&#39;utilisateur, vous devez inclure l&#39;attribut `email_verified` et sa valeur dans l&#39;objet de profil de l&#39;utilisateur renvoyé par les scripts [Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login) et [Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user).
 </Warning>
 
 <div id="example">
@@ -102,7 +102,7 @@ callback(null, true);
 ```
 
 <div id="return-an-error">
-  ### Renvoyer une erreur
+  ### Retourner une erreur
 </div>
 
 Si une erreur se produit, le paramètre `error` doit contenir des renseignements pertinents sur la nature du problème.
@@ -119,7 +119,7 @@ return callback(new Error("My custom error message."));
   ## Exemples de scripts par langage
 </div>
 
-Auth0 fournit des scripts d’exemple pour les langages/technologies suivants :
+Auth0 fournit des scripts d’exemple pour les langages et technologies suivants :
 
 * [JavaScript](#javascript)
 * [ASP.NET Membership Provider (MVC3 - Universal Providers)](#asp-net-membership-provider-mvc3-universal-providers-)
@@ -141,8 +141,8 @@ function verify(email, callback) {
   // Il est exécuté chaque fois qu'un utilisateur clique sur le lien de vérification envoyé par courriel.
   // Ces courriels peuvent être personnalisés à l'adresse https://manage.auth0.com/#/emails.
   // On peut supposer sans risque que l'adresse courriel de l'utilisateur existe déjà dans votre base de données,
-  // car les courriels de vérification, s'ils sont activés, sont envoyés immédiatement après
-  // une inscription réussie.
+  // car les courriels de vérification, s'ils sont activés, sont envoyés immédiatement après une
+  // inscription réussie.
   //
   // Ce script peut se terminer de deux façons :
   // 1. L'adresse courriel de l'utilisateur a été vérifiée avec succès
@@ -183,7 +183,7 @@ function verify(email, callback) {
     }
   });
   connection.on('debug', function(text) {
-    // en cas de problèmes de connexion, décommentez cette ligne pour obtenir des informations plus détaillées
+    // si vous avez des problèmes de connexion, décommentez ceci pour obtenir plus d'informations détaillées
     //console.log(text);
   }).on('errorMessage', function(text) {
     // affiche toutes les erreurs lors de la connexion à la base de données SQL ou avec les instructions SQL
@@ -197,7 +197,7 @@ function verify(email, callback) {
     });
   });
   function verifyMembershipUser(email, callback) {
-    // le champ isApproved est l'indicateur de vérification du courriel
+    // le champ isApproved est l'indicateur de vérification de courriel
     const updateMembership =
       'UPDATE Memberships SET isApproved = \'true\' ' +
       'WHERE isApproved = \'false\' AND Email = @Email';
@@ -435,9 +435,9 @@ function verify (email, callback) {
   ## En savoir plus
 </div>
 
-* [Modèles de scripts Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login)
-* [Modèles de scripts Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user)
-* [Modèles de scripts Create](/docs/fr-CA/authenticate/database-connections/custom-db/templates/create)
-* [Modèles de scripts Delete](/docs/fr-CA/authenticate/database-connections/custom-db/templates/delete)
-* [Modèles de scripts Change Password](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-password)
-* [Modèle de script Change Email](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-email)
+* [Modèle de script pour Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login)
+* [Modèle de script pour Get User](/docs/fr-CA/authenticate/database-connections/custom-db/templates/get-user)
+* [Modèle de script pour Create](/docs/fr-CA/authenticate/database-connections/custom-db/templates/create)
+* [Modèle de script pour Delete](/docs/fr-CA/authenticate/database-connections/custom-db/templates/delete)
+* [Modèle de script pour Change Password](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-password)
+* [Modèle de script pour Change Email](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-email)

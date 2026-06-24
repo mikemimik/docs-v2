@@ -1,25 +1,25 @@
 ---
 description: Cómo proteger una API de Google Cloud Endpoints con Auth0.
-title: Protege Google Cloud Endpoints con Auth0
+title: Proteja Google Cloud Endpoints con Auth0
 ---
 
-import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeBlock} from "/snippets/es/AuthCodeBlock.jsx";
 
-import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+import {AuthCodeGroup} from "/snippets/es/AuthCodeGroup.jsx";
 
-[Google Cloud Endpoints (GCE)](https://cloud.google.com/endpoints/) es un sistema de gestión de APIs que ofrece funciones para ayudarte a crear, mantener y proteger tus APIs. GCE usa [OpenAPI](https://www.openapis.org/) para definir los endpoints de tu API, las entradas y salidas, los errores y la descripción de seguridad.
+[Google Cloud Endpoints (GCE)](https://cloud.google.com/endpoints/) es un sistema de gestión de API que ofrece funcionalidades para ayudarte a crear, mantener y proteger tus API. GCE usa [OpenAPI](https://www.openapis.org/) para definir los endpoints, los datos de entrada y salida, los errores y la descripción de seguridad de tu API.
 
-Para obtener más información sobre la especificación OpenAPI, consulta el repositorio [OpenAPI Specification](https://github.com/OAI/OpenAPI-Specification) en GitHub.
+Para obtener más información sobre la especificación OpenAPI, consulta el repositorio de [OpenAPI Specification](https://github.com/OAI/OpenAPI-Specification) en GitHub.
 
-En este tutorial se explica cómo proteger Google Cloud Endpoints con Auth0.
+En este tutorial veremos cómo proteger Google Cloud Endpoints con Auth0.
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Antes de empezar, necesitarás una API de GCE desplegada. Si aún no has creado una API, completa la [Cloud Endpoints Quickstart](https://cloud.google.com/endpoints/docs/quickstart-endpoints) que encontrarás en la documentación de Google.
+Antes de comenzar, necesitarás una API de GCE desplegada. Si todavía no has creado una API, completa el [Cloud Endpoints Quickstart](https://cloud.google.com/endpoints/docs/quickstart-endpoints) de la documentación de Google.
 
-La guía de inicio rápido te mostrará cómo crear una API de GCE sencilla con un único endpoint, `/airportName`, que devuelve el nombre de un aeropuerto a partir de su [código IATA](https://en.wikipedia.org/wiki/IATA_airport_code) de tres letras.
+Esta guía de inicio rápido te mostrará paso a paso cómo crear una API de GCE sencilla con un solo endpoint, `/airportName`, que devuelve el nombre de un aeropuerto a partir de su [código IATA](https://en.wikipedia.org/wiki/IATA_airport_code) de tres letras.
 
 <AuthCodeGroup>
   ```bash cURL lines
@@ -137,17 +137,17 @@ La guía de inicio rápido te mostrará cómo crear una API de GCE sencilla con 
 </AuthCodeGroup>
 
 <div id="define-the-api-in-auth0">
-  ## Defina la API en Auth0
+  ## Define la API en Auth0
 </div>
 
-Vaya a [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis) y cree una nueva API.
+Ve a [Auth0 Dashboard &gt; Applications &gt; APIs](https://manage.auth0.com/#/apis) y crea una API nueva.
 
-<Frame>![Dashboard - Crear APIs - Integraciones - Google Endpoints](/docs/images/cdy7uua7fh8z/7wUHnYBFp1jnbBurqoThpD/c3a31b64884c3adc2251a225a1ddd1dd/Create_API_-_EN.png)</Frame>
+<Frame>![Dashboard - Create APIs - Integrations -Google Endpoints](/docs/images/cdy7uua7fh8z/7wUHnYBFp1jnbBurqoThpD/c3a31b64884c3adc2251a225a1ddd1dd/Create_API_-_EN.png)</Frame>
 
-Tome nota del identificador de la **Audience de la API <Tooltip tip="Audience: Identificador único del audience de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (Client ID) para un token de ID o de una API (API Identifier) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=Audience">Audience</Tooltip>** (`http://google_api` en la captura de pantalla anterior) para usarlo en el siguiente paso.
+Toma nota del identificador del **<Tooltip tip="Audience: Identificador único de la audiencia de un token emitido. Se denomina aud en un token; su valor contiene el ID de una aplicación (ID de cliente) para un token de ID o de una API (Identificador de API) para un token de acceso." cta="Ver glosario" href="/docs/es/glossary?term=Audience">Audience</Tooltip> de la API** (`http://google_api` en la captura de pantalla de arriba) para usarlo en el siguiente paso.
 
 <div id="update-the-api-configuration">
-  ## Actualiza la configuración de la API
+  ## Actualizar la configuración de la API
 </div>
 
 A continuación, actualizaremos el archivo de configuración de OpenAPI de la API de GCE. En la API de ejemplo creada durante el Quickstart, este archivo es `openapi.yaml`.
@@ -156,16 +156,16 @@ A continuación, actualizaremos el archivo de configuración de OpenAPI de la AP
   ### Agregar definiciones de seguridad
 </div>
 
-Abre el archivo de configuración y agrega una nueva sección `securityDefinitions`. En esta sección, agrega una nueva definición (`auth0_jwt`) con los siguientes campos:
+Abra el archivo de configuración y agregue una nueva sección `securityDefinitions`. En esta sección, agregue una nueva definición (`auth0_jwt`) con los siguientes campos:
 
-| Campo                | Descripción                                                                                                                                                                                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `authorizationUrl`   | La URL de autorización; debe establecerse en `"https://{yourDomain}/authorize"`                                                                                                                                |
-| `flow`               | El flow que usa el esquema de seguridad OAuth2. Los valores válidos son `"implicit"`, `"password"`, `"application"` o `"accessCode"`.                                                                          |
-| `type`               | El tipo de esquema de seguridad. Los valores válidos son `"basic"`, `"apiKey"` o `"oauth2"`                                                                                                                    |
-| `x-google-issuer`    | El emisor de una credencial; debe establecerse en `"https://{yourDomain}/"`                                                                                                                                    |
-| `x-google-jwks_uri`  | El URI del conjunto de claves públicas para validar la firma del [JSON Web Token (JWT)](/docs/es/glossary?term=JSON+Web+Token+%28JWT%29). Establece este valor en `"https://\{yourDomain}/.well-known/jwks.json"` |
-| `x-google-audiences` | El identificador de la API; asegúrate de que este valor coincida con el que definiste en el Auth0 Dashboard para la API.                                                                                       |
+| Campo                | Descripción                                                                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorizationUrl`   | La URL de autorización; debe establecerse en `"https://{yourDomain}/authorize"`                                                                                                                             |
+| `flow`               | El flujo utilizado por el esquema de seguridad OAuth2. Los valores válidos son `"implicit"`, `"password"`, `"application"` o `"accessCode"`.                                                                |
+| `type`               | El tipo de esquema de seguridad. Los valores válidos son `"basic"`, `"apiKey"` o `"oauth2"`                                                                                                                 |
+| `x-google-issuer`    | El emisor de una credencial; debe establecerse en `"https://{yourDomain}/"`                                                                                                                                 |
+| `x-google-jwks_uri`  | El URI del conjunto de claves públicas para validar la firma del [JSON Web Token (JWT)](/docs/es/glossary?term=JSON+Web+Token+%28JWT%29). Debe establecerse en `"https://\{yourDomain}/.well-known/jwks.json"` |
+| `x-google-audiences` | El identificador de la API; asegúrese de que este valor coincida con el que definió en el Auth0 Dashboard para la API.                                                                                      |
 
 {/* codeblockOld.header.login.logInButton codeblockOld.header.login.configureSnippet */}
 
@@ -181,7 +181,7 @@ export const codeExample1 = `securityDefinitions:
 <AuthCodeBlock children={codeExample1} language="yaml" />
 
 <div id="update-the-endpoint">
-  ### Actualiza el endpoint
+  ### Actualizar el endpoint
 </div>
 
 Ahora, actualiza el endpoint añadiendo un campo `security` con la `securityDefinition` que creamos en el paso anterior.
@@ -209,9 +209,9 @@ paths:
        - auth0_jwt: []
 ```
 
-En el ejemplo anterior, el campo `security` le indica al proxy de GCE que nuestra ruta `/airportName` debe protegerse con la definición `auth0-jwt`.
+En el ejemplo anterior, el campo `security` le indica al proxy de GCE que nuestra ruta `/airportName` debe estar protegida con la definición `auth0-jwt`.
 
-Después de actualizar la configuración de OpenAPI, debería verse más o menos así:
+Después de actualizar la configuración de OpenAPI, debería verse así:
 
 {/* codeblockOld.header.login.logInButton codeblockOld.header.login.configureSnippet */}
 
@@ -227,7 +227,7 @@ schemes:
 paths:
   "/airportName":
     get:
-      description: "Obtiene el nombre del aeropuerto para un código IATA determinado."
+      description: "Obtiene el nombre del aeropuerto correspondiente al código IATA proporcionado."
       operationId: "airportName"
       parameters:
         -
@@ -237,11 +237,11 @@ paths:
           type: string
       responses:
         200:
-          description: "Éxito."
+          description: "Operación exitosa."
           schema:
             type: string
         400:
-          description: "El código IATA no es válido o falta."
+          description: "El código IATA no es válido o no se indicó."
       security:
        - auth0_jwt: []
 securityDefinitions:
@@ -267,10 +267,10 @@ cd endpoints-quickstart/scripts
 ```
 
 <div id="test-the-api">
-  ## Probar la API
+  ## Prueba la API
 </div>
 
-Una vez que la hayas vuelto a desplegar, llama de nuevo a la API sin seguridad.
+Una vez que la hayas vuelto a desplegar, vuelve a llamar a la API sin seguridad.
 
 <AuthCodeGroup>
   ```bash cURL lines
@@ -403,11 +403,11 @@ Obtendrás la siguiente respuesta:
 }
 ```
 
-¡Eso es exactamente lo que queremos!
+¡Que es exactamente lo que queremos!
 
-Ahora ve a la página **Test** de la definición de tu API de Google Endpoints en el [Auth0 Dashboard](https://manage.auth0.com/#/apis) y copia el <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> que aparece debajo de la respuesta:
+Ahora ve a la página **Test** de la definición de tu API de Google Endpoints en el [Auth0 Dashboard](https://manage.auth0.com/#/apis) y copia el <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, que se utiliza para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip> en la Response:
 
-Haz una solicitud `GET` a tu API con un encabezado Authorization de `Bearer {ACCESS_TOKEN}` para obtener acceso autorizado:
+Realiza una solicitud `GET` a tu API con un encabezado Authorization de `Bearer {ACCESS_TOKEN}` para obtener acceso autorizado:
 
 <AuthCodeGroup>
   ```bash cURL lines

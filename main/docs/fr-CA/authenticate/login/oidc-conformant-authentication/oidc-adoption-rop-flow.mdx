@@ -3,23 +3,23 @@ description: Découvrez comment le pipeline conforme à OIDC influe sur le flux 
 title: Flux Resource Owner Password avec OIDC
 ---
 
-import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeBlock} from "/snippets/fr-CA/AuthCodeBlock.jsx";
 
-Le [Resource Owner Password Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/resource-owner-password-flow) (parfois appelé l’autorisation <Tooltip tip="Resource Owner : entité (comme un utilisateur ou une application) capable d’accorder l’accès à une ressource protégée." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Resource+Owner">Resource Owner</Tooltip> Password Grant ou ROPG) est utilisé par des applications hautement fiables pour assurer une authentification active. Contrairement au code d’autorisation et aux autorisations implicites, ce mécanisme d’authentification ne redirige pas les utilisateurs vers Auth0. Il authentifie les utilisateurs au moyen d’une seule requête, en échangeant leurs identifiants contre un jeton.
+Le [Resource Owner Password Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/resource-owner-password-flow) (parfois appelé <Tooltip tip="Resource Owner : entité (comme un utilisateur ou une application) capable d’accorder l’accès à une ressource protégée." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Resource+Owner">Resource Owner</Tooltip> Password Grant ou ROPG) est utilisé par des applications hautement dignes de confiance pour effectuer une authentification active. Contrairement au code d’autorisation et aux octrois implicites, ce mécanisme d’authentification ne redirige pas les utilisateurs vers Auth0. Il authentifie les utilisateurs au moyen d’une seule requête, en échangeant leurs identifiants et leur mot de passe contre un jeton.
 
 Le pipeline conforme à OIDC affecte le Resource Owner Password Flow dans les domaines suivants :
 
 * Requête d’authentification
 * Réponse d’authentification
-* Structure du <Tooltip tip="ID Token : information d’identification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton d’identification</Tooltip>
-* Structure de l’<Tooltip tip="Access Token : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+token">Access token</Tooltip>
+* Structure du <Tooltip tip="ID Token : information d’identification destinée au client lui-même, plutôt que pour accéder à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+token">jeton d’ID</Tooltip>
+* Structure du <Tooltip tip="Access Token : information d’autorisation d’accès, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+token">jeton d’accès</Tooltip>
 
 <div id="authentication-request">
   ## Requête d’authentification
 </div>
 
 <div id="legacy">
-  ### Version antérieure
+  ### Ancienne version
 </div>
 
 ```json lines
@@ -36,7 +36,7 @@ Content-Type: application/json
 }
 ```
 
-Le paramètre `device` n’est nécessaire que si vous demandez un <Tooltip tip="Jeton d’actualisation : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se reconnecter." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+token">jeton d’actualisation</Tooltip> en incluant la portée `offline_access`.
+Le paramètre `device` n’est nécessaire que si vous demandez un <Tooltip tip="Refresh Token : jeton utilisé pour obtenir un nouveau jeton d’accès sans obliger les utilisateurs à se connecter de nouveau." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=refresh+token">refresh token</Tooltip> en incluant la portée `offline_access`.
 
 <div id="oidc-conformant">
   ### Conforme à OIDC
@@ -48,9 +48,9 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=http%3A%2F%2Fauth0.com%2Foauth%2Fgrant-type%2Fpassword-realm&client_id=123&username=alice&password=A3ddj3w&realm=my-database-connection&scope=openid+email+offline_access&audience=https%3A%2F%2Fapi.example.com
 ```
 
-* L’endpoint pour effectuer les échanges d’identifiants est `/oauth/token`.
-* Le grant type propre à Auth0 sert à authentifier les utilisateurs d’une connection précise (`realm`). Le grant type OIDC standard avec mot de passe est aussi pris en charge, mais il n’accepte pas les paramètres propres à Auth0, comme `realm`.
-* `favorite_color` n’est plus un `scope` valide.
+* Le point de terminaison pour effectuer les échanges d’identifiants est `/oauth/token`.
+* Le grant type propre à Auth0 est utilisé pour authentifier les utilisateurs d’une connexion précise (`realm`). Le grant de mot de passe OIDC standard est aussi pris en charge, mais il n’accepte pas les paramètres propres à Auth0, comme `realm`.
+* `favorite_color` n’est plus un scope valide.
 * Le paramètre `device` a été supprimé.
 * Le paramètre `audience` est facultatif.
 
@@ -59,7 +59,7 @@ grant_type=http%3A%2F%2Fauth0.com%2Foauth%2Fgrant-type%2Fpassword-realm&client_i
 </div>
 
 <div id="legacy">
-  ### Version antérieure
+  ### Ancienne version
 </div>
 
 ```json lines
@@ -76,8 +76,8 @@ Pragma: no-cache
 }
 ```
 
-* Le jeton d’accès renvoyé n’est valide que pour appeler le point de terminaison [`/userinfo`](https://auth0.com/docs/api/authentication#get-user-info).
-* Un jeton d’actualisation n’est renvoyé que si le paramètre `device` a été transmis et si la portée `offline_access` a été demandée.
+* Le jeton d’accès retourné est valide uniquement pour appeler le point de terminaison [`/userinfo`](https://auth0.com/docs/api/authentication#get-user-info).
+* Un jeton d’actualisation sera retourné seulement si un paramètre `device` a été transmis et si la portée `offline_access` a été demandée.
 
 <div id="oidc-conformant">
   ### Conforme à OIDC
@@ -97,17 +97,15 @@ Pragma: no-cache
 }
 ```
 
-* Le jeton d’accès renvoyé est valide pour appeler le point de terminaison `/userinfo` (à condition que l’API indiquée par le paramètre `audience` utilise `RS256` comme [algorithme de signature](/docs/fr-CA/get-started/applications/signing-algorithms)) et, au besoin, le <Tooltip tip="Serveur de ressources : serveur hébergeant des ressources protégées. Les serveurs de ressources acceptent les demandes de ressources protégées et y répondent." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=resource+server">serveur de ressources</Tooltip> indiqué par le paramètre `audience`.
-* Le jeton d’identification sera obligatoirement signé avec `RS256` s’il est demandé par une application publique. Pour en savoir plus, consultez [Applications confidentielles et publiques](/docs/fr-CA/get-started/applications/confidential-and-public-applications).
+* Le jeton d’accès renvoyé est valide pour effectuer une requête vers le endpoint `/userinfo` (à condition que l’API précisée par le paramètre `audience` utilise `RS256` comme [algorithme de signature](/docs/fr-CA/get-started/applications/signing-algorithms)) et, au besoin, vers le <Tooltip tip="Serveur de ressources : serveur hébergeant des ressources protégées. Les serveurs de ressources acceptent les requêtes visant des ressources protégées et y répondent." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=resource+server">serveur de ressources</Tooltip> précisé par le paramètre `audience`.
+* Le jeton d’ID sera obligatoirement signé avec `RS256` s’il est demandé par une application publique. Pour en savoir plus, consultez [Applications confidentielles et publiques](/docs/fr-CA/get-started/applications/confidential-and-public-applications).
 * Un jeton d’actualisation sera renvoyé seulement si la portée `offline_access` a été accordée.
 
 <div id="id-token-structure">
-  ## Structure du jeton d’identification
+  ## Structure du jeton d’ID
 </div>
 
-<div id="legacy">
-  ### Version antérieure
-</div>
+### ancienne version
 
 export const codeExample1 = `{
     "sub": "auth0|alice",
@@ -139,22 +137,22 @@ export const codeExample2 = `{
 
 <AuthCodeBlock children={codeExample2} language="json" filename="JSON" />
 
-* Le jeton d’identification sera obligatoirement signé avec `RS256` s’il est demandé par une application publique.
-* La revendication `favorite_color` doit être associée à un espace de noms et ajoutée au moyen d’une règle. Pour en savoir plus, consultez [Créer des revendications personnalisées avec espace de noms](/docs/fr-CA/secure/tokens/json-web-tokens/create-custom-claims).
+* Le jeton d’ID sera obligatoirement signé avec `RS256` s’il est demandé par une application publique.
+* La revendication `favorite_color` doit être associée à un espace de noms et ajoutée au moyen d’une règle. Pour en savoir plus, consultez [Create Namespaced Custom Claims](/docs/fr-CA/secure/tokens/json-web-tokens/create-custom-claims).
 
 <div id="access-token-structure-optional">
-  ## Structure du jeton d’accès (facultative)
+  ## Structure du jeton d’accès (facultatif)
 </div>
 
 <div id="legacy">
-  ### Version antérieure
+  ### Ancienne version
 </div>
 
 ```json JSON lines
 SlAV32hkKG
 ```
 
-Le jeton d’accès renvoyé est opaque et n’est valide que pour appeler le point de terminaison `/userinfo`.
+Le jeton d’accès renvoyé est opaque et n’est valide que pour effectuer une requête au point de terminaison `/userinfo`.
 
 <div id="oidc-conformant">
   ### Conforme à OIDC
@@ -175,22 +173,22 @@ export const codeExample3 = `{
 
 <AuthCodeBlock children={codeExample3} language="json" filename="JSON" />
 
-* Le jeton d’accès renvoyé est un <Tooltip tip="JSON Web Token (JWT) : format standard de ID Token (et souvent de Access Token) utilisé pour représenter de façon sécurisée des claims entre deux parties." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JWT">JWT</Tooltip> valide pour appeler le point de terminaison `/userinfo` (à condition que l’API indiquée par le paramètre `audience` utilise `RS256` comme <Tooltip tip="Algorithme de signature : algorithme utilisé pour signer numériquement des jetons afin de garantir que le jeton n’a pas été altéré." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=signing+algorithm">algorithme de signature</Tooltip>), ainsi que le serveur de ressources indiqué par le paramètre `audience`.
-* Notez qu’un jeton d’accès opaque peut quand même être renvoyé si `/userinfo` est la seule <Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Appelée aud dans un jeton, sa valeur contient l’ID d’une application (Client ID) pour un ID Token ou d’une API (API Identifier) pour un Access Token." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip> indiquée.
+* Le jeton d’accès renvoyé est un <Tooltip tip="JSON Web Token (JWT) : format standard de ID Token (et souvent de jeton d’accès) utilisé pour représenter des claims de manière sécurisée entre deux parties." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=JWT">JWT</Tooltip> valide pour envoyer une requête au point de terminaison `/userinfo` (à condition que l’API spécifiée par le paramètre `audience` utilise `RS256` comme <Tooltip tip="Algorithme de signature : algorithme utilisé pour signer numériquement des jetons afin de garantir que le jeton n’a pas été altéré." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=signing+algorithm">algorithme de signature</Tooltip>), ainsi qu’au serveur de ressources spécifié par le paramètre `audience`.
+* Notez qu’un jeton d’accès opaque peut tout de même être renvoyé si `/userinfo` est la seule <Tooltip tip="Audience : identifiant unique de l’audience pour un jeton émis. Nommée aud dans un jeton, sa valeur contient l’ID d’une application (Client ID) pour un ID Token ou d’une API (API Identifier) pour un jeton d’accès." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip> spécifiée.
 
 <div id="standard-password-grant-requests">
   ## Requêtes standard d’octroi par mot de passe
 </div>
 
-L’octroi de mot de passe avec `realm` d’Auth0 n’est pas défini par la norme OIDC, mais il est proposé comme solution de rechange au endpoint Resource Owner Legacy, puisqu’il prend en charge le paramètre `realm` propre à Auth0. Le [flux OIDC standard est également pris en charge](/docs/fr-CA/get-started/authentication-and-authorization-flow/resource-owner-password-flow) lorsqu’on utilise l’authentification OIDC.
+L’octroi par mot de passe avec `realm` d’Auth0 n’est pas défini par la norme OIDC, mais il est proposé comme solution de rechange au point de terminaison Resource Owner existant, car il prend en charge le paramètre `realm` propre à Auth0. Le [flux OIDC standard est également pris en charge](/docs/fr-CA/get-started/authentication-and-authorization-flow/resource-owner-password-flow) lorsque l’authentification OIDC est utilisée.
 
 <div id="learn-more">
-  ## En savoir plus
+  ## Pour en savoir plus
 </div>
 
 * [Jetons d’accès avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-access-tokens)
 * [API externes avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-apis)
-* [Flux du code d’autorisation avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-auth-code-flow)
-* [Flux des informations d’identification du client avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-client-credentials-flow)
+* [Flux de code d’autorisation avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-auth-code-flow)
+* [Flux d’identifiants du client avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-client-credentials-flow)
 * [Flux implicite avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-implicit-flow)
 * [Jetons d’actualisation avec OIDC](/docs/fr-CA/authenticate/login/oidc-conformant-authentication/oidc-adoption-refresh-tokens)

@@ -1,16 +1,16 @@
 ---
-description: Describe cómo identificar los atributos de usuario que no deseas guardar en las bases de datos de Auth0.
-title: Agregar atributos de usuario a la lista de exclusión
+description: Describe cómo identificar los atributos del usuario que no deseas guardar en las bases de datos de Auth0.
+title: Agregar atributos de usuario a Deny List
 ---
 
-import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeBlock} from "/snippets/es/AuthCodeBlock.jsx";
 
-import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+import {AuthCodeGroup} from "/snippets/es/AuthCodeGroup.jsx";
 
-Si hay campos de usuario que no deberían almacenarse en las bases de datos de Auth0 por motivos de privacidad, puedes agregarlos a la Lista de denegación. Para agregar atributos a la Lista de denegación, haz una llamada `PATCH` al endpoint Update Connection de la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
+Si hay campos de usuario que no deben almacenarse en las bases de datos de Auth0 por motivos de privacidad, puedes agregarlos a la Deny List. Para agregar atributos a la Deny List, haz una llamada `PATCH` al endpoint Update Connection de la <Tooltip tip="Management API: Un producto que permite a los clientes realizar tareas administrativas." cta="Ver glosario" href="/docs/es/glossary?term=Management+API">Management API</Tooltip>.
 
-1. Obtén un token de acceso válido para acceder al endpoint [endpoint](https://auth0.com/docs/api/management/v2#!/Connections/patch_connections_by_id) `/patch_connections_by_id`. El token debe incluir el scope `update:connections`. Consulta [Management API Access Tokens](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) para obtener más información.
-2. Con el token de acceso y la lista de atributos que deben denegarse, llama a la API. Aquí tienes un ejemplo de solicitud HTTP que deniega dos atributos: ethnicity y gender. Ten en cuenta que debes recuperar el objeto `options` y enviar el objeto completo en tu solicitud PATCH, ya que no existe ningún &quot;merge&quot; cuando solo actualizas uno o dos valores.
+1. Obtén un token de acceso válido para acceder al `/patch_connections_by_id` [endpoint](https://auth0.com/docs/api/management/v2#!/Connections/patch_connections_by_id). El token debe incluir el scope `update:connections`. Consulta [Management API Access Tokens](/docs/es/secure/tokens/access-tokens/management-api-access-tokens) para obtener más detalles.
+2. Con el token de acceso y la lista de atributos que se van a denegar, llama a la API. Aquí tienes un ejemplo de solicitud HTTP que deniega dos atributos: origen étnico y género. Ten en cuenta que debes recuperar el objeto options y enviar el objeto completo en tu solicitud PATCH, ya que no existe &quot;merge&quot; cuando solo actualizas uno o dos valores.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -170,7 +170,7 @@ Donde:
 
 1. `{yourConnectionId}` es el [ID de la conexión](/docs/es/authenticate/identity-providers/locate-the-connection-id) para la que se denegarán estos atributos.
    2. `{yourToken}` es el token de acceso que recibiste en el paso anterior.
-   3. El objeto `options.non_persistent_attrs` contiene un array con los atributos que se denegarán. Si el claim que quieres denegar lo envía un proveedor de identidad (IdP) de origen, debes indicar el claim exactamente como lo envió ese IdP. Por ejemplo, para un claim recibido como `https://acme.com/temporary_idtoken`, el objeto `non_persistent_attrs` del ejemplo anterior quedaría así:
+   3. El objeto `options.non_persistent_attrs` contiene un arreglo con los atributos que se denegarán. Si el claim que quieres denegar lo envía un proveedor de identidad de origen (IdP), debes indicar el claim exactamente como lo envía el IdP de origen. Por ejemplo, para un claim recibido como `https://acme.com/temporary_idtoken`, el objeto `non_persistent_attrs` del ejemplo anterior se vería así:
 
    ```json wrap lines
    {"non_persistent_attrs": ["ethnicity", "gender", "https://acme.com/temporary_idtoken"]}
@@ -183,15 +183,15 @@ Donde:
 * Solo se pueden denegar los [campos raíz](/docs/es/manage-users/user-accounts/user-profiles/user-profile-structure) (como `user.name` o `user.phone_number`).
 
   * Si se deniegan `user.name` o `user.nickname`, no se incluirán en los tokens.
-  * Si se deniega `user.email`, el valor no se puede asignar a un claim personalizado. Por ejemplo, en una regla, `context.idToken[namespace + 'work_email'] = user.email` no funcionaría.
-* Cuando deniegas atributos, seguirán estando disponibles a través de reglas y en los tokens salientes. Sin embargo, si se cumple cualquiera de las siguientes condiciones, los atributos de la lista de denegación **no** se incluirán en los tokens:
+  * Si se deniega `user.email`, el valor no se puede mapear a un custom claim. Por ejemplo, en una rule, `context.idToken[namespace + 'work_email'] = user.email` no funcionaría.
+* Cuando deniegas atributos, seguirán estando disponibles a través de rules y en los tokens de salida. Sin embargo, si se cumple cualquiera de las siguientes condiciones, los atributos de la Deny List **no** se incluirán en los tokens:
 
   * Has habilitado la autenticación multifactor (MFA)
-  * Has realizado una redirección mediante reglas
-  * Tu aplicación usa delegación (y no has establecido `scope = passthrough`)
-  * Tu aplicación usa suplantación
-  * Has habilitado la opción de configuración **Usar Auth0 en lugar del IdP para realizar el inicio de sesión único** (solo para tenants Legacy)
-* En las conexiones SAMLP, si habilitas el modo Debug, tus logs contendrán información sobre los atributos de la lista de denegación
+  * Has realizado una redirección mediante rules
+  * Tu aplicación está usando delegation (y no has establecido `scope = passthrough`)
+  * Tu aplicación está usando impersonation
+  * Has habilitado la opción **Use Auth0 instead of the IdP to do inicio de sesión único** (solo para tenants Legacy)
+* En las conexiones SAMLP, si habilitas el modo de depuración, tus logs contendrán información sobre los atributos de la Deny List
 
 Si alguna de estas limitaciones no te resulta aceptable, puedes escribir una [rule](/docs/es/customize/rules) para cifrar los datos y hacer que se conserven en el objeto `user.app_metadata`.
 

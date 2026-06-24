@@ -1,46 +1,46 @@
 ---
-title: Evaluación de rules para la lista de control de acceso del tenant
+title: Evaluación de rule para la ACL del tenant
 sidebarTitle: Evaluación de rules
 description: Aprende cómo el motor determinista de la ACL del tenant evalúa las coincidencias y la ejecución de las rules.
 ---
 
-La ACL del tenant utiliza un motor determinista para evaluar las solicitudes entrantes. Para determinar si se debe realizar una acción (permitir, bloquear o redirigir), el motor sigue estos pasos de evaluación:
+La ACL del tenant usa un motor determinista para evaluar las solicitudes entrantes. Para determinar si se debe realizar una Action (permitir, bloquear o redirigir), el motor sigue estos pasos de evaluación:
 
 1. Orden de evaluación (prioridad)
 
 2. Coincidencia de condiciones (señal)
 
-3. Finalización tras una coincidencia, con excepción del modo de monitoreo
+3. Finalización de la coincidencia con la excepción del modo de monitoreo
 
 <div id="evaluation-order">
   ## Orden de evaluación
 </div>
 
-La ACL del tenant evalúa las reglas en orden ascendente según su número de prioridad. La evaluación comienza con el número más bajo, la prioridad 0, y continúa de forma secuencial.
+La ACL del tenant evalúa las rules en orden ascendente según su número de prioridad. La evaluación comienza por el número más bajo, prioridad 0, y continúa secuencialmente.
 
-Si dos reglas pudieran coincidir con una solicitud, la que tenga el número de prioridad más bajo se evaluará primero.
+Si dos rules pudieran coincidir con una solicitud, se activará primero la que tenga el número de prioridad más bajo.
 
 <div id="condition-matching">
   ## Coincidencia de condiciones
 </div>
 
-Para que una sola rule active su acción, debe cumplir la lógica de coincidencia. Esta lógica determina cómo el motor trata varios valores y varios tipos de señales:
+Para que una rule individual active su Action, debe cumplir la lógica de coincidencia. Esta lógica determina cómo el motor trata varios valores y varios tipos de señales:
 
 | Tipo de lógica          | Comportamiento | Descripción                                                                                                                                                                                                                                                 | Ejemplo                                                                           |
 | ----------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | Coincidencia de señales | OR             | Dentro de una señal específica, una solicitud debe coincidir con al menos una entrada de la lista para cumplir ese requisito de señal.                                                                                                                      | Si `ipv4_cidrs` contiene varios CIDR de IP, al menos uno de ellos debe coincidir. |
-| Señales múltiples       | AND            | Si una rule contiene varios tipos de señales diferentes, la solicitud debe coincidir con todos los tipos de señales proporcionados. Como excepción, si una rule contiene tanto `ipv4_cidrs` como `ipv6_cidrs`, solo es necesario que coincida uno de ellos. | Si una rule tiene tanto `ipv4_cidrs` como `asn`, ambos deben coincidir.           |
+| Varias señales          | AND            | Si una rule contiene varios tipos de señales diferentes, la solicitud debe coincidir con todos los tipos de señales proporcionados. Como excepción, si una rule contiene tanto `ipv4_cidrs` como `ipv6_cidrs`, solo es necesario que coincida uno de ellos. | Si una rule tiene tanto `ipv4_cidrs` como `asn`, ambos deben coincidir.           |
 
 Los tipos de señales que no se incluyan en una rule se ignoran y no afectan la lógica de evaluación de la rule.
 
 <div id="match-termination">
-  ## Terminación de la coincidencia
+  ## Terminación de coincidencias
 </div>
 
-La ACL del tenant aplica la primera coincidencia. Una vez que se cumplen por completo las condiciones de una rule, el comportamiento depende de si la rule está en [modo de monitoreo](./enable-monitoring-mode) o no.
+Tenant ACL aplica la primera coincidencia encontrada. Una vez que se cumplen por completo las condiciones de una rule, el comportamiento depende de si la rule está en [modo de monitoreo](./enable-monitoring-mode) o no.
 
-| Comportamiento | Modo de monitoreo deshabilitado                                                                            | Modo de monitoreo habilitado                                              |
-| -------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Registro**   | Se genera un evento de log `acls_summary`.                                                                 | Se genera un evento de log `acls_summary`.                                |
-| **Ejecución**  | La acción definida por la rule se ejecuta de inmediato.                                                   | La acción definida por la rule no se ejecuta.                            |
-| **Evaluación** | La evaluación termina. No se evalúan rules posteriores de la ACL del tenant ni rules de menor prioridad. | La evaluación continúa con la siguiente rule de la lista de prioridades. |
+| Comportamiento | Modo de monitoreo deshabilitado                                                              | Modo de monitoreo habilitado                                              |
+| -------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Registro**   | Se activa un evento de log `acls_summary`.                                                   | Se activa un evento de log `acls_summary`.                                |
+| **Ejecución**  | La Action definida por la rule se ejecuta de inmediato.                                     | La Action definida por la rule no se ejecuta.                            |
+| **Evaluación** | La evaluación termina. No se evalúan rules de Tenant ACL posteriores ni de menor prioridad. | La evaluación continúa con la siguiente rule de la lista de prioridades. |

@@ -1,44 +1,44 @@
 ---
-description: Escenario de aplicación web tradicional que necesita autenticar usuarios mediante inicio de sesión único con OpenID Connect (OIDC).
+description: Escenario de aplicación web tradicional que necesita autenticar a los usuarios mediante inicio de sesión único con OpenID Connect (OIDC).
 title: Aplicaciones web clásicas con inicio de sesión único
 ---
 
-En este escenario, construiremos una aplicación web para una empresa ficticia llamada ExampleCo. La aplicación está pensada para que la usen los empleados y contratistas de ExampleCo. Los empleados usarán su directorio corporativo existente (Active Directory), mientras que los contratistas se administrarán en un repositorio de usuarios independiente.
+En este escenario, crearemos una aplicación web para una empresa ficticia llamada ExampleCo. La aplicación está pensada para que la usen los empleados y contratistas de ExampleCo. Los empleados usarán su directorio corporativo (Active Directory) existente, mientras que los contratistas se administrarán en un repositorio de usuarios independiente.
 
 <Info>
   ### En resumen
 
-  * Auth0 admite estándares abiertos como OAuth 2.0 y <Tooltip tip="OpenID: Estándar abierto de autenticación que permite a las aplicaciones verificar la identidad de los usuarios sin recopilar ni almacenar información de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=OpenID+Connect+%28OIDC%29">OpenID Connect (OIDC)</Tooltip> para autenticación y autorización (consulta [Qué protocolo usar](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1#which-protocol-to-use))
-  * OIDC admite varios flujos de autorización; el más adecuado para las aplicaciones web es el flujo de código de autorización (consulta [Flujo de autenticación](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1#authentication-flow))
+  * Auth0 admite estándares abiertos como OAuth 2.0 y <Tooltip tip="OpenID: Estándar abierto de autenticación que permite a las aplicaciones verificar las identidades de los usuarios sin recopilar ni almacenar información de inicio de sesión." cta="Ver glosario" href="/docs/es/glossary?term=OpenID+Connect+%28OIDC%29">OpenID Connect (OIDC)</Tooltip> para autenticación y autorización (consulta [Qué protocolo usar](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1#which-protocol-to-use))
+  * OIDC admite varios flujos de autorización; el más apropiado para las aplicaciones web es el flujo de código de autorización (consulta [Flujo de autenticación](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1#authentication-flow))
   * Tu aplicación se configurará en Auth0 como una aplicación (consulta [Aplicación](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-2#application))
   * Los proveedores de identidad se configurarán en Auth0 como una conexión (consulta [Conexiones](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-2#connections))
-  * Auth0 proporciona un widget Lock que permite a los usuarios iniciar sesión en la aplicación (consulta [Inicio de sesión del usuario](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#user-login))
-  * La aplicación web necesita administrar el estado de la sesión para mantener el seguimiento de que el usuario ha iniciado sesión. Además, Auth0 y el proveedor de identidad también administran la información de la sesión. (consulta [Gestión de sesiones](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#session-management))
-  * Del mismo modo, cerrar la sesión de un usuario también implica tres capas de gestión de sesiones (consulta [Cierre de sesión del usuario](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#user-logout))
-  * El control de acceso se puede administrar con la Auth0 Authorization Extension (consulta [Control de acceso](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#access-control))
+  * Auth0 proporciona un widget de Lock que permite a los usuarios iniciar sesión en la aplicación (consulta [Inicio de sesión del usuario](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#user-login))
+  * La aplicación web necesita administrar el estado de la sesión para mantener el seguimiento de que el usuario ha iniciado sesión. Además, Auth0 y el proveedor de identidad también administran la información de la sesión. (consulta [Administración de sesiones](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#session-management))
+  * Del mismo modo, cerrar la sesión de un usuario también implica tres capas de administración de sesiones (consulta [Cierre de sesión del usuario](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#user-logout))
+  * El control de acceso se puede administrar con la extensión Authorization Extension de Auth0 (consulta [Control de acceso](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3#access-control))
 </Info>
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Por Regular Web App, nos referimos a una aplicación que usa principalmente lógica del lado del servidor, solicitudes de página `GET`, `POST` y cookies para mantener el estado. Esto contrasta con una SPA web (Single-Page App), que depende en gran medida de código JavaScript del lado del cliente que llama a una API.
+  Por aplicación web tradicional, nos referimos a una aplicación que usa principalmente el lado del servidor, solicitudes de página `GET` y `POST`, y cookies para mantener el estado. Esto contrasta con una Web SPA (aplicación web de página única), que depende en gran medida de código JavaScript del lado del cliente que llama a una API.
 </Callout>
 
 <div id="the-premise">
   ## La premisa
 </div>
 
-ExampleCo es una startup de consultoría. Actualmente cuenta con aproximadamente 100 empleados y también subcontrata varias actividades a contratistas externos. La mayoría de los empleados trabaja en la oficina principal de la empresa, pero hay algunos equipos que trabajan de forma remota. Además, algunos empleados viajan con frecuencia a las instalaciones de los clientes y trabajan desde dispositivos móviles.
+ExampleCo es una startup de consultoría. Actualmente tiene aproximadamente 100 empleados y además subcontrata varias actividades a contratistas externos. La mayoría de los empleados trabaja desde la oficina principal de la empresa, pero hay algunos equipos que trabajan en remoto. Además, algunos empleados viajan con frecuencia a las instalaciones de los clientes y trabajan con dispositivos móviles.
 
-Todos los empleados y contratistas externos deben completar sus hojas de hora cada semana mediante hojas de cálculo. El sistema actual es ineficiente y la empresa decidió que necesita pasar a una solución mejor y más automatizada.
+Todos los empleados y contratistas externos deben completar sus hojas de hora cada semana mediante hojas de cálculo. El sistema actual es ineficiente y la empresa decidió que necesita pasarse a una solución mejor y más automatizada.
 
-La empresa evaluó varias de las aplicaciones de hojas de hora disponibles y concluyó que sería más rentable desarrollar su propia solución interna, ya que por el momento busca una aplicación muy simple. La aplicación se desarrollará con ASP.NET Core, ya que sus desarrolladores ya utilizan esta tecnología y pueden tenerla lista en aproximadamente una semana.
+La empresa evaluó varias de las aplicaciones de hojas de hora disponibles y llegó a la conclusión de que sería más rentable desarrollar su propia solución interna, ya que por el momento busca una aplicación muy sencilla. La aplicación se desarrollará con ASP.NET Core, ya que sus desarrolladores ya utilizan esta tecnología y pueden tenerla lista en aproximadamente una semana.
 
 <div id="goals-requirements">
   ### Objetivos y requisitos
 </div>
 
-ExampleCo quiere lanzar la nueva solución rápidamente, por lo que ha optado por empezar con algo sencillo e ir ampliándolo a medida que recopila comentarios de sus empleados.
+ExampleCo quiere lanzar la nueva solución rápidamente, así que decidió empezar con algo sencillo e ir ampliándolo a medida que recopila comentarios de sus empleados.
 
-La aplicación debe estar disponible solo para usuarios que hayan iniciado sesión. Cada usuario tendrá un rol y, en función de ese rol, podrá realizar determinadas acciones y ver datos específicos.
+La aplicación debe estar disponible solo para usuarios que hayan iniciado sesión. Cada usuario tendrá un rol y, en función de ese rol, deberá poder realizar ciertas acciones y ver datos específicos.
 
 <Info>
   ### Autenticación vs. autorización
@@ -46,20 +46,20 @@ La aplicación debe estar disponible solo para usuarios que hayan iniciado sesi�
   ExampleCo quiere **autenticar** y **autorizar** a cada usuario. La autenticación tiene que ver con la identidad: verificar que el usuario es realmente quien dice ser. La autorización consiste en decidir a qué recursos debe tener acceso un usuario y qué se le debe permitir hacer con esos recursos.
 </Info>
 
-La aplicación de hojas de hora de ExampleCo debe admitir dos roles: Usuario y Admin:
+La aplicación de hojas de hora de ExampleCo debe admitir dos roles: User y Admin:
 
-* Una persona con el rol de Usuario puede agregar entradas de hoja de hora, especificando la fecha, la aplicación y las horas trabajadas. El rol de Admin también tiene este mismo permiso.
-* Quienes tengan el rol de Usuario solo deben tener acceso a sus propias entradas de hojas de hora.
-* Una persona con el rol de Admin además puede:
+* Una persona con el rol User puede agregar entradas de hoja de hora, especificando la fecha, la aplicación y las horas trabajadas. El rol Admin también tiene este mismo derecho.
+* Quienes tienen el rol User solo deben tener acceso a sus propias entradas de hojas de hora.
+* Una persona con el rol Admin puede además:
 
   * Aprobar o rechazar entradas de hoja de hora de otros usuarios.
   * Editar la lista desplegable de valores de la aplicación (agregar, editar, eliminar).
 
-Cada usuario deberá completar sus hojas de hora antes de que termine la semana. Puede optar por registrar sus hojas de hora diariamente o agregar juntas las entradas de toda la semana. Las hojas de hora deberán ser revisadas y aprobadas por un Admin. Las entradas rechazadas deberán ser actualizadas por cada empleado y volver a enviarse para su aprobación.
+Cada usuario deberá completar sus hojas de hora antes de que termine la semana. Puede optar por registrar sus hojas de hora a diario o agregar juntas las entradas de toda la semana. Las hojas de hora deberán ser revisadas y aprobadas por un Admin. Las entradas rechazadas deberán ser actualizadas por cada empleado y volver a enviarse para su aprobación.
 
-La empresa utiliza Active Directory para todos los empleados, que iniciarán sesión en la aplicación de hojas de hora con sus credenciales de Active Directory. Los contratistas externos pueden iniciar sesión con un nombre de usuario y una contraseña. Los contratistas no forman parte del directorio corporativo de ExampleCo.
+La empresa usa Active Directory para todos los empleados, y los empleados iniciarán sesión en la aplicación Timesheet con sus credenciales de Active Directory. Los contratistas externos pueden iniciar sesión con nombre de usuario y contraseña. Los contratistas no están en el directorio corporativo de ExampleCo.
 
-ExampleCo quiere minimizar la carga para el usuario al iniciar sesión, pero mantener un nivel de seguridad acorde con la operación: enviar entradas de hoja de hora supone menos riesgo que aprobarlas. Sin embargo, las hojas de hora aprobadas se usan para la facturación a clientes, por lo que la seguridad es, sin duda, un requisito. La estrategia de autenticación debe ser flexible para adaptarse al crecimiento de la empresa. Por ejemplo, deberían poder agregar fácilmente requisitos adicionales de autenticación, como <Tooltip tip="Autenticación multifactor (MFA): Proceso de autenticación de usuario que utiliza un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=multi-factor+authentication">autenticación multifactor</Tooltip>, para los Admins.
+ExampleCo quiere minimizar las fricciones del inicio de sesión para el usuario, pero mantener un nivel de seguridad acorde con la operación: enviar entradas de hoja de hora implica menos riesgo que aprobarlas. Sin embargo, las hojas de hora aprobadas se usan para la facturación a clientes, por lo que la seguridad es, sin duda, un requisito. La estrategia de autenticación debe ser flexible para poder adaptarse a medida que la empresa crece. Por ejemplo, debería ser fácil agregar requisitos de autenticación adicionales, como <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuario que usa un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=multi-factor+authentication">autenticación multifactor</Tooltip>, para los Admins.
 
 La solución debe estar disponible tanto para los empleados con presencia física en la oficina de la empresa como para quienes trabajan de forma remota, sin la sobrecarga de una conexión VPN; por lo tanto, la aplicación debe implementarse en un proveedor de nube como Heroku o Microsoft Azure.
 
@@ -70,7 +70,7 @@ La solución debe estar disponible tanto para los empleados con presencia físic
 </div>
 
 * [Información general de la solución (Aplicaciones web + SSO)](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-1)
-* [Auth0 Configuration (Aplicaciones web + SSO)](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-2)
+* [Configuración de Auth0 (Aplicaciones web + SSO)](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-2)
 * [Implementación de la aplicación (Aplicaciones web + SSO)](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-3)
 * [Implementación de ASP.NET Core (Aplicaciones web + SSO)](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/implementation-aspnetcore)
 * [Conclusión (Aplicaciones web + SSO)](/docs/es/get-started/architecture-scenarios/sso-for-regular-web-apps/part-4)

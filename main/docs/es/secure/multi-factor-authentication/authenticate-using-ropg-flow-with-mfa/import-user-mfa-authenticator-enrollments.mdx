@@ -3,21 +3,21 @@ description: Describe cómo importar las inscripciones de MFA de tus usuarios ex
 title: Importar inscripciones de autenticadores MFA de usuarios
 ---
 
-Puedes importar las inscripciones de <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuarios que utiliza un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> de un usuario con la [migración automática](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database) y las [importaciones masivas de usuarios](/docs/es/manage-users/user-migration/bulk-user-imports). Los tipos de inscripción compatibles son:
+Puedes importar las inscripciones de <Tooltip tip="Autenticación multifactor (MFA): proceso de autenticación de usuario que utiliza un factor además del nombre de usuario y la contraseña, como un código por SMS." cta="Ver glosario" href="/docs/es/glossary?term=MFA">MFA</Tooltip> de un usuario mediante la [migración automática](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database) y las [importaciones masivas de usuarios](/docs/es/manage-users/user-migration/bulk-user-imports). Los tipos de inscripción compatibles son:
 
-* Email: para la verificación por correo electrónico.
-* Teléfono: para la verificación por SMS.
+* Email: para la verificación de correo electrónico.
+* Phone: para la verificación por SMS.
 * OTP: para contraseñas de un solo uso (OTP) utilizadas con aplicaciones de autenticación, como Google Authenticator.
 
-Importar inscripciones de MFA proporciona una experiencia de usuario fluida, ya que los usuarios no tendrán que volver a inscribirse después de la migración.
+Importar inscripciones de MFA ofrece una experiencia de usuario fluida, ya que los usuarios no tendrán que volver a inscribirse después de la migración.
 
-La experiencia de Classic Login no admite la selección de factores para usuarios con múltiples factores. Si planeas importar usuarios con varios factores registrados, considera usar la experiencia de [Universal Login](/docs/es/authenticate/login/auth0-universal-login).
+La experiencia de Classic Login no admite la selección de factores para usuarios con varios factores. Si planeas importar usuarios con varios factores registrados, considera usar la experiencia de [Universal Login](/docs/es/authenticate/login/auth0-universal-login).
 
 <div id="schema">
   ## Esquema
 </div>
 
-El esquema se aplica a los factores de MFA en los dos flujos de trabajo siguientes.
+El esquema se aplica a los factores de MFA en ambos de los siguientes flujos de trabajo.
 
 ```json lines expandable
 {
@@ -74,9 +74,9 @@ El esquema se aplica a los factores de MFA en los dos flujos de trabajo siguient
   ## Migración automática
 </div>
 
-Las inscripciones de MFA también pueden importarse durante una [migración automática](/docs/es/authenticate/database-connections/custom-db/overview-custom-db-connections#automatic-migration-scenario). Para ello, proporciona cualquier inscripción existente en el campo `mfa_factors` del usuario que se envía a la devolución de llamada al final del [script de Login](/docs/es/authenticate/database-connections/custom-db/templates/login) de tu base de datos personalizada.
+Las inscripciones de MFA también se pueden importar durante una [migración automática](/docs/es/authenticate/database-connections/custom-db/overview-custom-db-connections#automatic-migration-scenario). Para ello, proporciona cualquier inscripción existente en el campo `mfa_factors` del usuario que se pasa a la devolución de llamada al final de tu [script de inicio de sesión](/docs/es/authenticate/database-connections/custom-db/templates/login) de base de datos personalizado.
 
-Cualquier error aparecerá en los registros del tenant como inicios de sesión fallidos y podrá distinguirse de otros errores por su descripción: `Unable to import MFA factors`. Por ejemplo:
+Cualquier error aparecerá en los logs de tu tenant como inicios de sesión fallidos y se distinguirá de otros errores por su descripción: `Unable to import MFA factors`. Por ejemplo:
 
 ```json lines
 {
@@ -106,13 +106,13 @@ Cualquier error aparecerá en los registros del tenant como inicios de sesión f
   ## Importación masiva de usuarios
 </div>
 
-1. Prepara un archivo `users.json`. Consulta [importaciones masivas de usuarios](/docs/es/manage-users/user-migration/bulk-user-imports) para obtener más información.
-2. Incluye las inscripciones de MFA existentes de cada usuario.
-3. Inicia una importación masiva de usuarios.
-4. Actualiza los factores de los usuarios existentes habilitando la opción `upsert` en tu solicitud inicial.
-5. Cuando se complete la tarea de importación, revisa la respuesta para ver si hay errores. Si no se pudo importar alguno de los factores de MFA de los usuarios, verás errores como:
+1. Prepare un archivo `users.json`. Consulte [importaciones masivas de usuarios](/docs/es/manage-users/user-migration/bulk-user-imports) para obtener más detalles.
+2. Incluya las inscripciones de MFA existentes de cada usuario.
+3. Inicie una importación masiva de usuarios.
+4. Actualice los factores de cualquier usuario existente habilitando la opción `upsert` en su solicitud inicial.
+5. Una vez que se complete la tarea de importación, revise la respuesta por si hubiera errores. Si no se pudieron importar algunos de los factores de MFA de los usuarios, verá errores como:
 
-Al usar la opción `upsert`, cualquier cambio no relacionado con MFA en usuarios existentes se habrá aplicado al perfil del usuario. Por ejemplo, el siguiente resumen de errores muestra que el atributo `foto` del usuario se estableció correctamente en `http://example.org/jdoe.png`; sin embargo, no pudimos importar los factores de MFA proporcionados. En casos como este, puedes volver a intentar de forma segura la importación para los usuarios que fallaron.
+Al usar la opción `upsert`, cualquier actualización de usuarios existentes no relacionada con MFA se habrá aplicado al perfil del usuario. Por ejemplo, el siguiente resumen de errores muestra que el atributo `foto` del usuario se estableció correctamente en `http://example.org/jdoe.png`; sin embargo, no pudimos importar los factores de MFA proporcionados. En casos como este, es seguro reintentar la importación para los usuarios en los que falló.
 
 ```json lines expandable
 [
@@ -152,7 +152,7 @@ Al usar la opción `upsert`, cualquier cambio no relacionado con MFA en usuarios
   ## Códigos de recuperación
 </div>
 
-Auth0 no ofrece una forma de importar códigos de recuperación. Cuando se importen los factores de MFA del usuario, no tendrán ningún código de recuperación.
+Auth0 no ofrece ninguna forma de importar códigos de recuperación. Cuando se importan los factores de MFA del usuario, este no tendrá ningún código de recuperación.
 
 Para proporcionarles a los usuarios un código de recuperación, puedes comprobar si ya tienen uno registrado y, si no, usar el [endpoint de regeneración de códigos de recuperación](https://auth0.com/docs/api/management/v2#!/Users/post_recovery_code_regeneration) para generar uno nuevo.
 
@@ -160,5 +160,5 @@ Para proporcionarles a los usuarios un código de recuperación, puedes comproba
   ## Más información
 </div>
 
-* [Configura la migración automática desde tu Database](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database)
-* [Importación masiva de usuarios](/docs/es/manage-users/user-migration/bulk-user-imports)
+* [Configurar la migración automática desde tu Database](/docs/es/manage-users/user-migration/configure-automatic-migration-from-your-database)
+* [Bulk User Imports](/docs/es/manage-users/user-migration/bulk-user-imports)

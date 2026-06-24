@@ -3,34 +3,34 @@ description: Describe cómo funciona Auth0 con el protocolo Web Services Federat
 title: Protocolo Web Services Federation
 ---
 
-Web Services Federation (WS-Federation o <Tooltip tip="Web Service Federation (WS-Fed): Protocolo para gestionar identidades de usuario entre dominios." cta="Ver glosario" href="/docs/es/glossary?term=WS-Fed">WS-Fed</Tooltip>) forma parte del marco más amplio de WS-Security y es una ampliación de la funcionalidad de WS-Trust. Las funcionalidades de WS-Federation pueden ser utilizadas directamente por aplicaciones SOAP y servicios web. WS-Fed es un protocolo que puede usarse para negociar la emisión de un token. Puede usar este protocolo para sus aplicaciones (como una aplicación basada en Windows Identity Foundation) y para <Tooltip tip="Proveedor de identidad (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+providers">proveedores de identidad</Tooltip> (como Active Directory Federation Services o Azure AppFabric Access Control Service).
+Web Services Federation (WS-Federation o <Tooltip tip="Web Service Federation (WS-Fed): Protocolo para gestionar identidades de usuario entre dominios." cta="Ver glosario" href="/docs/es/glossary?term=WS-Fed">WS-Fed</Tooltip>) forma parte del framework más amplio de WS-Security y es una extensión de la funcionalidad de WS-Trust. Las funcionalidades de WS-Federation pueden utilizarse directamente en aplicaciones SOAP y servicios web. WS-Fed es un protocolo que puede utilizarse para negociar la emisión de un token. Puede utilizar este protocolo para sus aplicaciones (como una aplicación basada en Windows Identity Foundation) y para <Tooltip tip="Identity Provider (IdP): Servicio que almacena y gestiona identidades digitales." cta="Ver glosario" href="/docs/es/glossary?term=identity+providers">proveedores de identidad</Tooltip> (como Active Directory Federation Services o Azure AppFabric Access Control Service).
 
 <div id="for-applications">
-  ## Para las aplicaciones
+  ## Para aplicaciones
 </div>
 
-Cuando registras una aplicación en Auth0, se le asignará automáticamente un endpoint de WS-Fed con el formato:
+Cuando registras una aplicación en Auth0, se le asigna automáticamente un endpoint de WS-Fed con este formato:
 
 `https://{yourDomain}/wsfed/{yourClientId}`
 
 Puedes encontrar todas las opciones disponibles para configurar WS-Fed en la sección de [configuración avanzada](https://manage.auth0.com/#/applications/\{yourClientId}/settings) de tu aplicación.
 
-Tendrás que configurar la **<Tooltip tip="Parte de confianza: Entidad (como un servicio o una aplicación) que depende de un proveedor de identidad de terceros para autenticar a un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Relying+Party">parte de confianza</Tooltip>**, lo que puedes hacer mediante el siguiente endpoint de metadatos:
+Deberás configurar la **<Tooltip tip="Relying Party: Entidad (como un servicio o una aplicación) que depende de un proveedor de identidad de terceros para autenticar a un usuario." cta="Ver glosario" href="/docs/es/glossary?term=Relying+Party">Relying Party</Tooltip>**, lo cual puede hacerse mediante el siguiente endpoint de metadatos:
 
 `https://{yourDomain}/wsfed/FederationMetadata/2007-06/FederationMetadata.xml`
 
-También puedes usar el objeto **samlConfiguration**, disponible en [Rules](/docs/es/customize/rules), para configurar los claims enviados en el token, así como otras opciones de bajo nivel de WS-Fed y <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin necesidad de una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip>-P.
+También puedes usar el objeto **samlConfiguration**, disponible en [Rules](/docs/es/customize/rules), para configurar los claims enviados en el token, así como otros ajustes de nivel inferior de WS-Fed y <Tooltip tip="Security Assertion Markup Language (SAML): Protocolo estandarizado que permite a dos partes intercambiar información de autenticación sin una contraseña." cta="Ver glosario" href="/docs/es/glossary?term=SAML">SAML</Tooltip>-P.
 
 Al redirigir a tus usuarios a tu endpoint de WS-Fed, puedes usar los siguientes parámetros (opcionales):
 
-| Parámetro               | Descripción                                                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `wa=wsignin1.0`         | Si Auth0 debe emitir un token para la parte de confianza (opción predeterminada)                                   |
-| `wa=wsignout1.0`        | Si Auth0 debe borrar la sesión del usuario o cerrar su sesión                                                      |
-| `wreply={callback_URL}` | Dónde debe enviarse la respuesta                                                                                   |
-| `wctx={state}`          | El estado de tu aplicación                                                                                         |
-| `whr={connection_name}` | La conexión que se utilizará (permite a los usuarios omitir la página de inicio de sesión de Auth0)                |
-| `wfresh=0`              | Si el usuario debe volver a autenticarse, incluso si ya hay una sesión activa (`0` requiere volver a autenticarse) |
+| Parámetro               | Descripción                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `wa=wsignin1.0`         | Si Auth0 debe emitir un token para la Relying Party (predeterminado)                                            |
+| `wa=wsignout1.0`        | Si Auth0 debe borrar la sesión del usuario o cerrar su sesión                                                   |
+| `wreply={callback_URL}` | Dónde debe enviarse la respuesta                                                                                |
+| `wctx={state}`          | El estado de tu aplicación                                                                                      |
+| `whr={connection_name}` | La conexión que se usará (permite a los usuarios omitir la página de inicio de sesión de Auth0)                 |
+| `wfresh=0`              | Si el usuario debe volver a autenticarse, incluso si ya existe una sesión activa (`0` requiere reautenticación) |
 
 Aquí tienes un ejemplo de cómo podría verse tu URL con los parámetros opcionales:
 
@@ -43,15 +43,15 @@ Aquí tienes un ejemplo de cómo podría verse tu URL con los parámetros opcion
 Si usas Auth0 con un proveedor de identidad que utiliza el protocolo WS-Federation (como Active Directory Federation Services, Azure AppFabric Access Control Service e IdentityServer), la forma más sencilla de configurar la integración es crear y usar el tipo de conexión ADFS en el Dashboard. Hay dos maneras de hacerlo:
 
 * Importar el archivo de metadatos de federación
-* Habilitar el endpoint de metadatos de federación para detectar cambios
+* Habilitar el endpoint de metadatos de federación para comprobar si hay cambios
 
 <div id="import-federation-metadata-file">
   ### Importar archivo de metadatos de federación
 </div>
 
-Al configurar una conexión basada en ADFS, puedes importar los parámetros necesarios indicando a Auth0 el endpoint de metadatos de federación o importando o cargando tu archivo de metadatos de federación.
+Al configurar una conexión basada en ADFS, puedes importar los parámetros necesarios proporcionando a Auth0 el endpoint de metadatos de federación o importando/cargando tu archivo de metadatos de federación.
 
-<Frame>![Protocols WS-Fed Import Federation Metadata File ADFS Connection Screen](/docs/images/cdy7uua7fh8z/35pGg8AnNcx2ZIfQIixt1J/49f48c2e55a80de53964a356fb5fbbb9/ADFS_Create_-_English.png)</Frame>
+<Frame>![Protocolos WS-Fed: importar archivo de metadatos de federación. Pantalla de conexión de ADFS](/docs/images/cdy7uua7fh8z/35pGg8AnNcx2ZIfQIixt1J/49f48c2e55a80de53964a356fb5fbbb9/ADFS_Create_-_English.png)</Frame>
 
 Verás las instrucciones necesarias para terminar de configurar la integración.
 
@@ -59,16 +59,16 @@ Verás las instrucciones necesarias para terminar de configurar la integración.
   ### Habilitar el endpoint de metadatos de federación
 </div>
 
-El archivo de metadatos de federación contiene información sobre los certificados del proveedor de identidad. Si proporciona el endpoint de metadatos de federación (normalmente, una URL que termina en `/FederationMetadata/2007-06/FederationMetadata.xml`), Auth0 puede comprobar a diario si hay cambios en la configuración, como la incorporación de un nuevo certificado de firma para preparar una rotación. Por ello, es preferible habilitar el endpoint de metadatos de federación en lugar de proporcionar un archivo de metadatos independiente. Si proporciona un archivo de metadatos independiente, le notificaremos por correo electrónico cuando los certificados estén próximos a su fecha de vencimiento.
+El archivo de metadatos de federación contiene información sobre los certificados del proveedor de identidad. Si proporcionas el endpoint de metadatos de federación (normalmente, una URL que termina en `/FederationMetadata/2007-06/FederationMetadata.xml`), Auth0 puede comprobar a diario si hay cambios en la configuración, como la incorporación de un nuevo certificado de firma añadido como preparación para una rotación. Por eso, es preferible habilitar el endpoint de metadatos de federación en lugar de proporcionar un archivo de metadatos independiente. Si proporcionas un archivo de metadatos independiente, te avisaremos por correo electrónico cuando los certificados estén próximos a su fecha de expiración.
 
-Si los metadatos de federación contienen tanto el certificado primario como el secundario, puede usar ambos en Auth0.
+Si los metadatos de federación contienen tanto el certificado primario como el secundario, puedes usar ambos en Auth0.
 
 Para rotar certificados mediante el endpoint de metadatos de federación:
 
-1. Genere un nuevo certificado y agréguelo como certificado secundario en su entorno de ADFS. Esto debe hacerse al menos **dos días** antes del vencimiento de su certificado primario activo.
-2. Permita que Auth0 obtenga su nuevo certificado desde el endpoint de metadatos de federación. Auth0 comprueba sus endpoints una vez al día, así que asegúrese de dejar tiempo suficiente para que complete este paso.
-   Como alternativa, puede completar este paso manualmente iniciando sesión en el Auth0 Dashboard, yendo a la conexión de ADFS correspondiente y haciendo clic en **Save**. Esta acción hace que Auth0 descargue los certificados de inmediato.
-3. Establezca el certificado que ahora es secundario como certificado primario antes de que venza el certificado primario actual en su entorno de ADFS.
+1. Genera un certificado nuevo y agrégalo como certificado secundario en tu entorno de ADFS. Esto debe hacerse al menos **dos días** antes de la expiración de tu certificado primario activo.
+2. Deja que Auth0 obtenga tu nuevo certificado desde el endpoint de metadatos de federación. Auth0 comprueba tus endpoints una vez al día, así que asegúrate de dejar tiempo suficiente para que complete este paso.
+   Como alternativa, puedes completar este paso manualmente iniciando sesión en el Auth0 Dashboard, yendo a la conexión de ADFS correspondiente y haciendo clic en **Save**. Esta acción hace que Auth0 descargue los certificados de inmediato.
+3. Establece el certificado que ahora es secundario como certificado primario antes de que caduque el certificado primario actual en tu entorno de ADFS.
 
 ##
 
@@ -76,4 +76,4 @@ Para rotar certificados mediante el endpoint de metadatos de federación:
   ## Más información
 </div>
 
-* [Configurar aplicaciones de WS-Fed](/docs/es/get-started/applications/configure-ws-fed-applications)
+* [Configurar aplicaciones WS-Fed](/docs/es/get-started/applications/configure-ws-fed-applications)

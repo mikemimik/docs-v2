@@ -1,31 +1,31 @@
 ---
-description: Décrit comment utiliser auth0.js ou les API Auth0 pour recueillir des renseignements sur le consentement lorsque vous utilisez votre propre interface utilisateur personnalisée pour la connexion.
-title: 'GDPR: Suivre le consentement avec une interface utilisateur personnalisée'
+description: Décrit comment utiliser auth0.js ou les API Auth0 pour recueillir des renseignements sur le consentement lorsque vous utilisez votre propre interface utilisateur personnalisée pour l’ouverture de session.
+title: 'GDPR : Suivre le consentement avec une interface utilisateur personnalisée'
 ---
 
-import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeBlock} from "/snippets/fr-CA/AuthCodeBlock.jsx";
 
-import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+import {AuthCodeGroup} from "/snippets/fr-CA/AuthCodeGroup.jsx";
 
-Dans ce tutoriel, nous verrons comment utiliser auth0.js ou les API Auth0 pour demander des renseignements sur le consentement et enregistrer les informations saisies dans les métadonnées de l’utilisateur. Pour en savoir plus, consultez [Comprendre le fonctionnement des métadonnées dans les profils utilisateur](/docs/fr-CA/manage-users/user-accounts/metadata).
+Dans ce tutoriel, nous verrons comment utiliser auth0.js ou les API Auth0 pour demander des renseignements sur le consentement et enregistrer les données saisies dans les métadonnées de l’utilisateur. Pour en savoir plus, consultez [Comprendre le fonctionnement des métadonnées dans les profils utilisateur](/docs/fr-CA/manage-users/user-accounts/metadata).
 
-Si vous souhaitez plutôt faire le suivi du consentement à l’aide de Lock, consultez [GDPR : Suivre le consentement avec Lock](/docs/fr-CA/secure/data-privacy-and-compliance/gdpr/gdpr-track-consent-with-lock).
+Si vous souhaitez plutôt assurer le suivi du consentement à l’aide de Lock, consultez [GDPR : Assurer le suivi du consentement avec Lock](/docs/fr-CA/secure/data-privacy-and-compliance/gdpr/gdpr-track-consent-with-lock).
 
-Le contenu de ce document ne constitue **pas** un avis juridique et ne doit pas être considéré comme un remplacement de l’assistance juridique. Il vous revient en dernier ressort de comprendre le GDPR et de vous y conformer, bien qu’Auth0 vous aidera, dans la mesure du possible, à respecter les exigences du GDPR.
+Le contenu de ce document ne constitue **pas** un avis juridique et ne doit pas non plus être considéré comme une solution de rechange à une assistance juridique. Il vous incombe en dernier ressort de comprendre le GDPR et de vous y conformer, bien qu’Auth0 vous aide, dans la mesure du possible, à respecter ses exigences.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Le contenu de ces documents ne constitue pas un avis juridique et ne doit pas être considéré comme un remplacement de l’assistance juridique. Il vous revient en dernier ressort de comprendre le GDPR et de vous y conformer, bien qu’Auth0 vous aidera, dans la mesure du possible, à respecter les exigences du GDPR.
+  Le contenu de ces documents ne constitue pas un avis juridique et ne doit pas non plus être considéré comme une solution de rechange à une assistance juridique. Il vous incombe en dernier ressort de comprendre le GDPR et de vous y conformer, bien qu’Auth0 vous aide, dans la mesure du possible, à respecter ses exigences.
 </Callout>
 
 <div id="overview">
-  ## Aperçu
+  ## Vue d’ensemble
 </div>
 
-Nous recueillerons les renseignements sur le consentement dans différents scénarios et les enregistrerons dans les métadonnées de l’utilisateur.
+Nous recueillerons les renseignements liés au consentement dans différents scénarios et les enregistrerons dans les métadonnées de l&#39;utilisateur.
 
-Tous les scénarios enregistreront les propriétés suivantes dans les métadonnées de l’utilisateur :
+Tous les scénarios enregistreront les propriétés suivantes dans les métadonnées de l&#39;utilisateur :
 
-* `consentGiven` (vrai/faux) indique si l’utilisateur a donné son consentement (vrai) ou non (faux)
+* `consentGiven` (true/false) indique si l’utilisateur a donné son consentement (true) ou non (false)
 * `consentTimestamp` (horodatage Unix) indique à quel moment l’utilisateur a donné son consentement
 
 Par exemple :
@@ -37,38 +37,38 @@ Par exemple :
 }
 ```
 
-Nous verrons quatre implémentations différentes pour ce cas :
+Nous verrons quatre mises en œuvre différentes pour cela :
 
-1. une qui affiche un indicateur, fonctionne avec les connexions de base de données et utilise la bibliothèque auth0.js pour créer l’utilisateur (utilisée par les applications monopages). Pour en savoir plus, consultez la [référence d’Auth0.js](/docs/fr-CA/libraries/auth0js).
+1. une qui affiche un indicateur, fonctionne avec les connexions de base de données et utilise la bibliothèque auth0.js pour créer l’utilisateur (utilisée par les applications monopage). Pour en savoir plus, consultez la [référence d’Auth0.js](/docs/fr-CA/libraries/auth0js).
 2. une qui affiche un indicateur, fonctionne avec les connexions de base de données et utilise l’Authentication API pour créer l’utilisateur (utilisée par les applications Web traditionnelles)
-3. une qui affiche un indicateur, fonctionne avec les connexions sociales et utilise la Management API pour mettre à jour les renseignements de l’utilisateur (utilisée autant par les SPA que par les applications Web traditionnelles)
-4. une qui redirige vers une autre page où les Conditions générales et/ou la politique de confidentialité peuvent être consultées et où il est possible de donner son consentement (utilisée autant par les SPA que par les applications Web traditionnelles)
+3. une qui affiche un indicateur, fonctionne avec les connexions sociales et utilise la Management API pour mettre à jour les renseignements de l’utilisateur (utilisée aussi bien par les SPA que par les applications Web traditionnelles)
+4. une qui redirige vers une autre page où les Conditions générales et/ou la politique de confidentialité peuvent être consultées et où les renseignements sur le consentement peuvent être fournis (utilisée aussi bien par les SPA que par les applications Web traditionnelles)
 
 <div id="option-1-use-auth0js">
   ## Option 1 : Utiliser auth0.js
 </div>
 
-Dans cette section, nous utiliserons une simple Single-Page Application et personnaliserons le widget de connexion pour y ajouter un indicateur que les utilisateurs pourront utiliser pour fournir des renseignements de consentement. Au lieu de créer une application de zéro, nous allons [utiliser l’exemple JavaScript Quickstart d’Auth0](/docs/fr-CA/quickstart/spa/vanillajs). Nous utiliserons aussi les pages <Tooltip tip="Universal Login: votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, afin de vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> d’Auth0 pour implémenter Universal Login, plutôt que d’intégrer la connexion à notre application. Pour en savoir plus sur Universal Login, consultez [Auth0 Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login). Pour en savoir plus sur les différences entre Universal Login et l’embedded login, consultez [Centralized Universal Login vs. Embedded Login](/docs/fr-CA/authenticate/login/universal-vs-embedded-login).
+Dans cette section, nous utiliserons une application monopage simple et personnaliserons le widget de connexion pour y ajouter un indicateur que les utilisateurs pourront utiliser pour fournir des renseignements de consentement. Au lieu de créer une application à partir de zéro, nous [utiliserons l’exemple JavaScript du Quickstart d’Auth0](/docs/fr-CA/quickstart/spa/vanillajs). Nous utiliserons également les pages <Tooltip tip="Universal Login : votre application redirige vers Universal Login, hébergé sur l’Authorization Server d’Auth0, afin de vérifier l’identité d’un utilisateur." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Universal+Login">Universal Login</Tooltip> d’Auth0 pour mettre en œuvre Universal Login, plutôt que d’intégrer la connexion dans notre application. Pour en savoir plus sur Universal Login, consultez [Auth0 Universal Login](/docs/fr-CA/authenticate/login/auth0-universal-login). Pour en savoir plus sur les différences entre Universal Login et la connexion intégrée, consultez [Centralized Universal Login vs. Embedded Login](/docs/fr-CA/authenticate/login/universal-vs-embedded-login).
 
-Cela fonctionne **uniquement** pour les connexions de base de données (nous utiliserons l’infrastructure d’Auth0 au lieu de configurer notre propre base de données).
+Cela fonctionne **uniquement** avec les connexions de base de données (nous utiliserons l’infrastructure d’Auth0 au lieu de configurer notre propre base de données).
 
-1. Allez à [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) et créez une nouvelle application. Choisissez `Single Web Page Applications` comme type. Allez à **Settings** et définissez **Allowed Callback URLs** à `http://localhost:3000`.
+1. Accédez à [Auth0 Dashboard &gt; Applications &gt; Applications](https://manage.auth0.com/#/applications) et créez une nouvelle application. Choisissez `Single Web Page Applications` comme type. Accédez à **Settings** et définissez **Allowed Callback URLs** sur `http://localhost:3000`.
 
-   Ce champ contient l’ensemble des URL vers lesquelles Auth0 est autorisé à rediriger les utilisateurs après leur authentication. Notre application d’exemple s’exécutera à l’adresse `http://localhost:3000`, donc nous définissons cette valeur.
+   Ce champ contient l’ensemble des URL vers lesquelles Auth0 est autorisé à rediriger les utilisateurs après leur authentification. Notre exemple d’application s’exécutera à `http://localhost:3000`, donc nous définissons cette valeur.
 
-2. Copiez les valeurs **Client Id** et **Domain**. Vous en aurez besoin dans un instant.
+2. Copiez les valeurs **Client Id** et **Domain**. Vous en aurez besoin sous peu.
 
-3. Allez à [Auth0 Dashboard &gt; Authentication &gt; Database](https://manage.auth0.com/#/connections/database) et créez une nouvelle connexion de base de données. Cliquez sur **Create DB Connection**, donnez un nom à la nouvelle connexion de base de données, puis cliquez sur **Save**. Allez à l’onglet **Applications** de la connexion de base de données et assurez-vous que votre application nouvellement créée est activée.
+3. Accédez à [Auth0 Dashboard &gt; Authentication &gt; Database](https://manage.auth0.com/#/connections/database) et créez une nouvelle connexion. Cliquez sur **Create DB Connection**, donnez un nom à la nouvelle connexion, puis cliquez sur **Save**. Accédez à l’onglet **Applications** de la connexion et assurez-vous que votre application nouvellement créée est activée.
 
 4. [Téléchargez l’exemple JavaScript SPA](/docs/fr-CA/quickstart/spa/vanillajs).
 
-5. [Définissez les valeurs Client ID et Domain](https://github.com/auth0-samples/auth0-javascript-samples/tree/master/01-Login#set-the-client-id-and-domain).
+5. [Définissez les valeurs de Client ID et Domain](https://github.com/auth0-samples/auth0-javascript-samples/tree/master/01-Login#set-the-client-id-and-domain).
 
-6. Allez à [Auth0 Dashboard &gt; Branding &gt; Universal Login](https://manage.auth0.com/#/login_settings). Dans l’onglet **Login**, activez le bouton bascule.
+6. Accédez à [Auth0 Dashboard &gt; Branding &gt; Universal Login](https://manage.auth0.com/#/login_settings). Dans l’onglet **Login**, activez le bouton bascule.
 
 7. Dans la liste déroulante **Default Templates**, assurez-vous que `Custom Login Form` est sélectionné. Le code est prérempli pour vous.
 
-8. Définissez la valeur de la variable `databaseConnection` au nom de la connexion de base de données utilisée par votre application.
+8. Définissez la valeur de la variable `databaseConnection` sur le nom de la connexion de base de données utilisée par votre application.
 
    ```javascript lines
    //code réduit pour simplifier
@@ -76,7 +76,7 @@ Cela fonctionne **uniquement** pour les connexions de base de données (nous uti
    	//code réduit pour simplifier
    ```
 
-9. Pour ajouter un champ pour la métadonnée `consentGiven`, ajoutez une case à cocher au formulaire. Dans notre exemple, nous configurerons la case à cocher pour qu’elle soit cochée par défaut et désactivée, afin que l’utilisateur ne puisse pas la décocher. Vous pouvez ajuster cela selon les besoins de votre entreprise.
+9. Pour ajouter un champ pour les métadonnées `consentGiven`, ajoutez une case à cocher au formulaire. Dans notre exemple, nous configurerons la case à cocher pour qu’elle soit cochée par défaut et désactivée, afin que l’utilisateur ne puisse pas la décocher. Vous pouvez ajuster cela selon les besoins de votre entreprise.
 
    ```javascript lines
    //code réduit pour simplifier
@@ -90,7 +90,7 @@ Cela fonctionne **uniquement** pour les connexions de base de données (nous uti
        //code réduit pour simplifier
    ```
 
-10. Modifiez la fonction Signup pour définir la métadonnée. Notez que nous définissons la valeur de la métadonnée comme une chaîne de caractères ayant la valeur `true`, et non comme une valeur booléenne, et que nous utilisons `toString` pour convertir le nombre en chaîne. Cela est dû à une restriction du endpoint [**Signup** de l’Authentication API](https://auth0.com/docs/api/authentication#signup), qui n’accepte que des chaînes comme valeurs.
+10. Modifiez la fonction d’inscription afin de définir les métadonnées. Notez que nous définissons la valeur des métadonnées comme une chaîne ayant la valeur `true`, et non comme une valeur booléenne, et que nous utilisons `toString` pour convertir le nombre en chaîne. Cela est dû à une restriction de l’endpoint [**Signup** de l’Authentication API](https://auth0.com/docs/api/authentication#signup), qui n’accepte que des chaînes comme valeurs.
 
     ```text lines
     //code réduit pour simplifier
@@ -107,17 +107,17 @@ Cela fonctionne **uniquement** pour les connexions de base de données (nous uti
 
 11. Pour voir à quoi ressemblera le widget de connexion, cliquez sur l’onglet **Preview**.
 
-<Frame>![Dashboard Branding Universal Login Classic Login Onglet Custom Login Form](/docs/images/cdy7uua7fh8z/4m3WA0sKMoR0C1KVnVmZ1G/b311bdbc6c48b4910eac49cc8f1b9ba8/2025-02-26_15-17-18.png)</Frame>
+<Frame>![Dashboard Branding Universal Login Classic Login onglet Custom Login Form](/docs/images/cdy7uua7fh8z/4m3WA0sKMoR0C1KVnVmZ1G/b311bdbc6c48b4910eac49cc8f1b9ba8/2025-02-26_15-17-18.png)</Frame>
 
-1. Pour tester cette configuration, exécutez l’application et accédez à `http://localhost:3000`. Inscrivez-vous en tant que nouvel utilisateur. Ensuite, accédez à [Auth0 Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users) et recherchez ce nouvel utilisateur. Accédez à **User Details** et faites défiler jusqu’à la section **Metadata**. Dans la zone de texte **user&#95;metadata**, vous devriez voir la métadonnée `consentGiven` définie sur `true`.
+1. Pour tester cette configuration, exécutez l’application et accédez à `http://localhost:3000`. Créez un compte avec un nouvel utilisateur. Ensuite, accédez à [Auth0 Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users) et recherchez ce nouvel utilisateur. Ouvrez **User Details** et faites défiler jusqu’à la section **Metadata**. Dans la zone de texte **user&#95;metadata**, vous devriez voir la métadonnée `consentGiven` définie à `true`.
 
 <div id="option-2-use-the-api-database">
   ## Option 2 : Utiliser l’API (base de données)
 </div>
 
-Si votre page de connexion est hébergée sur votre propre serveur, vous pouvez appeler directement le [point de terminaison **Signup**](https://auth0.com/docs/api/authentication#signup) de l’Authentication API une fois que l’utilisateur s’inscrit.
+Si votre page de connexion est hébergée sur votre propre serveur, vous pouvez alors appeler directement le [point de terminaison **Signup**](https://auth0.com/docs/api/authentication#signup) de l’Authentication API une fois que l’utilisateur s’inscrit.
 
-Dans le même scénario que celui dont nous parlons depuis le début, après avoir inscrit un nouvel utilisateur, vous pouvez utiliser l’extrait de code suivant pour créer l’utilisateur dans Auth0 et définir les métadonnées. N’oubliez pas de remplacer la valeur du paramètre de requête `consentTimestamp` par l’horodatage correspondant au moment où l’utilisateur a donné son consentement.
+Dans le même scénario que celui dont nous parlons depuis le début, après l’inscription d’un nouvel utilisateur, vous pouvez utiliser l’extrait suivant pour créer l’utilisateur dans Auth0 et définir les métadonnées. N’oubliez pas de remplacer la valeur du paramètre de requête `consentTimestamp` par l’horodatage correspondant au moment où l’utilisateur a donné son consentement.
 
 <AuthCodeGroup>
   ```bash cURL
@@ -261,23 +261,23 @@ Dans le même scénario que celui dont nous parlons depuis le début, après avo
   ```
 </AuthCodeGroup>
 
-Notez que nous définissons la valeur des métadonnées comme une chaîne de caractères dont la valeur est `true`, et non comme une valeur booléenne, en raison d’une restriction de l’API : elle accepte des chaînes de caractères comme valeurs, mais pas des booléens.
+Notez que nous définissons la valeur des métadonnées comme une chaîne de caractères ayant la valeur `true`, et non comme une valeur booléenne, en raison de la restriction de l’API, qui accepte des chaînes de caractères comme valeurs, et non des booléens.
 
-Si vous devez absolument utiliser des valeurs booléennes, vous pouvez plutôt utiliser la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>. Dans ce scénario, vous inscrivez l’utilisateur comme d’habitude, puis vous appelez le point de terminaison [**Update User**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id) de la Management API pour définir les métadonnées requises une fois l’utilisateur créé. Pour savoir comment faire, poursuivez votre lecture : le paragraphe suivant utilise ce point de terminaison.
+Si vous devez utiliser des valeurs booléennes, vous pouvez plutôt utiliser la <Tooltip tip="Management API : un produit qui permet aux clients d’effectuer des tâches administratives." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Management+API">Management API</Tooltip>. Dans ce scénario, vous inscrivez votre utilisateur comme d’habitude, puis vous effectuez une requête vers l’[point de terminaison **Update User**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id) de la Management API pour définir les métadonnées requises une fois l’utilisateur créé. Pour savoir comment faire, poursuivez votre lecture : le paragraphe suivant utilise ce point de terminaison.
 
 <div id="option-3-use-the-api-social">
   ## Option 3 : Utiliser l’API (social)
 </div>
 
-Si vous utilisez des connexions sociales, vous ne pouvez pas utiliser l’Authentication API pour créer l’utilisateur dans Auth0, puisque ce point de terminaison fonctionne uniquement avec les connexions de base de données.
+Si vous utilisez des connexions sociales, vous ne pouvez pas utiliser l’Authentication API pour créer l’utilisateur dans Auth0, puisque ce point de terminaison fonctionne uniquement pour les connexions de base de données.
 
-Vous devez plutôt demander à l’utilisateur de s’inscrire avec le fournisseur social (ce qui créera un dossier utilisateur dans Auth0), puis utiliser la Management API pour mettre à jour les informations de l’utilisateur.
+Vous devez plutôt laisser l’utilisateur s’inscrire auprès du fournisseur social (ce qui créera un enregistrement utilisateur dans Auth0), puis utiliser la Management API pour mettre à jour les renseignements de l’utilisateur.
 
 Avant d’appeler la Management API, vous devez obtenir un jeton valide. Pour en savoir plus, consultez [Get Management API Access Tokens for Production](/docs/fr-CA/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production).
 
-L’article en lien utilise le Client Credentials Flow pour obtenir un jeton, mais ce flux ne peut pas être utilisé à partir d’une application exécutée dans le navigateur. Vous pouvez plutôt utiliser l’Implicit Flow. Pour en savoir plus sur le Client Credentials Flow, consultez [Client Credentials Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/client-credentials-flow). Pour en savoir plus sur l’Implicit Flow, consultez [Implicit Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post).
+L’article lié utilise le Client Credentials Flow pour obtenir un jeton, mais vous ne pouvez pas l’utiliser à partir d’une application exécutée dans le navigateur. Vous pouvez plutôt utiliser l’Implicit Flow. Pour en savoir plus sur le Client Credentials Flow, consultez [Client Credentials Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/client-credentials-flow). Pour en savoir plus sur l’Implicit Flow, consultez [Implicit Flow](/docs/fr-CA/get-started/authentication-and-authorization-flow/implicit-flow-with-form-post).
 
-Définissez le paramètre de requête **<Tooltip tip="Audience : identifiant unique de l’audience d’un jeton émis. Nommée aud dans un jeton, sa valeur contient l’ID soit d’une application (Client ID) pour un ID Token, soit d’une API (API Identifier) pour un Access Token." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip>** à `https://YOUR_DOMAIN/api/v2/` et le paramètre **scope** à `create:current_user_metadata`. Vous pouvez utiliser le <Tooltip tip="Access Token : information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">Access Token</Tooltip> que vous recevrez dans la réponse pour appeler le point de terminaison [**Update User**](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id) de la Management API.
+Définissez le paramètre de requête **<Tooltip tip="Audience : Identifiant unique de l’audience d’un jeton émis. Nommé aud dans un jeton, sa valeur contient l’ID d’une application (Client ID) pour un ID Token ou d’une API (API Identifier) pour un Access Token." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=audience">audience</Tooltip>** à `https://YOUR_DOMAIN/api/v2/` et le paramètre **scope** sur la portée `create:current_user_metadata`. Vous pouvez utiliser le <Tooltip tip="Access Token : Information d’autorisation, sous la forme d’une chaîne opaque ou d’un JWT, utilisée pour accéder à une API." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=Access+Token">Access Token</Tooltip> que vous recevrez dans la réponse pour appeler le point de terminaison [**Update User** de la Management API](https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id).
 
 Une fois que vous avez un jeton valide, utilisez l’extrait suivant pour mettre à jour les métadonnées de l’utilisateur.
 
@@ -427,17 +427,17 @@ Une fois que vous avez un jeton valide, utilisez l’extrait suivant pour mettre
   ```
 </AuthCodeGroup>
 
-Notez que pour effectuer cet appel, vous devez connaître le `user_id` unique. Vous pouvez l’obtenir à partir du claim `sub` du <Tooltip tip="ID Token : jeton destiné au client lui-même plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+Token">ID Token</Tooltip>, si la réponse en contenait un. Pour en savoir plus, consultez [ID Tokens](/docs/fr-CA/secure/tokens/id-tokens). Sinon, si vous n’avez que l’adresse courriel, vous pouvez récupérer l’identifiant en appelant un autre point de terminaison de la Management API. Pour en savoir plus, consultez [Pratiques exemplaires pour User Search](/docs/fr-CA/manage-users/user-search/user-search-best-practices).
+Notez que, pour effectuer cette requête, vous devez connaître le `user_id` unique. Vous pouvez l’obtenir à partir de la revendication `sub` du <Tooltip tip="ID Token : information d’authentification destinée au client lui-même, plutôt qu’à l’accès à une ressource." cta="Voir le glossaire" href="/docs/fr-CA/glossary?term=ID+Token">ID Token</Tooltip>, si vous en avez reçu un dans la réponse. Pour en savoir plus, consultez [ID Tokens](/docs/fr-CA/secure/tokens/id-tokens). Autrement, si vous n’avez que l’adresse courriel, vous pouvez récupérer l’ID en envoyant une requête à un autre point de terminaison de la Management API. Pour en savoir plus, consultez [Pratiques exemplaires de User Search](/docs/fr-CA/manage-users/user-search/user-search-best-practices).
 
 <div id="option-4-redirect-to-another-page">
   ## Option 4 : Rediriger vers une autre page
 </div>
 
-Si vous souhaitez afficher davantage d’information à l’utilisateur, vous pouvez, au moment de l’inscription, le rediriger vers une autre page où vous demanderez le consentement et tout renseignement supplémentaire, puis le rediriger de nouveau pour terminer la transaction d’authentication. Cela peut se faire à l’aide de règles de redirection. Cette même règle peut aussi servir à enregistrer l’information de consentement dans les métadonnées de l’utilisateur afin que vous puissiez en faire le suivi et éviter de redemander le consentement lors de la prochaine connexion. Pour en savoir plus, consultez [Rediriger des utilisateurs depuis Rules](/docs/fr-CA/customize/rules/redirect-users).
+Si vous souhaitez afficher plus d’information à l’utilisateur, vous pouvez, au moment de l’inscription, le rediriger vers une autre page pour lui demander son consentement ainsi que tout renseignement supplémentaire, puis le rediriger de nouveau afin de terminer la transaction d’authentication. Cela peut se faire à l’aide de règles de redirection. Cette même règle peut aussi servir à enregistrer l’information de consentement dans les métadonnées de l’utilisateur afin d’en faire le suivi et d’éviter de redemander son consentement à la prochaine connexion. Pour en savoir plus, consultez [Redirect Users from Within Rules](/docs/fr-CA/customize/rules/redirect-users).
 
-Vous devrez héberger ce formulaire, et son URL devra être accessible publiquement. Vous devrez fournir à Auth0 l’URL où le formulaire est accessible à une étape ultérieure de ce tutoriel.
+Vous devrez héberger ce formulaire, et son URL doit être accessible publiquement. Vous devrez fournir à Auth0 l’URL à laquelle le formulaire est accessible à une étape ultérieure de ce tutoriel.
 
-1. Ajoutez la règle de redirection. Accédez à [Auth0 Dashboard &gt; Auth Pipeline &gt; Rules](https://manage.auth0.com/#/rules), puis cliquez sur **Create Rule**. Sous **Rules Templates**, sélectionnez **empty rule**. Remplacez le nom par défaut de la règle, `empty rule`, par quelque chose de plus descriptif (par exemple, `Redirect to consent form`).
+1. Ajoutez la règle de redirection. Accédez à [Auth0 Dashboard &gt; Auth Pipeline &gt; Rules](https://manage.auth0.com/#/rules), puis cliquez sur **Create Rule**. Dans **Rules Templates**, sélectionnez **empty rule**. Remplacez le nom par défaut de la règle, `empty rule`, par un nom plus descriptif (par exemple, `Redirect to consent form`).
 
 2. Ajoutez le code Javascript suivant dans l’éditeur de script, puis cliquez sur **Save** pour enregistrer vos modifications.
 
@@ -445,7 +445,7 @@ Vous devrez héberger ce formulaire, et son URL devra être accessible publiquem
    exports.onExecutePostLogin = async (event, api) => {
        const { consentGiven } = event.user.user_metadata || {};
 
-       // rediriger vers le formulaire de consentement si l’utilisateur n’a pas encore donné son consentement
+       // rediriger vers le formulaire de consentement si l'utilisateur n'a pas encore consenti
        if (!consentGiven && api.redirect.canRedirect()) {
          const options = {
            query: {
@@ -456,7 +456,7 @@ Vous devrez héberger ce formulaire, et son URL devra être accessible publiquem
        }
    };
 
-   // si l’utilisateur clique sur 'I agree' dans le formulaire de consentement, l’enregistrer dans son profil afin qu’on ne le lui redemande pas
+   // si l'utilisateur clique sur 'I agree' dans le formulaire de consentement, l'enregistrer dans son profil pour qu'il ne reçoive plus l'invite
    exports.onContinuePostLogin = async (event, api) => {
      if (event.request.body.confirm === "yes") {
        api.user.setUserMetadata("consentGiven", true);
@@ -468,28 +468,28 @@ Vous devrez héberger ce formulaire, et son URL devra être accessible publiquem
    };
    ```
 
-3. Retournez à [Auth0 Dashboard &gt; Auth0 Pipeline &gt; Rules](https://manage.auth0.com/#/rules), puis faites défiler la page jusqu’à la section **Settings**, au bas de l’écran. Créez une paire clé-valeur comme suit :
+3. Retournez à [Auth0 Dashboard &gt; Auth0 Pipeline &gt; Rules](https://manage.auth0.com/#/rules), puis faites défiler jusqu’au bas de la page, à la section **Settings**. Créez une paire clé-valeur comme suit :
 
-   1. **Key** : `CONSENT_FORM_URL`
-   2. **Value** : `your-consent-form-url.com`
+   1. **Clé** : `CONSENT_FORM_URL`
+   2. **Valeur** : `your-consent-form-url.com`
 
 Assurez-vous de fournir l’URL accessible publiquement où se trouve votre formulaire de consentement.
 
-Lorsque vous configurez la redirection vers votre formulaire de consentement pour une utilisation dans un environnement Production, assurez-vous de consulter [Trusted Callback URLs](https://github.com/auth0/rules/tree/master/redirect-rules/simple#trusted-callback-urls) et [Data Integrity](https://github.com/auth0/rules/tree/master/redirect-rules/simple#data-integrity) pour les considérations de sécurité.
+Lorsque vous configurez la redirection vers votre formulaire de consentement pour un environnement Production, assurez-vous de consulter [Trusted Callback URLs](https://github.com/auth0/rules/tree/master/redirect-rules/simple#trusted-callback-urls) et [Data Integrity](https://github.com/auth0/rules/tree/master/redirect-rules/simple#data-integrity) en ce qui concerne les considérations de sécurité.
 
 Si vous avez besoin d’un consent prompt spécialisé, par exemple un consentement parental, vous devrez créer votre propre formulaire de consentement personnalisé. Notez que les lois varient d’un pays à l’autre.
 
-La configuration est terminée, passons au test !
+La configuration est maintenant terminée, passons au test !
 
 <div id="test-the-configuration">
-  ## Tester la configuration
+  ## Testez la configuration
 </div>
 
 1. Exécutez l’application et allez à `https://localhost:3000`.
-2. Inscrivez-vous comme nouvel utilisateur. Vous serez redirigé vers le formulaire de consentement.
+2. Créez un compte avec un nouvel utilisateur. Vous serez redirigé vers le formulaire de consentement.
 3. Cochez la case **I agree**, puis cliquez sur **Submit**.
 4. Allez à [Auth0 Dashboard &gt; User Management &gt; Users](https://manage.auth0.com/#/users), puis recherchez votre nouvel utilisateur.
 5. Allez à **User Details**, puis faites défiler jusqu’à la section **Metadata**.
-6. Dans la zone de texte **user&#95;metadata**, vous devriez voir la métadonnée `consentGiven` définie sur `true` et `consentTimestamp` défini sur l’horodatage Unix du moment où l’utilisateur a donné son consentement.
+6. Dans la zone de texte **user&#95;metadata**, vous devriez voir la métadonnée `consentGiven` définie à `true` et la valeur `consentTimestamp` définie à l’horodatage Unix du moment où l’utilisateur a donné son consentement.
 
 C’est tout, vous avez terminé !

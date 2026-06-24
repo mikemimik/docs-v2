@@ -1,17 +1,17 @@
 ---
 title: "Detalles de las entidades"
-description: "Conoce las entidades de Experiment Center: feature flags, variaciones, segmentos, experimentos y asignaciones."
+description: "Conoce las entidades de Experiment Center: flags de funcionalidad, variaciones, segmentos, experimentos y asignaciones."
 sidebarTitle: Detalles de las entidades
 ---
 
-import { ReleaseStageNotice } from "/snippets/ReleaseStageNotice.jsx"
+import { ReleaseStageNotice } from "/snippets/es/ReleaseStageNotice.jsx"
 
-<ReleaseStageNotice feature="Auth0 Experiment Center" stage="beta" terms="true" contact="Auth0 Support" />
+<ReleaseStageNotice feature="Auth0 Experiment Center" stage="beta" terms="true" contact="equipo de soporte de Auth0" />
 
-Con la [Management API](/docs/es/api/management/v2) de Auth0, puedes definir los detalles de las entidades de Experiment Center, incluidas las propiedades, los estados del ciclo de vida y las reglas de validación.
+Con la [Management API](/docs/es/api/management/v2) de Auth0, puedes definir los detalles de la entidad de Experiment Center, incluidas las propiedades, los estados del ciclo de vida y las reglas de validación.
 
 <Warning>
-  Durante la beta, Experiment Center solo funciona en tenants de desarrollo. No es compatible con tenants de producción.
+  Durante la Beta, Experiment Center solo está disponible en tenants de desarrollo. Los tenants de producción no son compatibles.
 </Warning>
 
 <div id="experiment">
@@ -24,37 +24,37 @@ Con la [Management API](/docs/es/api/management/v2) de Auth0, puedes definir los
 
 Los experimentos tienen cinco estados:
 
-| **Estado**  | **Significado**                                                                                                                |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `draft`     | Creado, pero no está en ejecución. Se puede probar de forma segura usando anulaciones mediante parámetros de consulta.         |
-| `active`    | En ejecución. La asignación de variantes y la inyección de contexto están activas en todas las transacciones de autenticación. |
-| `paused`    | Suspendido temporalmente. No se realizan nuevas asignaciones. Las sesiones en curso conservan la variante asignada.            |
-| `completed` | Finalizado. No se realizan nuevas asignaciones. La configuración se conserva como referencia durante la promoción manual.      |
-| `archived`  | Eliminado de forma no permanente. Oculto en las vistas de lista predeterminadas. Se conservan los datos analíticos.            |
+| **Estado**  | **Significado**                                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `draft`     | Creado, pero sin ejecutar. Se puede probar de forma segura mediante anulaciones de parámetros de consulta.                       |
+| `active`    | En ejecución. La asignación de variantes y la inyección de contexto están activas para todas las transacciones de autenticación. |
+| `paused`    | Suspendido temporalmente. No se realizan nuevas asignaciones. Las sesiones en curso mantienen la variación asignada.             |
+| `completed` | Finalizado. No se realizan nuevas asignaciones. La configuración se conserva como referencia durante la promoción manual.        |
+| `archived`  | Eliminado de forma lógica. Oculto en las vistas de lista predeterminadas. Se conservan los datos analíticos.                     |
 
-Para cambiar de estado en el ciclo de vida, usa el endpoint de la Management API [`/api/v2/experimentation/experiments/{id}/status`](/docs/es/api/management/v2/experimentation/update-experiment-status).
+Para cambiar el estado del ciclo de vida, usa el endpoint de la Management API [`/api/v2/experimentation/experiments/{id}/status`](/docs/es/api/management/v2/experimentation/update-experiment-status).
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  No se permite la transición de `completed → active`. Si necesitas ejecutar la misma prueba otra vez, crea un experimento nuevo.
+  No se permite pasar de `completed → active`. Si necesitas volver a ejecutar la misma prueba, crea un nuevo experimento.
 </Callout>
 
 <div id="the-is_valid-gate">
-  ### La validación `is_valid`
+  ### La compuerta `is_valid`
 </div>
 
 Antes de que un experimento pueda activarse, debe pasar una verificación de preparación.
 
-Experiment Center almacena un booleano `is_valid` en cada experimento y lo recalcula cada vez que se escribe. Esto te da información inmediata durante la configuración.
+Experiment Center almacena un valor booleano `is_valid` en cada experimento y lo recalcula con cada escritura. Esto te da retroalimentación inmediata durante el Setup.
 
-También puedes comprobar explícitamente si está listo usando el endpoint de la Management API [`/api/v2/experimentation/experiments/{id}/validate`](/docs/es/api/management/v2/experimentation/validate-experiment).
+También puedes determinar explícitamente si está listo mediante el endpoint de la Management API [`/api/v2/experimentation/experiments/{id}/validate`](/docs/es/api/management/v2/experimentation/validate-experiment).
 
-Esto devuelve `is_valid: true/false` y una matriz `errors` con cada bloqueo. La misma comprobación se ejecuta automáticamente cuando intentas activar mediante el endpoint de estado.
+Esto devuelve `is_valid: true/false` y un arreglo `errors` que enumera todos los bloqueadores. La misma verificación se ejecuta automáticamente cuando intentas activar a través del endpoint de estado.
 
-**Reglas de validación que se comprueban durante la activación:**
+**Reglas de validación comprobadas durante la activación:**
 
-* La feature flag referenciada está en estado `active`
+* El flag de funcionalidad referenciado está en estado `active`
 * Existe al menos una asignación
-* Todos los valores `variation_id` de las asignaciones pertenecen a la feature flag del experimento
+* Todos los valores `variation_id` de las asignaciones pertenecen al flag de funcionalidad del experimento
 * Exactamente una asignación tiene `is_control: true`
 * Los pesos de las asignaciones suman 100 (estrategia de porcentaje)
 * Exactamente una asignación tiene `is_fallback: true` (estrategia de segmento)
@@ -64,61 +64,61 @@ Esto devuelve `is_valid: true/false` y una matriz `errors` con cada bloqueo. La 
   ### Asignación
 </div>
 
-**Anulación mediante parámetros de consulta**
+**Anulación de parámetros de consulta**
 
-Puedes forzar una asignación concreta en cualquier solicitud a `/authorize` pasando parámetros de consulta:
+Puedes forzar una asignación específica en cualquier solicitud a `/authorize` pasando parámetros de consulta:
 
 | Parámetro       | Descripción                                                |
 | --------------- | ---------------------------------------------------------- |
-| `experiment_id` | Inscribe en un experimento específico                      |
-| `variation_id`  | Fuerza una variación específica (requiere `experiment_id`) |
-| `segment_id`    | Fuerza un segmento específico (requiere `experiment_id`)   |
+| `experiment_id` | Inscribir en un experimento específico                     |
+| `variation_id`  | Forzar una variación específica (requiere `experiment_id`) |
+| `segment_id`    | Forzar un segmento específico (requiere `experiment_id`)   |
 
-Esto funciona con experimentos en cualquier estado, incluido `draft`. Úsalo durante el desarrollo para comprobar que ambas variaciones se muestran correctamente antes de activarlo.
+Esto funciona para experimentos en cualquier estado, incluido `draft`. Úsalo durante el desarrollo para verificar que ambas variaciones se muestran correctamente antes de activarlo.
 
 <div id="feature-flag">
-  ## Feature flag
+  ## Flag de funcionalidad
 </div>
 
 <div id="feature-flag-lifecycle">
-  ### Ciclo de vida de la feature flag
+  ### Ciclo de vida del flag de funcionalidad
 </div>
 
-Las feature flags tienen un ciclo de vida almacenado con tres estados:
+Los flags de funcionalidad tienen un ciclo de vida definido con tres estados:
 
-| **Estado** | **Significado**                                                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------------------------------ |
-| `draft`    | Creada, pero aún no está activa. No puede ser referenciada por un experimento activo.                              |
-| `active`   | Lista para usarse. Es un requisito para que pueda activarse cualquier experimento que haga referencia a esta flag. |
-| `archived` | Terminal. Ningún experimento nuevo puede hacer referencia a esta flag. Crea una nueva flag si es necesario.        |
+| **Estado** | **Significado**                                                                                                |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
+| `draft`    | Creado, pero todavía no está activo. No puede ser referenciado por un experimento activo.                      |
+| `active`   | Listo para usarse. Es un requisito para activar cualquier experimento que haga referencia a este flag.         |
+| `archived` | Estado final. Ningún experimento nuevo puede hacer referencia a este flag. Crea un nuevo flag si es necesario. |
 
-Para pasar de un estado a otro, usa el endpoint de Auth0 Management API [`/api/v2/experimentation/feature-flags/{id}/status`](/docs/es/api/management/v2/experimentation/update-feature-flag-status).
+Para cambiar de un estado a otro, usa el endpoint de Auth0 Management API [`/api/v2/experimentation/feature-flags/{id}/status`](/docs/es/api/management/v2/experimentation/update-feature-flag-status).
 
-**Condición de activación:** Una feature flag no puede pasar a `active` hasta que tenga al menos dos variaciones. Esto garantiza que toda flag activa tenga, como mínimo, un control y un tratamiento antes de activarse.
+**Requisito de activación:** Un flag de funcionalidad no puede pasar a `active` hasta que tenga al menos dos variaciones. Esto garantiza que cada flag activo tenga, como mínimo, un control y un tratamiento antes de entrar en funcionamiento.
 
 ```text wrap lines
 draft → active   (requires ≥2 variations)
 draft → archived
-active → archived (terminal; no way back)
+active → archived (terminal; sin vuelta atrás)
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  No se puede pasar de `archived → active`. Si archivas una feature flag y necesitas ejecutar otra prueba, crea una nueva feature flag.
+  No se permite pasar de `archived → active`. Si archivas un flag de funcionalidad y necesitas realizar otra prueba, crea un nuevo flag de funcionalidad.
 </Callout>
 
 <div id="variation">
   ### Variación
 </div>
 
-**Parámetros y anulaciones**
+**Parámetros y sobrescrituras**
 
-Los parámetros de las feature flags definen las opciones de configuración de tu experimento. Cada parámetro tiene:
+Los parámetros del flag de funcionalidad definen la configuración de tu experimento. Cada parámetro tiene:
 
 * Un nombre (por ejemplo, `show_passkey_prompt`)
 * Un tipo: `string`, `boolean`, `number`, `array` u `object`
-* Un valor predeterminado (el valor base)
+* Un valor predeterminado (la línea base)
 
-La propiedad `overrides` de una variación especifica solo los parámetros que cambian. En tiempo de ejecución, Experiment Center combina el valor base del flag con las `overrides` de la variación y entrega el objeto `config` completo a ACUL, Actions y las plantillas de página. Cada parámetro siempre tiene un valor en `config`; no necesitas implementar lógica alternativa.
+La propiedad `overrides` de una variación especifica solo los parámetros que difieren. En el runtime, Experiment Center combina la línea base del flag con las sobrescrituras de la variación y entrega el objeto `config` completo resultante a ACUL, Actions y las plantillas de página. Cada parámetro siempre tiene un valor en `config`; nunca necesitas escribir lógica de respaldo.
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
   Los parámetros usan **solo el modo estructurado**. Cada parámetro tiene una clave con nombre y un valor tipado.
@@ -132,35 +132,35 @@ La propiedad `overrides` de una variación especifica solo los parámetros que c
   ### Reglas del segmento
 </div>
 
-Las `rules` de un segmento son un arreglo de objetos de regla. Una solicitud coincide con el segmento si **alguna** regla del arreglo coincide. Una regla coincide si sus condiciones cumplen con el `match_type`:
+La propiedad `rules` de un segmento es un arreglo de objetos de regla. Una solicitud coincide con el segmento si **cualquiera** de las reglas del arreglo coincide. Una regla coincide si sus condiciones cumplen el `match_type`:
 
-* `match_type: "all"`: todas las condiciones deben ser verdaderas (lógica AND)
-* `match_type: "any"`: al menos una condición debe ser verdadera (lógica OR)
+* `match_type: "all"`: todas las condiciones deben cumplirse (lógica AND)
+* `match_type: "any"`: al menos una condición debe cumplirse (lógica OR)
 
-Cada condición compara un atributo con un valor mediante un operador: `equals`, `not_equals`, `in`, `not_in`, `exists`, `not_exists`.
+Cada condición compara un atributo con un valor usando un operador: `equals`, `not_equals`, `in`, `not_in`, `exists`, `not_exists`.
 
 <div id="available-condition-attributes">
   ### Atributos de condición disponibles
 </div>
 
-Los segmentos solo pueden usar atributos disponibles al iniciar la transacción de `/authorize`:
+Los segmentos solo pueden usar los atributos disponibles al iniciar la transacción de `/authorize`:
 
-| **Categoría**                  | **Atributos**                                      |
-| ------------------------------ | -------------------------------------------------- |
-| Cliente                        | `client_id`                                        |
-| Conexión                       | `connection`, `connection_type`                    |
-| Organización                   | `organization_id`                                  |
-| Dominio                        | `domain`                                           |
-| Dispositivo y navegador        | `device_type`, `browser`, `platform`, `user_agent` |
-| Geográfico (derivado de la IP) | `country`, `region`                                |
+| **Categoría**                    | **Atributos**                                      |
+| -------------------------------- | -------------------------------------------------- |
+| Cliente                          | `client_id`                                        |
+| Conexión                         | `connection`, `connection_type`                    |
+| Organización                     | `organization_id`                                  |
+| Dominio                          | `domain`                                           |
+| Dispositivo y navegador          | `device_type`, `browser`, `platform`, `user_agent` |
+| Geográficos (derivados de la IP) | `country`, `region`                                |
 
 <div id="learn-more">
   ## Más información
 </div>
 
 <CardGroup cols={2}>
-  <Card title="Guía de inicio rápido de Experiment Center" icon="gear" href="/docs/es/customize/experiment-center/quickstart">
-    Aprende paso a paso a crear una feature flag, variaciones y un experimento de principio a fin.
+  <Card title="Experiment Center Quickstart" icon="gear" href="/docs/es/customize/experiment-center/quickstart">
+    Sigue paso a paso la creación de un flag de funcionalidad, variaciones y un experimento.
   </Card>
 
   <Card title="Integración de ACUL" icon="puzzle-piece" href="/docs/es/customize/experiment-center/integrations/acul-integration-guide">

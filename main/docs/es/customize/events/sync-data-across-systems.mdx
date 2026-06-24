@@ -3,7 +3,7 @@ description: Mantén una base de datos externa o un almacén de datos sincroniza
 title: Sincronizar datos entre sistemas
 ---
 
-Con Event Streams, puedes mantener una copia de tus datos de identidad de Auth0 en un sistema externo, como una base de datos relacional, un almacén de datos o un índice de búsqueda. Cuando se crea, actualiza o elimina un perfil de usuario en Auth0, se envía un evento al destino de tu flujo para que tu sistema externo pueda aplicar ese mismo cambio.
+Con Event Streams, puedes mantener una copia de tus datos de identidad de Auth0 en un sistema externo, como una base de datos relacional, un almacén de datos o un índice de búsqueda. Cuando se crea, actualiza o elimina un perfil de usuario en Auth0, se envía un evento al destino de tu flujo para que tu sistema externo pueda aplicar el mismo cambio.
 
 <div id="why-synchronize-identity-data">
   ## Por qué sincronizar los datos de identidad
@@ -11,10 +11,10 @@ Con Event Streams, puedes mantener una copia de tus datos de identidad de Auth0 
 
 Mantener una copia local de los datos de identidad es útil cuando necesitas:
 
-* Ejecutar consultas de análisis, informes o cumplimiento normativo sin hacer llamadas a la Management API.
-* Ofrecer experiencias de búsqueda que requieran consultas de baja latencia entre los atributos del usuario.
-* Alimentar canalizaciones de datos que combinen registros de identidad con otros datos empresariales.
-* Mantener una copia de seguridad del estado del perfil del usuario para la recuperación ante desastres.
+* Ejecutar análisis, informes o consultas de cumplimiento sin llamar a la Management API.
+* Ofrecer experiencias de búsqueda que requieran consultas de baja latencia entre los atributos de los usuarios.
+* Alimentar pipelines de datos que combinen registros de identidad con otros datos empresariales.
+* Mantener una copia de seguridad del estado del perfil de usuario para la recuperación ante desastres.
 
 <div id="how-it-works">
   ## Cómo funciona
@@ -22,9 +22,9 @@ Mantener una copia local de los datos de identidad es útil cuando necesitas:
 
 1. Auth0 publica un evento cada vez que cambia el perfil de un usuario.
 2. Tu Event Stream envía ese evento a un destino (webhook, AWS EventBridge o Auth0 Action).
-3. Tu controlador inspecciona el tipo de evento y aplica la operación de escritura correspondiente en el sistema externo.
+3. Tu controlador examina el tipo de evento y aplica la operación de escritura correspondiente en el sistema externo.
 
-Los siguientes tipos de eventos son relevantes para la sincronización de datos:
+Los siguientes tipos de evento son relevantes para la sincronización de datos:
 
 | Tipo de evento | Cuándo se activa                             |
 | -------------- | -------------------------------------------- |
@@ -36,23 +36,23 @@ Los siguientes tipos de eventos son relevantes para la sincronización de datos:
   ## Requisitos previos
 </div>
 
-Antes de comenzar, asegúrate de contar con lo siguiente:
+Antes de empezar, asegúrate de tener:
 
-* Un tenant de Auth0 con Events habilitados. Para obtener más información sobre la disponibilidad según el plan, consulta [Create an Event Stream](/docs/es/customize/events/create-an-event-stream).
+* Un tenant de Auth0 con Events habilitado. Para obtener más información sobre la disponibilidad del plan, consulta [Create an Event Stream](/docs/es/customize/events/create-an-event-stream).
 * Un Event Stream activo suscrito a `user.created`, `user.updated` y `user.deleted`. Para obtener más información, consulta [Create an Event Stream](/docs/es/customize/events/create-an-event-stream).
-* Un almacén de datos externo (por ejemplo, PostgreSQL, MySQL o un data warehouse) en el que tu controlador pueda escribir.
+* Un repositorio de datos externo (por ejemplo, PostgreSQL, MySQL o un almacén de datos) en el que puedas escribir desde tu controlador.
 
 <div id="implement-data-synchronization">
   ## Implementa la sincronización de datos
 </div>
 
-En las siguientes secciones se muestra cómo gestionar cada tipo de evento. Las funciones del controlador son las mismas independientemente del destino de Event Stream. En la sección [Enrutar eventos por tipo](#route-events-by-type) se muestra cómo despachar eventos tanto para destinos de webhook como de Auth0 Action.
+Las secciones siguientes muestran cómo manejar cada tipo de evento. Las funciones de controlador son las mismas independientemente del destino de Event Stream que uses. La sección [Enrutar eventos por tipo](#route-events-by-type) muestra cómo despachar eventos tanto a destinos de webhook como de Auth0 Action.
 
 <div id="handle-usercreated">
-  ### Procesar user.created
+  ### Gestiona `user.created`
 </div>
 
-Cuando Auth0 publique un evento `user.created`, inserta una nueva fila en tu base de datos.
+Cuando Auth0 publica un evento `user.created`, inserta una nueva fila en tu base de datos.
 
 ```javascript wrap lines
 async function handleUserCreated(user, time) {
@@ -69,10 +69,10 @@ async function handleUserCreated(user, time) {
 ```
 
 <div id="handle-userupdated">
-  ### Procesar `user.updated`
+  ### Gestionar user.updated
 </div>
 
-Cuando Auth0 emita un evento `user.updated`, actualiza la fila correspondiente. Compara la marca de tiempo del evento con la columna `last_event_processed` para evitar sobrescribirla con datos obsoletos.
+Cuando Auth0 emite un evento `user.updated`, actualiza la fila correspondiente. Compara la marca de tiempo del evento con la columna `last_event_processed` para evitar sobrescribir datos con información desactualizada.
 
 ```javascript wrap lines
 async function handleUserUpdated(user, time) {
@@ -90,14 +90,14 @@ async function handleUserUpdated(user, time) {
 ```
 
 <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-  Los eventos pueden llegar fuera de orden. Compara siempre las marcas de tiempo antes de aplicar actualizaciones para evitar que datos obsoletos sobrescriban registros más recientes. Para más información, consulta [Prácticas recomendadas para eventos](/docs/es/customize/events/events-best-practices).
+  Los Events pueden llegar fuera de orden. Compara siempre las marcas de tiempo antes de aplicar actualizaciones para evitar que los datos obsoletos sobrescriban registros más recientes. Para obtener más información, consulta [Events Best Practices](/docs/es/customize/events/events-best-practices).
 </Callout>
 
 <div id="handle-userdeleted">
-  ### Gestionar user.deleted
+  ### Procesar user.deleted
 </div>
 
-Cuando Auth0 publique un evento `user.deleted`, elimina la fila correspondiente o márcala como eliminada lógicamente.
+Cuando Auth0 publica un evento `user.deleted`, elimina o marca para eliminación lógica la fila correspondiente.
 
 ```javascript wrap lines
 async function handleUserDeleted(user) {
@@ -110,10 +110,10 @@ async function handleUserDeleted(user) {
 ```
 
 <div id="route-events-by-type">
-  ### Enruta los eventos por tipo
+  ### Enrutar eventos por tipo
 </div>
 
-Usa un router principal para dirigir cada evento al controlador correspondiente. Los siguientes ejemplos muestran cómo enrutar eventos para destinos de webhook y Auth0 Action.
+Usa un router de nivel superior para dirigir cada evento al controlador correcto. Los ejemplos a continuación muestran cómo enrutar eventos para destinos webhook y Auth0 Action.
 
 <Tabs>
   <Tab title="Webhook">
@@ -146,7 +146,7 @@ Usa un router principal para dirigir cada evento al controlador correspondiente.
     ```
 
     <Callout icon="file-lines" color="#0EA5E9" iconType="regular">
-      Devuelve una respuesta HTTP `2XX` lo antes posible. Si tu controlador necesita realizar operaciones lentas, coloca el evento en una cola interna y procésalo de forma asíncrona. Para obtener más información, consulta [Prácticas recomendadas para eventos](/docs/es/customize/events/events-best-practices).
+      Devuelve una respuesta HTTP `2XX` lo antes posible. Si tu controlador necesita realizar operaciones lentas, coloca el evento en una cola interna y procésalo de forma asíncrona. Para obtener más información, consulta [Events Best Practices](/docs/es/customize/events/events-best-practices).
     </Callout>
   </Tab>
 
@@ -179,11 +179,11 @@ Usa un router principal para dirigir cada evento al controlador correspondiente.
   ## Evita duplicados y problemas de orden
 </div>
 
-Los Event Streams ofrecen entrega de al menos una vez, lo que significa que tu controlador puede recibir el mismo evento más de una vez. Para hacerlo de forma segura:
+Event Streams ofrece una entrega de al menos una vez, lo que significa que tu controlador puede recibir el mismo evento más de una vez. Para gestionarlo de forma segura:
 
-* **Haz un seguimiento de los ID de los eventos.** Almacena el `id` de cada evento procesado y omite cualquier evento que ya hayas gestionado.
-* **Compara las marcas de tiempo.** El payload de cada evento incluye los campos `created_at` y `updated_at` en `data.object`. Usa estos campos para determinar si un evento entrante es más reciente que lo que tu sistema ya tiene registrado.
-* **Usa escrituras idempotentes.** Estructura las operaciones de tu base de datos de modo que aplicar el mismo evento dos veces produzca el mismo resultado. Por ejemplo, usa `INSERT ... ON CONFLICT DO UPDATE` en PostgreSQL.
+* **Haz un seguimiento de los ID de los eventos.** Guarda el `id` de cada evento procesado y omite cualquier evento que ya hayas procesado.
+* **Compara las marcas de tiempo.** El payload de cada evento incluye los campos `created_at` y `updated_at` en `data.object`. Usa estos campos para determinar si un evento entrante es más reciente que el que tu sistema ya registró.
+* **Usa escrituras idempotentes.** Estructura tus operaciones de base de datos de modo que aplicar el mismo evento dos veces produzca el mismo resultado. Por ejemplo, usa `INSERT ... ON CONFLICT DO UPDATE` en PostgreSQL.
 
 ```sql wrap lines
 INSERT INTO users (user_id, email, name, nickname, created_at, updated_at, last_event_processed)
@@ -198,21 +198,21 @@ WHERE users.last_event_processed < EXCLUDED.last_event_processed;
 ```
 
 <div id="verify-synchronization">
-  ## Verifica la sincronización
+  ## Verificar la sincronización
 </div>
 
-Después de implementar tu controlador, crea un usuario de prueba en Auth0 y confirma lo siguiente:
+Después de desplegar tu controlador, crea un usuario de prueba en Auth0 y comprueba lo siguiente:
 
-1. Que aparezca una nueva fila en tu base de datos externa con los datos de perfil correctos.
-2. Actualiza el nombre o el correo electrónico del usuario en Auth0. Confirma que la fila de la base de datos refleje el cambio.
-3. Elimina el usuario en Auth0. Confirma que la fila se elimine (o se marque como eliminada) en tu base de datos.
+1. Aparece una nueva fila en tu base de datos externa con los datos de perfil correctos.
+2. Actualiza el nombre o el correo electrónico del usuario en Auth0. Comprueba que la fila de la base de datos refleje el cambio.
+3. Elimina al usuario en Auth0. Comprueba que la fila se elimine (o se marque como eliminada) en tu base de datos.
 
-Para obtener más información sobre las pruebas de Event Streams, consulta [Event Testing, Observability, and Failure Recovery](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
+Para obtener más información sobre cómo probar Event Streams, consulta [Pruebas de eventos, observabilidad y recuperación ante fallos](/docs/es/customize/events/event-testing-observability-and-failure-recovery).
 
 <div id="learn-more">
   ## Más información
 </div>
 
 * [Tipos de eventos](/docs/es/customize/events/event-types)
-* [Crear un flujo de eventos](/docs/es/customize/events/create-an-event-stream)
-* [Mejores prácticas para eventos](/docs/es/customize/events/events-best-practices)
+* [Crear un Event Stream](/docs/es/customize/events/create-an-event-stream)
+* [Prácticas recomendadas para Events](/docs/es/customize/events/events-best-practices)

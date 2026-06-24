@@ -5,9 +5,9 @@ title: Reemplazo de palabras clave
 
 Deploy CLI admite el reemplazo dinámico de palabras clave con valores específicos del entorno. Esto permite un flujo de trabajo multi-tenant escalable en el que todos los tenants comparten los mismos archivos de configuración de recursos, pero inyectan valores ligeramente distintos.
 
-Para usar el reemplazo de palabras clave, la propiedad de configuración `AUTH0_KEYWORD_REPLACE_MAPPINGS` debe contener las asignaciones correspondientes. Después, en los archivos de configuración de recursos, las palabras clave pueden inyectarse de una de estas dos formas:
+Para usar el reemplazo de palabras clave, la propiedad de configuración `AUTH0_KEYWORD_REPLACE_MAPPINGS` debe contener los mapeos adecuados. Luego, en los archivos de configuración de recursos, las palabras clave se pueden inyectar de una de estas dos formas:
 
-1. `@@EXAMPLE_KEY@@`: Usar los símbolos `@` hace que la herramienta aplique `JSON.stringify` a tu valor antes de reemplazarlo. Así, si tu valor es una cadena, la herramienta agregará comillas; si tu valor es un arreglo o un objeto, la herramienta agregará llaves.
+1. `@@EXAMPLE_KEY@@`: Usar los símbolos `@` hace que la herramienta ejecute `JSON.stringify` en tu valor antes de reemplazarlo. Así, si tu valor es una cadena, la herramienta agregará comillas; si tu valor es un arreglo u objeto, la herramienta agregará llaves.
 2. `##EXAMPLE_KEY##`: Usar el símbolo `#` hace que la herramienta realice un reemplazo literal; no agregará comillas ni llaves.
 
 ## Ejemplo de config.json
@@ -51,10 +51,10 @@ clients:
 ```
 
 <div id="array-concatenation">
-  ## Concatenación de arrays
+  ## Concatenación de arreglos
 </div>
 
-Puede encontrarse con situaciones en las que desee concatenar valores a un array estático mediante el reemplazo de palabras clave. No existe una sintaxis especial para este caso; sin embargo, es posible lograrlo escapando las comillas dobles en una sola cadena que contenga los valores adecuados e insertándola con la sintaxis de palabra clave `##`. Esta técnica funciona tanto para los [formatos YAML y de directorio](/docs/es/deploy-monitor/deploy-cli-tool/available-resource-configuration-formats).
+Puede haber situaciones en las que desee concatenar valores a un arreglo estático mediante el reemplazo de palabras clave. No existe una sintaxis especial para este caso; sin embargo, es posible lograrlo escapando las comillas dobles en una sola cadena que contenga los valores adecuados e inyectándola con la sintaxis de palabra clave `##`. Esta técnica funciona tanto con los [formatos YAML y de directorio](/docs/es/deploy-monitor/deploy-cli-tool/available-resource-configuration-formats).
 
 <div id="example-configjson">
   ### Ejemplo de config.json
@@ -79,14 +79,14 @@ clients:
 ```
 
 <div id="preserve-keywords-on-export">
-  ## Conservar las palabras clave al exportar
+  ## Preservar las palabras clave al exportar
 </div>
 
-En general, Deploy CLI funciona mejor con un flujo de trabajo unidireccional desde tus entornos de nivel inferior (p. ej., dev, test) hasta tus entornos de producción. Sin embargo, habrá ocasiones en las que sea necesario exportar la configuración desde un entorno de nivel superior a tu directorio de configuración local. De forma predeterminada, los valores remotos sobrescribirán los valores locales, **lo que provocará la eliminación de los marcadores de palabras clave**. No obstante, la conservación del reemplazo de palabras clave puede habilitarse mediante la propiedad de configuración booleana `AUTH0_PRESERVE_KEYWORDS`. Al habilitar esta configuración, Deploy CLI intentará conservar los marcadores de palabras clave definidos en tus archivos de configuración locales durante la exportación.
+En general, Deploy CLI funciona mejor cuando se usa en un flujo de trabajo unidireccional desde los entornos de nivel inferior (p. ej., dev, test) hasta los entornos de producción. Sin embargo, habrá ocasiones en las que sea necesario exportar la configuración desde un entorno de nivel superior a su directorio de configuración local. De forma predeterminada, los valores remotos sobrescribirán los valores locales, **lo que provocará la eliminación de los marcadores de palabras clave**. No obstante, la preservación del reemplazo de palabras clave puede habilitarse mediante la propiedad de configuración booleana `AUTH0_PRESERVE_KEYWORDS`. Al habilitar esta configuración, Deploy CLI intentará conservar los marcadores de palabras clave definidos en los archivos de configuración locales durante la exportación.
 
-La funcionalidad de conservación de palabras clave intentará preservar la mayor cantidad posible de palabras clave y, al mismo tiempo, mantener la precisión de los archivos de configuración de tus recursos. En la mayoría de los casos, funcionará sin ninguna intervención del usuario. Sin embargo, existen algunas limitaciones importantes:
+La funcionalidad de preservación de palabras clave intentará conservar la mayor cantidad posible de palabras clave sin dejar de mantener la precisión de los archivos de configuración de recursos. Y en la mayoría de los casos, funcionará sin ninguna intervención por parte del usuario. Sin embargo, existen algunas limitaciones importantes:
 
-* En el caso de un campo de configuración con reemplazo de palabras clave cuyos valores difieran entre local y remoto, siempre prevalecerá el valor de la configuración local. Esto hará que **cualquier cambio realizado fuera de banda en el entorno remoto se elimine** si existe un marcador de reemplazo de palabras clave en cualquier parte del valor de ese campo en el archivo de definición del recurso; no hay una conciliación &quot;inteligente&quot;.
-* Los arrays sin identificadores específicos no pueden conservarse. Ej.: `["http://site.com/logout", "localhost:3000/logout", "##LOGOUT_URL##"]`. Esto se debe a que el orden de estos valores no es determinista. Como alternativa, para conservar estos valores, se recomienda usar la sintaxis de reemplazo de palabras clave `@@ARRAY_REPLACE@@` con el valor completo.
+* En el caso de un campo de configuración con reemplazo de palabras clave cuyos valores difieran entre el entorno local y el remoto, siempre se priorizará el valor de la configuración local. Esto hará que **cualquier cambio fuera de banda en el entorno remoto se elimine** si existe un marcador de reemplazo de palabras clave en cualquier parte del valor de ese campo en el archivo de definición del recurso; no hay una conciliación &quot;inteligente&quot;.
+* Los arreglos sin identificadores específicos no pueden conservarse. Ej.: `["http://site.com/logout", "localhost:3000/logout", "##LOGOUT_URL##"]`. Esto se debe a que el orden de estos valores no es determinista. Como alternativa, para preservar estos valores, se recomienda usar la sintaxis de reemplazo de palabras clave `@@ARRAY_REPLACE@@` con el valor completo.
 
-Para obtener más información sobre la historia y los desafíos técnicos de la conservación de palabras clave, consulta [RFC: Conservación de palabras clave durante la exportación](https://github.com/auth0/auth0-deploy-cli/issues/688).
+Para obtener más información sobre el historial y los desafíos técnicos de la preservación de palabras clave, consulte [RFC: Keyword Preservation During Export](https://github.com/auth0/auth0-deploy-cli/issues/688).

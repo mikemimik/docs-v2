@@ -1,23 +1,23 @@
 ---
-description: Décrit les modèles de script d'action de base de données personnalisée pour la recherche d'utilisateurs.
+description: Décrit les modèles de scripts d’action de base de données personnalisée pour Get User.
 title: Modèles de script Get User
 ---
 
-Le script Get User implémente la fonction exécutée pour déterminer si un utilisateur existe actuellement. Nous recommandons de nommer cette fonction `getUser`.
+Le script Get User implémente la fonction exécutée pour vérifier si un utilisateur existe actuellement. Nous recommandons de nommer cette fonction `getUser`.
 
-Ce script est requis pour la [migration automatique](/docs/fr-CA/manage-users/user-migration/configure-automatic-migration-from-your-database), et requis dans certains cas pour l&#39;authentification héritée selon les opérations configurées pour la connexion. Auth0 recommande de définir un `user_id` permanent dans le profil utilisateur renvoyé afin d&#39;éviter la création d&#39;utilisateurs en double.
+Ce script est requis pour la [migration automatique](/docs/fr-CA/manage-users/user-migration/configure-automatic-migration-from-your-database) et, selon les opérations configurées pour la connexion, peut aussi être requis pour l’authentification héritée. Auth0 recommande de définir un `user_id` permanent dans le profil utilisateur renvoyé afin d’éviter la création d’utilisateurs en double.
 
-Si la migration automatique est configurée pour la connexion et que le profil utilisateur n&#39;a pas encore été créé, le script est exécuté chaque fois que les opérations suivantes se produisent :
+Si la migration automatique est configurée pour la connexion et que le profil utilisateur n’a pas encore été créé, le script est exécuté chaque fois que l’une des opérations suivantes se produit :
 
-* Changement d&#39;adresse courriel
+* Modifier l’adresse courriel
 * Inscription
 * Réinitialisation du mot de passe
 
-Si l&#39;authentification héritée est configurée pour la connexion, le script est exécuté chaque fois que les opérations suivantes se produisent :
+Si l’authentification héritée est configurée pour la connexion, le script est exécuté chaque fois que l’une des opérations suivantes se produit :
 
-* Création d&#39;un utilisateur
-* Changement d&#39;adresse courriel
-* Changement du mot de passe
+* Créer un utilisateur
+* Modifier l’adresse courriel
+* Modifier le mot de passe
 * Réinitialisation du mot de passe
 
 <div id="get-user-function">
@@ -27,27 +27,27 @@ Si l&#39;authentification héritée est configurée pour la connexion, le script
 La fonction `getUser` doit :
 
 * Envoyer l’identifiant de l’utilisateur à l’API de la base de données externe.
-* Renvoyer les données de profil de l’utilisateur si celui-ci a été trouvé.
-* Renvoyer une erreur s’il y a eu un problème à déterminer si l’utilisateur existe ou non.
+* Retourner les données du profil de l’utilisateur si celui-ci a été trouvé.
+* Retourner une erreur s’il est impossible de déterminer si l’utilisateur existe ou non.
 
 <div id="definition">
   ### Définition
 </div>
 
-La fonction `getUser` accepte deux paramètres et renvoie une fonction `callback` :
+La fonction `getUser` accepte deux paramètres et retourne une fonction `callback` :
 
 ```js lines
 getUser(email, callback): function
 ```
 
-| Paramètre  | Type     | Description                                                                |
-| ---------- | -------- | -------------------------------------------------------------------------- |
-| `email`    | String   | L’adresse courriel de l’utilisateur.                                       |
-| `callback` | Function | Permet de transmettre une erreur ou des données de profil dans le pipeline |
+| Paramètre  | Type     | Description                                                              |
+| ---------- | -------- | ------------------------------------------------------------------------ |
+| `email`    | String   | L’adresse courriel de l’utilisateur.                                     |
+| `callback` | Function | Permet de transmettre l’erreur ou les données de profil dans le pipeline |
 
 ### Exemple
 
-Voici un exemple en pseudo-Javascript montrant comment vous pourriez implémenter la fonction `getUser`. Pour des exemples par langage, consultez [Exemples de scripts par langage](#language-specific-script-examples).
+Voici un pseudo-exemple en Javascript montrant comment vous pourriez implémenter la fonction `getUser`. Pour des exemples propres à chaque langage, consultez [Exemples de scripts par langage](#language-specific-script-examples).
 
 ```javascript lines expandable
 function getUser(email, callback) {
@@ -84,7 +84,7 @@ function getUser(email, callback) {
   ## Fonction `callback`
 </div>
 
-La fonction `callback` sert à transmettre des données du profil utilisateur ou des données d’erreur dans le pipeline.
+La fonction `callback` sert à transmettre les données du profil utilisateur ou les données d’erreur dans le pipeline.
 
 <div id="definition">
   ### Définition
@@ -98,7 +98,7 @@ callback(error[,profile]): function
 
 | Paramètre | Type  | Obligatoire | Description                                      |
 | --------- | ----- | ----------- | ------------------------------------------------ |
-| `error`   | Objet | Obligatoire | Contient des données d’erreur.                   |
+| `error`   | Objet | Obligatoire | Contient les données d’erreur.                   |
 | `profile` | Objet | Facultatif  | Contient les données de profil de l’utilisateur. |
 
 <div id="return-the-user-profile-user-found">
@@ -106,10 +106,10 @@ callback(error[,profile]): function
 </div>
 
 <Warning>
-  Les données du profil renvoyées par le script Get User pour un utilisateur doivent être cohérentes avec celles renvoyées par le script Login.
+  Les données de profil renvoyées par le script Get User pour un utilisateur doivent être cohérentes avec celles renvoyées par le script Login.
 </Warning>
 
-Si l’utilisateur est trouvé, passez une valeur `null` au paramètre `error`, puis les données du profil de l’utilisateur au paramètre `profile` sous [forme normalisée](/docs/fr-CA/manage-users/user-accounts/user-profiles/normalized-user-profile-schema). En plus des champs standard, vous pouvez inclure les champs `user_metadata`, `app_metadata` et `mfa_factors`.
+Si l’utilisateur est trouvé, transmettez la valeur `null` au paramètre `error` et les données du profil de l’utilisateur au paramètre `profile`, sous [forme normalisée](/docs/fr-CA/manage-users/user-accounts/user-profiles/normalized-user-profile-schema). En plus des champs standard, vous pouvez inclure les champs `user_metadata`, `app_metadata` et `mfa_factors`.
 
 <div id="example">
   #### Exemple
@@ -138,10 +138,10 @@ return callback(null, {
 ```
 
 <div id="return-no-user-profile-user-not-found">
-  ### Ne renvoyez aucun profil d’utilisateur (utilisateur introuvable)
+  ### Ne retourner aucun profil utilisateur (utilisateur introuvable)
 </div>
 
-Si l’utilisateur est introuvable, passez une valeur `null` au paramètre `error` et n’incluez pas le paramètre `profile`.
+Si l&#39;utilisateur est introuvable, transmettez une valeur `null` au paramètre `error` et omettez le paramètre `profile`.
 
 <div id="example">
   #### Exemple
@@ -152,10 +152,10 @@ return callback(null);
 ```
 
 <div id="return-an-error">
-  ### Retourner une erreur
+  ### Renvoyer une erreur
 </div>
 
-Si une erreur survient, transmettez les informations d’erreur au paramètre `error`, en précisant ce qui s’est mal passé. Pour en savoir plus, consultez [Résoudre les problèmes liés aux bases de données personnalisées](/docs/fr-CA/authenticate/database-connections/custom-db/error-handling).
+Si une erreur se produit, transmettez les données d’erreur au paramètre `error` avec les renseignements pertinents sur la cause du problème. Pour en savoir plus, consultez [Résoudre les problèmes liés aux bases de données personnalisées](/docs/fr-CA/authenticate/database-connections/custom-db/error-handling).
 
 <div id="example">
   #### Exemple
@@ -169,7 +169,7 @@ return callback(new Error("My custom error message."));
   ## Exemples de scripts par langage
 </div>
 
-Auth0 fournit des scripts d’exemple pour les langages et technologies suivants :
+Auth0 fournit des scripts d’exemple pour les langages/technologies suivants :
 
 * [JavaScript](#javascript)
 * [ASP.NET Membership Provider (MVC3 - Universal Providers)](#asp-net-membership-provider-mvc3-universal-providers-)
@@ -190,11 +190,11 @@ Auth0 fournit des scripts d’exemple pour les langages et technologies suivants
 function getByEmail(email, callback) {
   // Ce script doit récupérer un profil utilisateur depuis votre base de données existante,
   // sans authentifier l'utilisateur.
-  // Il sert à vérifier si un utilisateur existe avant d'exécuter des flows qui ne
+  // Il est utilisé pour vérifier si un utilisateur existe avant d'exécuter des flows qui ne
   // nécessitent pas d'authentification (inscription et réinitialisation du mot de passe).
   //
   // Ce script peut se terminer de trois façons :
-  // 1. Un utilisateur a été trouvé avec succès. Le profil doit être au format suivant :
+  // 1. Un utilisateur a été trouvé avec succès. Le profil doit être dans le format suivant :
   // https://auth0.com/docs/users/normalized/auth0/normalized-user-profile-schema.
   //     callback(null, profile);
   // 2. Aucun utilisateur n'a été trouvé
@@ -377,7 +377,7 @@ function loginByEmail(email, callback) {
     if (err) return callback(err);
     const query = 'SELECT id, nickname, email FROM users WHERE email = $1';
     client.query(query, [email], function (err, result) {
-      // REMARQUE : appelez toujours `done()` ici pour fermer
+      // NOTE : appelez toujours `done()` ici pour fermer
       // la connexion à la base de données
       done();
       if (err || result.rows.length === 0) return callback(err);
@@ -460,7 +460,7 @@ function getByEmail (name, callback) {
 
 ```js lines expandable
 async function getUserAsync(email, callback) {
-  //doit être mis à jour lorsque de nouvelles versions d'axios sont disponibles (https://auth0-extensions.github.io/canirequire/#axios)
+  //devrait être mis à jour au fur et à mesure que de nouvelles versions d'axios sont disponibles (https://auth0-extensions.github.io/canirequire/#axios)
   const axios = require("axios@0.22.0");
 
   let response;
@@ -474,10 +474,10 @@ async function getUserAsync(email, callback) {
         email: email,
       },
       {
-        timeout: 10000, //terminer l'appel proprement si la requête expire afin que le script puisse effectuer le callback nécessaire
+        timeout: 10000, //terminer la requête proprement si la demande expire afin que le script puisse effectuer le callback nécessaire
         headers: {
-          //sécurisation de l'appel API avec l'apiKey stockée dans les paramètres de connexion.
-          //approche simple et rapide, mais l'utilisation de tokens M2M est plus sécurisée car
+          //sécuriser l'appel d'API avec l'apiKey stockée dans les paramètres de connexion.
+          //approche simple et rapide, mais l'utilisation de jetons M2M est plus sécurisée car
           // un secret ne doit pas être partagé entre le client et l'API.
           "x-api-key": configuration.apiKey,
         },
@@ -485,7 +485,7 @@ async function getUserAsync(email, callback) {
     );
   } catch (e) {
     if (e.response.status === 404) {
-      //on suppose que l'API retourne 404 lorsqu'aucun utilisateur avec l'adresse courriel/nom d'utilisateur spécifié n'est trouvé
+      //supposant que l'API retourne 404 lorsqu'aucun utilisateur avec l'adresse courriel/nom d'utilisateur spécifié n'est trouvé
       return callback(null, null);
     }
     //callback pour tout autre type d'erreur
@@ -514,7 +514,7 @@ async function getUserAsync(email, callback) {
 
 ```javascript lines expandable
 function getByEmail(email, callback) {
-  // Remplacez {yourStormpathClientId} par votre identifiant Stormpath
+  // Remplacez {yourStormpathClientId} par votre ID Stormpath
   var url = 'https://api.stormpath.com/v1/applications/{yourStormpathClientId}/accounts';
   // Ajoutez votre Client ID et Secret d'API Stormpath
   var apiCredentials = {
@@ -538,7 +538,7 @@ function getByEmail(email, callback) {
       username: user.username,
       email: user.email,
       email_verified: true
-      // Ajoutez tout champ supplémentaire que vous souhaitez conserver depuis Stormpath
+      // Ajoutez tout champ supplémentaire à transférer depuis Stormpath
     });
   });
 }
@@ -548,9 +548,9 @@ function getByEmail(email, callback) {
   ## En savoir plus
 </div>
 
-* [Modèles de scripts « Change Password »](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-password)
-* [Modèles de scripts « Create »](/docs/fr-CA/authenticate/database-connections/custom-db/templates/create)
-* [Modèles de scripts « Delete »](/docs/fr-CA/authenticate/database-connections/custom-db/templates/delete)
-* [Modèles de scripts « Login »](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login)
-* [Modèles de scripts « Verify »](/docs/fr-CA/authenticate/database-connections/custom-db/templates/verify)
-* [Modèle de script « Change Email »](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-email)
+* [Modèles de scripts Change Password](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-password)
+* [Modèles de scripts Create](/docs/fr-CA/authenticate/database-connections/custom-db/templates/create)
+* [Modèles de scripts Delete](/docs/fr-CA/authenticate/database-connections/custom-db/templates/delete)
+* [Modèles de scripts Login](/docs/fr-CA/authenticate/database-connections/custom-db/templates/login)
+* [Modèles de scripts Verify](/docs/fr-CA/authenticate/database-connections/custom-db/templates/verify)
+* [Modèle de script Change Email](/docs/fr-CA/authenticate/database-connections/custom-db/templates/change-email)

@@ -1,48 +1,48 @@
 ---
-description: Migra tu SAML Federation Connection actual de un dominio personalizado heredado de Auth0 a uno nuevo, para que tus tenants puedan aprovechar las capacidades de Multiple Custom Domain (MCD).
+description: Migre su conexión de federación SAML existente de un dominio personalizado heredado de Auth0 a uno nuevo, lo que permite a sus tenants aprovechar las capacidades de Multiple Custom Domain (MCD).
 title: Migración de SAML para dominios personalizados
 ---
 
-import {AuthCodeBlock} from "/snippets/AuthCodeBlock.jsx";
+import {AuthCodeBlock} from "/snippets/es/AuthCodeBlock.jsx";
 
-import {AuthCodeGroup} from "/snippets/AuthCodeGroup.jsx";
+import {AuthCodeGroup} from "/snippets/es/AuthCodeGroup.jsx";
 
-Migra tu SAML Federation Connection actual de un dominio personalizado heredado de Auth0 a uno nuevo, para que tus tenants puedan aprovechar las capacidades de Multiple Custom Domain (MCD).
+Migra tu conexión de federación SAML existente desde un dominio personalizado heredado de Auth0 a uno nuevo, para que tus tenants puedan aprovechar las capacidades de Multiple Custom Domain (MCD).
 
-Los proveedores de identidad externos (IdPs) suelen estar codificados de forma fija con tu dominio anterior, por lo que necesitas implementar un proxy inverso inteligente que intercepte la respuesta SAML enviada a tu dominio anterior y la redirija de forma segura a un nuevo dominio personalizado.
+Los proveedores de identidad externos (IdPs) suelen tener tu dominio anterior codificado de forma fija, por lo que necesitas implementar un proxy inverso inteligente que intercepte la respuesta SAML enviada a tu dominio anterior y la redirija de forma segura a un nuevo dominio personalizado.
 
-Esto garantiza una migración sin interrupciones para los usuarios federados, permitiéndote usar de inmediato tu nuevo dominio sin tener que esperar actualizaciones de configuración obligatorias de tu IdP. 
+Esto garantiza una migración fluida para los usuarios federados y te permite usar de inmediato tu nuevo dominio sin esperar actualizaciones de configuración obligatorias de tu IdP. 
 
 <div id="prerequisites">
   ## Requisitos previos
 </div>
 
-Este proceso requiere configurar mediante Terraform los componentes de Auth0 y desplegar un Cloudflare Worker para la lógica de proxy.
+Este proceso requiere configuración mediante Terraform para aprovisionar los componentes de Auth0 y el despliegue de un Cloudflare Worker para la lógica del proxy.
 
-Antes de comenzar tu migración, revisa los siguientes requisitos:
+Antes de comenzar la migración, revisa los siguientes requisitos:
 
 * Un tenant con un plan Enterprise y MCD habilitado.
 * Dos dominios personalizados verificados configurados en tu tenant de Auth0:
   1. **Dominio heredado antiguo** (para el proxy)
   2. **Nuevo dominio de destino** (para la aplicación)
 * Terraform CLI y `Node.js/npm` instalados.
-* Una cuenta de Cloudflare con acceso al dominio que aloja tus dominios personalizados.
+* Una cuenta de Cloudflare con acceso al dominio en el que alojas tus dominios personalizados.
 
 <div id="how-it-works">
   ## Cómo funciona
 </div>
 
-Esta estrategia de migración utiliza un proxy inverso inteligente para cerrar la brecha entre tu dominio personalizado heredado y tu nuevo dominio. Este proxy se despliega en el dominio antiguo para interceptar la respuesta de autenticación SAML enviada por tu proveedor de identidad (IdP) externo.
+Esta estrategia de migración utiliza un proxy inverso inteligente para cubrir la brecha entre tu dominio personalizado heredado y tu nuevo dominio. Este proxy se implementa en el dominio antiguo para interceptar la respuesta de autenticación SAML enviada por tu proveedor de identidad (IdP) externo.
 
-Esto es necesario porque la configuración del IdP está codificada de forma rígida en el endpoint de tu dominio antiguo. El proxy modifica los campos de control del payload de SAML (como `Destination` y `Recipient`) para que reflejen con precisión el nuevo dominio personalizado.
+Esto es necesario porque la configuración del IdP está codificada de forma fija al endpoint de tu dominio antiguo. El proxy modifica los campos de control del payload de SAML (como `Destination` y `Recipient`) para que reflejen correctamente el nuevo dominio personalizado.
 
-Por último, el proxy reenvía este payload corregido al endpoint de inicio de sesión del nuevo dominio. Esto permite una transición sin tiempo de inactividad a tu nuevo dominio, sin requerir cambios manuales de configuración por parte de tus partners de IdP.
+Por último, el proxy reenvía este payload corregido al endpoint de login del nuevo dominio. Esto permite una transición sin tiempo de inactividad a tu nuevo dominio sin requerir cambios manuales de configuración por parte de tus partners de IdP.
 
 <div id="setup-and-configuration">
   ## Setup y configuración
 </div>
 
-Para configurar tu migración:
+Para preparar y configurar tu migración:
 
 1. Clona el repositorio de migración:
 
@@ -57,7 +57,7 @@ cd auth0-mcd-federation-migration
 npm install
 ```
 
-3. Crea un archivo `terraform.auto.tfvars` en tu directorio `tf` con las credenciales y la información del dominio requeridas:
+3. Crea un archivo `terraform.auto.tfvars` en tu directorio `tf` con las credenciales necesarias y la información del dominio:
 
 ```bash
 # Variables de Auth0 Service Provider (SP)
@@ -86,7 +86,7 @@ terraform init
 terraform apply
 ```
 
-Esto crea la aplicación SAML y la conexión necesarias, configura el DNS con Cloudflare y prepara las variables de entorno para el worker.
+Esto crea la aplicación y la conexión SAML necesarias, configura el DNS mediante Cloudflare y prepara las variables de entorno para el worker.
 
 <div id="deploy-the-cloudflare-worker">
   ### Despliega el Cloudflare Worker
@@ -107,7 +107,7 @@ npx wrangler deploy
   ### Actualizar temporalmente los parámetros de la conexión SAML
 </div>
 
-Tu dominio antiguo recibe la respuesta SAML antes de volver a enviarla al dominio nuevo. Por lo tanto, los parámetros de validación esperados de la conexión SAML deben apuntar temporalmente a la URL de devolución de llamada del dominio antiguo para evitar errores de discrepancia.
+Tu dominio antiguo recibe la respuesta SAML antes de reenviarla al dominio nuevo. Por lo tanto, los parámetros de validación esperados de la conexión SAML deben apuntar temporalmente a la URL de devolución de llamada del dominio antiguo para evitar errores de discrepancia.
 
 1. Obtén un token de acceso de la Management API para el tenant de tu proveedor de servicios, con los scopes `read:connections` y `update:connections`:
 

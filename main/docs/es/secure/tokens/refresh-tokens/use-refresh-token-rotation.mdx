@@ -1,27 +1,27 @@
 ---
-description: Describe cómo usar la rotación del token de actualización que recibiste durante la autorización.
-title: Usar la rotación del token de actualización
+description: Describe cómo usar la rotación del Refresh Token que recibiste durante la autorización.
+title: Usa la rotación del Refresh Token
 ---
 
-Para usar la rotación de <Tooltip tip="Token de actualización: token que se usa para obtener un token de acceso renovado sin obligar a los usuarios a volver a iniciar sesión." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token">token de actualización</Tooltip>, usarás el SDK de Auth0 para aplicaciones de una sola página. El SDK de SPA de Auth0 se encarga del almacenamiento de tokens, la gestión de sesiones y otros detalles por ti.
+Para usar la rotación de <Tooltip tip="Refresh Token: token usado para obtener un token de acceso renovado sin obligar a los usuarios a iniciar sesión nuevamente." cta="Ver glosario" href="/docs/es/glossary?term=refresh+token">token de actualización</Tooltip>, usarás el SDK de Auth0 para aplicaciones de página única. El Auth0 SPA SDK se encarga del almacenamiento de tokens, la gestión de sesiones y otros detalles.
 
 <div id="prerequisite">
   ## Requisito previo
 </div>
 
-[Configura la rotación del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-rotation) para habilitar el acceso sin conexión y solicitar el scope de acceso sin conexión en el SDK del cliente.
+[Configure la rotación del Refresh Token](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-rotation) para habilitar el acceso sin conexión y solicitar el scope de acceso sin conexión en el SDK del cliente.
 
 <div id="enable-userefreshtokens">
   ## Habilitar useRefreshTokens
 </div>
 
-De acuerdo con las especificaciones de OAuth2, cuando un navegador solicita un token de actualización en el /<Tooltip tip="Endpoint de token: endpoint en el servidor de autorización que se usa para solicitar tokens de forma programática." cta="Ver glosario" href="/docs/es/glossary?term=token+endpoint">endpoint de token</Tooltip>, Auth0 solo devolverá un token de actualización si <Tooltip tip="Endpoint de token: endpoint en el servidor de autorización que se usa para solicitar tokens de forma programática." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+Token+Rotation">rotación del token de actualización</Tooltip> está habilitado para ese cliente.
+De acuerdo con las especificaciones de OAuth2, cuando un navegador solicita un token de actualización al /<Tooltip tip="Endpoint de token: endpoint del servidor de autorización que se usa para solicitar tokens mediante programación." cta="Ver glosario" href="/docs/es/glossary?term=token+endpoint">endpoint de token</Tooltip>, Auth0 solo devolverá un token de actualización si la <Tooltip tip="Endpoint de token: endpoint del servidor de autorización que se usa para solicitar tokens mediante programación." cta="Ver glosario" href="/docs/es/glossary?term=Refresh+Token+Rotation">rotación del Refresh Token</Tooltip> está habilitada para ese cliente.
 
-Usa la opción `useRefreshTokens` en `createAuth0Client`, cuyo valor predeterminado es `false`. Con esta opción en `false`, cuando se invoca `getTokenSilently()` y se necesita un nuevo <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, usada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip>, el SDK intenta obtenerlo mediante un iframe oculto y `prompt=none`.
+Usa la opción `useRefreshTokens` en `createAuth0Client`, cuyo valor predeterminado es `false`. Con esta opción establecida en `false`, cuando se invoca `getTokenSilently()` y se requiere un nuevo <Tooltip tip="Token de acceso: credencial de autorización, en forma de una cadena opaca o JWT, utilizada para acceder a una API." cta="Ver glosario" href="/docs/es/glossary?term=Access+Token">token de acceso</Tooltip>, el SDK intenta obtener un nuevo token de acceso usando un iframe oculto y `prompt=none`.
 
-Si estableces esta opción en `true`, el scope `offline_access` se solicita automáticamente al usar `loginWithRedirect(), loginWithPopup()` y `getTokenSilently()`. Cuando se invoca `getTokenSilently()` y el token de acceso ha expirado, el SDK intenta renovar los tokens de ID y de acceso llamando al endpoint `/token` con el tipo de concesión `refresh_token`, junto con el token de actualización almacenado en la caché.
+Si estableces esta opción en `true`, el scope `offline_access` se solicita automáticamente al usar `loginWithRedirect(), loginWithPopup()` y `getTokenSilently()`. Cuando se invoca `getTokenSilently()` y el token de acceso ha expirado, el SDK intenta renovar los tokens de ID y de acceso llamando al endpoint `/token` con el tipo de concesión `refresh_token`, junto con el token de actualización de la caché.
 
-La reautenticación silenciosa se logra enviando el parámetro `prompt=none` en la solicitud de autenticación y usando un iframe oculto, siempre que haya una sesión de usuario activa en el <Tooltip tip="Servidor de autorización: servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, tareas y funciones disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=authorization+server">servidor de autorización</Tooltip>. El SDK usa el método del iframe si has establecido `useRefreshTokens` en `true` pero no hay ningún token de actualización disponible en la caché. Esto ayuda a que los usuarios migren silenciosamente al uso de tokens de actualización sin tener que volver a iniciar sesión.
+La reautenticación silenciosa se logra enviando un parámetro `prompt=none` en la solicitud de autenticación y usando un iframe oculto, siempre que haya una sesión de usuario activa en el <Tooltip tip="Servidor de autorización: servidor centralizado que contribuye a definir los límites del acceso de un usuario. Por ejemplo, tu servidor de autorización puede controlar los datos, tareas y funcionalidades disponibles para un usuario." cta="Ver glosario" href="/docs/es/glossary?term=authorization+server">servidor de autorización</Tooltip>. El SDK usa el método del iframe si has establecido `useRefreshTokens` en `true` pero no hay ningún token de actualización disponible en la caché. Esto ayuda a los usuarios a migrar silenciosamente al uso de tokens de actualización sin tener que volver a iniciar sesión.
 
 Si el intercambio falla porque `useRefreshTokens` es `true` pero no hay un token de actualización en la caché, entonces recurre al método del iframe (que también podría fallar si las cookies de terceros están bloqueadas).
 
@@ -29,7 +29,7 @@ Si el intercambio falla porque `useRefreshTokens` es `true` pero no hay un token
   ## Almacenamiento de tokens
 </div>
 
-En las SPA, los tokens de ID y de acceso se obtienen del servidor de autorización y, por lo general, se almacenan en caché en memoria. El SDK se encarga de renovar los tokens (por ejemplo, al actualizar el navegador, cuando se libera la caché en memoria o cuando caducan).
+En las SPA, los tokens de ID y de acceso se obtienen del servidor de autorización y, por lo general, se almacenan en caché en memoria. El SDK se encarga de renovar los tokens (ya sea al recargar el navegador, por los límites de expulsión de la caché en memoria o por expiración).
 
 <div id="example">
   ## Ejemplo
@@ -49,8 +49,8 @@ const auth0 = await createAuth0Client({
     // y se almacenará el token de actualización resultante
     auth0.loginWithRedirect();
     
-    // La renovación silenciosa del token de acceso usará el endpoint /token
-    // con el grant 'refresh_token' y el token de actualización del caché
+    // La actualización silenciosa del token de acceso usará el endpoint /token
+    // con la concesión 'refresh_token' y el token de actualización de la caché
     await auth0.getTokenSilently();
 ```
 
@@ -58,6 +58,6 @@ const auth0 = await createAuth0Client({
   ## Más información
 </div>
 
-* [Configurar la rotación del token de actualización](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-rotation)
-* [Desactivar la rotación del token de actualización](/docs/es/secure/tokens/refresh-tokens/disable-refresh-token-rotation)
-* [Prácticas recomendadas para el uso de tokens](/docs/es/secure/tokens/token-best-practices)
+* [Configurar la rotación del Refresh Token](/docs/es/secure/tokens/refresh-tokens/configure-refresh-token-rotation)
+* [Desactivar la rotación del Refresh Token](/docs/es/secure/tokens/refresh-tokens/disable-refresh-token-rotation)
+* [Prácticas recomendadas para tokens](/docs/es/secure/tokens/token-best-practices)
